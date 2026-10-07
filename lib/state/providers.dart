@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../data/album_queries.dart';
 import '../data/database.dart';
+import '../data/entity_queries.dart';
 import '../data/image_store.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -73,4 +74,32 @@ final officialProvider =
 final fanArtsProvider = StreamProvider.family<List<FanArt>, (String, String?)>(
   (ref, key) =>
       ref.watch(databaseProvider).watchFanArts(key.$1, source: key.$2),
+);
+
+final ideaViewsProvider =
+    StreamProvider.family<List<IdeaView>, (String, String?)>(
+      (ref, key) =>
+          ref.watch(databaseProvider).watchIdeaViews(key.$1, tagId: key.$2),
+    );
+
+final ideaViewProvider = StreamProvider.family<IdeaView?, String>(
+  (ref, id) => ref.watch(databaseProvider).watchIdeaView(id),
+);
+
+final draftViewsProvider = StreamProvider.family<List<DraftView>, String>(
+  (ref, pitId) => ref.watch(databaseProvider).watchDraftViews(pitId),
+);
+
+final draftViewProvider = StreamProvider.family<DraftView?, String>(
+  (ref, id) => ref.watch(databaseProvider).watchDraftView(id),
+);
+
+final pieceViewsProvider =
+    StreamProvider.family<List<PieceView>, (String, String?)>(
+      (ref, key) =>
+          ref.watch(databaseProvider).watchPieceViews(key.$1, tagId: key.$2),
+    );
+
+final pieceViewProvider = StreamProvider.family<PieceView?, String>(
+  (ref, id) => ref.watch(databaseProvider).watchPieceView(id),
 );

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
 import '../../state/providers.dart';
@@ -21,7 +20,7 @@ class FanArtNewPage extends ConsumerStatefulWidget {
 }
 
 class _FanArtNewPageState extends ConsumerState<FanArtNewPage> {
-  final List<XFile> _files = [];
+  final List<ImageItem> _files = [];
   final _author = TextEditingController();
   String? _source;
   List<String> _tagIds = [];
@@ -35,7 +34,9 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage> {
 
   Future<void> _pick() async {
     final picked = await ref.read(imagePickerProvider)();
-    if (picked.isNotEmpty) setState(() => _files.addAll(picked));
+    if (picked.isNotEmpty) {
+      setState(() => _files.addAll(picked.map(ImageItem.picked)));
+    }
   }
 
   Future<void> _save() async {
@@ -47,7 +48,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage> {
     final store = await ref.read(imageStoreProvider.future);
     final imported = <NewImage>[];
     for (final f in _files) {
-      imported.add(await store.import(f));
+      imported.add(await f.resolve(store));
     }
     await ref
         .read(databaseProvider)
@@ -77,7 +78,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage> {
         padding: const EdgeInsets.all(20),
         children: [
           ImagePickerField(
-            files: _files,
+            items: _files,
             onAdd: _pick,
             onRemove: (i) => setState(() => _files.removeAt(i)),
           ),

@@ -8,6 +8,9 @@ import '../album/album_image.dart';
 import '../album/cover_pick_page.dart';
 import '../album/fan_art_list_page.dart';
 import '../album/official_list_page.dart';
+import '../entity/draft_list_page.dart';
+import '../entity/finished_list_page.dart';
+import '../entity/idea_list_page.dart';
 import 'pit_edit_page.dart';
 
 /// 坑內頁：五格排序固定（官方圖冊、好看同人圖、我的草稿、我的腦洞、我的成圖）。
@@ -83,8 +86,20 @@ class PitPage extends ConsumerWidget {
                         CoverPickPage(pitId: pitId, kind: AlbumKind.fanArt),
                       ),
               ),
-              _Cell('我的草稿', Icons.draw_outlined, t.draft, stats.drafts),
-              _Cell('我的腦洞', Icons.lightbulb_outline, t.idea, stats.ideas),
+              _Cell(
+                '我的草稿',
+                Icons.draw_outlined,
+                t.draft,
+                stats.drafts,
+                onTap: () => _open(context, DraftListPage(pitId: pitId)),
+              ),
+              _Cell(
+                '我的腦洞',
+                Icons.lightbulb_outline,
+                t.idea,
+                stats.ideas,
+                onTap: () => _open(context, IdeaListPage(pitId: pitId)),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -97,6 +112,7 @@ class PitPage extends ConsumerWidget {
               stats.pieces,
               wide: true,
               empty: stats.pieces == 0,
+              onTap: () => _open(context, FinishedListPage(pitId: pitId)),
             ),
           ),
         ],

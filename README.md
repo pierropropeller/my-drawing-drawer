@@ -21,7 +21,7 @@ flutter analyze && flutter test
 - [x] 1. 專案骨架、淺／深主題 tokens、底部導覽、drift schema
 - [x] 2. 坑：主頁、開新坑、坑內頁、編輯坑
 - [x] 3. 官方圖冊、同人圖
-- [ ] 4. 腦洞、草稿、成圖、連接關係、tag 管理
+- [x] 4. 腦洞、草稿、成圖、連接關係、tag 管理
 - [ ] 5. Google 登入與 Drive 同步
 - [ ] 6. 目標與年度回顧
 - [ ] 7. 空白狀態、snackbar、iPad 版面

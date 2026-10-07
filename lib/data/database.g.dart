@@ -4465,6 +4465,26 @@ class $EntityImagesTable extends EntityImages
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _widthMeta = const VerificationMeta('width');
+  @override
+  late final GeneratedColumn<int> width = GeneratedColumn<int>(
+    'width',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _heightMeta = const VerificationMeta('height');
+  @override
+  late final GeneratedColumn<int> height = GeneratedColumn<int>(
+    'height',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -4487,6 +4507,8 @@ class $EntityImagesTable extends EntityImages
     ownerType,
     ownerId,
     imageFile,
+    width,
+    height,
     sortOrder,
   ];
   @override
@@ -4544,6 +4566,18 @@ class $EntityImagesTable extends EntityImages
     } else if (isInserting) {
       context.missing(_imageFileMeta);
     }
+    if (data.containsKey('width')) {
+      context.handle(
+        _widthMeta,
+        width.isAcceptableOrUnknown(data['width']!, _widthMeta),
+      );
+    }
+    if (data.containsKey('height')) {
+      context.handle(
+        _heightMeta,
+        height.isAcceptableOrUnknown(data['height']!, _heightMeta),
+      );
+    }
     if (data.containsKey('sort_order')) {
       context.handle(
         _sortOrderMeta,
@@ -4593,6 +4627,14 @@ class $EntityImagesTable extends EntityImages
         DriftSqlType.string,
         data['${effectivePrefix}image_file'],
       )!,
+      width: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}width'],
+      )!,
+      height: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}height'],
+      )!,
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
@@ -4618,6 +4660,8 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
   final OwnerType ownerType;
   final String ownerId;
   final String imageFile;
+  final int width;
+  final int height;
   final int sortOrder;
   const EntityImage({
     required this.id,
@@ -4628,6 +4672,8 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     required this.ownerType,
     required this.ownerId,
     required this.imageFile,
+    required this.width,
+    required this.height,
     required this.sortOrder,
   });
   @override
@@ -4647,6 +4693,8 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     }
     map['owner_id'] = Variable<String>(ownerId);
     map['image_file'] = Variable<String>(imageFile);
+    map['width'] = Variable<int>(width);
+    map['height'] = Variable<int>(height);
     map['sort_order'] = Variable<int>(sortOrder);
     return map;
   }
@@ -4663,6 +4711,8 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
       ownerType: Value(ownerType),
       ownerId: Value(ownerId),
       imageFile: Value(imageFile),
+      width: Value(width),
+      height: Value(height),
       sortOrder: Value(sortOrder),
     );
   }
@@ -4683,6 +4733,8 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
       ),
       ownerId: serializer.fromJson<String>(json['ownerId']),
       imageFile: serializer.fromJson<String>(json['imageFile']),
+      width: serializer.fromJson<int>(json['width']),
+      height: serializer.fromJson<int>(json['height']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
@@ -4700,6 +4752,8 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
       ),
       'ownerId': serializer.toJson<String>(ownerId),
       'imageFile': serializer.toJson<String>(imageFile),
+      'width': serializer.toJson<int>(width),
+      'height': serializer.toJson<int>(height),
       'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
@@ -4713,6 +4767,8 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     OwnerType? ownerType,
     String? ownerId,
     String? imageFile,
+    int? width,
+    int? height,
     int? sortOrder,
   }) => EntityImage(
     id: id ?? this.id,
@@ -4723,6 +4779,8 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     ownerType: ownerType ?? this.ownerType,
     ownerId: ownerId ?? this.ownerId,
     imageFile: imageFile ?? this.imageFile,
+    width: width ?? this.width,
+    height: height ?? this.height,
     sortOrder: sortOrder ?? this.sortOrder,
   );
   EntityImage copyWithCompanion(EntityImagesCompanion data) {
@@ -4735,6 +4793,8 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
       ownerType: data.ownerType.present ? data.ownerType.value : this.ownerType,
       ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
+      width: data.width.present ? data.width.value : this.width,
+      height: data.height.present ? data.height.value : this.height,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
     );
   }
@@ -4750,6 +4810,8 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
           ..write('ownerType: $ownerType, ')
           ..write('ownerId: $ownerId, ')
           ..write('imageFile: $imageFile, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
           ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
@@ -4765,6 +4827,8 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     ownerType,
     ownerId,
     imageFile,
+    width,
+    height,
     sortOrder,
   );
   @override
@@ -4779,6 +4843,8 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
           other.ownerType == this.ownerType &&
           other.ownerId == this.ownerId &&
           other.imageFile == this.imageFile &&
+          other.width == this.width &&
+          other.height == this.height &&
           other.sortOrder == this.sortOrder);
 }
 
@@ -4791,6 +4857,8 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
   final Value<OwnerType> ownerType;
   final Value<String> ownerId;
   final Value<String> imageFile;
+  final Value<int> width;
+  final Value<int> height;
   final Value<int> sortOrder;
   final Value<int> rowid;
   const EntityImagesCompanion({
@@ -4802,6 +4870,8 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     this.ownerType = const Value.absent(),
     this.ownerId = const Value.absent(),
     this.imageFile = const Value.absent(),
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -4814,6 +4884,8 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     required OwnerType ownerType,
     required String ownerId,
     required String imageFile,
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : ownerType = Value(ownerType),
@@ -4828,6 +4900,8 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     Expression<String>? ownerType,
     Expression<String>? ownerId,
     Expression<String>? imageFile,
+    Expression<int>? width,
+    Expression<int>? height,
     Expression<int>? sortOrder,
     Expression<int>? rowid,
   }) {
@@ -4840,6 +4914,8 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
       if (ownerType != null) 'owner_type': ownerType,
       if (ownerId != null) 'owner_id': ownerId,
       if (imageFile != null) 'image_file': imageFile,
+      if (width != null) 'width': width,
+      if (height != null) 'height': height,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (rowid != null) 'rowid': rowid,
     });
@@ -4854,6 +4930,8 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     Value<OwnerType>? ownerType,
     Value<String>? ownerId,
     Value<String>? imageFile,
+    Value<int>? width,
+    Value<int>? height,
     Value<int>? sortOrder,
     Value<int>? rowid,
   }) {
@@ -4866,6 +4944,8 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
       ownerType: ownerType ?? this.ownerType,
       ownerId: ownerId ?? this.ownerId,
       imageFile: imageFile ?? this.imageFile,
+      width: width ?? this.width,
+      height: height ?? this.height,
       sortOrder: sortOrder ?? this.sortOrder,
       rowid: rowid ?? this.rowid,
     );
@@ -4900,6 +4980,12 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     if (imageFile.present) {
       map['image_file'] = Variable<String>(imageFile.value);
     }
+    if (width.present) {
+      map['width'] = Variable<int>(width.value);
+    }
+    if (height.present) {
+      map['height'] = Variable<int>(height.value);
+    }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
@@ -4920,6 +5006,8 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
           ..write('ownerType: $ownerType, ')
           ..write('ownerId: $ownerId, ')
           ..write('imageFile: $imageFile, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -10386,6 +10474,8 @@ typedef $$EntityImagesTableCreateCompanionBuilder =
       required OwnerType ownerType,
       required String ownerId,
       required String imageFile,
+      Value<int> width,
+      Value<int> height,
       Value<int> sortOrder,
       Value<int> rowid,
     });
@@ -10399,6 +10489,8 @@ typedef $$EntityImagesTableUpdateCompanionBuilder =
       Value<OwnerType> ownerType,
       Value<String> ownerId,
       Value<String> imageFile,
+      Value<int> width,
+      Value<int> height,
       Value<int> sortOrder,
       Value<int> rowid,
     });
@@ -10450,6 +10542,16 @@ class $$EntityImagesTableFilterComposer
 
   ColumnFilters<String> get imageFile => $composableBuilder(
     column: $table.imageFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get height => $composableBuilder(
+    column: $table.height,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10508,6 +10610,16 @@ class $$EntityImagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -10546,6 +10658,12 @@ class $$EntityImagesTableAnnotationComposer
 
   GeneratedColumn<String> get imageFile =>
       $composableBuilder(column: $table.imageFile, builder: (column) => column);
+
+  GeneratedColumn<int> get width =>
+      $composableBuilder(column: $table.width, builder: (column) => column);
+
+  GeneratedColumn<int> get height =>
+      $composableBuilder(column: $table.height, builder: (column) => column);
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
@@ -10590,6 +10708,8 @@ class $$EntityImagesTableTableManager
                 Value<OwnerType> ownerType = const Value.absent(),
                 Value<String> ownerId = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EntityImagesCompanion(
@@ -10601,6 +10721,8 @@ class $$EntityImagesTableTableManager
                 ownerType: ownerType,
                 ownerId: ownerId,
                 imageFile: imageFile,
+                width: width,
+                height: height,
                 sortOrder: sortOrder,
                 rowid: rowid,
               ),
@@ -10614,6 +10736,8 @@ class $$EntityImagesTableTableManager
                 required OwnerType ownerType,
                 required String ownerId,
                 required String imageFile,
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EntityImagesCompanion.insert(
@@ -10625,6 +10749,8 @@ class $$EntityImagesTableTableManager
                 ownerType: ownerType,
                 ownerId: ownerId,
                 imageFile: imageFile,
+                width: width,
+                height: height,
                 sortOrder: sortOrder,
                 rowid: rowid,
               ),

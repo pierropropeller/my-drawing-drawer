@@ -86,6 +86,8 @@ class EntityImages extends Table with SyncColumns {
   TextColumn get ownerType => textEnum<OwnerType>()();
   TextColumn get ownerId => text()();
   TextColumn get imageFile => text()();
+  IntColumn get width => integer().withDefault(const Constant(0))();
+  IntColumn get height => integer().withDefault(const Constant(0))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }
 
