@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../data/album_queries.dart';
 import '../data/database.dart';
 import '../data/entity_queries.dart';
+import '../data/goal_queries.dart';
 import '../data/image_store.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -102,4 +103,26 @@ final pieceViewsProvider =
 
 final pieceViewProvider = StreamProvider.family<PieceView?, String>(
   (ref, id) => ref.watch(databaseProvider).watchPieceView(id),
+);
+
+final goalViewsProvider =
+    StreamProvider.family<List<GoalView>, (GoalPeriod, int, int?)>(
+      (ref, k) =>
+          ref.watch(databaseProvider).watchGoalViews(k.$1, k.$2, month: k.$3),
+    );
+
+final monthCoversProvider = StreamProvider.family<Map<int, String>, (int, int)>(
+  (ref, k) => ref.watch(databaseProvider).watchMonthCovers(k.$1, k.$2),
+);
+
+final timelineProvider = StreamProvider.family<List<TimelineItem>, DateTime>(
+  (ref, day) => ref.watch(databaseProvider).watchTimeline(day),
+);
+
+final reviewMonthsProvider = StreamProvider.family<Map<int, String?>, int>(
+  (ref, year) => ref.watch(databaseProvider).watchReviewMonths(year),
+);
+
+final reviewSettingsProvider = StreamProvider.family<ReviewSetting, int>(
+  (ref, year) => ref.watch(databaseProvider).watchReviewSettings(year),
 );

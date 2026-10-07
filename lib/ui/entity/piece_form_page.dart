@@ -17,9 +17,17 @@ const socialPlatforms = ['推特', '小紅書', 'lofter', 'Instagram', 'Pixiv', 
 /// 新增成圖（亦作編輯頁）：圖片置頂（只限圖片）、標題、內文、tag、社交媒體連結（多條）、
 /// 目標互動量、完成時間、連接腦洞與草稿。
 class PieceFormPage extends ConsumerStatefulWidget {
-  const PieceFormPage({super.key, required this.pitId, this.pieceId});
+  const PieceFormPage({
+    super.key,
+    required this.pitId,
+    this.pieceId,
+    this.initialTime,
+  });
   final String pitId;
   final String? pieceId;
+
+  /// 新增時預設的完成時間。
+  final DateTime? initialTime;
 
   @override
   ConsumerState<PieceFormPage> createState() => _PieceFormPageState();
@@ -48,6 +56,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialTime != null) _finishedAt = widget.initialTime!;
     _load();
   }
 

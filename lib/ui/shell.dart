@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/tokens.dart';
+import 'goals/goals_page.dart';
 import 'pits/pits_page.dart';
 
 /// 底部導覽列：坑／目標／我的。各分頁內容之後逐步補上。
@@ -34,6 +35,7 @@ class _AppShellState extends State<AppShell> {
 
   Widget _root(int i) => switch (i) {
     0 => const PitsPage(),
+    1 => const GoalsPage(),
     _ => Center(
       child: Text(
         _tabs[i].label,

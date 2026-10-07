@@ -12,9 +12,17 @@ import 'entity_widgets.dart';
 
 /// 新增腦洞（亦作編輯頁）：標題、內文、配圖、tag、連接草稿、連接成圖。
 class IdeaFormPage extends ConsumerStatefulWidget {
-  const IdeaFormPage({super.key, required this.pitId, this.ideaId});
+  const IdeaFormPage({
+    super.key,
+    required this.pitId,
+    this.ideaId,
+    this.initialTime,
+  });
   final String pitId;
   final String? ideaId;
+
+  /// 新增時使用的建立時間（時間軸上以「此時此刻」新增、可改時間）。
+  final DateTime? initialTime;
 
   @override
   ConsumerState<IdeaFormPage> createState() => _IdeaFormPageState();
@@ -82,6 +90,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage> {
           tagIds: _tagIds,
           draftIds: _draftIds,
           pieceIds: _pieceIds,
+          createdAt: widget.initialTime,
         );
     if (mounted) Navigator.of(context).pop();
   }

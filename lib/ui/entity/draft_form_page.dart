@@ -14,9 +14,17 @@ import 'entity_widgets.dart';
 /// 新增草稿（亦作編輯頁）：圖片置頂（至少一張），標題、內文、tag 可空，可連接多個腦洞。
 /// 時間＝建立時間，表單不讓使用者改。
 class DraftFormPage extends ConsumerStatefulWidget {
-  const DraftFormPage({super.key, required this.pitId, this.draftId});
+  const DraftFormPage({
+    super.key,
+    required this.pitId,
+    this.draftId,
+    this.initialTime,
+  });
   final String pitId;
   final String? draftId;
+
+  /// 新增時使用的建立時間（時間軸上以「此時此刻」新增、可改時間）。
+  final DateTime? initialTime;
 
   @override
   ConsumerState<DraftFormPage> createState() => _DraftFormPageState();
@@ -83,6 +91,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage> {
           images: imgs,
           tagIds: _tagIds,
           ideaIds: _ideaIds,
+          createdAt: widget.initialTime,
         );
     if (mounted) Navigator.of(context).pop();
   }

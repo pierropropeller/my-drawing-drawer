@@ -1,0 +1,470 @@
+import 'package:drift/drift.dart';
+
+import 'database.dart';
+import 'entity_queries.dart';
+
+class GoalView {
+  const GoalView({
+    required this.goal,
+    required this.pit,
+    required this.tags,
+    required this.progress,
+  });
+
+  final Goal goal;
+  final Pit? pit;
+  final List<Tag> tags;
+  final int progress;
+
+  int get target => goal.count;
+  bool get done => progress >= target;
+  double get ratio => target == 0 ? 0 : (progress / target).clamp(0.0, 1.0);
+
+  /// 名稱留空時自動生成：生產 N 個腦洞／畫 N 份草稿／完成 N 張成圖；
+  /// 有互動量條件時為「互動量過 N 的成圖 N 張」。
+  String get displayName => goalAutoName(goal);
+}
+
+String goalAutoName(Goal g) {
+  final custom = g.name?.trim();
+  if (custom != null && custom.isNotEmpty) return custom;
+  return switch (g.kind) {
+    GoalKind.idea => '生產 ${g.count} 個腦洞',
+    GoalKind.draft => '畫 ${g.count} 份草稿',
+    GoalKind.piece =>
+      g.requireLikes != null
+          ? '互動量過 ${g.requireLikes} 的成圖 ${g.count} 張'
+          : '完成 ${g.count} 張成圖',
+  };
+}
+
+/// 時間軸上的一筆（腦洞／草稿／成圖）。
+class TimelineItem {
+  const TimelineItem({
+    required this.kind,
+    required this.id,
+    required this.pitId,
+    required this.time,
+    required this.title,
+    this.file,
+  });
+
+  final GoalKind kind;
+  final String id;
+  final String pitId;
+  final DateTime time;
+  final String title;
+  final String? file;
+}
+
+DateTime monthStart(int year, int month) => DateTime(year, month);
+DateTime monthEnd(int year, int month) => DateTime(year, month + 1);
+
+extension GoalQueries on AppDatabase {
+  Set<TableInfo> get _goalTables => {
+    goals,
+    pits,
+    tags,
+    tagLinks,
+    ideas,
+    drafts,
+    pieces,
+  };
+
+  Future<int> _progress(Goal g, List<Tag> goalTags) async {
+    final start = g.period == GoalPeriod.year
+        ? DateTime(g.year)
+        : monthStart(g.year, g.month ?? 1);
+    final end = g.period == GoalPeriod.year
+        ? DateTime(g.year + 1)
+        : monthEnd(g.year, g.month ?? 1);
+    final tagIds = goalTags.map((t) => t.id).toList();
+
+    Future<bool> hasAllTags(TagTarget type, String id) async {
+      if (tagIds.isEmpty) return true;
+      final rows =
+          await (select(tagLinks)..where(
+                (l) => l.targetType.equalsValue(type) & l.targetId.equals(id),
+              ))
+              .get();
+      final have = rows.map((r) => r.tagId).toSet();
+      return tagIds.every(have.contains);
+    }
+
+    var n = 0;
+    switch (g.kind) {
+      case GoalKind.idea:
+        final rows =
+            await (select(ideas)..where(
+                  (i) =>
+                      i.deletedAt.isNull() &
+                      i.createdAt.isBiggerOrEqualValue(start) &
+                      i.createdAt.isSmallerThanValue(end) &
+                      (g.pitId == null
+                          ? const Constant(true)
+                          : i.pitId.equals(g.pitId!)),
+                ))
+                .get();
+        for (final r in rows) {
+          if (await hasAllTags(TagTarget.idea, r.id)) n++;
+        }
+      case GoalKind.draft:
+        final rows =
+            await (select(drafts)..where(
+                  (i) =>
+                      i.deletedAt.isNull() &
+                      i.createdAt.isBiggerOrEqualValue(start) &
+                      i.createdAt.isSmallerThanValue(end) &
+                      (g.pitId == null
+                          ? const Constant(true)
+                          : i.pitId.equals(g.pitId!)),
+                ))
+                .get();
+        for (final r in rows) {
+          if (await hasAllTags(TagTarget.draft, r.id)) n++;
+        }
+      case GoalKind.piece:
+        final rows =
+            await (select(pieces)..where(
+                  (i) =>
+                      i.deletedAt.isNull() &
+                      i.finishedAt.isBiggerOrEqualValue(start) &
+                      i.finishedAt.isSmallerThanValue(end) &
+                      (g.pitId == null
+                          ? const Constant(true)
+                          : i.pitId.equals(g.pitId!)) &
+                      (g.requireLikes == null
+                          ? const Constant(true)
+                          : i.actualLikes.isBiggerOrEqualValue(
+                              g.requireLikes!,
+                            )),
+                ))
+                .get();
+        for (final r in rows) {
+          if (await hasAllTags(TagTarget.piece, r.id)) n++;
+        }
+    }
+    return n;
+  }
+
+  Future<GoalView> _goalView(Goal g) async {
+    final tagRows =
+        await (select(tags)
+                .join([innerJoin(tagLinks, tagLinks.tagId.equalsExp(tags.id))])
+              ..where(
+                tagLinks.targetType.equalsValue(TagTarget.goal) &
+                    tagLinks.targetId.equals(g.id) &
+                    tags.deletedAt.isNull(),
+              ))
+            .get();
+    final goalTags = tagRows.map((r) => r.readTable(tags)).toList();
+    final pit = g.pitId == null
+        ? null
+        : await (select(pits)
+                ..where((p) => p.id.equals(g.pitId!) & p.deletedAt.isNull()))
+              .getSingleOrNull();
+    return GoalView(
+      goal: g,
+      pit: pit,
+      tags: goalTags,
+      progress: await _progress(g, goalTags),
+    );
+  }
+
+  Stream<List<GoalView>> watchGoalViews(
+    GoalPeriod period,
+    int year, {
+    int? month,
+  }) {
+    return watchAssembled(this, _goalTables, () async {
+      final rows =
+          await (select(goals)
+                ..where(
+                  (g) =>
+                      g.deletedAt.isNull() &
+                      g.period.equalsValue(period) &
+                      g.year.equals(year) &
+                      (month == null
+                          ? const Constant(true)
+                          : g.month.equals(month)),
+                )
+                ..orderBy([(g) => OrderingTerm.asc(g.createdAt)]))
+              .get();
+      return [for (final r in rows) await _goalView(r)];
+    });
+  }
+
+  Future<String> saveGoal({
+    String? id,
+    required GoalPeriod period,
+    required int year,
+    int? month,
+    String? name,
+    required GoalKind kind,
+    required int count,
+    String? pitId,
+    List<String> tagIds = const [],
+    int? requireLikes,
+  }) {
+    final cleanName = (name == null || name.trim().isEmpty)
+        ? null
+        : name.trim();
+    return transaction(() async {
+      String goalId;
+      if (id == null) {
+        final row = await into(goals).insertReturning(
+          GoalsCompanion.insert(
+            period: period,
+            year: year,
+            month: Value(month),
+            name: Value(cleanName),
+            kind: kind,
+            count: count,
+            pitId: Value(pitId),
+            requireLikes: Value(kind == GoalKind.piece ? requireLikes : null),
+          ),
+        );
+        goalId = row.id;
+      } else {
+        goalId = id;
+        await (update(goals)..where((g) => g.id.equals(id))).write(
+          GoalsCompanion(
+            name: Value(cleanName),
+            kind: Value(kind),
+            count: Value(count),
+            pitId: Value(pitId),
+            requireLikes: Value(kind == GoalKind.piece ? requireLikes : null),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
+      }
+      // 未選坑時不能選 tag。
+      await (delete(tagLinks)..where(
+            (l) =>
+                l.targetType.equalsValue(TagTarget.goal) &
+                l.targetId.equals(goalId),
+          ))
+          .go();
+      if (pitId != null) {
+        for (final t in tagIds) {
+          await into(tagLinks).insert(
+            TagLinksCompanion.insert(
+              tagId: t,
+              targetType: TagTarget.goal,
+              targetId: goalId,
+            ),
+          );
+        }
+      }
+      return goalId;
+    });
+  }
+
+  Future<void> deleteGoal(String id) {
+    final now = DateTime.now();
+    return (update(goals)..where((g) => g.id.equals(id))).write(
+      GoalsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
+  }
+
+  Future<Goal?> goalById(String id) =>
+      (select(goals)..where((g) => g.id.equals(id))).getSingleOrNull();
+
+  Future<List<String>> goalTagIds(String goalId) async {
+    final rows =
+        await (select(tagLinks)..where(
+              (l) =>
+                  l.targetType.equalsValue(TagTarget.goal) &
+                  l.targetId.equals(goalId),
+            ))
+            .get();
+    return rows.map((r) => r.tagId).toList();
+  }
+
+  // ---- 月曆 / 時間軸 ----
+
+  /// 某月每天最新一張成圖（作為月曆上的圓形日期圖）。key＝日（1~31）。
+  Stream<Map<int, String>> watchMonthCovers(int year, int month) {
+    return watchAssembled(this, {pieces, entityImages}, () async {
+      final rows =
+          await (select(pieces)
+                ..where(
+                  (p) =>
+                      p.deletedAt.isNull() &
+                      p.finishedAt.isBiggerOrEqualValue(
+                        monthStart(year, month),
+                      ) &
+                      p.finishedAt.isSmallerThanValue(monthEnd(year, month)),
+                )
+                ..orderBy([(p) => OrderingTerm.asc(p.finishedAt)]))
+              .get();
+      final out = <int, String>{};
+      for (final p in rows) {
+        final im =
+            await (select(entityImages)
+                  ..where(
+                    (e) =>
+                        e.ownerType.equalsValue(OwnerType.piece) &
+                        e.ownerId.equals(p.id),
+                  )
+                  ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)])
+                  ..limit(1))
+                .getSingleOrNull();
+        if (im != null) out[p.finishedAt.day] = im.imageFile; // 後面的覆蓋前面＝最晚一張
+      }
+      return out;
+    });
+  }
+
+  /// 某天所有坑的腦洞／草稿／成圖，時間新到舊。
+  Stream<List<TimelineItem>> watchTimeline(DateTime day) {
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+    return watchAssembled(
+      this,
+      {ideas, drafts, pieces, entityImages},
+      () async {
+        Future<String?> firstImage(OwnerType t, String id) async =>
+            (await (select(entityImages)
+                      ..where(
+                        (e) =>
+                            e.ownerType.equalsValue(t) & e.ownerId.equals(id),
+                      )
+                      ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)])
+                      ..limit(1))
+                    .getSingleOrNull())
+                ?.imageFile;
+
+        final items = <TimelineItem>[];
+        for (final i
+            in await (select(ideas)..where(
+                  (x) =>
+                      x.deletedAt.isNull() &
+                      x.createdAt.isBiggerOrEqualValue(start) &
+                      x.createdAt.isSmallerThanValue(end),
+                ))
+                .get()) {
+          items.add(
+            TimelineItem(
+              kind: GoalKind.idea,
+              id: i.id,
+              pitId: i.pitId,
+              time: i.createdAt,
+              title: i.title,
+              file: await firstImage(OwnerType.idea, i.id),
+            ),
+          );
+        }
+        for (final d
+            in await (select(drafts)..where(
+                  (x) =>
+                      x.deletedAt.isNull() &
+                      x.createdAt.isBiggerOrEqualValue(start) &
+                      x.createdAt.isSmallerThanValue(end),
+                ))
+                .get()) {
+          items.add(
+            TimelineItem(
+              kind: GoalKind.draft,
+              id: d.id,
+              pitId: d.pitId,
+              time: d.createdAt,
+              title: d.title ?? '',
+              file: await firstImage(OwnerType.draft, d.id),
+            ),
+          );
+        }
+        for (final p
+            in await (select(pieces)..where(
+                  (x) =>
+                      x.deletedAt.isNull() &
+                      x.finishedAt.isBiggerOrEqualValue(start) &
+                      x.finishedAt.isSmallerThanValue(end),
+                ))
+                .get()) {
+          items.add(
+            TimelineItem(
+              kind: GoalKind.piece,
+              id: p.id,
+              pitId: p.pitId,
+              time: p.finishedAt,
+              title: p.title,
+              file: await firstImage(OwnerType.piece, p.id),
+            ),
+          );
+        }
+        items.sort((a, b) => b.time.compareTo(a.time));
+        return items;
+      },
+    );
+  }
+
+  // ---- 年度回顧 ----
+
+  /// 該年每月的成圖圖片（最新的在前），供回顧挑選與預設。key＝月（1~12）。
+  Future<Map<int, List<String>>> pieceImagesByMonth(int year) async {
+    final rows =
+        await (select(pieces)
+              ..where(
+                (p) =>
+                    p.deletedAt.isNull() &
+                    p.finishedAt.isBiggerOrEqualValue(DateTime(year)) &
+                    p.finishedAt.isSmallerThanValue(DateTime(year + 1)),
+              )
+              ..orderBy([(p) => OrderingTerm.desc(p.finishedAt)]))
+            .get();
+    final out = <int, List<String>>{};
+    for (final p in rows) {
+      final ims =
+          await (select(entityImages)
+                ..where(
+                  (e) =>
+                      e.ownerType.equalsValue(OwnerType.piece) &
+                      e.ownerId.equals(p.id),
+                )
+                ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
+              .get();
+      for (final im in ims) {
+        out.putIfAbsent(p.finishedAt.month, () => []).add(im.imageFile);
+      }
+    }
+    return out;
+  }
+
+  Stream<Map<int, String?>> watchReviewMonths(int year) {
+    return (select(yearReviewMonths)..where((m) => m.year.equals(year)))
+        .watch()
+        .map((rows) => {for (final r in rows) r.month: r.imageFile});
+  }
+
+  Future<void> setReviewMonth(int year, int month, String? file) {
+    return into(yearReviewMonths).insertOnConflictUpdate(
+      YearReviewMonthsCompanion(
+        year: Value(year),
+        month: Value(month),
+        imageFile: Value(file),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Stream<ReviewSetting> watchReviewSettings(int year) {
+    return (select(
+      reviewSettings,
+    )..where((s) => s.year.equals(year))).watchSingleOrNull().map(
+      (r) =>
+          r ??
+          ReviewSetting(
+            year: year,
+            columns: 4,
+            ratio: '1:1',
+            monthFormat: 'Jan',
+            monthOnImage: true,
+          ),
+    );
+  }
+
+  Future<void> saveReviewSettings(ReviewSetting s) {
+    return into(reviewSettings).insertOnConflictUpdate(s);
+  }
+}

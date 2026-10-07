@@ -216,12 +216,20 @@ extension EntityQueries on AppDatabase {
     required List<String> tagIds,
     required List<String> draftIds,
     required List<String> pieceIds,
+    DateTime? createdAt,
   }) {
     return transaction(() async {
       String ideaId;
       if (id == null) {
         final row = await into(ideas).insertReturning(
-          IdeasCompanion.insert(pitId: pitId, title: title, body: Value(body)),
+          IdeasCompanion.insert(
+            pitId: pitId,
+            title: title,
+            body: Value(body),
+            createdAt: createdAt == null
+                ? const Value.absent()
+                : Value(createdAt),
+          ),
         );
         ideaId = row.id;
       } else {
@@ -315,6 +323,7 @@ extension EntityQueries on AppDatabase {
     required List<NewImage> images,
     required List<String> tagIds,
     required List<String> ideaIds,
+    DateTime? createdAt,
   }) {
     String? clean(String? s) =>
         (s == null || s.trim().isEmpty) ? null : s.trim();

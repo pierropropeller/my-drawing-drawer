@@ -23,5 +23,5 @@ flutter analyze && flutter test
 - [x] 3. 官方圖冊、同人圖
 - [x] 4. 腦洞、草稿、成圖、連接關係、tag 管理
 - [ ] 5. Google 登入與 Drive 同步
-- [ ] 6. 目標與年度回顧
+- [x] 6. 目標與年度回顧
 - [ ] 7. 空白狀態、snackbar、iPad 版面
