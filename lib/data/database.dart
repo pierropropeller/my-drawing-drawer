@@ -34,7 +34,21 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        // v2：圖片記錄寬高，瀑布流不需解碼就能排版。
+        await m.addColumn(officialImages, officialImages.width);
+        await m.addColumn(officialImages, officialImages.height);
+        await m.addColumn(fanArts, fanArts.width);
+        await m.addColumn(fanArts, fanArts.height);
+      }
+    },
+  );
 
   /// 官方圖預設分組（HANDOFF 3.2）。
   static const defaultGroups = ['設定圖', '海報宣傳', '素材', '自用截圖', '自定義'];

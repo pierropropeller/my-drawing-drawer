@@ -42,11 +42,15 @@ class OfficialImages extends Table with SyncColumns {
   TextColumn get pitId => text()();
   TextColumn get groupId => text()();
   TextColumn get imageFile => text()();
+  IntColumn get width => integer().withDefault(const Constant(0))();
+  IntColumn get height => integer().withDefault(const Constant(0))();
 }
 
 class FanArts extends Table with SyncColumns {
   TextColumn get pitId => text()();
   TextColumn get imageFile => text()();
+  IntColumn get width => integer().withDefault(const Constant(0))();
+  IntColumn get height => integer().withDefault(const Constant(0))();
   TextColumn get author => text().withDefault(const Constant(''))();
   TextColumn get source => text().withDefault(const Constant(''))();
 }

@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
+import '../album/album_image.dart';
+import '../album/cover_pick_page.dart';
+import '../album/fan_art_list_page.dart';
+import '../album/official_list_page.dart';
 import 'pit_edit_page.dart';
 
 /// 坑內頁：五格排序固定（官方圖冊、好看同人圖、我的草稿、我的腦洞、我的成圖）。
@@ -11,6 +15,9 @@ import 'pit_edit_page.dart';
 class PitPage extends ConsumerWidget {
   const PitPage({super.key, required this.pitId});
   final String pitId;
+
+  void _open(BuildContext context, Widget page) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -54,8 +61,28 @@ class PitPage extends ConsumerWidget {
                 Icons.photo_library_outlined,
                 t.official,
                 stats.official,
+                onTap: () => _open(context, OfficialListPage(pitId: pitId)),
+                // 長按進入選擇封面（格內有圖才可）。
+                onLongPress: stats.official == 0
+                    ? null
+                    : () => _open(
+                        context,
+                        CoverPickPage(pitId: pitId, kind: AlbumKind.official),
+                      ),
               ),
-              _Cell('好看同人圖', Icons.favorite_border, t.fanArt, stats.fanArts),
+              _Cell(
+                '好看同人圖',
+                Icons.favorite_border,
+                t.fanArt,
+                stats.fanArts,
+                onTap: () => _open(context, FanArtListPage(pitId: pitId)),
+                onLongPress: stats.fanArts == 0
+                    ? null
+                    : () => _open(
+                        context,
+                        CoverPickPage(pitId: pitId, kind: AlbumKind.fanArt),
+                      ),
+              ),
               _Cell('我的草稿', Icons.draw_outlined, t.draft, stats.drafts),
               _Cell('我的腦洞', Icons.lightbulb_outline, t.idea, stats.ideas),
             ],
@@ -86,6 +113,8 @@ class _Cell extends StatelessWidget {
     this.count, {
     this.wide = false,
     this.empty = false,
+    this.onTap,
+    this.onLongPress,
   });
 
   final String label;
@@ -94,47 +123,54 @@ class _Cell extends StatelessWidget {
   final int count;
   final bool wide;
   final bool empty;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final fg = empty ? t.dashedText : color.fg;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: empty ? Colors.transparent : color.bg,
-        borderRadius: BorderRadius.circular(Radii.card),
-        border: empty ? Border.all(color: t.dashed, width: 1.5) : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Icon(icon, color: fg, size: 26),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Text(
-                  label,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: empty ? Colors.transparent : color.bg,
+          borderRadius: BorderRadius.circular(Radii.card),
+          border: empty ? Border.all(color: t.dashed, width: 1.5) : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Icon(icon, color: fg, size: 26),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: fg,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$count',
                   style: TextStyle(
                     color: fg,
                     fontWeight: FontWeight.w700,
-                    fontSize: 15,
+                    fontSize: wide ? 22 : 18,
                   ),
                 ),
-              ),
-              Text(
-                '$count',
-                style: TextStyle(
-                  color: fg,
-                  fontWeight: FontWeight.w700,
-                  fontSize: wide ? 22 : 18,
-                ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

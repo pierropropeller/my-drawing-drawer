@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
+import '../album/album_image.dart';
 import 'pit_new_page.dart';
 import 'pit_page.dart';
 
@@ -190,15 +191,18 @@ class PitCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = context.tokens;
     final stats = ref.watch(pitStatsProvider(pit.id)).value ?? PitStats.empty;
-    final cover = Container(
-      decoration: BoxDecoration(
-        color: t.piece.bg,
-        borderRadius: BorderRadius.circular(Radii.image),
-      ),
-      child: Center(
-        child: Icon(Icons.image_outlined, color: t.piece.fg, size: 32),
-      ),
-    ); // TODO: 有 coverImageId 時顯示封面圖
+    final coverFile = ref.watch(coverFileProvider(pit.id)).value;
+    final cover = ClipRRect(
+      borderRadius: BorderRadius.circular(Radii.image),
+      child: coverFile != null
+          ? StoredImage(coverFile, cacheWidth: 400)
+          : Container(
+              color: t.piece.bg,
+              child: Center(
+                child: Icon(Icons.image_outlined, color: t.piece.fg, size: 32),
+              ),
+            ),
+    );
     final text = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,

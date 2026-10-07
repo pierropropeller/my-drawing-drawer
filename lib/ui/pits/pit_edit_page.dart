@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
+import '../album/cover_pick_page.dart';
 import 'pit_form.dart';
 
 /// 編輯坑：封存、坑名、描述、刪除。坑內有圖才顯示「更換封面」。
@@ -84,8 +85,11 @@ class _PitEditPageState extends ConsumerState<PitEditPage> {
           children: [
             if (hasImages) ...[
               OutlinedButton(
-                // TODO: 進入選擇封面（CoverPick）。
-                onPressed: () {},
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => CoverPickPage(pitId: widget.pit.id),
+                  ),
+                ),
                 child: const Text('更換封面'),
               ),
               const SizedBox(height: 16),

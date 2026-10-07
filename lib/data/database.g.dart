@@ -1159,6 +1159,26 @@ class $OfficialImagesTable extends OfficialImages
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _widthMeta = const VerificationMeta('width');
+  @override
+  late final GeneratedColumn<int> width = GeneratedColumn<int>(
+    'width',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _heightMeta = const VerificationMeta('height');
+  @override
+  late final GeneratedColumn<int> height = GeneratedColumn<int>(
+    'height',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1169,6 +1189,8 @@ class $OfficialImagesTable extends OfficialImages
     pitId,
     groupId,
     imageFile,
+    width,
+    height,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1233,6 +1255,18 @@ class $OfficialImagesTable extends OfficialImages
     } else if (isInserting) {
       context.missing(_imageFileMeta);
     }
+    if (data.containsKey('width')) {
+      context.handle(
+        _widthMeta,
+        width.isAcceptableOrUnknown(data['width']!, _widthMeta),
+      );
+    }
+    if (data.containsKey('height')) {
+      context.handle(
+        _heightMeta,
+        height.isAcceptableOrUnknown(data['height']!, _heightMeta),
+      );
+    }
     return context;
   }
 
@@ -1274,6 +1308,14 @@ class $OfficialImagesTable extends OfficialImages
         DriftSqlType.string,
         data['${effectivePrefix}image_file'],
       )!,
+      width: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}width'],
+      )!,
+      height: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}height'],
+      )!,
     );
   }
 
@@ -1292,6 +1334,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
   final String pitId;
   final String groupId;
   final String imageFile;
+  final int width;
+  final int height;
   const OfficialImage({
     required this.id,
     required this.createdAt,
@@ -1301,6 +1345,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     required this.pitId,
     required this.groupId,
     required this.imageFile,
+    required this.width,
+    required this.height,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1315,6 +1361,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     map['pit_id'] = Variable<String>(pitId);
     map['group_id'] = Variable<String>(groupId);
     map['image_file'] = Variable<String>(imageFile);
+    map['width'] = Variable<int>(width);
+    map['height'] = Variable<int>(height);
     return map;
   }
 
@@ -1330,6 +1378,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       pitId: Value(pitId),
       groupId: Value(groupId),
       imageFile: Value(imageFile),
+      width: Value(width),
+      height: Value(height),
     );
   }
 
@@ -1347,6 +1397,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       pitId: serializer.fromJson<String>(json['pitId']),
       groupId: serializer.fromJson<String>(json['groupId']),
       imageFile: serializer.fromJson<String>(json['imageFile']),
+      width: serializer.fromJson<int>(json['width']),
+      height: serializer.fromJson<int>(json['height']),
     );
   }
   @override
@@ -1361,6 +1413,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       'pitId': serializer.toJson<String>(pitId),
       'groupId': serializer.toJson<String>(groupId),
       'imageFile': serializer.toJson<String>(imageFile),
+      'width': serializer.toJson<int>(width),
+      'height': serializer.toJson<int>(height),
     };
   }
 
@@ -1373,6 +1427,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     String? pitId,
     String? groupId,
     String? imageFile,
+    int? width,
+    int? height,
   }) => OfficialImage(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -1382,6 +1438,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     pitId: pitId ?? this.pitId,
     groupId: groupId ?? this.groupId,
     imageFile: imageFile ?? this.imageFile,
+    width: width ?? this.width,
+    height: height ?? this.height,
   );
   OfficialImage copyWithCompanion(OfficialImagesCompanion data) {
     return OfficialImage(
@@ -1393,6 +1451,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       pitId: data.pitId.present ? data.pitId.value : this.pitId,
       groupId: data.groupId.present ? data.groupId.value : this.groupId,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
+      width: data.width.present ? data.width.value : this.width,
+      height: data.height.present ? data.height.value : this.height,
     );
   }
 
@@ -1406,7 +1466,9 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
           ..write('deviceId: $deviceId, ')
           ..write('pitId: $pitId, ')
           ..write('groupId: $groupId, ')
-          ..write('imageFile: $imageFile')
+          ..write('imageFile: $imageFile, ')
+          ..write('width: $width, ')
+          ..write('height: $height')
           ..write(')'))
         .toString();
   }
@@ -1421,6 +1483,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     pitId,
     groupId,
     imageFile,
+    width,
+    height,
   );
   @override
   bool operator ==(Object other) =>
@@ -1433,7 +1497,9 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
           other.deviceId == this.deviceId &&
           other.pitId == this.pitId &&
           other.groupId == this.groupId &&
-          other.imageFile == this.imageFile);
+          other.imageFile == this.imageFile &&
+          other.width == this.width &&
+          other.height == this.height);
 }
 
 class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
@@ -1445,6 +1511,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
   final Value<String> pitId;
   final Value<String> groupId;
   final Value<String> imageFile;
+  final Value<int> width;
+  final Value<int> height;
   final Value<int> rowid;
   const OfficialImagesCompanion({
     this.id = const Value.absent(),
@@ -1455,6 +1523,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     this.pitId = const Value.absent(),
     this.groupId = const Value.absent(),
     this.imageFile = const Value.absent(),
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   OfficialImagesCompanion.insert({
@@ -1466,6 +1536,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     required String pitId,
     required String groupId,
     required String imageFile,
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : pitId = Value(pitId),
        groupId = Value(groupId),
@@ -1479,6 +1551,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     Expression<String>? pitId,
     Expression<String>? groupId,
     Expression<String>? imageFile,
+    Expression<int>? width,
+    Expression<int>? height,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1490,6 +1564,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
       if (pitId != null) 'pit_id': pitId,
       if (groupId != null) 'group_id': groupId,
       if (imageFile != null) 'image_file': imageFile,
+      if (width != null) 'width': width,
+      if (height != null) 'height': height,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1503,6 +1579,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     Value<String>? pitId,
     Value<String>? groupId,
     Value<String>? imageFile,
+    Value<int>? width,
+    Value<int>? height,
     Value<int>? rowid,
   }) {
     return OfficialImagesCompanion(
@@ -1514,6 +1592,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
       pitId: pitId ?? this.pitId,
       groupId: groupId ?? this.groupId,
       imageFile: imageFile ?? this.imageFile,
+      width: width ?? this.width,
+      height: height ?? this.height,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1545,6 +1625,12 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     if (imageFile.present) {
       map['image_file'] = Variable<String>(imageFile.value);
     }
+    if (width.present) {
+      map['width'] = Variable<int>(width.value);
+    }
+    if (height.present) {
+      map['height'] = Variable<int>(height.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1562,6 +1648,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
           ..write('pitId: $pitId, ')
           ..write('groupId: $groupId, ')
           ..write('imageFile: $imageFile, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1650,6 +1738,26 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _widthMeta = const VerificationMeta('width');
+  @override
+  late final GeneratedColumn<int> width = GeneratedColumn<int>(
+    'width',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _heightMeta = const VerificationMeta('height');
+  @override
+  late final GeneratedColumn<int> height = GeneratedColumn<int>(
+    'height',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _authorMeta = const VerificationMeta('author');
   @override
   late final GeneratedColumn<String> author = GeneratedColumn<String>(
@@ -1679,6 +1787,8 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     deviceId,
     pitId,
     imageFile,
+    width,
+    height,
     author,
     source,
   ];
@@ -1737,6 +1847,18 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     } else if (isInserting) {
       context.missing(_imageFileMeta);
     }
+    if (data.containsKey('width')) {
+      context.handle(
+        _widthMeta,
+        width.isAcceptableOrUnknown(data['width']!, _widthMeta),
+      );
+    }
+    if (data.containsKey('height')) {
+      context.handle(
+        _heightMeta,
+        height.isAcceptableOrUnknown(data['height']!, _heightMeta),
+      );
+    }
     if (data.containsKey('author')) {
       context.handle(
         _authorMeta,
@@ -1786,6 +1908,14 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
         DriftSqlType.string,
         data['${effectivePrefix}image_file'],
       )!,
+      width: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}width'],
+      )!,
+      height: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}height'],
+      )!,
       author: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}author'],
@@ -1811,6 +1941,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
   final String deviceId;
   final String pitId;
   final String imageFile;
+  final int width;
+  final int height;
   final String author;
   final String source;
   const FanArt({
@@ -1821,6 +1953,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     required this.deviceId,
     required this.pitId,
     required this.imageFile,
+    required this.width,
+    required this.height,
     required this.author,
     required this.source,
   });
@@ -1836,6 +1970,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     map['device_id'] = Variable<String>(deviceId);
     map['pit_id'] = Variable<String>(pitId);
     map['image_file'] = Variable<String>(imageFile);
+    map['width'] = Variable<int>(width);
+    map['height'] = Variable<int>(height);
     map['author'] = Variable<String>(author);
     map['source'] = Variable<String>(source);
     return map;
@@ -1852,6 +1988,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       deviceId: Value(deviceId),
       pitId: Value(pitId),
       imageFile: Value(imageFile),
+      width: Value(width),
+      height: Value(height),
       author: Value(author),
       source: Value(source),
     );
@@ -1870,6 +2008,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       deviceId: serializer.fromJson<String>(json['deviceId']),
       pitId: serializer.fromJson<String>(json['pitId']),
       imageFile: serializer.fromJson<String>(json['imageFile']),
+      width: serializer.fromJson<int>(json['width']),
+      height: serializer.fromJson<int>(json['height']),
       author: serializer.fromJson<String>(json['author']),
       source: serializer.fromJson<String>(json['source']),
     );
@@ -1885,6 +2025,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       'deviceId': serializer.toJson<String>(deviceId),
       'pitId': serializer.toJson<String>(pitId),
       'imageFile': serializer.toJson<String>(imageFile),
+      'width': serializer.toJson<int>(width),
+      'height': serializer.toJson<int>(height),
       'author': serializer.toJson<String>(author),
       'source': serializer.toJson<String>(source),
     };
@@ -1898,6 +2040,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     String? deviceId,
     String? pitId,
     String? imageFile,
+    int? width,
+    int? height,
     String? author,
     String? source,
   }) => FanArt(
@@ -1908,6 +2052,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     deviceId: deviceId ?? this.deviceId,
     pitId: pitId ?? this.pitId,
     imageFile: imageFile ?? this.imageFile,
+    width: width ?? this.width,
+    height: height ?? this.height,
     author: author ?? this.author,
     source: source ?? this.source,
   );
@@ -1920,6 +2066,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
       pitId: data.pitId.present ? data.pitId.value : this.pitId,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
+      width: data.width.present ? data.width.value : this.width,
+      height: data.height.present ? data.height.value : this.height,
       author: data.author.present ? data.author.value : this.author,
       source: data.source.present ? data.source.value : this.source,
     );
@@ -1935,6 +2083,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           ..write('deviceId: $deviceId, ')
           ..write('pitId: $pitId, ')
           ..write('imageFile: $imageFile, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
           ..write('author: $author, ')
           ..write('source: $source')
           ..write(')'))
@@ -1950,6 +2100,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     deviceId,
     pitId,
     imageFile,
+    width,
+    height,
     author,
     source,
   );
@@ -1964,6 +2116,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           other.deviceId == this.deviceId &&
           other.pitId == this.pitId &&
           other.imageFile == this.imageFile &&
+          other.width == this.width &&
+          other.height == this.height &&
           other.author == this.author &&
           other.source == this.source);
 }
@@ -1976,6 +2130,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
   final Value<String> deviceId;
   final Value<String> pitId;
   final Value<String> imageFile;
+  final Value<int> width;
+  final Value<int> height;
   final Value<String> author;
   final Value<String> source;
   final Value<int> rowid;
@@ -1987,6 +2143,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.deviceId = const Value.absent(),
     this.pitId = const Value.absent(),
     this.imageFile = const Value.absent(),
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
     this.author = const Value.absent(),
     this.source = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1999,6 +2157,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.deviceId = const Value.absent(),
     required String pitId,
     required String imageFile,
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
     this.author = const Value.absent(),
     this.source = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2012,6 +2172,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Expression<String>? deviceId,
     Expression<String>? pitId,
     Expression<String>? imageFile,
+    Expression<int>? width,
+    Expression<int>? height,
     Expression<String>? author,
     Expression<String>? source,
     Expression<int>? rowid,
@@ -2024,6 +2186,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       if (deviceId != null) 'device_id': deviceId,
       if (pitId != null) 'pit_id': pitId,
       if (imageFile != null) 'image_file': imageFile,
+      if (width != null) 'width': width,
+      if (height != null) 'height': height,
       if (author != null) 'author': author,
       if (source != null) 'source': source,
       if (rowid != null) 'rowid': rowid,
@@ -2038,6 +2202,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Value<String>? deviceId,
     Value<String>? pitId,
     Value<String>? imageFile,
+    Value<int>? width,
+    Value<int>? height,
     Value<String>? author,
     Value<String>? source,
     Value<int>? rowid,
@@ -2050,6 +2216,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       deviceId: deviceId ?? this.deviceId,
       pitId: pitId ?? this.pitId,
       imageFile: imageFile ?? this.imageFile,
+      width: width ?? this.width,
+      height: height ?? this.height,
       author: author ?? this.author,
       source: source ?? this.source,
       rowid: rowid ?? this.rowid,
@@ -2080,6 +2248,12 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     if (imageFile.present) {
       map['image_file'] = Variable<String>(imageFile.value);
     }
+    if (width.present) {
+      map['width'] = Variable<int>(width.value);
+    }
+    if (height.present) {
+      map['height'] = Variable<int>(height.value);
+    }
     if (author.present) {
       map['author'] = Variable<String>(author.value);
     }
@@ -2102,6 +2276,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
           ..write('deviceId: $deviceId, ')
           ..write('pitId: $pitId, ')
           ..write('imageFile: $imageFile, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
           ..write('author: $author, ')
           ..write('source: $source, ')
           ..write('rowid: $rowid')
@@ -8520,6 +8696,8 @@ typedef $$OfficialImagesTableCreateCompanionBuilder =
       required String pitId,
       required String groupId,
       required String imageFile,
+      Value<int> width,
+      Value<int> height,
       Value<int> rowid,
     });
 typedef $$OfficialImagesTableUpdateCompanionBuilder =
@@ -8532,6 +8710,8 @@ typedef $$OfficialImagesTableUpdateCompanionBuilder =
       Value<String> pitId,
       Value<String> groupId,
       Value<String> imageFile,
+      Value<int> width,
+      Value<int> height,
       Value<int> rowid,
     });
 
@@ -8581,6 +8761,16 @@ class $$OfficialImagesTableFilterComposer
 
   ColumnFilters<String> get imageFile => $composableBuilder(
     column: $table.imageFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get height => $composableBuilder(
+    column: $table.height,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -8633,6 +8823,16 @@ class $$OfficialImagesTableOrderingComposer
     column: $table.imageFile,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$OfficialImagesTableAnnotationComposer
@@ -8667,6 +8867,12 @@ class $$OfficialImagesTableAnnotationComposer
 
   GeneratedColumn<String> get imageFile =>
       $composableBuilder(column: $table.imageFile, builder: (column) => column);
+
+  GeneratedColumn<int> get width =>
+      $composableBuilder(column: $table.width, builder: (column) => column);
+
+  GeneratedColumn<int> get height =>
+      $composableBuilder(column: $table.height, builder: (column) => column);
 }
 
 class $$OfficialImagesTableTableManager
@@ -8710,6 +8916,8 @@ class $$OfficialImagesTableTableManager
                 Value<String> pitId = const Value.absent(),
                 Value<String> groupId = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OfficialImagesCompanion(
                 id: id,
@@ -8720,6 +8928,8 @@ class $$OfficialImagesTableTableManager
                 pitId: pitId,
                 groupId: groupId,
                 imageFile: imageFile,
+                width: width,
+                height: height,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8732,6 +8942,8 @@ class $$OfficialImagesTableTableManager
                 required String pitId,
                 required String groupId,
                 required String imageFile,
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OfficialImagesCompanion.insert(
                 id: id,
@@ -8742,6 +8954,8 @@ class $$OfficialImagesTableTableManager
                 pitId: pitId,
                 groupId: groupId,
                 imageFile: imageFile,
+                width: width,
+                height: height,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -8786,6 +9000,8 @@ typedef $$FanArtsTableCreateCompanionBuilder = FanArtsCompanion Function({
   Value<String> deviceId,
   required String pitId,
   required String imageFile,
+  Value<int> width,
+  Value<int> height,
   Value<String> author,
   Value<String> source,
   Value<int> rowid,
@@ -8798,6 +9014,8 @@ typedef $$FanArtsTableUpdateCompanionBuilder = FanArtsCompanion Function({
   Value<String> deviceId,
   Value<String> pitId,
   Value<String> imageFile,
+  Value<int> width,
+  Value<int> height,
   Value<String> author,
   Value<String> source,
   Value<int> rowid,
@@ -8844,6 +9062,16 @@ class $$FanArtsTableFilterComposer
 
   ColumnFilters<String> get imageFile => $composableBuilder(
     column: $table.imageFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get height => $composableBuilder(
+    column: $table.height,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8902,6 +9130,16 @@ class $$FanArtsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get author => $composableBuilder(
     column: $table.author,
     builder: (column) => ColumnOrderings(column),
@@ -8942,6 +9180,12 @@ class $$FanArtsTableAnnotationComposer
 
   GeneratedColumn<String> get imageFile =>
       $composableBuilder(column: $table.imageFile, builder: (column) => column);
+
+  GeneratedColumn<int> get width =>
+      $composableBuilder(column: $table.width, builder: (column) => column);
+
+  GeneratedColumn<int> get height =>
+      $composableBuilder(column: $table.height, builder: (column) => column);
 
   GeneratedColumn<String> get author =>
       $composableBuilder(column: $table.author, builder: (column) => column);
@@ -8985,6 +9229,8 @@ class $$FanArtsTableTableManager
                 Value<String> deviceId = const Value.absent(),
                 Value<String> pitId = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
                 Value<String> author = const Value.absent(),
                 Value<String> source = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -8996,6 +9242,8 @@ class $$FanArtsTableTableManager
                 deviceId: deviceId,
                 pitId: pitId,
                 imageFile: imageFile,
+                width: width,
+                height: height,
                 author: author,
                 source: source,
                 rowid: rowid,
@@ -9009,6 +9257,8 @@ class $$FanArtsTableTableManager
                 Value<String> deviceId = const Value.absent(),
                 required String pitId,
                 required String imageFile,
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
                 Value<String> author = const Value.absent(),
                 Value<String> source = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -9020,6 +9270,8 @@ class $$FanArtsTableTableManager
                 deviceId: deviceId,
                 pitId: pitId,
                 imageFile: imageFile,
+                width: width,
+                height: height,
                 author: author,
                 source: source,
                 rowid: rowid,
