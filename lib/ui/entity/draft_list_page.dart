@@ -5,6 +5,7 @@ import '../../data/entity_queries.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
+import '../common/empty_state.dart';
 import 'draft_detail_page.dart';
 import 'draft_form_page.dart';
 import 'entity_widgets.dart';
@@ -20,6 +21,10 @@ class DraftListPage extends ConsumerStatefulWidget {
 
 class _DraftListPageState extends ConsumerState<DraftListPage> {
   bool _grid = false;
+
+  void _add() => Navigator.of(context).push(
+    MaterialPageRoute<void>(builder: (_) => DraftFormPage(pitId: widget.pitId)),
+  );
 
   void _open(DraftView d) => Navigator.of(context).push(
     MaterialPageRoute<void>(
@@ -53,8 +58,12 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
         child: const Icon(Icons.add),
       ),
       body: views.isEmpty
-          ? Center(
-              child: Text('還沒有草稿', style: TextStyle(color: t.text3)),
+          ? EmptyState(
+              icon: Icons.draw_outlined,
+              text: '還沒有草稿',
+              color: t.draft,
+              actionLabel: '新增',
+              onAction: _add,
             )
           : _grid
           ? GridView.builder(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../state/providers.dart';
+import '../../theme/tokens.dart';
 import 'album_image.dart';
 import 'album_view.dart';
 import 'fan_art_new_page.dart';
@@ -40,6 +41,8 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
       title: '好看同人圖',
       images: images,
       emptyLabel: '還沒有同人圖',
+      emptyIcon: Icons.favorite_border,
+      emptyColor: context.tokens.fanArt,
       onAdd: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => FanArtNewPage(pitId: widget.pitId),

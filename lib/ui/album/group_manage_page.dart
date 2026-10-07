@@ -62,24 +62,27 @@ class GroupManagePage extends ConsumerWidget {
               borderRadius: BorderRadius.circular(Radii.card),
               border: Border.all(color: t.borderCard),
             ),
-            child: ListTile(
-              leading: ReorderableDragStartListener(
-                index: i,
-                child: Icon(Icons.drag_handle, color: t.text3),
-              ),
-              title: Text(g.name),
-              onTap: () async {
-                final name = await promptText(
-                  context,
-                  title: '分組名稱',
-                  initial: g.name,
-                );
-                if (name != null) await db.renameGroup(g.id, name);
-              },
-              trailing: IconButton(
-                tooltip: '刪除',
-                icon: Icon(Icons.delete_outline, color: t.danger),
-                onPressed: () => _delete(context, ref, g),
+            child: Material(
+              type: MaterialType.transparency,
+              child: ListTile(
+                leading: ReorderableDragStartListener(
+                  index: i,
+                  child: Icon(Icons.drag_handle, color: t.text3),
+                ),
+                title: Text(g.name),
+                onTap: () async {
+                  final name = await promptText(
+                    context,
+                    title: '分組名稱',
+                    initial: g.name,
+                  );
+                  if (name != null) await db.renameGroup(g.id, name);
+                },
+                trailing: IconButton(
+                  tooltip: '刪除',
+                  icon: Icon(Icons.delete_outline, color: t.danger),
+                  onPressed: () => _delete(context, ref, g),
+                ),
               ),
             ),
           );

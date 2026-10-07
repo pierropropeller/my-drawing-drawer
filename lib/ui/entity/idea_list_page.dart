@@ -7,6 +7,7 @@ import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../album/album_image.dart';
 import '../album/album_view.dart';
+import '../common/empty_state.dart';
 import 'entity_widgets.dart';
 import 'idea_detail_page.dart';
 import 'idea_form_page.dart';
@@ -90,8 +91,16 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage> {
               ),
             Expanded(
               child: views.isEmpty
-                  ? Center(
-                      child: Text('還沒有腦洞', style: TextStyle(color: t.text3)),
+                  ? EmptyState(
+                      icon: Icons.lightbulb_outline,
+                      text: '還沒有腦洞',
+                      color: t.idea,
+                      actionLabel: '新增',
+                      onAction: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => IdeaFormPage(pitId: widget.pitId),
+                        ),
+                      ),
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),

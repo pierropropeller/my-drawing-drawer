@@ -175,3 +175,14 @@ class Outbox extends Table {
   TextColumn get op => text()(); // upsert / delete
   DateTimeColumn get queuedAt => dateTime().clientDefault(DateTime.now)();
 }
+
+/// 已同步到遠端的文件版本（以 updatedAt 比較，last-write-wins）。
+class SyncDocs extends Table {
+  TextColumn get kind => text()();
+  TextColumn get id => text()();
+  IntColumn get updatedAtMs => integer()();
+  TextColumn get remoteModified => text().withDefault(const Constant(''))();
+
+  @override
+  Set<Column> get primaryKey => {kind, id};
+}

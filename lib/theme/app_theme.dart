@@ -55,6 +55,14 @@ ThemeData buildTheme(Brightness brightness, {bool useGoogleFonts = true}) {
         ),
       ),
     ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: t.ink,
+      contentTextStyle: TextStyle(color: t.ground),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radii.button),
+      ),
+    ),
     extensions: [t],
   );
 }

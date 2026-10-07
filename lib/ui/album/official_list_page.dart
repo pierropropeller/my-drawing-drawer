@@ -45,6 +45,8 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
       title: '官方圖冊',
       images: images,
       emptyLabel: '還沒有官方圖',
+      emptyIcon: Icons.photo_library_outlined,
+      emptyColor: t.official,
       onAdd: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) =>

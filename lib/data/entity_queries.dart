@@ -146,7 +146,7 @@ extension EntityQueries on AppDatabase {
     return (await q.get()).map((r) => r.readTable(tags)).toList();
   }
 
-  Future<void> _replaceImages(
+  Future<void> replaceEntityImages(
     OwnerType type,
     String id,
     List<NewImage> images,
@@ -242,7 +242,7 @@ extension EntityQueries on AppDatabase {
           ),
         );
       }
-      await _replaceImages(OwnerType.idea, ideaId, images);
+      await replaceEntityImages(OwnerType.idea, ideaId, images);
       await setTags(TagTarget.idea, ideaId, tagIds);
       await setIdeaDrafts(ideaId, draftIds);
       await setIdeaPieces(ideaId, pieceIds);
@@ -348,14 +348,27 @@ extension EntityQueries on AppDatabase {
           ),
         );
       }
-      await _replaceImages(OwnerType.draft, draftId, images);
+      await replaceEntityImages(OwnerType.draft, draftId, images);
       await setTags(TagTarget.draft, draftId, tagIds);
       await setDraftIdeas(draftId, ideaIds);
       return draftId;
     });
   }
 
+  /// 連接關係由腦洞那邊擁有（同步時隨腦洞文件走），從草稿／成圖側修改時要更新腦洞的 updatedAt。
+  Future<void> _touchIdeas(Iterable<String> ids) async {
+    final set = ids.toSet();
+    if (set.isEmpty) return;
+    await (update(ideas)..where((i) => i.id.isIn(set))).write(
+      IdeasCompanion(updatedAt: Value(DateTime.now())),
+    );
+  }
+
   Future<void> setDraftIdeas(String draftId, List<String> ideaIds) async {
+    final old = (await (select(
+      ideaDrafts,
+    )..where((x) => x.draftId.equals(draftId))).get()).map((r) => r.ideaId);
+    await _touchIdeas([...old, ...ideaIds]);
     await (delete(ideaDrafts)..where((x) => x.draftId.equals(draftId))).go();
     for (final i in ideaIds) {
       await into(ideaDrafts)
@@ -459,7 +472,7 @@ extension EntityQueries on AppDatabase {
           ),
         );
       }
-      await _replaceImages(OwnerType.piece, pieceId, images);
+      await replaceEntityImages(OwnerType.piece, pieceId, images);
       await setTags(TagTarget.piece, pieceId, tagIds);
       await (delete(pieceLinks)..where((l) => l.pieceId.equals(pieceId))).go();
       for (final l in links) {
@@ -478,6 +491,10 @@ extension EntityQueries on AppDatabase {
   }
 
   Future<void> setPieceIdeas(String pieceId, List<String> ideaIds) async {
+    final old = (await (select(
+      ideaPieces,
+    )..where((x) => x.pieceId.equals(pieceId))).get()).map((r) => r.ideaId);
+    await _touchIdeas([...old, ...ideaIds]);
     await (delete(ideaPieces)..where((x) => x.pieceId.equals(pieceId))).go();
     for (final i in ideaIds) {
       await into(ideaPieces)

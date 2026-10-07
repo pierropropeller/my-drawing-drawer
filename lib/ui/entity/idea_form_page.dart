@@ -48,7 +48,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage> {
   Future<void> _load() async {
     final id = widget.ideaId;
     if (id != null) {
-      final v = await ref.read(ideaViewProvider(id).future);
+      final v = await ref.read(databaseProvider).watchIdeaView(id).first;
       if (v != null) {
         _title.text = v.idea.title;
         _body.text = v.idea.body;

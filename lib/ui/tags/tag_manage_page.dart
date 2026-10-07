@@ -44,28 +44,31 @@ class TagManagePage extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(Radii.card),
                     border: Border.all(color: t.borderCard),
                   ),
-                  child: ListTile(
-                    title: Text('#${u.tag.name}'),
-                    subtitle: Text('使用 ${u.count} 次'),
-                    onTap: () async {
-                      final name = await promptText(
-                        context,
-                        title: 'Tag 名稱',
-                        initial: u.tag.name,
-                      );
-                      if (name != null) await db.renameTag(u.tag.id, name);
-                    },
-                    trailing: IconButton(
-                      tooltip: '刪除',
-                      icon: Icon(Icons.delete_outline, color: t.danger),
-                      onPressed: () async {
-                        final ok = await confirmDelete(
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: ListTile(
+                      title: Text('#${u.tag.name}'),
+                      subtitle: Text('使用 ${u.count} 次'),
+                      onTap: () async {
+                        final name = await promptText(
                           context,
-                          title: '刪除 tag「${u.tag.name}」？',
-                          message: u.count > 0 ? '已使用的內容會一併移除這個 tag。' : null,
+                          title: 'Tag 名稱',
+                          initial: u.tag.name,
                         );
-                        if (ok) await db.deleteTag(u.tag.id);
+                        if (name != null) await db.renameTag(u.tag.id, name);
                       },
+                      trailing: IconButton(
+                        tooltip: '刪除',
+                        icon: Icon(Icons.delete_outline, color: t.danger),
+                        onPressed: () async {
+                          final ok = await confirmDelete(
+                            context,
+                            title: '刪除 tag「${u.tag.name}」？',
+                            message: u.count > 0 ? '已使用的內容會一併移除這個 tag。' : null,
+                          );
+                          if (ok) await db.deleteTag(u.tag.id);
+                        },
+                      ),
                     ),
                   ),
                 );

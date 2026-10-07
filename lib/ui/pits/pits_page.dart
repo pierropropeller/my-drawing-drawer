@@ -5,6 +5,10 @@ import '../../data/database.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
+import '../common/empty_state.dart';
+import '../common/responsive.dart';
+import '../common/user_avatar.dart';
+import '../../state/settings.dart';
 import 'pit_new_page.dart';
 import 'pit_page.dart';
 
@@ -44,9 +48,19 @@ class _PitsPageState extends ConsumerState<PitsPage> {
               padding: const EdgeInsets.fromLTRB(20, 16, 12, 4),
               child: Row(
                 children: [
+                  const UserAvatar(size: 36),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      '我的坑',
+                      ref
+                              .watch(settingsProvider.select((s) => s.nickname))
+                              .isEmpty
+                          ? '我的坑'
+                          : ref.watch(
+                              settingsProvider.select((s) => s.nickname),
+                            ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                   ),
@@ -61,6 +75,30 @@ class _PitsPageState extends ConsumerState<PitsPage> {
                 ],
               ),
             ),
+            // 離線時顯示橫條，不用彈窗；沒有手動備份按鈕。
+            if (ref.watch(onlineProvider).value == false)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: t.chipBg,
+                  borderRadius: BorderRadius.circular(Radii.button),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_off_outlined, size: 16, color: t.text2),
+                    const SizedBox(width: 8),
+                    Text(
+                      '離線中・恢復網絡後將自動上傳',
+                      style: TextStyle(color: t.text2, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
@@ -134,22 +172,11 @@ class _Empty extends StatelessWidget {
   final bool archived;
 
   @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.collections_bookmark_outlined, size: 56, color: t.dashed),
-          const SizedBox(height: 12),
-          Text(
-            archived ? '沒有封存的坑' : '還沒有坑',
-            style: TextStyle(color: t.text3, fontSize: 15),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => EmptyState(
+    icon: Icons.collections_bookmark_outlined,
+    text: archived ? '沒有封存的坑' : '還沒有坑',
+    color: context.tokens.piece,
+  );
 }
 
 class _PitList extends StatelessWidget {
@@ -163,8 +190,9 @@ class _PitList extends StatelessWidget {
     if (grid) {
       return GridView.builder(
         padding: pad,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          // 手機 2 欄；平板（iPad）3～4 欄。
+          crossAxisCount: columnsForWidth(MediaQuery.sizeOf(context).width),
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           childAspectRatio: 0.82,

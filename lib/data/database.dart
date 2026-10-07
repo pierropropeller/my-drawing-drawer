@@ -27,6 +27,7 @@ part 'database.g.dart';
     YearReviewMonths,
     ReviewSettings,
     Outbox,
+    SyncDocs,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -34,7 +35,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -46,6 +47,15 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(officialImages, officialImages.height);
         await m.addColumn(fanArts, fanArts.width);
         await m.addColumn(fanArts, fanArts.height);
+      }
+      if (from < 3) {
+        // v3：腦洞／草稿／成圖的圖片也記錄寬高。
+        await m.addColumn(entityImages, entityImages.width);
+        await m.addColumn(entityImages, entityImages.height);
+      }
+      if (from < 4) {
+        // v4：同步記錄（已同步到遠端的文件版本）。
+        await m.createTable(syncDocs);
       }
     },
   );

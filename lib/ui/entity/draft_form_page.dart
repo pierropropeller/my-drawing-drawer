@@ -48,7 +48,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage> {
   Future<void> _load() async {
     final id = widget.draftId;
     if (id != null) {
-      final v = await ref.read(draftViewProvider(id).future);
+      final v = await ref.read(databaseProvider).watchDraftView(id).first;
       if (v != null) {
         _title.text = v.draft.title ?? '';
         _body.text = v.draft.body ?? '';

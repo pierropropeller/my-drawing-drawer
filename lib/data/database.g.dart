@@ -8182,6 +8182,321 @@ class OutboxCompanion extends UpdateCompanion<OutboxData> {
   }
 }
 
+class $SyncDocsTable extends SyncDocs with TableInfo<$SyncDocsTable, SyncDoc> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncDocsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMsMeta = const VerificationMeta(
+    'updatedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMs = GeneratedColumn<int>(
+    'updated_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _remoteModifiedMeta = const VerificationMeta(
+    'remoteModified',
+  );
+  @override
+  late final GeneratedColumn<String> remoteModified = GeneratedColumn<String>(
+    'remote_modified',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [kind, id, updatedAtMs, remoteModified];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_docs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncDoc> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('updated_at_ms')) {
+      context.handle(
+        _updatedAtMsMeta,
+        updatedAtMs.isAcceptableOrUnknown(
+          data['updated_at_ms']!,
+          _updatedAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMsMeta);
+    }
+    if (data.containsKey('remote_modified')) {
+      context.handle(
+        _remoteModifiedMeta,
+        remoteModified.isAcceptableOrUnknown(
+          data['remote_modified']!,
+          _remoteModifiedMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {kind, id};
+  @override
+  SyncDoc map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncDoc(
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      updatedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at_ms'],
+      )!,
+      remoteModified: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_modified'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncDocsTable createAlias(String alias) {
+    return $SyncDocsTable(attachedDatabase, alias);
+  }
+}
+
+class SyncDoc extends DataClass implements Insertable<SyncDoc> {
+  final String kind;
+  final String id;
+  final int updatedAtMs;
+  final String remoteModified;
+  const SyncDoc({
+    required this.kind,
+    required this.id,
+    required this.updatedAtMs,
+    required this.remoteModified,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['kind'] = Variable<String>(kind);
+    map['id'] = Variable<String>(id);
+    map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    map['remote_modified'] = Variable<String>(remoteModified);
+    return map;
+  }
+
+  SyncDocsCompanion toCompanion(bool nullToAbsent) {
+    return SyncDocsCompanion(
+      kind: Value(kind),
+      id: Value(id),
+      updatedAtMs: Value(updatedAtMs),
+      remoteModified: Value(remoteModified),
+    );
+  }
+
+  factory SyncDoc.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncDoc(
+      kind: serializer.fromJson<String>(json['kind']),
+      id: serializer.fromJson<String>(json['id']),
+      updatedAtMs: serializer.fromJson<int>(json['updatedAtMs']),
+      remoteModified: serializer.fromJson<String>(json['remoteModified']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'kind': serializer.toJson<String>(kind),
+      'id': serializer.toJson<String>(id),
+      'updatedAtMs': serializer.toJson<int>(updatedAtMs),
+      'remoteModified': serializer.toJson<String>(remoteModified),
+    };
+  }
+
+  SyncDoc copyWith({
+    String? kind,
+    String? id,
+    int? updatedAtMs,
+    String? remoteModified,
+  }) => SyncDoc(
+    kind: kind ?? this.kind,
+    id: id ?? this.id,
+    updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+    remoteModified: remoteModified ?? this.remoteModified,
+  );
+  SyncDoc copyWithCompanion(SyncDocsCompanion data) {
+    return SyncDoc(
+      kind: data.kind.present ? data.kind.value : this.kind,
+      id: data.id.present ? data.id.value : this.id,
+      updatedAtMs: data.updatedAtMs.present
+          ? data.updatedAtMs.value
+          : this.updatedAtMs,
+      remoteModified: data.remoteModified.present
+          ? data.remoteModified.value
+          : this.remoteModified,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncDoc(')
+          ..write('kind: $kind, ')
+          ..write('id: $id, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('remoteModified: $remoteModified')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(kind, id, updatedAtMs, remoteModified);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncDoc &&
+          other.kind == this.kind &&
+          other.id == this.id &&
+          other.updatedAtMs == this.updatedAtMs &&
+          other.remoteModified == this.remoteModified);
+}
+
+class SyncDocsCompanion extends UpdateCompanion<SyncDoc> {
+  final Value<String> kind;
+  final Value<String> id;
+  final Value<int> updatedAtMs;
+  final Value<String> remoteModified;
+  final Value<int> rowid;
+  const SyncDocsCompanion({
+    this.kind = const Value.absent(),
+    this.id = const Value.absent(),
+    this.updatedAtMs = const Value.absent(),
+    this.remoteModified = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncDocsCompanion.insert({
+    required String kind,
+    required String id,
+    required int updatedAtMs,
+    this.remoteModified = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : kind = Value(kind),
+       id = Value(id),
+       updatedAtMs = Value(updatedAtMs);
+  static Insertable<SyncDoc> custom({
+    Expression<String>? kind,
+    Expression<String>? id,
+    Expression<int>? updatedAtMs,
+    Expression<String>? remoteModified,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (kind != null) 'kind': kind,
+      if (id != null) 'id': id,
+      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (remoteModified != null) 'remote_modified': remoteModified,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncDocsCompanion copyWith({
+    Value<String>? kind,
+    Value<String>? id,
+    Value<int>? updatedAtMs,
+    Value<String>? remoteModified,
+    Value<int>? rowid,
+  }) {
+    return SyncDocsCompanion(
+      kind: kind ?? this.kind,
+      id: id ?? this.id,
+      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      remoteModified: remoteModified ?? this.remoteModified,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (updatedAtMs.present) {
+      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
+    }
+    if (remoteModified.present) {
+      map['remote_modified'] = Variable<String>(remoteModified.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncDocsCompanion(')
+          ..write('kind: $kind, ')
+          ..write('id: $id, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('remoteModified: $remoteModified, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -8205,6 +8520,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $ReviewSettingsTable reviewSettings = $ReviewSettingsTable(this);
   late final $OutboxTable outbox = $OutboxTable(this);
+  late final $SyncDocsTable syncDocs = $SyncDocsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8228,6 +8544,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     yearReviewMonths,
     reviewSettings,
     outbox,
+    syncDocs,
   ];
 }
 
@@ -12618,6 +12935,192 @@ typedef $$OutboxTableProcessedTableManager =
       OutboxData,
       PrefetchHooks Function()
     >;
+typedef $$SyncDocsTableCreateCompanionBuilder = SyncDocsCompanion Function({
+  required String kind,
+  required String id,
+  required int updatedAtMs,
+  Value<String> remoteModified,
+  Value<int> rowid,
+});
+typedef $$SyncDocsTableUpdateCompanionBuilder = SyncDocsCompanion Function({
+  Value<String> kind,
+  Value<String> id,
+  Value<int> updatedAtMs,
+  Value<String> remoteModified,
+  Value<int> rowid,
+});
+
+class $$SyncDocsTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncDocsTable> {
+  $$SyncDocsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remoteModified => $composableBuilder(
+    column: $table.remoteModified,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncDocsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncDocsTable> {
+  $$SyncDocsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remoteModified => $composableBuilder(
+    column: $table.remoteModified,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncDocsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncDocsTable> {
+  $$SyncDocsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remoteModified => $composableBuilder(
+    column: $table.remoteModified,
+    builder: (column) => column,
+  );
+}
+
+class $$SyncDocsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncDocsTable,
+          SyncDoc,
+          $$SyncDocsTableFilterComposer,
+          $$SyncDocsTableOrderingComposer,
+          $$SyncDocsTableAnnotationComposer,
+          $$SyncDocsTableCreateCompanionBuilder,
+          $$SyncDocsTableUpdateCompanionBuilder,
+          (SyncDoc, BaseReferences<_$AppDatabase, $SyncDocsTable, SyncDoc>),
+          SyncDoc,
+          PrefetchHooks Function()
+        > {
+  $$SyncDocsTableTableManager(_$AppDatabase db, $SyncDocsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncDocsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncDocsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncDocsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> kind = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<int> updatedAtMs = const Value.absent(),
+                Value<String> remoteModified = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncDocsCompanion(
+                kind: kind,
+                id: id,
+                updatedAtMs: updatedAtMs,
+                remoteModified: remoteModified,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String kind,
+                required String id,
+                required int updatedAtMs,
+                Value<String> remoteModified = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncDocsCompanion.insert(
+                kind: kind,
+                id: id,
+                updatedAtMs: updatedAtMs,
+                remoteModified: remoteModified,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SyncDocsTable, SyncDoc>(table),
+                  BaseReferences<_$AppDatabase, $SyncDocsTable, SyncDoc>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncDocsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncDocsTable,
+      SyncDoc,
+      $$SyncDocsTableFilterComposer,
+      $$SyncDocsTableOrderingComposer,
+      $$SyncDocsTableAnnotationComposer,
+      $$SyncDocsTableCreateCompanionBuilder,
+      $$SyncDocsTableUpdateCompanionBuilder,
+      (SyncDoc, BaseReferences<_$AppDatabase, $SyncDocsTable, SyncDoc>),
+      SyncDoc,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -12656,4 +13159,6 @@ class $AppDatabaseManager {
       $$ReviewSettingsTableTableManager(_db, _db.reviewSettings);
   $$OutboxTableTableManager get outbox =>
       $$OutboxTableTableManager(_db, _db.outbox);
+  $$SyncDocsTableTableManager get syncDocs =>
+      $$SyncDocsTableTableManager(_db, _db.syncDocs);
 }

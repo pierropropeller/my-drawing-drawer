@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../theme/tokens.dart';
+import '../common/responsive.dart';
 import 'album_image.dart';
 
 /// 兩欄瀑布流。選取模式時左上顯示圓圈，選中為 2px 主色框＋22px 實心主色圓圈白剔。
@@ -27,7 +28,7 @@ class ImageMasonry extends StatelessWidget {
   Widget build(BuildContext context) {
     return MasonryGridView.count(
       padding: padding,
-      crossAxisCount: 2,
+      crossAxisCount: columnsForWidth(MediaQuery.sizeOf(context).width),
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
       itemCount: images.length,

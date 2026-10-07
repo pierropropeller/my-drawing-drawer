@@ -51,7 +51,7 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage> {
     final db = ref.read(databaseProvider);
     final im = _current;
     if (im.kind == AlbumKind.official) {
-      final groups = await ref.read(groupsProvider(widget.pitId).future);
+      final groups = await db.watchGroups(widget.pitId).first;
       if (!mounted) return;
       final picked = await showModalBottomSheet<String>(
         context: context,

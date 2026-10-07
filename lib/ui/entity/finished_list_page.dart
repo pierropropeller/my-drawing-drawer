@@ -7,6 +7,7 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../album/album_view.dart';
+import '../common/empty_state.dart';
 import 'entity_widgets.dart';
 import 'piece_detail_page.dart';
 import 'piece_form_page.dart';
@@ -76,8 +77,16 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
             ),
           Expanded(
             child: views.isEmpty
-                ? Center(
-                    child: Text('還沒有成圖', style: TextStyle(color: t.text3)),
+                ? EmptyState(
+                    icon: Icons.palette_outlined,
+                    text: '還沒有成圖',
+                    color: t.piece,
+                    actionLabel: '新增',
+                    onAction: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => PieceFormPage(pitId: widget.pitId),
+                      ),
+                    ),
                   )
                 : switch (_mode) {
                     _Mode.waterfall => MasonryGridView.count(

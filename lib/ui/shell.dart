@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../theme/tokens.dart';
+import '../state/settings.dart';
+import '../sync/sync_driver.dart';
 import 'goals/goals_page.dart';
+import 'login/welcome_page.dart';
+import 'me/profile_page.dart';
 import 'pits/pits_page.dart';
 
 /// 底部導覽列：坑／目標／我的。各分頁內容之後逐步補上。
-class AppShell extends StatefulWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
 class _Tab {
@@ -26,7 +31,7 @@ const _tabs = [
   _Tab('我的', Icons.person_outline, Icons.person),
 ];
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> {
   int _index = 0;
   final _navKeys = List.generate(
     _tabs.length,
@@ -36,6 +41,7 @@ class _AppShellState extends State<AppShell> {
   Widget _root(int i) => switch (i) {
     0 => const PitsPage(),
     1 => const GoalsPage(),
+    2 => const ProfilePage(),
     _ => Center(
       child: Text(
         _tabs[i].label,
@@ -47,6 +53,14 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    // 第一次開啟：開頭畫面（用 Google 帳號開始，或離線繼續）。
+    if (!ref.watch(settingsProvider.select((s) => s.onboarded))) {
+      return const WelcomePage();
+    }
+    return SyncDriver(child: _buildShell(context, t));
+  }
+
+  Widget _buildShell(BuildContext context, AppTokens t) {
     return Scaffold(
       // 每個分頁各自一個 Navigator，子頁面時導覽列仍留在所屬分頁。
       body: PopScope(

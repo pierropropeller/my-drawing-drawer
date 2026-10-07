@@ -63,7 +63,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage> {
   Future<void> _load() async {
     final id = widget.pieceId;
     if (id != null) {
-      final v = await ref.read(pieceViewProvider(id).future);
+      final v = await ref.read(databaseProvider).watchPieceView(id).first;
       if (v != null) {
         _title.text = v.piece.title;
         _body.text = v.piece.body;

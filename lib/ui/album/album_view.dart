@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../theme/tokens.dart';
+import '../common/empty_state.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
 import 'image_masonry.dart';
@@ -15,6 +16,8 @@ class AlbumView extends ConsumerStatefulWidget {
     required this.title,
     required this.images,
     required this.emptyLabel,
+    required this.emptyIcon,
+    required this.emptyColor,
     required this.onAdd,
     required this.onDelete,
     this.filter,
@@ -25,6 +28,8 @@ class AlbumView extends ConsumerStatefulWidget {
   final String title;
   final List<AlbumImage> images;
   final String emptyLabel;
+  final IconData emptyIcon;
+  final CategoryColor emptyColor;
   final VoidCallback onAdd;
   final Future<void> Function(List<AlbumImage> images) onDelete;
 
@@ -118,11 +123,12 @@ class _AlbumViewState extends ConsumerState<AlbumView> {
             ?widget.filter,
             Expanded(
               child: widget.images.isEmpty
-                  ? Center(
-                      child: Text(
-                        widget.emptyLabel,
-                        style: TextStyle(color: t.text3),
-                      ),
+                  ? EmptyState(
+                      icon: widget.emptyIcon,
+                      text: widget.emptyLabel,
+                      color: widget.emptyColor,
+                      actionLabel: '新增',
+                      onAction: widget.onAdd,
                     )
                   : ImageMasonry(
                       images: widget.images,
