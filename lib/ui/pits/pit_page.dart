@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/album_queries.dart';
 import '../../data/database.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
@@ -27,6 +28,8 @@ class PitPage extends ConsumerWidget {
     final t = context.tokens;
     final pit = ref.watch(pitProvider(pitId)).value;
     final stats = ref.watch(pitStatsProvider(pitId)).value ?? PitStats.empty;
+    final covers =
+        ref.watch(cellCoversProvider(pitId)).value ?? const CellCovers();
     if (pit == null) {
       return const Scaffold(body: SizedBox.shrink());
     }
@@ -66,11 +69,12 @@ class PitPage extends ConsumerWidget {
                 stats.official,
                 onTap: () => _open(context, OfficialListPage(pitId: pitId)),
                 // 長按進入選擇封面（格內有圖才可）。
+                file: covers.official,
                 onLongPress: stats.official == 0
                     ? null
                     : () => _open(
                         context,
-                        CoverPickPage(pitId: pitId, kind: AlbumKind.official),
+                        CoverPickPage(pitId: pitId, kind: 'official'),
                       ),
               ),
               _Cell(
@@ -79,11 +83,12 @@ class PitPage extends ConsumerWidget {
                 t.fanArt,
                 stats.fanArts,
                 onTap: () => _open(context, FanArtListPage(pitId: pitId)),
+                file: covers.fanArt,
                 onLongPress: stats.fanArts == 0
                     ? null
                     : () => _open(
                         context,
-                        CoverPickPage(pitId: pitId, kind: AlbumKind.fanArt),
+                        CoverPickPage(pitId: pitId, kind: 'fan'),
                       ),
               ),
               _Cell(
@@ -92,6 +97,13 @@ class PitPage extends ConsumerWidget {
                 t.draft,
                 stats.drafts,
                 onTap: () => _open(context, DraftListPage(pitId: pitId)),
+                file: covers.draft,
+                onLongPress: stats.drafts == 0
+                    ? null
+                    : () => _open(
+                        context,
+                        CoverPickPage(pitId: pitId, kind: 'draft'),
+                      ),
               ),
               _Cell(
                 '我的腦洞',
@@ -99,6 +111,13 @@ class PitPage extends ConsumerWidget {
                 t.idea,
                 stats.ideas,
                 onTap: () => _open(context, IdeaListPage(pitId: pitId)),
+                file: covers.idea,
+                onLongPress: stats.ideas == 0
+                    ? null
+                    : () => _open(
+                        context,
+                        CoverPickPage(pitId: pitId, kind: 'idea'),
+                      ),
               ),
             ],
           ),
@@ -113,6 +132,13 @@ class PitPage extends ConsumerWidget {
               wide: true,
               empty: stats.pieces == 0,
               onTap: () => _open(context, FinishedListPage(pitId: pitId)),
+              file: covers.piece,
+              onLongPress: stats.pieces == 0
+                  ? null
+                  : () => _open(
+                      context,
+                      CoverPickPage(pitId: pitId, kind: 'piece'),
+                    ),
             ),
           ),
         ],
@@ -131,6 +157,7 @@ class _Cell extends StatelessWidget {
     this.empty = false,
     this.onTap,
     this.onLongPress,
+    this.file,
   });
 
   final String label;
@@ -142,52 +169,80 @@ class _Cell extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
 
+  /// 這一格的封面圖（有圖時整格鋪滿，文字改白色）。
+  final String? file;
+
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final fg = empty ? t.dashedText : color.fg;
+    final hasImage = file != null;
+    final fg = hasImage ? Colors.white : (empty ? t.dashedText : color.fg);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
-        padding: const EdgeInsets.all(14),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: empty ? Colors.transparent : color.bg,
           borderRadius: BorderRadius.circular(Radii.card),
           border: empty ? Border.all(color: t.dashed, width: 1.5) : null,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Icon(icon, color: fg, size: 26),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: fg,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
+            if (hasImage) StoredImage(file!, cacheWidth: 600),
+            if (hasImage)
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x55000000),
+                      Color(0x00000000),
+                      Color(0xAA000000),
+                    ],
                   ),
                 ),
-                Text(
-                  '$count',
-                  style: TextStyle(
-                    color: fg,
-                    fontWeight: FontWeight.w700,
-                    fontSize: wide ? 22 : 18,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            Padding(padding: const EdgeInsets.all(14), child: _content(fg)),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _content(Color fg) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Icon(icon, color: fg, size: 26),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: fg,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            Text(
+              '$count',
+              style: TextStyle(
+                color: fg,
+                fontWeight: FontWeight.w700,
+                fontSize: wide ? 22 : 18,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

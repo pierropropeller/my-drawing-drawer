@@ -41,9 +41,12 @@ final imagePickerProvider = Provider<Future<List<XFile>> Function()>(
       () => ImagePicker().pickMultiImage(),
 );
 
-final groupsProvider = StreamProvider.family<List<OfficialGroup>, String>(
-  (ref, pitId) => ref.watch(databaseProvider).watchGroups(pitId),
-);
+/// 分組：key＝(坑 id, 種類)，種類為 `official`（官方圖冊）或 `fan`（好看同人圖）。
+final groupsProvider =
+    StreamProvider.family<List<OfficialGroup>, (String, String)>(
+      (ref, key) =>
+          ref.watch(databaseProvider).watchGroups(key.$1, kind: key.$2),
+    );
 
 final tagsProvider = StreamProvider.family<List<Tag>, String>(
   (ref, pitId) => ref.watch(databaseProvider).watchTags(pitId),
@@ -74,7 +77,7 @@ final officialProvider =
 
 final fanArtsProvider = StreamProvider.family<List<FanArt>, (String, String?)>(
   (ref, key) =>
-      ref.watch(databaseProvider).watchFanArts(key.$1, source: key.$2),
+      ref.watch(databaseProvider).watchFanArts(key.$1, groupId: key.$2),
 );
 
 final ideaViewsProvider =
@@ -126,3 +129,16 @@ final reviewMonthsProvider = StreamProvider.family<Map<int, String?>, int>(
 final reviewSettingsProvider = StreamProvider.family<ReviewSetting, int>(
   (ref, year) => ref.watch(databaseProvider).watchReviewSettings(year),
 );
+
+/// 坑內頁五格各自的封面檔名。
+final cellCoversProvider = StreamProvider.family<CellCovers, String>(
+  (ref, pitId) => ref.watch(databaseProvider).watchCellCovers(pitId),
+);
+
+/// 選擇坑封面時，某一格（或整個坑）內可選的圖。key＝(坑 id, 格；null＝全部)。
+final coverCandidatesProvider =
+    StreamProvider.family<List<CoverCandidate>, (String, String?)>(
+      (ref, key) => ref
+          .watch(databaseProvider)
+          .watchCoverCandidates(key.$1, kind: key.$2),
+    );

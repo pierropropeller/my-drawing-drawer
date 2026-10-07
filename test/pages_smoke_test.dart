@@ -95,7 +95,7 @@ void main() {
       pitId,
       const [NewImage(file: 'c.png', width: 10, height: 10)],
       author: '@a',
-      source: '推特',
+      groupId: (await db.watchGroups(pitId, kind: 'fan').first).first.id,
       tagIds: [tagId],
     );
     fanId = (await db.watchFanArts(pitId).first).first.id;

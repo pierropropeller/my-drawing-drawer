@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
+import '../album/album_image.dart';
 import '../album/cover_pick_page.dart';
 import 'pit_form.dart';
 
@@ -84,6 +85,23 @@ class _PitEditPageState extends ConsumerState<PitEditPage> {
           padding: const EdgeInsets.all(20),
           children: [
             if (hasImages) ...[
+              if (ref.watch(coverFileProvider(widget.pit.id)).value !=
+                  null) ...[
+                Center(
+                  child: SizedBox(
+                    width: 160,
+                    height: 160,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(Radii.image),
+                      child: StoredImage(
+                        ref.watch(coverFileProvider(widget.pit.id)).value!,
+                        cacheWidth: 480,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               OutlinedButton(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -110,7 +128,6 @@ class _PitEditPageState extends ConsumerState<PitEditPage> {
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              activeThumbColor: t.accent,
               title: const Text('封存'),
               value: _archived,
               onChanged: (v) => setState(() => _archived = v),

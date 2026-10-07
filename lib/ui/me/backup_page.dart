@@ -113,7 +113,6 @@ class BackupPage extends ConsumerWidget {
             const SizedBox(height: 12),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              activeThumbColor: t.accent,
               title: const Text('自動同步'),
               value: s.autoSync,
               onChanged: notifier.setAutoSync,

@@ -22,9 +22,17 @@ class DraftListPage extends ConsumerStatefulWidget {
 class _DraftListPageState extends ConsumerState<DraftListPage> {
   bool _grid = false;
 
-  void _add() => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => DraftFormPage(pitId: widget.pitId)),
-  );
+  /// 新增：先打開相簿選圖，選好再進入新增頁。
+  Future<void> _add() async {
+    final picked = await ref.read(imagePickerProvider)();
+    if (picked.isEmpty || !mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            DraftFormPage(pitId: widget.pitId, initialImages: picked),
+      ),
+    );
+  }
 
   void _open(DraftView d) => Navigator.of(context).push(
     MaterialPageRoute<void>(
@@ -50,11 +58,7 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: t.accent,
         foregroundColor: Colors.white,
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => DraftFormPage(pitId: widget.pitId),
-          ),
-        ),
+        onPressed: _add,
         child: const Icon(Icons.add),
       ),
       body: views.isEmpty

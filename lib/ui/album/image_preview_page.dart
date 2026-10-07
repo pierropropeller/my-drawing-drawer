@@ -6,6 +6,7 @@ import '../../state/providers.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
 import 'fan_art_edit_page.dart';
+import 'group_manage_page.dart';
 
 /// 圖片預覽：深色全屏、圖片滿版；分享、下載、設為封面、編輯、刪除。
 class ImagePreviewPage extends ConsumerStatefulWidget {
@@ -43,8 +44,21 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage> {
   }
 
   Future<void> _setCover() async {
-    await ref.read(databaseProvider).setCover(widget.pitId, _current.id);
-    if (mounted) showSnack(context, '已設為封面');
+    // 「設為封面」＝設為這一層（官方圖冊／好看同人圖）的封面；
+    // 主頁坑卡片的封面要在坑內頁長按格子選擇。
+    final db = ref.read(databaseProvider);
+    final im = _current;
+    if (im.kind == AlbumKind.official) {
+      await db.setOfficialCover(widget.pitId, im.id);
+    } else {
+      await db.setFanArtCover(widget.pitId, im.id);
+    }
+    if (mounted) {
+      showSnack(
+        context,
+        im.kind == AlbumKind.official ? '已設為官方圖冊封面' : '已設為好看同人圖封面',
+      );
+    }
   }
 
   Future<void> _edit() async {
@@ -59,7 +73,31 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(padding: EdgeInsets.all(16), child: Text('更換分組')),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        '更換分組',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                GroupManagePage(pitId: widget.pitId),
+                          ),
+                        );
+                      },
+                      child: const Text('管理'),
+                    ),
+                  ],
+                ),
+              ),
               for (final g in groups)
                 ListTile(
                   title: Text(g.name),

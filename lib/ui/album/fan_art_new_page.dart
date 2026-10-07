@@ -1,28 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
 import '../../state/providers.dart';
 import '../pits/pit_form.dart';
 import '../tags/tag_picker.dart';
 import 'album_actions.dart';
-import 'album_view.dart';
-import 'fan_art_sources.dart';
+import 'group_picker.dart';
 import 'image_picker_field.dart';
 
-/// 新增同人圖：圖片、作者、出處、tag（沿用官方圖新增頁的版型）。
+/// 新增同人圖：圖片、作者、分組、tag（沿用官方圖新增頁的版型）。
 class FanArtNewPage extends ConsumerStatefulWidget {
-  const FanArtNewPage({super.key, required this.pitId});
+  const FanArtNewPage({
+    super.key,
+    required this.pitId,
+    this.initialImages = const [],
+    this.initialGroupId,
+  });
   final String pitId;
+  final List<XFile> initialImages;
+  final String? initialGroupId;
 
   @override
   ConsumerState<FanArtNewPage> createState() => _FanArtNewPageState();
 }
 
 class _FanArtNewPageState extends ConsumerState<FanArtNewPage> {
-  final List<ImageItem> _files = [];
+  late final List<ImageItem> _files = widget.initialImages
+      .map(ImageItem.picked)
+      .toList();
   final _author = TextEditingController();
-  String? _source;
+  late String? _groupId = widget.initialGroupId;
   List<String> _tagIds = [];
   bool _saving = false;
 
@@ -56,7 +65,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage> {
           widget.pitId,
           imported,
           author: _author.text.trim(),
-          source: _source ?? '',
+          groupId: _groupId,
           tagIds: _tagIds,
         );
     if (mounted) Navigator.of(context).pop();
@@ -88,15 +97,12 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage> {
             decoration: pitFieldDecoration(context, '作者'),
           ),
           const SizedBox(height: 20),
-          const Text('出處', style: TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          ChipRow(
-            padding: EdgeInsets.zero,
-            allLabel: null,
-            options: [for (final s in fanArtSources) (s, s)],
-            selected: _source,
-            onSelected: (v) =>
-                setState(() => _source = v == _source ? null : v),
+          GroupPicker(
+            pitId: widget.pitId,
+            kind: 'fan',
+            selected: _groupId,
+            allowClear: true,
+            onSelected: (v) => setState(() => _groupId = v),
           ),
           const SizedBox(height: 20),
           TagPicker(

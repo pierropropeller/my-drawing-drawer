@@ -10,6 +10,8 @@ InputDecoration pitFieldDecoration(BuildContext context, String label) {
   );
   return InputDecoration(
     labelText: label,
+    // 多行輸入框的標籤靠左上（預設是左中）。
+    alignLabelWithHint: true,
     filled: true,
     fillColor: t.surface,
     enabledBorder: b(t.border),

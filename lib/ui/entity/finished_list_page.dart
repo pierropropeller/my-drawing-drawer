@@ -27,6 +27,18 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
   _Mode _mode = _Mode.waterfall;
   String? _tagId;
 
+  /// 新增：先打開相簿選圖，選好再進入新增頁。
+  Future<void> _add() async {
+    final picked = await ref.read(imagePickerProvider)();
+    if (picked.isEmpty || !mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            PieceFormPage(pitId: widget.pitId, initialImages: picked),
+      ),
+    );
+  }
+
   void _open(PieceView v) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => PieceDetailPage(pieceId: v.piece.id, pitId: widget.pitId),
@@ -60,11 +72,7 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: t.accent,
         foregroundColor: Colors.white,
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => PieceFormPage(pitId: widget.pitId),
-          ),
-        ),
+        onPressed: _add,
         child: const Icon(Icons.add),
       ),
       body: Column(
@@ -82,11 +90,7 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
                     text: '還沒有成圖',
                     color: t.piece,
                     actionLabel: '新增',
-                    onAction: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => PieceFormPage(pitId: widget.pitId),
-                      ),
-                    ),
+                    onAction: _add,
                   )
                 : switch (_mode) {
                     _Mode.waterfall => MasonryGridView.count(

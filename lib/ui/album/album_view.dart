@@ -143,7 +143,8 @@ class _AlbumViewState extends ConsumerState<AlbumView> {
                           _toggle(im);
                           return;
                         }
-                        Navigator.of(context).push(
+                        // 用最上層的 Navigator 開啟，預覽頁蓋住底部導覽列。
+                        Navigator.of(context, rootNavigator: true).push(
                           MaterialPageRoute<void>(
                             builder: (_) => ImagePreviewPage(
                               pitId: widget.pitId,

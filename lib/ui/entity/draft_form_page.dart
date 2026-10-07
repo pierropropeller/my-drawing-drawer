@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/entity_queries.dart';
@@ -19,12 +20,16 @@ class DraftFormPage extends ConsumerStatefulWidget {
     required this.pitId,
     this.draftId,
     this.initialTime,
+    this.initialImages = const [],
   });
   final String pitId;
   final String? draftId;
 
   /// 新增時使用的建立時間（時間軸上以「此時此刻」新增、可改時間）。
   final DateTime? initialTime;
+
+  /// 先從相簿選好的圖片（新增流程是先選圖、再進新增頁）。
+  final List<XFile> initialImages;
 
   @override
   ConsumerState<DraftFormPage> createState() => _DraftFormPageState();
@@ -42,6 +47,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage> {
   @override
   void initState() {
     super.initState();
+    _images.addAll(widget.initialImages.map(ImageItem.picked));
     _load();
   }
 

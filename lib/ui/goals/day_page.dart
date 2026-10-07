@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../data/database.dart';
 import '../../data/goal_queries.dart';
@@ -53,6 +54,12 @@ class _DayPageState extends ConsumerState<DayPage> {
       builder: (_) => _AddSheet(pits: pits, day: _day),
     );
     if (picked == null || !mounted) return;
+    // 草稿、成圖一定要有圖：先打開相簿選圖，再進新增頁。
+    var images = <XFile>[];
+    if (picked.kind != GoalKind.idea) {
+      images = await ref.read(imagePickerProvider)();
+      if (images.isEmpty || !mounted) return;
+    }
     final page = switch (picked.kind) {
       GoalKind.idea => IdeaFormPage(
         pitId: picked.pitId,
@@ -61,10 +68,12 @@ class _DayPageState extends ConsumerState<DayPage> {
       GoalKind.draft => DraftFormPage(
         pitId: picked.pitId,
         initialTime: picked.time,
+        initialImages: images,
       ),
       GoalKind.piece => PieceFormPage(
         pitId: picked.pitId,
         initialTime: picked.time,
+        initialImages: images,
       ),
     };
     await Navigator.of(context)

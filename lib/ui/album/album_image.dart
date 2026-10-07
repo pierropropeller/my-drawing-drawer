@@ -16,6 +16,8 @@ class AlbumImage {
     required this.width,
     required this.height,
     required this.kind,
+    this.author,
+    this.groupName,
   });
 
   final String id;
@@ -23,6 +25,13 @@ class AlbumImage {
   final int width;
   final int height;
   final AlbumKind kind;
+
+  /// 同人圖列表圖下方顯示的作者與分組（都留空就不顯示那一行）。
+  final String? author;
+  final String? groupName;
+
+  bool get hasCaption =>
+      (author ?? '').isNotEmpty || (groupName ?? '').isNotEmpty;
 
   double get aspect => (width > 0 && height > 0) ? width / height : 1;
 }

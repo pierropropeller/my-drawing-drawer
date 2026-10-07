@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import 'database.dart';
+import 'entity_queries.dart' show watchAssembled;
 
 /// 匯入後待寫入資料庫的圖片。
 class NewImage {
@@ -20,23 +21,42 @@ class TagUsage {
 /// 官方圖冊、同人圖、tag、封面相關查詢（HANDOFF 3.2、3.3、3.7）。
 extension AlbumQueries on AppDatabase {
   // ---- 分組 ----
-  Stream<List<OfficialGroup>> watchGroups(String pitId) {
+  /// [kind]：`official`（官方圖冊）或 `fan`（好看同人圖）。
+  Stream<List<OfficialGroup>> watchGroups(
+    String pitId, {
+    String kind = 'official',
+  }) {
     return (select(officialGroups)
-          ..where((g) => g.pitId.equals(pitId) & g.deletedAt.isNull())
+          ..where(
+            (g) =>
+                g.pitId.equals(pitId) &
+                g.kind.equals(kind) &
+                g.deletedAt.isNull(),
+          )
           ..orderBy([(g) => OrderingTerm.asc(g.sortOrder)]))
         .watch();
   }
 
-  Future<void> addGroup(String pitId, String name) async {
+  Future<void> addGroup(
+    String pitId,
+    String name, {
+    String kind = 'official',
+  }) async {
     final last =
         await (select(officialGroups)
-              ..where((g) => g.pitId.equals(pitId) & g.deletedAt.isNull())
+              ..where(
+                (g) =>
+                    g.pitId.equals(pitId) &
+                    g.kind.equals(kind) &
+                    g.deletedAt.isNull(),
+              )
               ..orderBy([(g) => OrderingTerm.desc(g.sortOrder)])
               ..limit(1))
             .getSingleOrNull();
     await into(officialGroups).insert(
       OfficialGroupsCompanion.insert(
         pitId: pitId,
+        kind: Value(kind),
         name: name,
         sortOrder: Value((last?.sortOrder ?? -1) + 1),
       ),
@@ -63,15 +83,21 @@ extension AlbumQueries on AppDatabase {
                 ..where(
                   (x) =>
                       x.pitId.equals(g.pitId) &
+                      x.kind.equals(g.kind) &
                       x.deletedAt.isNull() &
                       x.id.equals(id).not(),
                 )
                 ..orderBy([(x) => OrderingTerm.asc(x.sortOrder)]))
               .get();
       if (rest.isEmpty) return false;
-      await (update(officialImages)..where((i) => i.groupId.equals(id))).write(
-        OfficialImagesCompanion(groupId: Value(rest.first.id)),
-      );
+      if (g.kind == 'fan') {
+        await (update(fanArts)..where((i) => i.groupId.equals(id))).write(
+          FanArtsCompanion(groupId: Value(rest.first.id)),
+        );
+      } else {
+        await (update(officialImages)..where((i) => i.groupId.equals(id)))
+            .write(OfficialImagesCompanion(groupId: Value(rest.first.id)));
+      }
       final now = DateTime.now();
       await (update(officialGroups)..where((x) => x.id.equals(id))).write(
         OfficialGroupsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
@@ -146,22 +172,28 @@ extension AlbumQueries on AppDatabase {
   }
 
   /// 被刪除的圖若是封面，一併清掉封面。
-  Future<void> _clearCoverIn(Iterable<String> ids) {
-    return (update(pits)..where((p) => p.coverImageId.isIn(ids))).write(
+  Future<void> _clearCoverIn(Iterable<String> ids) async {
+    await (update(pits)..where((p) => p.coverImageId.isIn(ids))).write(
       const PitsCompanion(coverImageId: Value(null)),
+    );
+    await (update(pits)..where((p) => p.officialCoverId.isIn(ids))).write(
+      const PitsCompanion(officialCoverId: Value(null)),
+    );
+    await (update(pits)..where((p) => p.fanArtCoverId.isIn(ids))).write(
+      const PitsCompanion(fanArtCoverId: Value(null)),
     );
   }
 
   // ---- 好看同人圖 ----
-  Stream<List<FanArt>> watchFanArts(String pitId, {String? source}) {
+  Stream<List<FanArt>> watchFanArts(String pitId, {String? groupId}) {
     return (select(fanArts)
           ..where(
             (i) =>
                 i.pitId.equals(pitId) &
                 i.deletedAt.isNull() &
-                (source == null
+                (groupId == null
                     ? const Constant(true)
-                    : i.source.equals(source)),
+                    : i.groupId.equals(groupId)),
           )
           ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
         .watch();
@@ -171,7 +203,7 @@ extension AlbumQueries on AppDatabase {
     String pitId,
     List<NewImage> images, {
     required String author,
-    required String source,
+    String? groupId,
     List<String> tagIds = const [],
   }) {
     return transaction(() async {
@@ -183,7 +215,7 @@ extension AlbumQueries on AppDatabase {
             width: Value(im.width),
             height: Value(im.height),
             author: Value(author),
-            source: Value(source),
+            groupId: Value(groupId),
           ),
         );
         await setTags(TagTarget.fanArt, row.id, tagIds);
@@ -194,14 +226,14 @@ extension AlbumQueries on AppDatabase {
   Future<void> updateFanArt(
     String id, {
     required String author,
-    required String source,
+    String? groupId,
     required List<String> tagIds,
   }) {
     return transaction(() async {
       await (update(fanArts)..where((i) => i.id.equals(id))).write(
         FanArtsCompanion(
           author: Value(author),
-          source: Value(source),
+          groupId: Value(groupId),
           updatedAt: Value(DateTime.now()),
         ),
       );
@@ -311,6 +343,25 @@ extension AlbumQueries on AppDatabase {
     );
   }
 
+  /// 官方圖冊／好看同人圖「這一格」的封面（預覽頁的「設為封面」）。
+  Future<void> setOfficialCover(String pitId, String? imageId) {
+    return (update(pits)..where((p) => p.id.equals(pitId))).write(
+      PitsCompanion(
+        officialCoverId: Value(imageId),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> setFanArtCover(String pitId, String? imageId) {
+    return (update(pits)..where((p) => p.id.equals(pitId))).write(
+      PitsCompanion(
+        fanArtCoverId: Value(imageId),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   /// 以圖片 id 找出檔名（官方圖或同人圖）。找不到回傳 null。
   Future<String?> imageFileOf(String imageId) async {
     final o =
@@ -322,6 +373,252 @@ extension AlbumQueries on AppDatabase {
         await (select(fanArts)
               ..where((i) => i.id.equals(imageId) & i.deletedAt.isNull()))
             .getSingleOrNull();
-    return f?.imageFile;
+    if (f != null) return f.imageFile;
+    final e =
+        await (select(entityImages)
+              ..where((x) => x.id.equals(imageId) & x.deletedAt.isNull()))
+            .getSingleOrNull();
+    return e?.imageFile;
+  }
+}
+
+/// 坑內頁五格的封面（檔名）。
+class CellCovers {
+  const CellCovers({
+    this.official,
+    this.fanArt,
+    this.draft,
+    this.idea,
+    this.piece,
+  });
+  final String? official;
+  final String? fanArt;
+  final String? draft;
+  final String? idea;
+  final String? piece;
+}
+
+extension CellCoverQueries on AppDatabase {
+  /// 官方圖冊／好看同人圖：優先用「設為封面」指定的圖，沒有就用最新一張；
+  /// 草稿／腦洞／成圖：最新一筆的第一張圖。
+  Stream<CellCovers> watchCellCovers(String pitId) {
+    return watchAssembled(
+      this,
+      {pits, officialImages, fanArts, drafts, ideas, pieces, entityImages},
+      () async {
+        final pit = await (select(
+          pits,
+        )..where((p) => p.id.equals(pitId))).getSingleOrNull();
+
+        Future<String?> official() async {
+          final set = pit?.officialCoverId;
+          if (set != null) {
+            final f =
+                await (select(officialImages)
+                      ..where((i) => i.id.equals(set) & i.deletedAt.isNull()))
+                    .getSingleOrNull();
+            if (f != null) return f.imageFile;
+          }
+          return (await (select(officialImages)
+                    ..where((i) => i.pitId.equals(pitId) & i.deletedAt.isNull())
+                    ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)])
+                    ..limit(1))
+                  .getSingleOrNull())
+              ?.imageFile;
+        }
+
+        Future<String?> fan() async {
+          final set = pit?.fanArtCoverId;
+          if (set != null) {
+            final f =
+                await (select(fanArts)
+                      ..where((i) => i.id.equals(set) & i.deletedAt.isNull()))
+                    .getSingleOrNull();
+            if (f != null) return f.imageFile;
+          }
+          return (await (select(fanArts)
+                    ..where((i) => i.pitId.equals(pitId) & i.deletedAt.isNull())
+                    ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)])
+                    ..limit(1))
+                  .getSingleOrNull())
+              ?.imageFile;
+        }
+
+        Future<String?> firstImageOf(OwnerType type, List<String> ids) async {
+          for (final id in ids) {
+            final im =
+                await (select(entityImages)
+                      ..where(
+                        (e) =>
+                            e.ownerType.equalsValue(type) &
+                            e.ownerId.equals(id),
+                      )
+                      ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)])
+                      ..limit(1))
+                    .getSingleOrNull();
+            if (im != null) return im.imageFile;
+          }
+          return null;
+        }
+
+        final draftIds =
+            (await (select(drafts)
+                      ..where(
+                        (d) => d.pitId.equals(pitId) & d.deletedAt.isNull(),
+                      )
+                      ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+                    .get())
+                .map((d) => d.id)
+                .toList();
+        final ideaIds =
+            (await (select(ideas)
+                      ..where(
+                        (d) => d.pitId.equals(pitId) & d.deletedAt.isNull(),
+                      )
+                      ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+                    .get())
+                .map((d) => d.id)
+                .toList();
+        final pieceIds =
+            (await (select(pieces)
+                      ..where(
+                        (d) => d.pitId.equals(pitId) & d.deletedAt.isNull(),
+                      )
+                      ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+                    .get())
+                .map((d) => d.id)
+                .toList();
+
+        return CellCovers(
+          official: await official(),
+          fanArt: await fan(),
+          draft: await firstImageOf(OwnerType.draft, draftIds),
+          idea: await firstImageOf(OwnerType.idea, ideaIds),
+          piece: await firstImageOf(OwnerType.piece, pieceIds),
+        );
+      },
+    );
+  }
+}
+
+/// 可選作坑封面的圖。
+class CoverCandidate {
+  const CoverCandidate({
+    required this.id,
+    required this.file,
+    required this.width,
+    required this.height,
+  });
+  final String id;
+  final String file;
+  final int width;
+  final int height;
+}
+
+extension CoverCandidateQueries on AppDatabase {
+  /// 列出「這一格」內的圖（長按坑內頁的格子進入選擇封面）。
+  /// [kind]：`official`／`fan`／`draft`／`idea`／`piece`；null＝全部。
+  Stream<List<CoverCandidate>> watchCoverCandidates(
+    String pitId, {
+    String? kind,
+  }) {
+    return watchAssembled(
+      this,
+      {officialImages, fanArts, drafts, ideas, pieces, entityImages},
+      () async {
+        final out = <CoverCandidate>[];
+        if (kind == null || kind == 'official') {
+          for (final r
+              in await (select(officialImages)
+                    ..where((i) => i.pitId.equals(pitId) & i.deletedAt.isNull())
+                    ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
+                  .get()) {
+            out.add(
+              CoverCandidate(
+                id: r.id,
+                file: r.imageFile,
+                width: r.width,
+                height: r.height,
+              ),
+            );
+          }
+        }
+        if (kind == null || kind == 'fan') {
+          for (final r
+              in await (select(fanArts)
+                    ..where((i) => i.pitId.equals(pitId) & i.deletedAt.isNull())
+                    ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
+                  .get()) {
+            out.add(
+              CoverCandidate(
+                id: r.id,
+                file: r.imageFile,
+                width: r.width,
+                height: r.height,
+              ),
+            );
+          }
+        }
+        Future<void> entity(
+          String k,
+          OwnerType type,
+          List<String> ownerIds,
+        ) async {
+          if (kind != null && kind != k) return;
+          for (final id in ownerIds) {
+            for (final r
+                in await (select(entityImages)
+                      ..where(
+                        (e) =>
+                            e.ownerType.equalsValue(type) &
+                            e.ownerId.equals(id),
+                      )
+                      ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
+                    .get()) {
+              out.add(
+                CoverCandidate(
+                  id: r.id,
+                  file: r.imageFile,
+                  width: r.width,
+                  height: r.height,
+                ),
+              );
+            }
+          }
+        }
+
+        await entity(
+          'draft',
+          OwnerType.draft,
+          (await (select(drafts)
+                    ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
+                    ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+                  .get())
+              .map((d) => d.id)
+              .toList(),
+        );
+        await entity(
+          'idea',
+          OwnerType.idea,
+          (await (select(ideas)
+                    ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
+                    ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+                  .get())
+              .map((d) => d.id)
+              .toList(),
+        );
+        await entity(
+          'piece',
+          OwnerType.piece,
+          (await (select(pieces)
+                    ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
+                    ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+                  .get())
+              .map((d) => d.id)
+              .toList(),
+        );
+        return out;
+      },
+    );
   }
 }

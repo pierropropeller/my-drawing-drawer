@@ -95,7 +95,8 @@ void main() {
 
     final pit = (await b.watchPits(archived: false).first).single;
     expect(pit.name, '同步坑');
-    expect((await b.watchGroups(pitId).first).length, 5); // 預設分組一併同步
+    expect((await b.watchGroups(pitId).first).length, 6); // 預設分組一併同步
+    expect((await b.watchGroups(pitId, kind: 'fan').first).length, 5);
     final idea = (await b.watchIdeaView(ideaId).first)!;
     expect(idea.status, IdeaStatus.hatched);
     expect(idea.draftIds, [draftId]);

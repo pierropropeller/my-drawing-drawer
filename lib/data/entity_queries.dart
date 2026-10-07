@@ -146,25 +146,54 @@ extension EntityQueries on AppDatabase {
     return (await q.get()).map((r) => r.readTable(tags)).toList();
   }
 
+  /// 以整組替換圖片清單；檔名相同的沿用原本的列（id 不變，坑封面才不會因為編輯而失效）。
   Future<void> replaceEntityImages(
     OwnerType type,
     String id,
     List<NewImage> images,
   ) async {
-    await (delete(
-      entityImages,
-    )..where((e) => e.ownerType.equalsValue(type) & e.ownerId.equals(id))).go();
+    final existing =
+        await (select(entityImages)..where(
+              (e) => e.ownerType.equalsValue(type) & e.ownerId.equals(id),
+            ))
+            .get();
+    final keep = <String, EntityImage>{};
+    for (final r in existing) {
+      if (images.any((n) => n.file == r.imageFile) &&
+          !keep.containsKey(r.imageFile)) {
+        keep[r.imageFile] = r;
+      }
+    }
+    final keepIds = keep.values.map((r) => r.id).toSet();
+    await (delete(entityImages)..where(
+          (e) =>
+              e.ownerType.equalsValue(type) &
+              e.ownerId.equals(id) &
+              e.id.isIn(keepIds).not(),
+        ))
+        .go();
     for (var i = 0; i < images.length; i++) {
-      await into(entityImages).insert(
-        EntityImagesCompanion.insert(
-          ownerType: type,
-          ownerId: id,
-          imageFile: images[i].file,
-          width: Value(images[i].width),
-          height: Value(images[i].height),
-          sortOrder: Value(i),
-        ),
-      );
+      final old = keep[images[i].file];
+      if (old != null) {
+        await (update(entityImages)..where((e) => e.id.equals(old.id))).write(
+          EntityImagesCompanion(
+            sortOrder: Value(i),
+            width: Value(images[i].width),
+            height: Value(images[i].height),
+          ),
+        );
+      } else {
+        await into(entityImages).insert(
+          EntityImagesCompanion.insert(
+            ownerType: type,
+            ownerId: id,
+            imageFile: images[i].file,
+            width: Value(images[i].width),
+            height: Value(images[i].height),
+            sortOrder: Value(i),
+          ),
+        );
+      }
     }
   }
 

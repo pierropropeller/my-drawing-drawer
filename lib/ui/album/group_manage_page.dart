@@ -9,8 +9,15 @@ import 'album_actions.dart';
 
 /// 管理分組：拖曳排序、改名、刪除、新增。
 class GroupManagePage extends ConsumerWidget {
-  const GroupManagePage({super.key, required this.pitId});
+  const GroupManagePage({
+    super.key,
+    required this.pitId,
+    this.kind = 'official',
+  });
   final String pitId;
+
+  /// `official`（官方圖冊）或 `fan`（好看同人圖）。
+  final String kind;
 
   Future<void> _delete(
     BuildContext context,
@@ -31,7 +38,7 @@ class GroupManagePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = context.tokens;
     final db = ref.watch(databaseProvider);
-    final groups = ref.watch(groupsProvider(pitId)).value ?? const [];
+    final groups = ref.watch(groupsProvider((pitId, kind))).value ?? const [];
     return Scaffold(
       appBar: AppBar(title: const Text('管理分組')),
       floatingActionButton: FloatingActionButton.extended(
@@ -41,7 +48,7 @@ class GroupManagePage extends ConsumerWidget {
         label: const Text('新增分組'),
         onPressed: () async {
           final name = await promptText(context, title: '新增分組');
-          if (name != null) await db.addGroup(pitId, name);
+          if (name != null) await db.addGroup(pitId, name, kind: kind);
         },
       ),
       body: ReorderableListView.builder(

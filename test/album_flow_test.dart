@@ -65,11 +65,12 @@ void main() {
     expect(find.text('設定圖'), findsOneWidget);
     expect(find.byTooltip('管理分組'), findsOneWidget);
 
+    // 右下新增：先打開相簿選圖（測試中由假的選圖器回傳一張），再進入新增頁。
     await tester.tap(find.byType(FloatingActionButton));
     await settle(tester);
-    await tester.tap(find.text('新增圖片'));
-    await settle(tester);
-    await tester.tap(find.text('儲存'));
+    expect(find.text('新增官方圖'), findsOneWidget);
+    expect(find.text('管理'), findsOneWidget); // 分組右上的管理按鈕
+    await tester.tap(find.text('儲存')); // 圖片已經帶入，不用再選
     await settle(tester);
     await settle(tester);
 
@@ -80,6 +81,62 @@ void main() {
       isTrue,
     );
     expect(find.text('還沒有官方圖'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 10));
+  });
+
+  testWidgets('預覽頁隱藏底部導覽；設為封面＝官方圖冊的封面（不是主頁坑封面）；同人圖列表顯示作者與分組', (tester) async {
+    await tester.runAsync(() async {
+      final groups = await db.watchGroups(pitId).first;
+      await db.addOfficial(pitId, groups.first.id, const [
+        NewImage(file: 'a.png', width: 10, height: 10),
+      ]);
+      final fan = await db.watchGroups(pitId, kind: 'fan').first;
+      await db.addFanArts(
+        pitId,
+        const [NewImage(file: 'a.png', width: 10, height: 10)],
+        author: '@illust',
+        groupId: fan.first.id,
+      );
+      await db.addFanArts(pitId, const [
+        NewImage(file: 'a.png', width: 10, height: 10),
+      ], author: '');
+    });
+    Directory('${tmp.path}/images').createSync(recursive: true);
+    File('${tmp.path}/images/a.png').writeAsBytesSync(_png1x1);
+
+    await pumpApp(tester);
+    await settle(tester);
+    await tester.tap(find.text('測試坑'));
+    await settle(tester);
+
+    // 官方圖冊 → 預覽
+    await tester.tap(find.text('官方圖冊'));
+    await settle(tester);
+    expect(find.text('目標'), findsOneWidget); // 列表頁底部導覽還在
+    await tester.tap(find.byType(Image).first);
+    await settle(tester);
+    expect(find.text('設為封面'), findsOneWidget);
+    expect(find.text('目標'), findsNothing); // 預覽頁蓋住底部導覽
+    await tester.tap(find.text('設為封面'));
+    await settle(tester);
+    var pit = (await tester.runAsync(() => db.watchPit(pitId).first))!;
+    expect(pit.officialCoverId, isNotNull);
+    expect(pit.coverImageId, isNull);
+    expect(find.text('已設為官方圖冊封面'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.close));
+    await settle(tester);
+    expect(find.text('目標'), findsOneWidget); // 回來後導覽列又出現
+
+    // 好看同人圖：有作者／分組才顯示那一行
+    await tester.pageBack();
+    await settle(tester);
+    await tester.tap(find.text('好看同人圖'));
+    await settle(tester);
+    expect(find.text('@illust'), findsOneWidget);
+    expect(find.text('推特'), findsWidgets); // chips 與圖下方的分組名
+    expect(find.text('還沒有同人圖'), findsNothing);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));

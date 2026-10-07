@@ -55,6 +55,15 @@ ThemeData buildTheme(Brightness brightness, {bool useGoogleFonts = true}) {
         ),
       ),
     ),
+    // 開關：開＝主色軌道＋白色圓鈕；關＝淺灰軌道（chip-bg／border）＋白色圓鈕，沒有描邊。
+    // 數值就是這三個 token，要換色改這裡即可。
+    switchTheme: SwitchThemeData(
+      thumbColor: const WidgetStatePropertyAll(Colors.white),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected) ? t.accent : t.border,
+      ),
+      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+    ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: t.ink,

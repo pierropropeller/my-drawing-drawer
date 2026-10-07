@@ -96,6 +96,28 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _officialCoverIdMeta = const VerificationMeta(
+    'officialCoverId',
+  );
+  @override
+  late final GeneratedColumn<String> officialCoverId = GeneratedColumn<String>(
+    'official_cover_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fanArtCoverIdMeta = const VerificationMeta(
+    'fanArtCoverId',
+  );
+  @override
+  late final GeneratedColumn<String> fanArtCoverId = GeneratedColumn<String>(
+    'fan_art_cover_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _archivedMeta = const VerificationMeta(
     'archived',
   );
@@ -121,6 +143,8 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
     name,
     description,
     coverImageId,
+    officialCoverId,
+    fanArtCoverId,
     archived,
   ];
   @override
@@ -188,6 +212,24 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
         ),
       );
     }
+    if (data.containsKey('official_cover_id')) {
+      context.handle(
+        _officialCoverIdMeta,
+        officialCoverId.isAcceptableOrUnknown(
+          data['official_cover_id']!,
+          _officialCoverIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('fan_art_cover_id')) {
+      context.handle(
+        _fanArtCoverIdMeta,
+        fanArtCoverId.isAcceptableOrUnknown(
+          data['fan_art_cover_id']!,
+          _fanArtCoverIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('archived')) {
       context.handle(
         _archivedMeta,
@@ -235,6 +277,14 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
         DriftSqlType.string,
         data['${effectivePrefix}cover_image_id'],
       ),
+      officialCoverId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}official_cover_id'],
+      ),
+      fanArtCoverId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fan_art_cover_id'],
+      ),
       archived: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}archived'],
@@ -257,6 +307,11 @@ class Pit extends DataClass implements Insertable<Pit> {
   final String name;
   final String? description;
   final String? coverImageId;
+
+  /// 坑內「官方圖冊」「好看同人圖」兩格各自的封面（預覽頁的「設為封面」設的是這裡）。
+  /// 主頁坑卡片的封面是 [coverImageId]，由長按坑內頁的格子選擇。
+  final String? officialCoverId;
+  final String? fanArtCoverId;
   final bool archived;
   const Pit({
     required this.id,
@@ -267,6 +322,8 @@ class Pit extends DataClass implements Insertable<Pit> {
     required this.name,
     this.description,
     this.coverImageId,
+    this.officialCoverId,
+    this.fanArtCoverId,
     required this.archived,
   });
   @override
@@ -285,6 +342,12 @@ class Pit extends DataClass implements Insertable<Pit> {
     }
     if (!nullToAbsent || coverImageId != null) {
       map['cover_image_id'] = Variable<String>(coverImageId);
+    }
+    if (!nullToAbsent || officialCoverId != null) {
+      map['official_cover_id'] = Variable<String>(officialCoverId);
+    }
+    if (!nullToAbsent || fanArtCoverId != null) {
+      map['fan_art_cover_id'] = Variable<String>(fanArtCoverId);
     }
     map['archived'] = Variable<bool>(archived);
     return map;
@@ -306,6 +369,12 @@ class Pit extends DataClass implements Insertable<Pit> {
       coverImageId: coverImageId == null && nullToAbsent
           ? const Value.absent()
           : Value(coverImageId),
+      officialCoverId: officialCoverId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(officialCoverId),
+      fanArtCoverId: fanArtCoverId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fanArtCoverId),
       archived: Value(archived),
     );
   }
@@ -324,6 +393,8 @@ class Pit extends DataClass implements Insertable<Pit> {
       name: serializer.fromJson<String>(json['name']),
       description: serializer.fromJson<String?>(json['description']),
       coverImageId: serializer.fromJson<String?>(json['coverImageId']),
+      officialCoverId: serializer.fromJson<String?>(json['officialCoverId']),
+      fanArtCoverId: serializer.fromJson<String?>(json['fanArtCoverId']),
       archived: serializer.fromJson<bool>(json['archived']),
     );
   }
@@ -339,6 +410,8 @@ class Pit extends DataClass implements Insertable<Pit> {
       'name': serializer.toJson<String>(name),
       'description': serializer.toJson<String?>(description),
       'coverImageId': serializer.toJson<String?>(coverImageId),
+      'officialCoverId': serializer.toJson<String?>(officialCoverId),
+      'fanArtCoverId': serializer.toJson<String?>(fanArtCoverId),
       'archived': serializer.toJson<bool>(archived),
     };
   }
@@ -352,6 +425,8 @@ class Pit extends DataClass implements Insertable<Pit> {
     String? name,
     Value<String?> description = const Value.absent(),
     Value<String?> coverImageId = const Value.absent(),
+    Value<String?> officialCoverId = const Value.absent(),
+    Value<String?> fanArtCoverId = const Value.absent(),
     bool? archived,
   }) => Pit(
     id: id ?? this.id,
@@ -362,6 +437,12 @@ class Pit extends DataClass implements Insertable<Pit> {
     name: name ?? this.name,
     description: description.present ? description.value : this.description,
     coverImageId: coverImageId.present ? coverImageId.value : this.coverImageId,
+    officialCoverId: officialCoverId.present
+        ? officialCoverId.value
+        : this.officialCoverId,
+    fanArtCoverId: fanArtCoverId.present
+        ? fanArtCoverId.value
+        : this.fanArtCoverId,
     archived: archived ?? this.archived,
   );
   Pit copyWithCompanion(PitsCompanion data) {
@@ -378,6 +459,12 @@ class Pit extends DataClass implements Insertable<Pit> {
       coverImageId: data.coverImageId.present
           ? data.coverImageId.value
           : this.coverImageId,
+      officialCoverId: data.officialCoverId.present
+          ? data.officialCoverId.value
+          : this.officialCoverId,
+      fanArtCoverId: data.fanArtCoverId.present
+          ? data.fanArtCoverId.value
+          : this.fanArtCoverId,
       archived: data.archived.present ? data.archived.value : this.archived,
     );
   }
@@ -393,6 +480,8 @@ class Pit extends DataClass implements Insertable<Pit> {
           ..write('name: $name, ')
           ..write('description: $description, ')
           ..write('coverImageId: $coverImageId, ')
+          ..write('officialCoverId: $officialCoverId, ')
+          ..write('fanArtCoverId: $fanArtCoverId, ')
           ..write('archived: $archived')
           ..write(')'))
         .toString();
@@ -408,6 +497,8 @@ class Pit extends DataClass implements Insertable<Pit> {
     name,
     description,
     coverImageId,
+    officialCoverId,
+    fanArtCoverId,
     archived,
   );
   @override
@@ -422,6 +513,8 @@ class Pit extends DataClass implements Insertable<Pit> {
           other.name == this.name &&
           other.description == this.description &&
           other.coverImageId == this.coverImageId &&
+          other.officialCoverId == this.officialCoverId &&
+          other.fanArtCoverId == this.fanArtCoverId &&
           other.archived == this.archived);
 }
 
@@ -434,6 +527,8 @@ class PitsCompanion extends UpdateCompanion<Pit> {
   final Value<String> name;
   final Value<String?> description;
   final Value<String?> coverImageId;
+  final Value<String?> officialCoverId;
+  final Value<String?> fanArtCoverId;
   final Value<bool> archived;
   final Value<int> rowid;
   const PitsCompanion({
@@ -445,6 +540,8 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     this.name = const Value.absent(),
     this.description = const Value.absent(),
     this.coverImageId = const Value.absent(),
+    this.officialCoverId = const Value.absent(),
+    this.fanArtCoverId = const Value.absent(),
     this.archived = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -457,6 +554,8 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     required String name,
     this.description = const Value.absent(),
     this.coverImageId = const Value.absent(),
+    this.officialCoverId = const Value.absent(),
+    this.fanArtCoverId = const Value.absent(),
     this.archived = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name);
@@ -469,6 +568,8 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     Expression<String>? name,
     Expression<String>? description,
     Expression<String>? coverImageId,
+    Expression<String>? officialCoverId,
+    Expression<String>? fanArtCoverId,
     Expression<bool>? archived,
     Expression<int>? rowid,
   }) {
@@ -481,6 +582,8 @@ class PitsCompanion extends UpdateCompanion<Pit> {
       if (name != null) 'name': name,
       if (description != null) 'description': description,
       if (coverImageId != null) 'cover_image_id': coverImageId,
+      if (officialCoverId != null) 'official_cover_id': officialCoverId,
+      if (fanArtCoverId != null) 'fan_art_cover_id': fanArtCoverId,
       if (archived != null) 'archived': archived,
       if (rowid != null) 'rowid': rowid,
     });
@@ -495,6 +598,8 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     Value<String>? name,
     Value<String?>? description,
     Value<String?>? coverImageId,
+    Value<String?>? officialCoverId,
+    Value<String?>? fanArtCoverId,
     Value<bool>? archived,
     Value<int>? rowid,
   }) {
@@ -507,6 +612,8 @@ class PitsCompanion extends UpdateCompanion<Pit> {
       name: name ?? this.name,
       description: description ?? this.description,
       coverImageId: coverImageId ?? this.coverImageId,
+      officialCoverId: officialCoverId ?? this.officialCoverId,
+      fanArtCoverId: fanArtCoverId ?? this.fanArtCoverId,
       archived: archived ?? this.archived,
       rowid: rowid ?? this.rowid,
     );
@@ -539,6 +646,12 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     if (coverImageId.present) {
       map['cover_image_id'] = Variable<String>(coverImageId.value);
     }
+    if (officialCoverId.present) {
+      map['official_cover_id'] = Variable<String>(officialCoverId.value);
+    }
+    if (fanArtCoverId.present) {
+      map['fan_art_cover_id'] = Variable<String>(fanArtCoverId.value);
+    }
     if (archived.present) {
       map['archived'] = Variable<bool>(archived.value);
     }
@@ -559,6 +672,8 @@ class PitsCompanion extends UpdateCompanion<Pit> {
           ..write('name: $name, ')
           ..write('description: $description, ')
           ..write('coverImageId: $coverImageId, ')
+          ..write('officialCoverId: $officialCoverId, ')
+          ..write('fanArtCoverId: $fanArtCoverId, ')
           ..write('archived: $archived, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -638,6 +753,16 @@ class $OfficialGroupsTable extends OfficialGroups
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('official'),
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -667,6 +792,7 @@ class $OfficialGroupsTable extends OfficialGroups
     deletedAt,
     deviceId,
     pitId,
+    kind,
     name,
     sortOrder,
   ];
@@ -717,6 +843,12 @@ class $OfficialGroupsTable extends OfficialGroups
     } else if (isInserting) {
       context.missing(_pitIdMeta);
     }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    }
     if (data.containsKey('name')) {
       context.handle(
         _nameMeta,
@@ -764,6 +896,10 @@ class $OfficialGroupsTable extends OfficialGroups
         DriftSqlType.string,
         data['${effectivePrefix}pit_id'],
       )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -788,6 +924,7 @@ class OfficialGroup extends DataClass implements Insertable<OfficialGroup> {
   final DateTime? deletedAt;
   final String deviceId;
   final String pitId;
+  final String kind;
   final String name;
   final int sortOrder;
   const OfficialGroup({
@@ -797,6 +934,7 @@ class OfficialGroup extends DataClass implements Insertable<OfficialGroup> {
     this.deletedAt,
     required this.deviceId,
     required this.pitId,
+    required this.kind,
     required this.name,
     required this.sortOrder,
   });
@@ -811,6 +949,7 @@ class OfficialGroup extends DataClass implements Insertable<OfficialGroup> {
     }
     map['device_id'] = Variable<String>(deviceId);
     map['pit_id'] = Variable<String>(pitId);
+    map['kind'] = Variable<String>(kind);
     map['name'] = Variable<String>(name);
     map['sort_order'] = Variable<int>(sortOrder);
     return map;
@@ -826,6 +965,7 @@ class OfficialGroup extends DataClass implements Insertable<OfficialGroup> {
           : Value(deletedAt),
       deviceId: Value(deviceId),
       pitId: Value(pitId),
+      kind: Value(kind),
       name: Value(name),
       sortOrder: Value(sortOrder),
     );
@@ -843,6 +983,7 @@ class OfficialGroup extends DataClass implements Insertable<OfficialGroup> {
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
       pitId: serializer.fromJson<String>(json['pitId']),
+      kind: serializer.fromJson<String>(json['kind']),
       name: serializer.fromJson<String>(json['name']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
@@ -857,6 +998,7 @@ class OfficialGroup extends DataClass implements Insertable<OfficialGroup> {
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
       'pitId': serializer.toJson<String>(pitId),
+      'kind': serializer.toJson<String>(kind),
       'name': serializer.toJson<String>(name),
       'sortOrder': serializer.toJson<int>(sortOrder),
     };
@@ -869,6 +1011,7 @@ class OfficialGroup extends DataClass implements Insertable<OfficialGroup> {
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
     String? pitId,
+    String? kind,
     String? name,
     int? sortOrder,
   }) => OfficialGroup(
@@ -878,6 +1021,7 @@ class OfficialGroup extends DataClass implements Insertable<OfficialGroup> {
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
     pitId: pitId ?? this.pitId,
+    kind: kind ?? this.kind,
     name: name ?? this.name,
     sortOrder: sortOrder ?? this.sortOrder,
   );
@@ -889,6 +1033,7 @@ class OfficialGroup extends DataClass implements Insertable<OfficialGroup> {
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
       pitId: data.pitId.present ? data.pitId.value : this.pitId,
+      kind: data.kind.present ? data.kind.value : this.kind,
       name: data.name.present ? data.name.value : this.name,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
     );
@@ -903,6 +1048,7 @@ class OfficialGroup extends DataClass implements Insertable<OfficialGroup> {
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
           ..write('pitId: $pitId, ')
+          ..write('kind: $kind, ')
           ..write('name: $name, ')
           ..write('sortOrder: $sortOrder')
           ..write(')'))
@@ -917,6 +1063,7 @@ class OfficialGroup extends DataClass implements Insertable<OfficialGroup> {
     deletedAt,
     deviceId,
     pitId,
+    kind,
     name,
     sortOrder,
   );
@@ -930,6 +1077,7 @@ class OfficialGroup extends DataClass implements Insertable<OfficialGroup> {
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
           other.pitId == this.pitId &&
+          other.kind == this.kind &&
           other.name == this.name &&
           other.sortOrder == this.sortOrder);
 }
@@ -941,6 +1089,7 @@ class OfficialGroupsCompanion extends UpdateCompanion<OfficialGroup> {
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
   final Value<String> pitId;
+  final Value<String> kind;
   final Value<String> name;
   final Value<int> sortOrder;
   final Value<int> rowid;
@@ -951,6 +1100,7 @@ class OfficialGroupsCompanion extends UpdateCompanion<OfficialGroup> {
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.pitId = const Value.absent(),
+    this.kind = const Value.absent(),
     this.name = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -962,6 +1112,7 @@ class OfficialGroupsCompanion extends UpdateCompanion<OfficialGroup> {
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
     required String pitId,
+    this.kind = const Value.absent(),
     required String name,
     this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -974,6 +1125,7 @@ class OfficialGroupsCompanion extends UpdateCompanion<OfficialGroup> {
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
     Expression<String>? pitId,
+    Expression<String>? kind,
     Expression<String>? name,
     Expression<int>? sortOrder,
     Expression<int>? rowid,
@@ -985,6 +1137,7 @@ class OfficialGroupsCompanion extends UpdateCompanion<OfficialGroup> {
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
       if (pitId != null) 'pit_id': pitId,
+      if (kind != null) 'kind': kind,
       if (name != null) 'name': name,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (rowid != null) 'rowid': rowid,
@@ -998,6 +1151,7 @@ class OfficialGroupsCompanion extends UpdateCompanion<OfficialGroup> {
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
     Value<String>? pitId,
+    Value<String>? kind,
     Value<String>? name,
     Value<int>? sortOrder,
     Value<int>? rowid,
@@ -1009,6 +1163,7 @@ class OfficialGroupsCompanion extends UpdateCompanion<OfficialGroup> {
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
       pitId: pitId ?? this.pitId,
+      kind: kind ?? this.kind,
       name: name ?? this.name,
       sortOrder: sortOrder ?? this.sortOrder,
       rowid: rowid ?? this.rowid,
@@ -1036,6 +1191,9 @@ class OfficialGroupsCompanion extends UpdateCompanion<OfficialGroup> {
     if (pitId.present) {
       map['pit_id'] = Variable<String>(pitId.value);
     }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
@@ -1057,6 +1215,7 @@ class OfficialGroupsCompanion extends UpdateCompanion<OfficialGroup> {
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
           ..write('pitId: $pitId, ')
+          ..write('kind: $kind, ')
           ..write('name: $name, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('rowid: $rowid')
@@ -1778,6 +1937,17 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _groupIdMeta = const VerificationMeta(
+    'groupId',
+  );
+  @override
+  late final GeneratedColumn<String> groupId = GeneratedColumn<String>(
+    'group_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1791,6 +1961,7 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     height,
     author,
     source,
+    groupId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1871,6 +2042,12 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
         source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
       );
     }
+    if (data.containsKey('group_id')) {
+      context.handle(
+        _groupIdMeta,
+        groupId.isAcceptableOrUnknown(data['group_id']!, _groupIdMeta),
+      );
+    }
     return context;
   }
 
@@ -1924,6 +2101,10 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
         DriftSqlType.string,
         data['${effectivePrefix}source'],
       )!,
+      groupId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_id'],
+      ),
     );
   }
 
@@ -1944,7 +2125,10 @@ class FanArt extends DataClass implements Insertable<FanArt> {
   final int width;
   final int height;
   final String author;
+
+  /// 舊版的出處文字（v5 起改用 [groupId]，保留欄位以相容舊資料）。
   final String source;
+  final String? groupId;
   const FanArt({
     required this.id,
     required this.createdAt,
@@ -1957,6 +2141,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     required this.height,
     required this.author,
     required this.source,
+    this.groupId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1974,6 +2159,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     map['height'] = Variable<int>(height);
     map['author'] = Variable<String>(author);
     map['source'] = Variable<String>(source);
+    if (!nullToAbsent || groupId != null) {
+      map['group_id'] = Variable<String>(groupId);
+    }
     return map;
   }
 
@@ -1992,6 +2180,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       height: Value(height),
       author: Value(author),
       source: Value(source),
+      groupId: groupId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(groupId),
     );
   }
 
@@ -2012,6 +2203,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       height: serializer.fromJson<int>(json['height']),
       author: serializer.fromJson<String>(json['author']),
       source: serializer.fromJson<String>(json['source']),
+      groupId: serializer.fromJson<String?>(json['groupId']),
     );
   }
   @override
@@ -2029,6 +2221,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       'height': serializer.toJson<int>(height),
       'author': serializer.toJson<String>(author),
       'source': serializer.toJson<String>(source),
+      'groupId': serializer.toJson<String?>(groupId),
     };
   }
 
@@ -2044,6 +2237,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     int? height,
     String? author,
     String? source,
+    Value<String?> groupId = const Value.absent(),
   }) => FanArt(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -2056,6 +2250,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     height: height ?? this.height,
     author: author ?? this.author,
     source: source ?? this.source,
+    groupId: groupId.present ? groupId.value : this.groupId,
   );
   FanArt copyWithCompanion(FanArtsCompanion data) {
     return FanArt(
@@ -2070,6 +2265,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       height: data.height.present ? data.height.value : this.height,
       author: data.author.present ? data.author.value : this.author,
       source: data.source.present ? data.source.value : this.source,
+      groupId: data.groupId.present ? data.groupId.value : this.groupId,
     );
   }
 
@@ -2086,7 +2282,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           ..write('width: $width, ')
           ..write('height: $height, ')
           ..write('author: $author, ')
-          ..write('source: $source')
+          ..write('source: $source, ')
+          ..write('groupId: $groupId')
           ..write(')'))
         .toString();
   }
@@ -2104,6 +2301,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     height,
     author,
     source,
+    groupId,
   );
   @override
   bool operator ==(Object other) =>
@@ -2119,7 +2317,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           other.width == this.width &&
           other.height == this.height &&
           other.author == this.author &&
-          other.source == this.source);
+          other.source == this.source &&
+          other.groupId == this.groupId);
 }
 
 class FanArtsCompanion extends UpdateCompanion<FanArt> {
@@ -2134,6 +2333,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
   final Value<int> height;
   final Value<String> author;
   final Value<String> source;
+  final Value<String?> groupId;
   final Value<int> rowid;
   const FanArtsCompanion({
     this.id = const Value.absent(),
@@ -2147,6 +2347,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.height = const Value.absent(),
     this.author = const Value.absent(),
     this.source = const Value.absent(),
+    this.groupId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FanArtsCompanion.insert({
@@ -2161,6 +2362,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.height = const Value.absent(),
     this.author = const Value.absent(),
     this.source = const Value.absent(),
+    this.groupId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : pitId = Value(pitId),
        imageFile = Value(imageFile);
@@ -2176,6 +2378,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Expression<int>? height,
     Expression<String>? author,
     Expression<String>? source,
+    Expression<String>? groupId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2190,6 +2393,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       if (height != null) 'height': height,
       if (author != null) 'author': author,
       if (source != null) 'source': source,
+      if (groupId != null) 'group_id': groupId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2206,6 +2410,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Value<int>? height,
     Value<String>? author,
     Value<String>? source,
+    Value<String?>? groupId,
     Value<int>? rowid,
   }) {
     return FanArtsCompanion(
@@ -2220,6 +2425,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       height: height ?? this.height,
       author: author ?? this.author,
       source: source ?? this.source,
+      groupId: groupId ?? this.groupId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2260,6 +2466,9 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
+    if (groupId.present) {
+      map['group_id'] = Variable<String>(groupId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2280,6 +2489,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
           ..write('height: $height, ')
           ..write('author: $author, ')
           ..write('source: $source, ')
+          ..write('groupId: $groupId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -8557,6 +8767,8 @@ typedef $$PitsTableCreateCompanionBuilder = PitsCompanion Function({
   required String name,
   Value<String?> description,
   Value<String?> coverImageId,
+  Value<String?> officialCoverId,
+  Value<String?> fanArtCoverId,
   Value<bool> archived,
   Value<int> rowid,
 });
@@ -8569,6 +8781,8 @@ typedef $$PitsTableUpdateCompanionBuilder = PitsCompanion Function({
   Value<String> name,
   Value<String?> description,
   Value<String?> coverImageId,
+  Value<String?> officialCoverId,
+  Value<String?> fanArtCoverId,
   Value<bool> archived,
   Value<int> rowid,
 });
@@ -8618,6 +8832,16 @@ class $$PitsTableFilterComposer extends Composer<_$AppDatabase, $PitsTable> {
 
   ColumnFilters<String> get coverImageId => $composableBuilder(
     column: $table.coverImageId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get officialCoverId => $composableBuilder(
+    column: $table.officialCoverId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fanArtCoverId => $composableBuilder(
+    column: $table.fanArtCoverId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8675,6 +8899,16 @@ class $$PitsTableOrderingComposer extends Composer<_$AppDatabase, $PitsTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get officialCoverId => $composableBuilder(
+    column: $table.officialCoverId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fanArtCoverId => $composableBuilder(
+    column: $table.fanArtCoverId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get archived => $composableBuilder(
     column: $table.archived,
     builder: (column) => ColumnOrderings(column),
@@ -8718,6 +8952,16 @@ class $$PitsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get officialCoverId => $composableBuilder(
+    column: $table.officialCoverId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fanArtCoverId => $composableBuilder(
+    column: $table.fanArtCoverId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get archived =>
       $composableBuilder(column: $table.archived, builder: (column) => column);
 }
@@ -8758,6 +9002,8 @@ class $$PitsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<String?> coverImageId = const Value.absent(),
+                Value<String?> officialCoverId = const Value.absent(),
+                Value<String?> fanArtCoverId = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PitsCompanion(
@@ -8769,6 +9015,8 @@ class $$PitsTableTableManager
                 name: name,
                 description: description,
                 coverImageId: coverImageId,
+                officialCoverId: officialCoverId,
+                fanArtCoverId: fanArtCoverId,
                 archived: archived,
                 rowid: rowid,
               ),
@@ -8782,6 +9030,8 @@ class $$PitsTableTableManager
                 required String name,
                 Value<String?> description = const Value.absent(),
                 Value<String?> coverImageId = const Value.absent(),
+                Value<String?> officialCoverId = const Value.absent(),
+                Value<String?> fanArtCoverId = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PitsCompanion.insert(
@@ -8793,6 +9043,8 @@ class $$PitsTableTableManager
                 name: name,
                 description: description,
                 coverImageId: coverImageId,
+                officialCoverId: officialCoverId,
+                fanArtCoverId: fanArtCoverId,
                 archived: archived,
                 rowid: rowid,
               ),
@@ -8831,6 +9083,7 @@ typedef $$OfficialGroupsTableCreateCompanionBuilder =
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
       required String pitId,
+      Value<String> kind,
       required String name,
       Value<int> sortOrder,
       Value<int> rowid,
@@ -8843,6 +9096,7 @@ typedef $$OfficialGroupsTableUpdateCompanionBuilder =
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
       Value<String> pitId,
+      Value<String> kind,
       Value<String> name,
       Value<int> sortOrder,
       Value<int> rowid,
@@ -8884,6 +9138,11 @@ class $$OfficialGroupsTableFilterComposer
 
   ColumnFilters<String> get pitId => $composableBuilder(
     column: $table.pitId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8937,6 +9196,11 @@ class $$OfficialGroupsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -8974,6 +9238,9 @@ class $$OfficialGroupsTableAnnotationComposer
 
   GeneratedColumn<String> get pitId =>
       $composableBuilder(column: $table.pitId, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -9021,6 +9288,7 @@ class $$OfficialGroupsTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
                 Value<String> pitId = const Value.absent(),
+                Value<String> kind = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -9031,6 +9299,7 @@ class $$OfficialGroupsTableTableManager
                 deletedAt: deletedAt,
                 deviceId: deviceId,
                 pitId: pitId,
+                kind: kind,
                 name: name,
                 sortOrder: sortOrder,
                 rowid: rowid,
@@ -9043,6 +9312,7 @@ class $$OfficialGroupsTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
                 required String pitId,
+                Value<String> kind = const Value.absent(),
                 required String name,
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -9053,6 +9323,7 @@ class $$OfficialGroupsTableTableManager
                 deletedAt: deletedAt,
                 deviceId: deviceId,
                 pitId: pitId,
+                kind: kind,
                 name: name,
                 sortOrder: sortOrder,
                 rowid: rowid,
@@ -9409,6 +9680,7 @@ typedef $$FanArtsTableCreateCompanionBuilder = FanArtsCompanion Function({
   Value<int> height,
   Value<String> author,
   Value<String> source,
+  Value<String?> groupId,
   Value<int> rowid,
 });
 typedef $$FanArtsTableUpdateCompanionBuilder = FanArtsCompanion Function({
@@ -9423,6 +9695,7 @@ typedef $$FanArtsTableUpdateCompanionBuilder = FanArtsCompanion Function({
   Value<int> height,
   Value<String> author,
   Value<String> source,
+  Value<String?> groupId,
   Value<int> rowid,
 });
 
@@ -9487,6 +9760,11 @@ class $$FanArtsTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
     column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get groupId => $composableBuilder(
+    column: $table.groupId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -9554,6 +9832,11 @@ class $$FanArtsTableOrderingComposer
     column: $table.source,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get groupId => $composableBuilder(
+    column: $table.groupId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FanArtsTableAnnotationComposer
@@ -9597,6 +9880,9 @@ class $$FanArtsTableAnnotationComposer
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get groupId =>
+      $composableBuilder(column: $table.groupId, builder: (column) => column);
 }
 
 class $$FanArtsTableTableManager
@@ -9638,6 +9924,7 @@ class $$FanArtsTableTableManager
                 Value<int> height = const Value.absent(),
                 Value<String> author = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<String?> groupId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FanArtsCompanion(
                 id: id,
@@ -9651,6 +9938,7 @@ class $$FanArtsTableTableManager
                 height: height,
                 author: author,
                 source: source,
+                groupId: groupId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9666,6 +9954,7 @@ class $$FanArtsTableTableManager
                 Value<int> height = const Value.absent(),
                 Value<String> author = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<String?> groupId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FanArtsCompanion.insert(
                 id: id,
@@ -9679,6 +9968,7 @@ class $$FanArtsTableTableManager
                 height: height,
                 author: author,
                 source: source,
+                groupId: groupId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

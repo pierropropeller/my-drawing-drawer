@@ -6,10 +6,9 @@ import '../../data/album_queries.dart';
 import '../../state/providers.dart';
 import '../pits/pit_form.dart';
 import '../tags/tag_picker.dart';
-import 'album_view.dart';
-import 'fan_art_sources.dart';
+import 'group_picker.dart';
 
-/// 編輯同人圖：作者、出處、tag。
+/// 編輯同人圖：作者、分組、tag。
 class FanArtEditPage extends ConsumerStatefulWidget {
   const FanArtEditPage({super.key, required this.pitId, required this.imageId});
   final String pitId;
@@ -21,7 +20,7 @@ class FanArtEditPage extends ConsumerStatefulWidget {
 
 class _FanArtEditPageState extends ConsumerState<FanArtEditPage> {
   final _author = TextEditingController();
-  String? _source;
+  String? _groupId;
   List<String>? _tagIds;
   bool _loaded = false;
 
@@ -40,7 +39,7 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage> {
     if (!mounted) return;
     setState(() {
       _author.text = row.author;
-      _source = row.source.isEmpty ? null : row.source;
+      _groupId = row.groupId;
       _tagIds = ids;
       _loaded = true;
     });
@@ -58,7 +57,7 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage> {
         .updateFanArt(
           widget.imageId,
           author: _author.text.trim(),
-          source: _source ?? '',
+          groupId: _groupId,
           tagIds: _tagIds ?? const [],
         );
     if (mounted) Navigator.of(context).pop();
@@ -86,15 +85,12 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage> {
                   decoration: pitFieldDecoration(context, '作者'),
                 ),
                 const SizedBox(height: 20),
-                const Text('出處', style: TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                ChipRow(
-                  padding: EdgeInsets.zero,
-                  allLabel: null,
-                  options: [for (final s in fanArtSources) (s, s)],
-                  selected: _source,
-                  onSelected: (v) =>
-                      setState(() => _source = v == _source ? null : v),
+                GroupPicker(
+                  pitId: widget.pitId,
+                  kind: 'fan',
+                  selected: _groupId,
+                  allowClear: true,
+                  onSelected: (v) => setState(() => _groupId = v),
                 ),
                 const SizedBox(height: 20),
                 TagPicker(

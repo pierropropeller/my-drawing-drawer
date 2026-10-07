@@ -21,11 +21,27 @@ class OfficialListPage extends ConsumerStatefulWidget {
 class _OfficialListPageState extends ConsumerState<OfficialListPage> {
   String? _groupId;
 
+  /// 新增：先打開相簿選圖，選好再進入新增頁。
+  Future<void> _add(String? groupId) async {
+    final picked = await ref.read(imagePickerProvider)();
+    if (picked.isEmpty || !mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => OfficialNewPage(
+          pitId: widget.pitId,
+          initialGroupId: groupId,
+          initialImages: picked,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final db = ref.watch(databaseProvider);
-    final groups = ref.watch(groupsProvider(widget.pitId)).value ?? const [];
+    final groups =
+        ref.watch(groupsProvider((widget.pitId, 'official'))).value ?? const [];
     // 篩選中的分組被刪除時退回「全部」。
     final groupId = groups.any((g) => g.id == _groupId) ? _groupId : null;
     final rows =
@@ -47,12 +63,7 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
       emptyLabel: '還沒有官方圖',
       emptyIcon: Icons.photo_library_outlined,
       emptyColor: t.official,
-      onAdd: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) =>
-              OfficialNewPage(pitId: widget.pitId, initialGroupId: groupId),
-        ),
-      ),
+      onAdd: () => _add(groupId),
       onDelete: (picked) => db.deleteOfficial(picked.map((e) => e.id)),
       filter: ChipRow(
         options: [for (final g in groups) (g.id, g.name)],

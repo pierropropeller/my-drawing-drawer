@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show BooleanExpressionOperators;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/data/database.dart';
@@ -12,8 +13,12 @@ void main() {
     final id = await db.createPit(name: '測試坑');
     final groups = await (db.select(
       db.officialGroups,
-    )..where((g) => g.pitId.equals(id))).get();
+    )..where((g) => g.pitId.equals(id) & g.kind.equals('official'))).get();
     expect(groups.map((g) => g.name), AppDatabase.defaultGroups);
+    final fan = await (db.select(
+      db.officialGroups,
+    )..where((g) => g.pitId.equals(id) & g.kind.equals('fan'))).get();
+    expect(fan.map((g) => g.name), AppDatabase.defaultFanGroups);
     final pit = await (db.select(
       db.pits,
     )..where((p) => p.id.equals(id))).getSingle();

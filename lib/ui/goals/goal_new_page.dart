@@ -202,7 +202,6 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> {
                   const SizedBox(height: 12),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    activeThumbColor: t.accent,
                     title: const Text('需要達成互動量'),
                     value: _requireLikes,
                     onChanged: (v) => setState(() => _requireLikes = v),

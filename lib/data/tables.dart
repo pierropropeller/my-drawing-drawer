@@ -29,11 +29,18 @@ class Pits extends Table with SyncColumns {
   TextColumn get name => text()();
   TextColumn get description => text().nullable()();
   TextColumn get coverImageId => text().nullable()();
+
+  /// 坑內「官方圖冊」「好看同人圖」兩格各自的封面（預覽頁的「設為封面」設的是這裡）。
+  /// 主頁坑卡片的封面是 [coverImageId]，由長按坑內頁的格子選擇。
+  TextColumn get officialCoverId => text().nullable()();
+  TextColumn get fanArtCoverId => text().nullable()();
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
 }
 
+/// 分組：官方圖冊的分組（kind=official）與好看同人圖的分組（kind=fan，預設是各出處）。
 class OfficialGroups extends Table with SyncColumns {
   TextColumn get pitId => text()();
+  TextColumn get kind => text().withDefault(const Constant('official'))();
   TextColumn get name => text()();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }
@@ -52,7 +59,10 @@ class FanArts extends Table with SyncColumns {
   IntColumn get width => integer().withDefault(const Constant(0))();
   IntColumn get height => integer().withDefault(const Constant(0))();
   TextColumn get author => text().withDefault(const Constant(''))();
+
+  /// 舊版的出處文字（v5 起改用 [groupId]，保留欄位以相容舊資料）。
   TextColumn get source => text().withDefault(const Constant(''))();
+  TextColumn get groupId => text().nullable()();
 }
 
 class Tags extends Table with SyncColumns {

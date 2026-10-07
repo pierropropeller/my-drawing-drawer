@@ -35,7 +35,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -57,11 +57,68 @@ class AppDatabase extends _$AppDatabase {
         // v4：同步記錄（已同步到遠端的文件版本）。
         await m.createTable(syncDocs);
       }
+      if (from < 5) {
+        // v5：坑內兩格各自的封面、分組種類（官方／同人圖）、同人圖改用分組。
+        await m.addColumn(pits, pits.officialCoverId);
+        await m.addColumn(pits, pits.fanArtCoverId);
+        await m.addColumn(officialGroups, officialGroups.kind);
+        await m.addColumn(fanArts, fanArts.groupId);
+        await _migrateGroupsV5();
+      }
     },
   );
 
-  /// 官方圖預設分組（HANDOFF 3.2）。
-  static const defaultGroups = ['設定圖', '海報宣傳', '素材', '自用截圖', '自定義'];
+  /// 官方圖預設分組。
+  static const defaultGroups = ['設定圖', '海報宣傳', '素材', '自用截圖', '圖透', '官方周邊'];
+
+  /// 好看同人圖預設分組（＝各出處）。
+  static const defaultFanGroups = ['推特', '小紅書', 'lofter', '朋友發的', '網上搜的'];
+
+  /// 舊坑：「自定義」改名為「圖透」（圖片保留），補上「官方周邊」；
+  /// 建立同人圖分組並把舊的出處文字對應過去。
+  Future<void> _migrateGroupsV5() async {
+    for (final pit in await select(pits).get()) {
+      final official =
+          await (select(officialGroups)
+                ..where(
+                  (g) =>
+                      g.pitId.equals(pit.id) &
+                      g.kind.equals('official') &
+                      g.deletedAt.isNull(),
+                )
+                ..orderBy([(g) => OrderingTerm.asc(g.sortOrder)]))
+              .get();
+      for (final g in official.where((g) => g.name == '自定義')) {
+        await (update(officialGroups)..where((x) => x.id.equals(g.id))).write(
+          const OfficialGroupsCompanion(name: Value('圖透')),
+        );
+      }
+      if (!official.any((g) => g.name == '官方周邊')) {
+        await into(officialGroups).insert(
+          OfficialGroupsCompanion.insert(
+            pitId: pit.id,
+            name: '官方周邊',
+            sortOrder: Value(official.length),
+          ),
+        );
+      }
+      for (var i = 0; i < defaultFanGroups.length; i++) {
+        final g = await into(officialGroups).insertReturning(
+          OfficialGroupsCompanion.insert(
+            pitId: pit.id,
+            kind: const Value('fan'),
+            name: defaultFanGroups[i],
+            sortOrder: Value(i),
+          ),
+        );
+        await (update(fanArts)..where(
+              (f) =>
+                  f.pitId.equals(pit.id) & f.source.equals(defaultFanGroups[i]),
+            ))
+            .write(FanArtsCompanion(groupId: Value(g.id)));
+      }
+    }
+  }
 
   /// 新增坑並建立預設官方圖分組。
   Future<String> createPit({required String name, String? description}) {
@@ -78,15 +135,39 @@ class AppDatabase extends _$AppDatabase {
           ),
         );
       }
+      for (var i = 0; i < defaultFanGroups.length; i++) {
+        await into(officialGroups).insert(
+          OfficialGroupsCompanion.insert(
+            pitId: pit.id,
+            kind: const Value('fan'),
+            name: defaultFanGroups[i],
+            sortOrder: Value(i),
+          ),
+        );
+      }
       return pit.id;
     });
   }
 
+  /// 主頁的坑依「最後更新」排序：坑本身，或坑內任何內容（圖、同人圖、腦洞、草稿、成圖）有更新都算。
   Stream<List<Pit>> watchPits({required bool archived}) {
-    return (select(pits)
-          ..where((p) => p.deletedAt.isNull() & p.archived.equals(archived))
-          ..orderBy([(p) => OrderingTerm.desc(p.updatedAt)]))
-        .watch();
+    return customSelect(
+      '''
+      SELECT p.*, MAX(
+        p.updated_at,
+        COALESCE((SELECT MAX(updated_at) FROM official_images WHERE pit_id = p.id), 0),
+        COALESCE((SELECT MAX(updated_at) FROM fan_arts WHERE pit_id = p.id), 0),
+        COALESCE((SELECT MAX(updated_at) FROM ideas WHERE pit_id = p.id), 0),
+        COALESCE((SELECT MAX(updated_at) FROM drafts WHERE pit_id = p.id), 0),
+        COALESCE((SELECT MAX(updated_at) FROM pieces WHERE pit_id = p.id), 0)
+      ) AS last_activity
+      FROM pits p
+      WHERE p.deleted_at IS NULL AND p.archived = ?
+      ORDER BY last_activity DESC, p.created_at DESC
+      ''',
+      variables: [Variable<bool>(archived)],
+      readsFrom: {pits, officialImages, fanArts, ideas, drafts, pieces},
+    ).watch().map((rows) => [for (final r in rows) pits.map(r.data)]);
   }
 
   Stream<Pit?> watchPit(String id) {

@@ -64,47 +64,82 @@ class _Tile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final tile = AspectRatio(
+      aspectRatio: image.aspect.clamp(0.4, 2.5),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(Radii.image),
+            child: StoredImage(image.file, cacheWidth: 500),
+          ),
+          if (isSelected)
+            DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(Radii.image),
+                border: Border.all(color: t.accent, width: 2),
+              ),
+            ),
+          if (selecting)
+            Positioned(
+              top: 8,
+              left: 8,
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? t.accent : Colors.black26,
+                  border: isSelected
+                      ? null
+                      : Border.all(color: Colors.white, width: 1.5),
+                ),
+                child: isSelected
+                    ? const Icon(Icons.check, size: 15, color: Colors.white)
+                    : null,
+              ),
+            ),
+        ],
+      ),
+    );
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
-      child: AspectRatio(
-        aspectRatio: image.aspect.clamp(0.4, 2.5),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(Radii.image),
-              child: StoredImage(image.file, cacheWidth: 500),
-            ),
-            if (isSelected)
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(Radii.image),
-                  border: Border.all(color: t.accent, width: 2),
-                ),
-              ),
-            if (selecting)
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected ? t.accent : Colors.black26,
-                    border: isSelected
-                        ? null
-                        : Border.all(color: Colors.white, width: 1.5),
+      child: image.hasCaption
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                tile,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 6, 4, 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if ((image.author ?? '').isNotEmpty)
+                        Text(
+                          image.author!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: t.ink,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      if ((image.groupName ?? '').isNotEmpty)
+                        Text(
+                          image.groupName!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: t.text3, fontSize: 12),
+                        ),
+                    ],
                   ),
-                  child: isSelected
-                      ? const Icon(Icons.check, size: 15, color: Colors.white)
-                      : null,
                 ),
-              ),
-          ],
-        ),
-      ),
+              ],
+            )
+          : tile,
     );
   }
 }

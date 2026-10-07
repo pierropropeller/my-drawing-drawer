@@ -7,7 +7,7 @@ import '../../theme/tokens.dart';
 import 'album_image.dart';
 import 'album_view.dart';
 import 'fan_art_new_page.dart';
-import 'fan_art_sources.dart';
+import 'group_manage_page.dart';
 
 /// 好看同人圖：出處 chips 篩選。
 class FanArtListPage extends ConsumerStatefulWidget {
@@ -19,13 +19,32 @@ class FanArtListPage extends ConsumerStatefulWidget {
 }
 
 class _FanArtListPageState extends ConsumerState<FanArtListPage> {
-  String? _source;
+  String? _groupId;
+
+  /// 新增：先打開相簿選圖，選好再進入新增頁。
+  Future<void> _add(String? groupId) async {
+    final picked = await ref.read(imagePickerProvider)();
+    if (picked.isEmpty || !mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FanArtNewPage(
+          pitId: widget.pitId,
+          initialImages: picked,
+          initialGroupId: groupId,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(databaseProvider);
+    final groups =
+        ref.watch(groupsProvider((widget.pitId, 'fan'))).value ?? const [];
+    final groupId = groups.any((g) => g.id == _groupId) ? _groupId : null;
+    final names = {for (final g in groups) g.id: g.name};
     final rows =
-        ref.watch(fanArtsProvider((widget.pitId, _source))).value ?? const [];
+        ref.watch(fanArtsProvider((widget.pitId, groupId))).value ?? const [];
     final images = [
       for (final r in rows)
         AlbumImage(
@@ -34,6 +53,8 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
           width: r.width,
           height: r.height,
           kind: AlbumKind.fanArt,
+          author: r.author,
+          groupName: names[r.groupId],
         ),
     ];
     return AlbumView(
@@ -43,16 +64,21 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
       emptyLabel: '還沒有同人圖',
       emptyIcon: Icons.favorite_border,
       emptyColor: context.tokens.fanArt,
-      onAdd: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => FanArtNewPage(pitId: widget.pitId),
-        ),
-      ),
+      onAdd: () => _add(groupId),
       onDelete: (picked) => db.deleteFanArts(picked.map((e) => e.id)),
       filter: ChipRow(
-        options: [for (final s in fanArtSources) (s, s)],
-        selected: _source,
-        onSelected: (v) => setState(() => _source = v),
+        options: [for (final g in groups) (g.id, g.name)],
+        selected: groupId,
+        onSelected: (v) => setState(() => _groupId = v),
+        trailing: IconButton(
+          tooltip: '管理分組',
+          icon: Icon(Icons.tune, color: context.tokens.text2),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => GroupManagePage(pitId: widget.pitId, kind: 'fan'),
+            ),
+          ),
+        ),
       ),
     );
   }
