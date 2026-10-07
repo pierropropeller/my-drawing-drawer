@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/tokens.dart';
+import 'pits/pits_page.dart';
 
 /// 底部導覽列：坑／目標／我的。各分頁內容之後逐步補上。
 class AppShell extends StatefulWidget {
@@ -25,17 +27,49 @@ const _tabs = [
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
+  final _navKeys = List.generate(
+    _tabs.length,
+    (_) => GlobalKey<NavigatorState>(),
+  );
+
+  Widget _root(int i) => switch (i) {
+    0 => const PitsPage(),
+    _ => Center(
+      child: Text(
+        _tabs[i].label,
+        style: Theme.of(context).textTheme.headlineMedium,
+      ),
+    ),
+  };
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Text(
-            _tabs[_index].label,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
+      // 每個分頁各自一個 Navigator，子頁面時導覽列仍留在所屬分頁。
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          final nav = _navKeys[_index].currentState!;
+          if (nav.canPop()) {
+            nav.pop();
+          } else if (_index != 0) {
+            setState(() => _index = 0);
+          } else {
+            SystemNavigator.pop();
+          }
+        },
+        child: IndexedStack(
+          index: _index,
+          children: [
+            for (var i = 0; i < _tabs.length; i++)
+              Navigator(
+                key: _navKeys[i],
+                onGenerateRoute: (_) =>
+                    MaterialPageRoute<void>(builder: (_) => _root(i)),
+              ),
+          ],
         ),
       ),
       bottomNavigationBar: Container(
