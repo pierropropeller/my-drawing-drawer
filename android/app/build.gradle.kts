@@ -29,6 +29,17 @@ android {
         versionName = flutter.versionName
     }
 
+    // 固定的 debug 簽名：CI 每次都是全新環境，若用預設隨機 debug key，
+    // 每個 build 的簽名都不同，手機就無法覆蓋安裝舊版。
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

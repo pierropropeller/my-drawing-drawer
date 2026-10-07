@@ -14,7 +14,7 @@ flutter analyze && flutter test
 
 ## 下載 APK
 
-每次 push 會由 GitHub Actions 出 debug APK，發佈在 [Releases](../../releases)（`debug-build-N`）。
+每次 push 會由 GitHub Actions 出 debug APK（僅 arm64，固定簽名，可直接覆蓋安裝）；發佈在 [Releases](../../releases)（`debug-build-N`）。
 
 ## 進度
 

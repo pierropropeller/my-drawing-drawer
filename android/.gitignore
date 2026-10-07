@@ -12,3 +12,6 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# 固定的 debug 簽名要提交（讓每次 build 簽名一致，可覆蓋安裝）
+!debug.keystore
