@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/junk_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
@@ -86,9 +87,9 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
     return AlbumView(
       pitId: widget.pitId,
       cell: AlbumCell.fan,
-      title: '好看同人圖',
+      title: context.l10n.pitsFanArt,
       images: images,
-      emptyLabel: '還沒有同人圖',
+      emptyLabel: context.l10n.albumFanEmpty,
       emptySvg: AppIcons.pitFanArt,
       total: total,
       emptyColor: context.tokens.fanArt,
@@ -119,7 +120,7 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
               pitId: widget.pitId,
               kind: TaggedKind.fan,
               tagId: widget.tagId!,
-              countText: '${images.length} 張',
+              countText: context.l10n.commonCountImages(images.length),
             ),
           ChipRow(
             options: [for (final g in groups) (g.id, g.name)],

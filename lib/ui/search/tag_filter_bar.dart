@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/providers.dart';
+import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
@@ -94,7 +95,7 @@ class TagFilterPill extends StatelessWidget {
             onTap: onClear,
             child: Semantics(
               button: true,
-              label: '移除篩選',
+              label: context.l10n.searchRemoveFilter,
               child: const SvgIcon(
                 AppIcons.closeX,
                 size: 14,

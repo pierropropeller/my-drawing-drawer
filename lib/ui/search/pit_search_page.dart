@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/providers.dart';
+import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
@@ -60,7 +61,7 @@ class _PitSearchPageState extends ConsumerState<PitSearchPage>
               SearchBarRow(
                 child: SearchField(
                   controller: _controller,
-                  hint: '搜尋$pitName',
+                  hint: context.l10n.searchHint(pitName),
                   autofocus: true,
                   onSubmitted: (v) {
                     if (v.trim().isEmpty) return;
@@ -77,11 +78,11 @@ class _PitSearchPageState extends ConsumerState<PitSearchPage>
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   children: [
                     if (usage.isNotEmpty) ...[
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(2, 4, 2, 10),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(2, 4, 2, 10),
                         child: Text(
-                          '常用 tag',
-                          style: TextStyle(
+                          context.l10n.searchFrequentTags,
+                          style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                           ),

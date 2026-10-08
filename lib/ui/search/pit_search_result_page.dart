@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/entity_queries.dart';
 import '../../data/search_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -116,7 +117,7 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
     if (show(SearchCategory.piece) && !res.pieces.isEmpty) {
       section(
         _ImageSection(
-          title: '成圖',
+          title: context.l10n.searchCategoryPiece,
           total: res.pieces.total,
           files: [for (final v in res.pieces.items) v.images.firstOrNull?.file],
           more: res.pieces.more,
@@ -149,7 +150,7 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
       ];
       section(
         _ImageSection(
-          title: '好看同人圖',
+          title: context.l10n.pitsFanArt,
           total: res.fanArts.total,
           files: [for (final f in res.fanArts.items) f.imageFile],
           more: res.fanArts.more,
@@ -168,7 +169,7 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
     if (show(SearchCategory.draft) && !res.drafts.isEmpty) {
       section(
         _ImageSection(
-          title: '草稿',
+          title: context.l10n.searchCategoryDraft,
           total: res.drafts.total,
           files: [for (final v in res.drafts.items) v.images.firstOrNull?.file],
           more: res.drafts.more,
@@ -187,7 +188,7 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
       final shown = res.ideas.items.length < _ideaShown
           ? res.ideas.items.length
           : _ideaShown;
-      section(_SectionHeader('腦洞', res.ideas.total));
+      section(_SectionHeader(context.l10n.searchCategoryIdea, res.ideas.total));
       slivers.add(
         SliverList.separated(
           itemCount: shown,
@@ -240,7 +241,9 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
                     Expanded(
                       child: SearchField(
                         controller: _controller,
-                        hint: _tagId == null ? '搜尋$pitName' : '',
+                        hint: _tagId == null
+                            ? context.l10n.searchHint(pitName)
+                            : '',
                         onChanged: (v) => _setQuery(text: v),
                       ),
                     ),
@@ -262,7 +265,7 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
                 child: slivers.isEmpty
                     ? Center(
                         child: Text(
-                          '沒有找到符合的內容',
+                          context.l10n.searchNoResults,
                           style: TextStyle(color: t.text3, fontSize: 14),
                         ),
                       )

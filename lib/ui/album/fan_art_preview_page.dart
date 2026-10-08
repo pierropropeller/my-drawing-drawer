@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/app_icons.dart';
 import '../common/nav_bar_hidden.dart';
@@ -51,12 +52,16 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
 
   Future<void> _download() async {
     final n = await downloadImages(ref, [_current]);
-    if (mounted) showSnack(context, n > 0 ? '已儲存到相簿' : '儲存失敗');
+    if (!mounted) return;
+    showSnack(
+      context,
+      n > 0 ? context.l10n.albumSavedToGallery : context.l10n.albumSaveFailed,
+    );
   }
 
   Future<void> _setCover() async {
     await ref.read(databaseProvider).setFanArtCover(widget.pitId, _current.id);
-    if (mounted) showSnack(context, '已設為好看同人圖封面');
+    if (mounted) showSnack(context, context.l10n.albumFanCoverSet);
   }
 
   Future<void> _edit() async {
@@ -70,7 +75,10 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
   }
 
   Future<void> _delete() async {
-    final ok = await confirmDelete(context, title: '刪除這張圖？');
+    final ok = await confirmDelete(
+      context,
+      title: context.l10n.albumDeleteImageTitle,
+    );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteFanArts([_current.id]);
     if (mounted) _removeCurrent();
@@ -114,7 +122,9 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
     };
     final date = cur.createdAt;
     return PreviewShell(
-      title: pitName == null ? '好看同人圖' : '$pitName · 好看同人圖',
+      title: pitName == null
+          ? context.l10n.pitsFanArt
+          : context.l10n.albumTitleWithPit(pitName, context.l10n.pitsFanArt),
       counter: '${_index + 1} / ${_items.length}',
       controller: _controller,
       files: [for (final i in _items) i.file],
@@ -199,7 +209,7 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
               Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: Text(
-                  previewDate(date),
+                  previewDate(date, context.l10n),
                   style: const TextStyle(
                     color: PreviewPalette.muted,
                     fontSize: 11.5,
@@ -210,13 +220,21 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
         ),
       ),
       actions: [
-        PreviewAction(AppIcons.share, '分享', () => shareImage(ref, _current)),
-        PreviewAction(AppIcons.download, '下載', _download),
-        PreviewAction(AppIcons.setCover, '設為封面', _setCover),
-        PreviewAction(AppIcons.edit, '編輯', _edit),
+        PreviewAction(
+          AppIcons.share,
+          context.l10n.commonShare,
+          () => shareImage(ref, _current),
+        ),
+        PreviewAction(
+          AppIcons.download,
+          context.l10n.commonDownload,
+          _download,
+        ),
+        PreviewAction(AppIcons.setCover, context.l10n.albumSetCover, _setCover),
+        PreviewAction(AppIcons.edit, context.l10n.commonEdit, _edit),
         PreviewAction(
           AppIcons.trash,
-          '刪除',
+          context.l10n.commonDelete,
           _delete,
           color: PreviewPalette.danger,
         ),

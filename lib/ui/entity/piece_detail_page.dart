@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/database.dart';
 import '../../data/entity_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../data/payment.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
@@ -44,7 +45,7 @@ class PieceDetailPage extends ConsumerWidget {
     final value = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('更新實際互動量'),
+        title: Text(context.l10n.pieceDetailUpdateLikes),
         content: TextField(
           controller: c,
           autofocus: true,
@@ -53,11 +54,11 @@ class PieceDetailPage extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text(context.l10n.commonCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, int.tryParse(c.text.trim())),
-            child: const Text('確定'),
+            child: Text(context.l10n.albumConfirm),
           ),
         ],
       ),
@@ -92,7 +93,7 @@ class PieceDetailPage extends ConsumerWidget {
                 title: '',
                 trailing: [
                   HeaderIconButton(
-                    label: '編輯',
+                    label: context.l10n.commonEdit,
                     icon: AppIcons.edit,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
@@ -102,11 +103,14 @@ class PieceDetailPage extends ConsumerWidget {
                     ),
                   ),
                   HeaderIconButton(
-                    label: '刪除',
+                    label: context.l10n.commonDelete,
                     icon: AppIcons.trash,
                     color: t.danger,
                     onTap: () async {
-                      final ok = await confirmDelete(context, title: '刪除這張成圖？');
+                      final ok = await confirmDelete(
+                        context,
+                        title: context.l10n.pieceDetailDeleteTitle,
+                      );
                       if (!ok || !context.mounted) return;
                       await ref.read(databaseProvider).deletePieces([pieceId]);
                       if (context.mounted) Navigator.of(context).pop();
@@ -240,7 +244,7 @@ class PieceDetailPage extends ConsumerWidget {
                       _InfoCard(piece: p, payment: v.payment),
                     ],
                     if (p.isPublished && v.links.isNotEmpty) ...[
-                      const _Section('社交媒體連結'),
+                      _Section(context.l10n.pieceFormSocialLinks),
                       for (final l in v.links)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
@@ -248,7 +252,7 @@ class PieceDetailPage extends ConsumerWidget {
                         ),
                     ],
                     if (myIdeas.isNotEmpty) ...[
-                      const _Section('關聯的腦洞'),
+                      _Section(context.l10n.ideaLinkedHeading),
                       for (final i in myIdeas)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
@@ -316,7 +320,7 @@ class PieceDetailPage extends ConsumerWidget {
                         ),
                     ],
                     if (myDrafts.isNotEmpty) ...[
-                      const _Section('關聯的草稿'),
+                      _Section(context.l10n.draftLinkedHeading),
                       GridView.count(
                         crossAxisCount: 3,
                         mainAxisSpacing: 8,
@@ -434,7 +438,7 @@ class _LikesCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(Radii.chip),
                     ),
                     child: Text(
-                      '已達標 ✦',
+                      context.l10n.pieceDetailReached,
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
@@ -463,12 +467,12 @@ class _LikesCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '實際互動量 $act',
+                  context.l10n.pieceDetailActualLikes(act),
                   style: TextStyle(fontSize: 11, color: t.text3),
                 ),
                 if (tar > 0)
                   Text(
-                    '目標 $tar',
+                    context.l10n.pieceDetailTarget(tar),
                     style: TextStyle(fontSize: 11, color: t.text3),
                   ),
               ],
@@ -496,13 +500,24 @@ class _InfoCard extends StatelessWidget {
     final p = piece;
     final rows = <(String, Widget)>[
       if (p.isPublished)
-        ('發佈日期', _value(fmtSlash(p.publishedAt ?? p.finishedAt))),
+        (
+          context.l10n.pieceFormPublishDate,
+          _value(fmtSlash(p.publishedAt ?? p.finishedAt)),
+        ),
       if (p.isCommission) ...[
-        if (p.client.isNotEmpty) ('委託人', _value(p.client)),
+        if (p.client.isNotEmpty)
+          (context.l10n.pieceFormClient, _value(p.client)),
         if (p.amount != null && p.amount! > 0)
-          ('金額', _value(formatPieceMoney(p.currency, p.amount!), bold: true)),
-        ('收款', PaymentChip(state: payment, currency: p.currency)),
-        if (p.dueAt != null) ('交稿日期', _value(fmtSlash(p.dueAt!))),
+          (
+            context.l10n.pieceFormAmount,
+            _value(formatPieceMoney(p.currency, p.amount!), bold: true),
+          ),
+        (
+          context.l10n.pieceDetailPayment,
+          PaymentChip(state: payment, currency: p.currency),
+        ),
+        if (p.dueAt != null)
+          (context.l10n.pieceFormDueDate, _value(fmtSlash(p.dueAt!))),
       ],
     ];
     return Container(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/tokens.dart';
+import '../../l10n/l10n.dart';
 import '../album/fan_art_list_page.dart';
 import '../common/svg_icon.dart';
 import '../entity/draft_list_page.dart';
@@ -95,7 +96,7 @@ class SearchIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    label: '搜尋',
+    label: context.l10n.commonSearch,
     child: InkResponse(
       radius: 24,
       onTap: () => openPitSearch(context, pitId),

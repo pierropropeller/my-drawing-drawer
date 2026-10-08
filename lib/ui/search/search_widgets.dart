@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/tokens.dart';
+import '../../l10n/l10n.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import 'search_icons.dart';
 
 /// 搜尋分類；順序＝完成度（D-051）：全部／成圖／同人圖／草稿／腦洞。
 enum SearchCategory {
-  all('全部'),
-  piece('成圖'),
-  fan('同人圖'),
-  draft('草稿'),
-  idea('腦洞');
+  all,
+  piece,
+  fan,
+  draft,
+  idea;
 
-  const SearchCategory(this.label);
-  final String label;
+  String label(AppLocalizations l) => switch (this) {
+    all => l.commonAll,
+    piece => l.searchCategoryPiece,
+    fan => l.searchCategoryFan,
+    draft => l.searchCategoryDraft,
+    idea => l.searchCategoryIdea,
+  };
 }
 
 /// 搜尋頁頂部：返回鍵＋主色細框的輸入列（PitSearch／PitSearchResult 共用）。
@@ -36,7 +42,7 @@ class SearchBarRow extends StatelessWidget {
             onTap: () => Navigator.of(context).maybePop(),
             child: Semantics(
               button: true,
-              label: '返回',
+              label: context.l10n.commonBack,
               child: SizedBox(
                 width: 40,
                 height: 40,
@@ -124,8 +130,8 @@ class SearchCategoryChips extends StatelessWidget {
   final ValueChanged<SearchCategory> onSelected;
   final Map<SearchCategory, int>? counts;
 
-  String _label(SearchCategory c) =>
-      counts == null ? c.label : '${c.label} ${counts![c] ?? 0}';
+  String _label(AppLocalizations l, SearchCategory c) =>
+      counts == null ? c.label(l) : '${c.label(l)} ${counts![c] ?? 0}';
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +156,7 @@ class SearchCategoryChips extends StatelessWidget {
                   border: Border.all(color: c == selected ? t.ink : t.border),
                 ),
                 child: Text(
-                  _label(c),
+                  _label(context.l10n, c),
                   style: TextStyle(
                     color: c == selected ? t.surface : t.text2,
                     fontSize: 13,

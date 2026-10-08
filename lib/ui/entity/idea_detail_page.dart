@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/entity_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
@@ -60,13 +61,13 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
         child: Column(
           children: [
             SubPageHeader(
-              title: '腦洞詳情',
+              title: context.l10n.ideaDetailTitle,
               titleSize: 20,
               gap: 6,
               trailing: [
                 HeaderIconButton(
                   icon: AppIcons.edit,
-                  label: '編輯',
+                  label: context.l10n.commonEdit,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) =>
@@ -76,10 +77,13 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
                 ),
                 HeaderIconButton(
                   icon: AppIcons.trash,
-                  label: '刪除',
+                  label: context.l10n.commonDelete,
                   color: t.danger,
                   onTap: () async {
-                    final ok = await confirmDelete(context, title: '刪除這個腦洞？');
+                    final ok = await confirmDelete(
+                      context,
+                      title: context.l10n.ideaDetailDeleteTitle,
+                    );
                     if (!ok || !context.mounted) return;
                     await ref.read(databaseProvider).deleteIdeas([ideaId]);
                     if (context.mounted) Navigator.of(context).pop();
@@ -110,7 +114,9 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '建立於 ${fmtSlash(v.idea.createdAt)}',
+                      context.l10n.ideaDetailCreatedAt(
+                        fmtSlash(v.idea.createdAt),
+                      ),
                       style: TextStyle(color: t.text4, fontSize: 12),
                     ),
                     if (v.idea.body.isNotEmpty) ...[
@@ -167,13 +173,15 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
                     ],
                     if (myDrafts.isNotEmpty)
                       _Section(
-                        title: '關聯的草稿',
+                        title: context.l10n.draftLinkedHeading,
                         children: [
                           for (final d in myDrafts)
                             Semantics(
                               button: true,
                               label: (d.draft.title ?? '').isEmpty
-                                  ? '草稿（${d.images.length} 張）'
+                                  ? context.l10n.ideaDetailDraftLabel(
+                                      d.images.length,
+                                    )
                                   : d.draft.title,
                               child: ThumbSquare(
                                 images: d.images,
@@ -194,7 +202,7 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
                       ),
                     if (myPieces.isNotEmpty)
                       _Section(
-                        title: '關聯的成圖',
+                        title: context.l10n.pieceLinkedHeading,
                         children: [
                           for (final p in myPieces)
                             Semantics(

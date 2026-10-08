@@ -10,6 +10,7 @@ import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/image_store.dart';
+import 'package:huakeng/l10n/l10n.dart';
 import 'package:huakeng/main.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/theme/app_theme.dart';
@@ -78,6 +79,9 @@ void main() {
       ProviderScope(
         overrides: overrides(),
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
           theme: buildTheme(Brightness.light, useGoogleFonts: false),
           home: page,
         ),

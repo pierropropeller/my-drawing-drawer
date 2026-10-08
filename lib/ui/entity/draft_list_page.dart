@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/entity_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -91,15 +92,20 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
     return Scaffold(
       floatingActionButton: views.isEmpty
           ? null
-          : EntityFab(label: '新增草稿', onPressed: _add),
+          : EntityFab(label: context.l10n.draftFormTitleNew, onPressed: _add),
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             SubPageHeader(
-              title: pitName == null ? '我的草稿' : '$pitName · 我的草稿',
+              title: pitName == null
+                  ? context.l10n.pitsDrafts
+                  : context.l10n.albumTitleWithPit(
+                      pitName,
+                      context.l10n.pitsDrafts,
+                    ),
               trailing: [
-                HeaderCount('$total 份'),
+                HeaderCount(context.l10n.pitsCountDrafts(total)),
                 SearchIconButton(pitId: widget.pitId),
                 _ViewToggle(
                   grid: _grid,
@@ -113,15 +119,15 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
                 pitId: widget.pitId,
                 kind: TaggedKind.draft,
                 tagId: widget.tagId!,
-                countText: '${views.length} 份',
+                countText: context.l10n.pitsCountDrafts(views.length),
               ),
             Expanded(
               child: views.isEmpty
                   ? EmptyState(
                       svg: AppIcons.edit,
-                      text: '還沒有草稿',
+                      text: context.l10n.draftListEmpty,
                       color: t.draft,
-                      actionLabel: '新增草稿',
+                      actionLabel: context.l10n.draftFormTitleNew,
                       onAction: _add,
                     )
                   : _grid
@@ -218,9 +224,9 @@ class _ViewToggle extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          seg(AppIcons.listRows, 1.8, '列表', !grid, false),
+          seg(AppIcons.listRows, 1.8, context.l10n.draftViewList, !grid, false),
           const SizedBox(width: 3),
-          seg(AppIcons.grid3x3, 1.7, '九宮格', grid, true),
+          seg(AppIcons.grid3x3, 1.7, context.l10n.pieceViewNine, grid, true),
         ],
       ),
     );
