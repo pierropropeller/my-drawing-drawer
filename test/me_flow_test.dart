@@ -8,6 +8,7 @@ import 'package:huakeng/main.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/state/settings.dart';
 import 'package:huakeng/sync/google_auth.dart';
+import 'package:huakeng/theme/tokens.dart';
 import 'package:huakeng/sync/remote.dart';
 import 'package:huakeng/sync/sync_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -71,7 +72,7 @@ void main() {
     final c = await pumpApp(tester);
     expect(find.text('用 Google 帳號開始'), findsOneWidget);
     expect(find.text('我的坑'), findsNothing);
-    await tester.tap(find.text('離線繼續，暫不同步'));
+    await tester.tap(find.text('離線使用，暫不同步'));
     await settle(tester);
     expect(find.text('我的坑'), findsOneWidget);
     expect(c.read(settingsProvider).onboarded, isTrue);
@@ -89,10 +90,10 @@ void main() {
     await settle(tester);
     final start = find.widgetWithText(FilledButton, '連結並開始');
     expect(tester.widget<FilledButton>(start).onPressed, isNull);
-    await tester.tap(find.text('選擇 Google 帳號'));
+    await tester.tap(find.text('加 Google 帳號'));
     await settle(tester);
     expect(find.text('me@example.com'), findsOneWidget);
-    expect(find.text('使用另一個帳號'), findsOneWidget);
+    expect(find.text('用另一個帳號'), findsOneWidget);
     await tester.tap(start);
     await settle(tester);
     expect(c.read(settingsProvider).accountEmail, 'me@example.com');
@@ -105,11 +106,18 @@ void main() {
     final c = await pumpApp(tester, prefs: {'onboarded': true});
     await tester.tap(find.text('我的').last);
     await settle(tester);
-    expect(find.text('主題'), findsOneWidget);
+    expect(find.text('主題色'), findsOneWidget);
     expect(find.text('備份與同步'), findsOneWidget);
 
-    await tester.tap(find.text('主題'));
+    await tester.tap(find.text('主題色'));
     await settle(tester);
+    await tester.tap(find.text('霧藍'));
+    await settle(tester);
+    expect(c.read(settingsProvider).accent, AccentPreset.slate);
+    expect(
+      (await SharedPreferences.getInstance()).getString('accent'),
+      'slate',
+    );
     await tester.tap(find.text('深色'));
     await settle(tester);
     expect(c.read(settingsProvider).themeMode, ThemeMode.dark);
@@ -117,7 +125,7 @@ void main() {
       (await SharedPreferences.getInstance()).getString('themeMode'),
       'dark',
     );
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('返回'));
     await settle(tester);
 
     await tester.tap(find.text('備份與同步'));
@@ -128,7 +136,9 @@ void main() {
     expect(find.text('me@example.com'), findsOneWidget);
     expect(find.text('自動同步'), findsOneWidget);
     expect(find.text('每 5 分鐘'), findsOneWidget);
-    await tester.tap(find.text('每 15 分鐘'));
+    await tester.tap(find.text('每 5 分鐘'));
+    await settle(tester);
+    await tester.tap(find.text('每 15 分鐘').last);
     await settle(tester);
     expect(c.read(settingsProvider).refreshMinutes, 15);
 

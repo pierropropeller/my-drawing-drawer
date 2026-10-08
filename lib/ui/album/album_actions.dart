@@ -5,12 +5,47 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
+import '../common/app_icons.dart';
+import '../common/svg_icon.dart';
 import 'album_image.dart';
 
-void showSnack(BuildContext context, String text) {
+/// 提示條（States 設計稿）：深色底，[success]＝前面加綠色勾，[offline]＝前面加黃色離線雲。
+void showSnack(
+  BuildContext context,
+  String text, {
+  bool success = false,
+  bool offline = false,
+}) {
+  final icon = success
+      ? const SvgIcon(
+          AppIcons.check,
+          size: 18,
+          strokeWidth: 2.2,
+          color: Color(0xFF8FD19E),
+        )
+      : offline
+      ? const SvgIcon(
+          AppIcons.cloudOff,
+          size: 18,
+          strokeWidth: 1.9,
+          color: Color(0xFFE6C98F),
+        )
+      : null;
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(text)));
+    ..showSnackBar(
+      SnackBar(
+        content: icon == null
+            ? Text(text)
+            : Row(
+                children: [
+                  icon,
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(text)),
+                ],
+              ),
+      ),
+    );
 }
 
 /// 刪除一律要確認。

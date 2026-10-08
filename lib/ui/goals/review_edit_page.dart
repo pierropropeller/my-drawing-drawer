@@ -11,7 +11,6 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../album/album_image.dart';
-import '../album/album_view.dart';
 import '../entity/entity_widgets.dart';
 import 'review_canvas.dart';
 
@@ -154,78 +153,277 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage> {
       monthFormat: format,
       monthOnImage: onImage,
     );
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.year} 年度回顧'),
-        actions: [
-          TextButton(
-            onPressed: _exporting ? null : () => _export(current),
-            child: const Text('儲存並匯出圖片'),
-          ),
-        ],
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const SubPageHeader(title: '年度回顧排版', titleSize: 20, gap: 6),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+                children: [
+                  const _Sec('排版', top: 0),
+                  LayoutBuilder(
+                    builder: (context, c) => Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final o in reviewColumnOptions)
+                          _LayoutOption(
+                            width: ((c.maxWidth - 16) / 3).floorToDouble(),
+                            columns: o.$1,
+                            label: o.$2,
+                            selected: columns == o.$1,
+                            dark: dark,
+                            onTap: () => setState(() => _columns = o.$1),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const _Sec('正方格比例'),
+                  _Choices(
+                    options: reviewRatioOptions,
+                    selected: ratio,
+                    onSelected: (v) => setState(() => _ratio = v),
+                  ),
+                  const _Sec('月份格式'),
+                  _Choices(
+                    options: reviewMonthFormats,
+                    selected: format,
+                    onSelected: (v) => setState(() => _format = v),
+                  ),
+                  const _Sec('月份位置'),
+                  Row(
+                    spacing: 8,
+                    children: [
+                      for (final (on, label) in [(true, '圖上'), (false, '空白位置')])
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _onImage = on),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: onImage == on ? t.ink : t.surface,
+                                border: Border.all(color: t.border),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                label,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: onImage == on ? t.ground : t.text2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: t.surface,
+                      border: Border.all(color: t.borderCard),
+                      borderRadius: BorderRadius.circular(Radii.card),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '預覽',
+                          style: TextStyle(fontSize: 11, color: t.text3),
+                        ),
+                        const SizedBox(height: 12),
+                        RepaintBoundary(
+                          key: _boundary,
+                          child: ReviewCanvas(
+                            files: _files(chosen),
+                            columns: columns,
+                            ratio: ratio,
+                            monthFormat: format,
+                            monthOnImage: onImage,
+                            onTapMonth: (m) => _pickMonth(m, chosen),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '點選某個月份可更換圖片',
+                          style: TextStyle(color: t.text3, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: _exporting ? null : () => _export(current),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: _exporting
+                            ? t.accent.withValues(alpha: .5)
+                            : t.accent,
+                        borderRadius: BorderRadius.circular(Radii.button),
+                      ),
+                      child: const Text(
+                        '儲存並匯出圖片',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_exporting)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 20),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          RepaintBoundary(
-            key: _boundary,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(Radii.image),
-              child: ReviewCanvas(
-                files: _files(chosen),
-                columns: columns,
-                ratio: ratio,
-                monthFormat: format,
-                monthOnImage: onImage,
-                onTapMonth: (m) => _pickMonth(m, chosen),
+    );
+  }
+}
+
+/// 區塊標題 14/700。
+class _Sec extends StatelessWidget {
+  const _Sec(this.text, {this.top = 18});
+  final String text;
+  final double top;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(2, top, 0, 9),
+    child: Text(
+      text,
+      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+    ),
+  );
+}
+
+/// 排版選項：迷你 12 格示意＋「列 × 欄」標籤；選中＝主色 1.5px 邊＋淡主色底。
+class _LayoutOption extends StatelessWidget {
+  const _LayoutOption({
+    required this.width,
+    required this.columns,
+    required this.label,
+    required this.selected,
+    required this.dark,
+    required this.onTap,
+  });
+  final double width;
+  final int columns;
+  final String label;
+  final bool selected;
+  final bool dark;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final dot = selected
+        ? t.accent
+        : (dark ? t.dashed : const Color(0xFFD8CFC3));
+    final bg = selected
+        ? (dark ? t.accent.withValues(alpha: .14) : const Color(0xFFFFF6F2))
+        : t.surface;
+    final rows = 12 ~/ columns;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: width,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: bg,
+          border: Border.all(color: selected ? t.accent : t.border, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 34,
+              child: Column(
+                spacing: 1.5,
+                children: [
+                  for (var r = 0; r < rows; r++)
+                    Expanded(
+                      child: Row(
+                        spacing: 1.5,
+                        children: [
+                          for (var i = 0; i < columns; i++)
+                            Expanded(child: ColoredBox(color: dot)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: selected ? t.ink : t.text3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 膠囊單選列：選中＝墨色底、反色字；12.5/500。
+class _Choices extends StatelessWidget {
+  const _Choices({
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+  });
+  final List<String> options;
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Wrap(
+      spacing: 7,
+      runSpacing: 7,
+      children: [
+        for (final o in options)
+          GestureDetector(
+            onTap: () => onSelected(o),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: o == selected ? t.ink : t.surface,
+                border: Border.all(color: t.border),
+                borderRadius: BorderRadius.circular(Radii.chip),
+              ),
+              child: Text(
+                o,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  color: o == selected ? t.ground : t.text2,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 6),
-          Text('點選某個月份可更換圖片', style: TextStyle(color: t.text3, fontSize: 12)),
-          const SizedBox(height: 20),
-          const FormLabel('格數'),
-          ChipRow(
-            padding: EdgeInsets.zero,
-            allLabel: null,
-            options: [for (final o in reviewColumnOptions) ('${o.$1}', o.$2)],
-            selected: '$columns',
-            onSelected: (v) => setState(() => _columns = int.parse(v!)),
-          ),
-          const SizedBox(height: 16),
-          const FormLabel('比例'),
-          ChipRow(
-            padding: EdgeInsets.zero,
-            allLabel: null,
-            options: [for (final r in reviewRatioOptions) (r, r)],
-            selected: ratio,
-            onSelected: (v) => setState(() => _ratio = v),
-          ),
-          const SizedBox(height: 16),
-          const FormLabel('月份格式'),
-          ChipRow(
-            padding: EdgeInsets.zero,
-            allLabel: null,
-            options: [for (final f in reviewMonthFormats) (f, f)],
-            selected: format,
-            onSelected: (v) => setState(() => _format = v),
-          ),
-          const SizedBox(height: 16),
-          const FormLabel('月份位置'),
-          ChipRow(
-            padding: EdgeInsets.zero,
-            allLabel: null,
-            options: const [('image', '圖上'), ('blank', '空白位置')],
-            selected: onImage ? 'image' : 'blank',
-            onSelected: (v) => setState(() => _onImage = v == 'image'),
-          ),
-          if (_exporting)
-            const Padding(
-              padding: EdgeInsets.only(top: 20),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-        ],
-      ),
+      ],
     );
   }
 }

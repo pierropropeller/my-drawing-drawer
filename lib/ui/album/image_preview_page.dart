@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../state/providers.dart';
+import '../common/app_icons.dart';
+import '../common/svg_icon.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
 import 'fan_art_edit_page.dart';
@@ -141,78 +143,195 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_items.isEmpty) return const Scaffold(backgroundColor: Colors.black);
+    if (_items.isEmpty) {
+      return const Scaffold(backgroundColor: _Palette.bg);
+    }
+    final pitName = ref.watch(pitProvider(widget.pitId)).value?.name;
+    final cur = _current;
+    final album = cur.kind == AlbumKind.official ? '官方圖冊' : '好看同人圖';
+    final author = cur.author ?? '';
+    final group = cur.groupName ?? '';
+    final date = cur.createdAt;
+    String two(int n) => n.toString().padLeft(2, '0');
     return Scaffold(
-      backgroundColor: Colors.black,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          '${_index + 1} / ${_items.length}',
-          style: const TextStyle(color: Colors.white, fontSize: 14),
-        ),
-        centerTitle: true,
-      ),
-      body: PageView.builder(
-        controller: _controller,
-        itemCount: _items.length,
-        onPageChanged: (i) => setState(() => _index = i),
-        itemBuilder: (_, i) => InteractiveViewer(
-          maxScale: 5,
-          child: SizedBox.expand(
-            child: StoredImage(_items[i].file, fit: BoxFit.contain),
-          ),
-        ),
-      ),
-      bottomNavigationBar: ColoredBox(
-        color: Colors.black,
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _Action(Icons.ios_share, '分享', () => shareImage(ref, _current)),
-                _Action(Icons.download_outlined, '下載', _download),
-                _Action(Icons.photo_outlined, '設為封面', _setCover),
-                _Action(Icons.edit_outlined, '編輯', _edit),
-                _Action(Icons.delete_outline, '刪除', _delete),
-              ],
+      backgroundColor: _Palette.bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: '返回',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 40,
+                      height: 40,
+                    ),
+                    icon: const SvgIcon(
+                      AppIcons.back,
+                      color: _Palette.text,
+                      strokeWidth: 1.9,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      pitName == null ? album : '$pitName · $album',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _Palette.text,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(
+                      '${_index + 1} / ${_items.length}',
+                      style: const TextStyle(
+                        color: _Palette.muted,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: PageView.builder(
+                  controller: _controller,
+                  itemCount: _items.length,
+                  onPageChanged: (i) => setState(() => _index = i),
+                  itemBuilder: (_, i) => InteractiveViewer(
+                    maxScale: 5,
+                    child: SizedBox.expand(
+                      child: StoredImage(_items[i].file, fit: BoxFit.contain),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 6, 24, 14),
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (author.isNotEmpty)
+                    Text(
+                      author,
+                      style: const TextStyle(
+                        color: _Palette.text,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  if (group.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _Palette.pill,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        group,
+                        style: const TextStyle(
+                          color: _Palette.bg,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  if (date != null)
+                    Text(
+                      '${date.year} / ${two(date.month)} / ${two(date.day)} 加入',
+                      style: const TextStyle(
+                        color: _Palette.muted,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(10, 6, 10, 18),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: Color(0x14FFFFFF))),
+              ),
+              child: Row(
+                children: [
+                  _Action(
+                    AppIcons.share,
+                    '分享',
+                    () => shareImage(ref, _current),
+                  ),
+                  _Action(AppIcons.download, '下載', _download),
+                  _Action(AppIcons.setCover, '設為封面', _setCover),
+                  _Action(AppIcons.edit, '編輯', _edit),
+                  _Action(
+                    AppIcons.trash,
+                    '刪除',
+                    _delete,
+                    color: _Palette.danger,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
+/// 預覽頁固定深色（ImagePreview 設計稿），不隨主題變化。
+abstract final class _Palette {
+  static const bg = Color(0xFF1E1B18);
+  static const text = Color(0xFFF5F0E8);
+  static const muted = Color(0xFFA49A8C);
+  static const action = Color(0xFFE9E2D8);
+  static const danger = Color(0xFFF08A76);
+  static const pill = Color(0xFFC9D6E3);
+}
+
 class _Action extends StatelessWidget {
-  const _Action(this.icon, this.label, this.onTap);
-  final IconData icon;
+  const _Action(
+    this.svg,
+    this.label,
+    this.onTap, {
+    this.color = _Palette.action,
+  });
+  final String svg;
   final String label;
   final VoidCallback onTap;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white, fontSize: 11),
-            ),
-          ],
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 52),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SvgIcon(svg, size: 22, color: color, strokeWidth: 1.7),
+              const SizedBox(height: 5),
+              Text(label, style: TextStyle(color: color, fontSize: 11)),
+            ],
+          ),
         ),
       ),
     );

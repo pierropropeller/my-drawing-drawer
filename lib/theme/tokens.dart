@@ -100,6 +100,42 @@ class AppTokens extends ThemeExtension<AppTokens> {
     piece: CategoryColor(Color(0xFF3E2A23), Color(0xFFE8876F)),
   );
 
+  /// 換主題色：只替換 accent／accentStrong，其餘不變。
+  AppTokens withAccent(AccentPreset preset, Brightness brightness) {
+    final dark = brightness == Brightness.dark;
+    if (preset == AccentPreset.coral) return this;
+    final base = HSLColor.fromColor(preset.color);
+    // 深色版：提亮一點讓它在深底上仍清楚；Strong 為更深（淺色）或更亮（深色）的版本。
+    final a = dark
+        ? base.withLightness((base.lightness + 0.08).clamp(0, 1))
+        : base;
+    final strong = dark
+        ? base.withLightness((base.lightness + 0.14).clamp(0, 1))
+        : base.withLightness((base.lightness - 0.09).clamp(0, 1));
+    return AppTokens(
+      ground: ground,
+      surface: surface,
+      nav: nav,
+      ink: ink,
+      text2: text2,
+      text3: text3,
+      text4: text4,
+      border: border,
+      borderCard: borderCard,
+      chipBg: chipBg,
+      dashed: dashed,
+      dashedText: dashedText,
+      accent: a.toColor(),
+      accentStrong: strong.toColor(),
+      danger: danger,
+      official: official,
+      fanArt: fanArt,
+      draft: draft,
+      idea: idea,
+      piece: piece,
+    );
+  }
+
   @override
   AppTokens copyWith() => this;
 
@@ -108,12 +144,31 @@ class AppTokens extends ThemeExtension<AppTokens> {
       t < 0.5 ? this : (other as AppTokens? ?? this);
 }
 
+/// 主題色預設（Theme 設計稿）：珊瑚（預設）／霧藍／玫瑰／抹茶。
+enum AccentPreset {
+  coral('coral', '珊瑚', Color(0xFFD9634E)),
+  slate('slate', '霧藍', Color(0xFF5B7A99)),
+  rose('rose', '玫瑰', Color(0xFFB76A7C)),
+  matcha('matcha', '抹茶', Color(0xFF7A8B5B));
+
+  const AccentPreset(this.key, this.label, this.color);
+  final String key;
+  final String label;
+  final Color color;
+
+  static AccentPreset fromKey(String? key) =>
+      values.firstWhere((p) => p.key == key, orElse: () => coral);
+}
+
 /// 圓角規格（HANDOFF 第 6 節）。
 abstract final class Radii {
   static const double card = 16;
   static const double image = 12;
   static const double chip = 999;
   static const double button = 14;
+
+  /// 我的／主題色／備份頁的大卡片（設計稿 18）。
+  static const double panel = 18;
 }
 
 extension AppTokensContext on BuildContext {

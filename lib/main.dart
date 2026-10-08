@@ -24,11 +24,20 @@ class HuaKengApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final accent = ref.watch(settingsProvider.select((s) => s.accent));
     return MaterialApp(
       title: '畫坑',
       debugShowCheckedModeBanner: false,
-      theme: buildTheme(Brightness.light, useGoogleFonts: useGoogleFonts),
-      darkTheme: buildTheme(Brightness.dark, useGoogleFonts: useGoogleFonts),
+      theme: buildTheme(
+        Brightness.light,
+        useGoogleFonts: useGoogleFonts,
+        accent: accent,
+      ),
+      darkTheme: buildTheme(
+        Brightness.dark,
+        useGoogleFonts: useGoogleFonts,
+        accent: accent,
+      ),
       themeMode: ref.watch(themeModeProvider),
       home: const AppShell(),
     );

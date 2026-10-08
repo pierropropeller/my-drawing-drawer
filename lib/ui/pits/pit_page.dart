@@ -12,10 +12,15 @@ import '../album/official_list_page.dart';
 import '../entity/draft_list_page.dart';
 import '../entity/finished_list_page.dart';
 import '../entity/idea_list_page.dart';
+import '../common/app_icons.dart';
+import '../common/dashed_box.dart';
+import '../common/responsive.dart';
+import '../common/svg_icon.dart';
 import 'pit_edit_page.dart';
 
-/// 坑內頁：五格排序固定（官方圖冊、好看同人圖、我的草稿、我的腦洞、我的成圖）。
-/// 成圖尚無時為空白虛線格；有成圖時為寬格。
+/// 坑內頁（Pit／PitFilled／PitDark）：2×2 正方形格（官方圖冊、好看同人圖、我的草稿、我的腦洞），
+/// 文字（名稱＋數量）在格子下方；最後是寬格「我的成圖」，高度與上方一格正方形相同。
+/// 格內有封面圖時，整格鋪滿真實圖片（取代 icon）。排序固定。
 class PitPage extends ConsumerWidget {
   const PitPage({super.key, required this.pitId});
   final String pitId;
@@ -34,113 +39,228 @@ class PitPage extends ConsumerWidget {
       return const Scaffold(body: SizedBox.shrink());
     }
     final desc = pit.description;
+
+    VoidCallback? longPress(int count, String kind) => count == 0
+        ? null
+        // 長按進入選擇封面（格內有圖才可）。
+        : () => _open(context, CoverPickPage(pitId: pitId, kind: kind));
+
     return Scaffold(
-      appBar: AppBar(
-        actions: [
-          IconButton(
-            tooltip: '編輯',
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => PitEditPage(pit: pit)),
-            ),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        children: [
-          Text(pit.name, style: Theme.of(context).textTheme.headlineMedium),
-          if (desc != null && desc.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(desc, style: TextStyle(color: t.text2, height: 1.4)),
-          ],
-          const SizedBox(height: 20),
-          GridView.count(
-            crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+      body: SafeArea(
+        child: ContentWidth(
+          maxWidth: 640,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Cell(
-                '官方圖冊',
-                Icons.photo_library_outlined,
-                t.official,
-                stats.official,
-                onTap: () => _open(context, OfficialListPage(pitId: pitId)),
-                // 長按進入選擇封面（格內有圖才可）。
-                file: covers.official,
-                onLongPress: stats.official == 0
-                    ? null
-                    : () => _open(
-                        context,
-                        CoverPickPage(pitId: pitId, kind: 'official'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _HeaderButton(
+                          tooltip: '返回',
+                          svg: AppIcons.back,
+                          size: 24,
+                          strokeWidth: 1.9,
+                          color: t.ink,
+                          onTap: () => Navigator.of(context).maybePop(),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            pit.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                        _HeaderButton(
+                          tooltip: '編輯',
+                          svg: AppIcons.edit,
+                          size: 21,
+                          strokeWidth: 1.8,
+                          color: t.text2,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => PitEditPage(pit: pit),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (desc != null && desc.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 46, top: 2),
+                        child: Text(
+                          desc,
+                          style: TextStyle(color: t.text2, fontSize: 12),
+                        ),
                       ),
+                  ],
+                ),
               ),
-              _Cell(
-                '好看同人圖',
-                Icons.favorite_border,
-                t.fanArt,
-                stats.fanArts,
-                onTap: () => _open(context, FanArtListPage(pitId: pitId)),
-                file: covers.fanArt,
-                onLongPress: stats.fanArts == 0
-                    ? null
-                    : () => _open(
-                        context,
-                        CoverPickPage(pitId: pitId, kind: 'fan'),
-                      ),
-              ),
-              _Cell(
-                '我的草稿',
-                Icons.draw_outlined,
-                t.draft,
-                stats.drafts,
-                onTap: () => _open(context, DraftListPage(pitId: pitId)),
-                file: covers.draft,
-                onLongPress: stats.drafts == 0
-                    ? null
-                    : () => _open(
-                        context,
-                        CoverPickPage(pitId: pitId, kind: 'draft'),
-                      ),
-              ),
-              _Cell(
-                '我的腦洞',
-                Icons.lightbulb_outline,
-                t.idea,
-                stats.ideas,
-                onTap: () => _open(context, IdeaListPage(pitId: pitId)),
-                file: covers.idea,
-                onLongPress: stats.ideas == 0
-                    ? null
-                    : () => _open(
-                        context,
-                        CoverPickPage(pitId: pitId, kind: 'idea'),
-                      ),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, c) {
+                    // 正方形格邊長；寬格高度與它相同。
+                    final side = (c.maxWidth - 40 - 12) / 2;
+                    return ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _Cell(
+                                '官方圖冊',
+                                AppIcons.pitOfficial,
+                                t.official,
+                                '${stats.official} 張',
+                                side: side,
+                                file: covers.official,
+                                onTap: () => _open(
+                                  context,
+                                  OfficialListPage(pitId: pitId),
+                                ),
+                                onLongPress: longPress(
+                                  stats.official,
+                                  'official',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _Cell(
+                                '好看同人圖',
+                                AppIcons.pitFanArt,
+                                t.fanArt,
+                                '${stats.fanArts} 張',
+                                side: side,
+                                file: covers.fanArt,
+                                onTap: () => _open(
+                                  context,
+                                  FanArtListPage(pitId: pitId),
+                                ),
+                                onLongPress: longPress(stats.fanArts, 'fan'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _Cell(
+                                '我的草稿',
+                                AppIcons.edit,
+                                t.draft,
+                                '${stats.drafts} 份',
+                                side: side,
+                                file: covers.draft,
+                                onTap: () =>
+                                    _open(context, DraftListPage(pitId: pitId)),
+                                onLongPress: longPress(stats.drafts, 'draft'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _Cell(
+                                '我的腦洞',
+                                AppIcons.pitIdea,
+                                t.idea,
+                                '${stats.ideas} 個',
+                                side: side,
+                                file: covers.idea,
+                                onTap: () =>
+                                    _open(context, IdeaListPage(pitId: pitId)),
+                                onLongPress: longPress(stats.ideas, 'idea'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        _PieceBlock(
+                          height: side,
+                          count: stats.pieces,
+                          file: covers.piece,
+                          onTap: () =>
+                              _open(context, FinishedListPage(pitId: pitId)),
+                          onLongPress: longPress(stats.pieces, 'piece'),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 120,
-            child: _Cell(
-              '我的成圖',
-              Icons.palette_outlined,
-              t.piece,
-              stats.pieces,
-              wide: true,
-              empty: stats.pieces == 0,
-              onTap: () => _open(context, FinishedListPage(pitId: pitId)),
-              file: covers.piece,
-              onLongPress: stats.pieces == 0
-                  ? null
-                  : () => _open(
-                      context,
-                      CoverPickPage(pitId: pitId, kind: 'piece'),
-                    ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderButton extends StatelessWidget {
+  const _HeaderButton({
+    required this.tooltip,
+    required this.svg,
+    required this.size,
+    required this.strokeWidth,
+    required this.color,
+    required this.onTap,
+  });
+  final String tooltip;
+  final String svg;
+  final double size;
+  final double strokeWidth;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: tooltip,
+    onPressed: onTap,
+    padding: EdgeInsets.zero,
+    constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+    icon: SvgIcon(svg, size: size, color: color, strokeWidth: strokeWidth),
+  );
+}
+
+/// 名稱（15px 粗體）靠左、數量（12px）靠右，放在格子下方。
+class _Caption extends StatelessWidget {
+  const _Caption(this.label, this.count);
+  final String label;
+  final String count;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 8, 2, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: t.ink,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
             ),
           ),
+          Text(count, style: TextStyle(color: t.text2, fontSize: 12)),
         ],
       ),
     );
@@ -150,99 +270,197 @@ class PitPage extends ConsumerWidget {
 class _Cell extends StatelessWidget {
   const _Cell(
     this.label,
-    this.icon,
+    this.svg,
     this.color,
     this.count, {
-    this.wide = false,
-    this.empty = false,
+    required this.side,
     this.onTap,
     this.onLongPress,
     this.file,
   });
 
   final String label;
-  final IconData icon;
+  final String svg;
   final CategoryColor color;
-  final int count;
-  final bool wide;
-  final bool empty;
+  final String count;
+  final double side;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
 
-  /// 這一格的封面圖（有圖時整格鋪滿，文字改白色）。
+  /// 這一格的封面圖（有圖時整格鋪滿，取代 icon）。
   final String? file;
 
   @override
   Widget build(BuildContext context) {
-    final t = context.tokens;
-    final hasImage = file != null;
-    final fg = hasImage ? Colors.white : (empty ? t.dashedText : color.fg);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       onLongPress: onLongPress,
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: empty ? Colors.transparent : color.bg,
-          borderRadius: BorderRadius.circular(Radii.card),
-          border: empty ? Border.all(color: t.dashed, width: 1.5) : null,
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (hasImage) StoredImage(file!, cacheWidth: 600),
-            if (hasImage)
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0x55000000),
-                      Color(0x00000000),
-                      Color(0xAA000000),
-                    ],
-                  ),
-                ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: side,
+            child: Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: color.bg,
+                borderRadius: BorderRadius.circular(Radii.card),
               ),
-            Padding(padding: const EdgeInsets.all(14), child: _content(fg)),
-          ],
-        ),
+              alignment: Alignment.center,
+              child: file != null
+                  ? SizedBox.expand(child: StoredImage(file!, cacheWidth: 600))
+                  : SvgIcon(svg, size: 34, color: color.fg, strokeWidth: 1.6),
+            ),
+          ),
+          _Caption(label, count),
+        ],
       ),
     );
   }
+}
 
-  Widget _content(Color fg) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Icon(icon, color: fg, size: 26),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: fg,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
+/// 寬格「我的成圖」：高度＝上方正方形格的高度。
+/// 有成圖：圓角面板（內距 6）裡放縮圖＋虛線「＋」，名稱／數量在面板下方；
+/// 尚無成圖：淡色卡片，置中 icon 塊＋「我的成圖」＋提示。
+class _PieceBlock extends StatelessWidget {
+  const _PieceBlock({
+    required this.height,
+    required this.count,
+    required this.onTap,
+    this.file,
+    this.onLongPress,
+  });
+
+  final double height;
+  final int count;
+  final String? file;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final c = t.piece;
+    if (count == 0) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          height: height,
+          decoration: BoxDecoration(
+            color: dark ? const Color(0xFF2F2420) : const Color(0xFFFBF1ED),
+            border: Border.all(
+              color: dark ? const Color(0xFF4A3329) : const Color(0xFFF1DBD1),
+            ),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: dark
+                      ? const Color(0xFF4A3128)
+                      : const Color(0xFFF6DDD3),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: Alignment.center,
+                child: SvgIcon(
+                  AppIcons.pitPieceEmpty,
+                  size: 28,
+                  color: c.fg,
+                  strokeWidth: 1.6,
                 ),
               ),
-            ),
-            Text(
-              '$count',
-              style: TextStyle(
-                color: fg,
-                fontWeight: FontWeight.w700,
-                fontSize: wide ? 22 : 18,
+              const SizedBox(height: 10),
+              Text(
+                '我的成圖',
+                style: TextStyle(
+                  color: t.ink,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              Text(
+                '還沒有成圖・開始你的第一張',
+                style: TextStyle(
+                  color: dark
+                      ? const Color(0xFFE0A28C)
+                      : const Color(0xFF8A5443),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
         ),
-      ],
+      );
+    }
+    final thumbTint = dark ? t.chipBg : const Color(0xFFEAD9E0);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: height,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: c.bg,
+              borderRadius: BorderRadius.circular(Radii.card),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 14,
+                  child: Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: thumbTint,
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    alignment: Alignment.center,
+                    child: file != null
+                        ? SizedBox.expand(
+                            child: StoredImage(file!, cacheWidth: 600),
+                          )
+                        : SvgIcon(
+                            AppIcons.image,
+                            size: 28,
+                            color: t.ink.withValues(alpha: 0.24),
+                            strokeWidth: 1.6,
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  flex: 10,
+                  child: SizedBox.expand(
+                    child: DashedBox(
+                      color: dark ? t.dashed : const Color(0xFFE9C3B6),
+                      radius: 11,
+                      child: Center(
+                        child: SvgIcon(
+                          AppIcons.plus,
+                          size: 22,
+                          color: dark ? t.dashedText : const Color(0xFFD9A291),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _Caption('我的成圖', '$count 張'),
+        ],
+      ),
     );
   }
 }

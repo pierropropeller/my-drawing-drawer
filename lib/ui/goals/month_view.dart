@@ -9,9 +9,12 @@ import 'day_page.dart';
 import 'goal_widgets.dart';
 import 'goals_page.dart';
 
-/// 月度：月曆（當天有成圖，日期變成圓形圖片，預設最晚一張）＋月度目標。
+/// 月度（Month）：月曆（當天有成圖，日期變成圓形圖片，預設最晚一張）＋月度小目標。
 class MonthView extends ConsumerStatefulWidget {
-  const MonthView({super.key});
+  const MonthView({super.key, this.onYearChanged});
+
+  /// 月份切換後所在年份改變時通知（標題列的年份跟著變）。
+  final ValueChanged<int>? onYearChanged;
 
   @override
   ConsumerState<MonthView> createState() => _MonthViewState();
@@ -21,11 +24,14 @@ class _MonthViewState extends ConsumerState<MonthView> {
   late int _year = DateTime.now().year;
   late int _month = DateTime.now().month;
 
-  void _shift(int d) => setState(() {
+  void _shift(int d) {
     final m = DateTime(_year, _month + d);
-    _year = m.year;
-    _month = m.month;
-  });
+    setState(() {
+      _year = m.year;
+      _month = m.month;
+    });
+    widget.onYearChanged?.call(_year);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,10 +44,12 @@ class _MonthViewState extends ConsumerState<MonthView> {
     final today = DateTime.now();
     const wk = ['日', '一', '二', '三', '四', '五', '六'];
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 32),
       children: [
-        PeriodHeader(
-          label: '$_year 年 $_month 月',
+        PeriodNav(
+          label: '$_month 月',
+          prevTooltip: '上個月',
+          nextTooltip: '下個月',
           onPrev: () => _shift(-1),
           onNext: () => _shift(1),
         ),
@@ -49,22 +57,25 @@ class _MonthViewState extends ConsumerState<MonthView> {
           children: [
             for (final w in wk)
               Expanded(
-                child: Center(
-                  child: Text(
-                    w,
-                    style: TextStyle(color: t.text3, fontSize: 12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Center(
+                    child: Text(
+                      w,
+                      style: TextStyle(color: t.text4, fontSize: 11),
+                    ),
                   ),
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 2),
         GridView.count(
           crossAxisCount: 7,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 6,
-          crossAxisSpacing: 6,
+          mainAxisSpacing: 2,
+          crossAxisSpacing: 2,
           children: [
             for (var i = 0; i < lead; i++) const SizedBox.shrink(),
             for (var d = 1; d <= days; d++)
@@ -83,13 +94,13 @@ class _MonthViewState extends ConsumerState<MonthView> {
               ),
           ],
         ),
-        const SizedBox(height: 24),
         GoalList(period: GoalPeriod.month, year: _year, month: _month),
       ],
     );
   }
 }
 
+/// 月曆一格：40 的圓；有成圖＝圖片圓＋白字陰影；今天＝主色實心圓＋白字（有圖時改為主色外框）。
 class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.day,
@@ -105,36 +116,58 @@ class _DayCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final hasArt = file != null;
+    final bold = hasArt || isToday;
+    final Color numColor = hasArt || isToday
+        ? Colors.white
+        : t.ink.withValues(alpha: .9);
+    final circle = ClipOval(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (hasArt)
+            StoredImage(file!, cacheWidth: 200)
+          else if (isToday)
+            ColoredBox(color: t.accent),
+          Center(
+            child: Text(
+              '$day',
+              style: TextStyle(
+                fontSize: 13,
+                color: numColor,
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+                shadows: hasArt
+                    ? const [
+                        Shadow(
+                          blurRadius: 2,
+                          offset: Offset(0, 1),
+                          color: Colors.black54,
+                        ),
+                      ]
+                    : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: isToday ? Border.all(color: t.accent, width: 2) : null,
-          color: file == null ? Colors.transparent : null,
-        ),
-        child: ClipOval(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (file != null) StoredImage(file!, cacheWidth: 200),
-              Center(
-                child: Text(
-                  '$day',
-                  style: TextStyle(
-                    color: file != null
-                        ? Colors.white
-                        : (isToday ? t.accent : t.ink),
-                    fontWeight: file != null || isToday
-                        ? FontWeight.w700
-                        : FontWeight.w400,
-                    shadows: file != null
-                        ? const [Shadow(blurRadius: 4, color: Colors.black87)]
-                        : null,
-                  ),
-                ),
-              ),
-            ],
+      behavior: HitTestBehavior.opaque,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 40, maxHeight: 40),
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              decoration: hasArt && isToday
+                  ? BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: t.accent, spreadRadius: 2)],
+                    )
+                  : null,
+              child: circle,
+            ),
           ),
         ),
       ),

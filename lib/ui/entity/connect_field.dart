@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
+import '../common/app_icons.dart';
+import '../common/svg_icon.dart';
 import 'entity_widgets.dart';
 
 /// 可被連接的對象（腦洞、草稿或成圖）。
@@ -12,8 +14,22 @@ class ConnectOption {
   final String? file;
 }
 
-/// 「連接腦洞／草稿／成圖」欄：顯示已連接項目，點「選擇」開啟多選面板。
-/// 「連接」只用於腦洞、草稿、成圖之間（HANDOFF 用詞規則）。
+/// 開啟多選面板；取消回傳 null。詳情頁的「＋」也用這個。
+Future<List<String>?> showConnectSheet(
+  BuildContext context, {
+  required String label,
+  required List<ConnectOption> options,
+  required List<String> selected,
+}) => showModalBottomSheet<List<String>>(
+  context: context,
+  isScrollControlled: true,
+  builder: (_) =>
+      _ConnectSheet(label: label, options: options, initial: selected),
+);
+
+/// 「連接腦洞／草稿／成圖」欄（IdeaNew／DraftNew）：已連接的項目是彩色 chip（可移除），
+/// 尾端虛線「＋ 新增」開啟多選面板。
+/// 「連接」只用於腦洞、草稿、成圖之間（HANDOFF 用詞規則）；chip 的顏色與圖示由 [label] 判斷。
 class ConnectField extends StatelessWidget {
   const ConnectField({
     super.key,
@@ -29,11 +45,11 @@ class ConnectField extends StatelessWidget {
   final ValueChanged<List<String>> onChanged;
 
   Future<void> _open(BuildContext context) async {
-    final result = await showModalBottomSheet<List<String>>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) =>
-          _ConnectSheet(label: label, options: options, initial: selected),
+    final result = await showConnectSheet(
+      context,
+      label: label,
+      options: options,
+      selected: selected,
     );
     if (result != null) onChanged(result);
   }
@@ -41,39 +57,69 @@ class ConnectField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final (CategoryColor color, String icon) = label.contains('腦洞')
+        ? (t.idea, AppIcons.bulb)
+        : label.contains('草稿')
+        ? (t.draft, AppIcons.edit)
+        : (t.piece, AppIcons.image);
     final chosen = options.where((o) => selected.contains(o.id)).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        FormLabel(label),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+            for (final o in chosen)
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 7, 10, 7),
+                decoration: BoxDecoration(
+                  color: color.bg,
+                  borderRadius: BorderRadius.circular(Radii.chip),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SvgIcon(icon, size: 14, color: color.fg),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        o.title.isEmpty ? '（無標題）' : o.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: color.fg,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Semantics(
+                      button: true,
+                      label: '移除',
+                      child: GestureDetector(
+                        onTap: () => onChanged(
+                          selected.where((e) => e != o.id).toList(),
+                        ),
+                        child: SvgIcon(
+                          AppIcons.closeX,
+                          size: 13,
+                          strokeWidth: 2,
+                          color: color.fg,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            TextButton(
-              onPressed: () => _open(context),
-              child: const Text('選擇'),
+            DashedAddChip(
+              semanticLabel: '新增$label',
+              onTap: () => _open(context),
             ),
           ],
         ),
-        if (chosen.isEmpty)
-          Text('尚未連接', style: TextStyle(color: t.text3))
-        else
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final o in chosen)
-                InputChip(
-                  label: Text(o.title.isEmpty ? '（無標題）' : o.title),
-                  onDeleted: () =>
-                      onChanged(selected.where((e) => e != o.id).toList()),
-                ),
-            ],
-          ),
       ],
     );
   }

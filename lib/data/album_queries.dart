@@ -508,11 +508,15 @@ class CoverCandidate {
     required this.file,
     required this.width,
     required this.height,
+    this.groupId,
   });
   final String id;
   final String file;
   final int width;
   final int height;
+
+  /// 官方圖／同人圖所屬分組（選封面頁的分組篩選用）；其他種類為 null。
+  final String? groupId;
 }
 
 extension CoverCandidateQueries on AppDatabase {
@@ -539,6 +543,7 @@ extension CoverCandidateQueries on AppDatabase {
                 file: r.imageFile,
                 width: r.width,
                 height: r.height,
+                groupId: r.groupId,
               ),
             );
           }
@@ -555,6 +560,7 @@ extension CoverCandidateQueries on AppDatabase {
                 file: r.imageFile,
                 width: r.width,
                 height: r.height,
+                groupId: r.groupId,
               ),
             );
           }

@@ -6,7 +6,10 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../album/cover_pick_page.dart';
+import '../common/app_icons.dart';
+import '../common/svg_icon.dart';
 import 'pit_form.dart';
+import '../common/app_switch.dart';
 
 /// 編輯坑：封存、坑名、描述、刪除。坑內有圖才顯示「更換封面」。
 class PitEditPage extends ConsumerStatefulWidget {
@@ -72,70 +75,201 @@ class _PitEditPageState extends ConsumerState<PitEditPage> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final hasImages =
         (ref.watch(pitStatsProvider(widget.pit.id)).value?.imageCount ?? 0) > 0;
+    final coverFile = ref.watch(coverFileProvider(widget.pit.id)).value;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('編輯坑'),
-        actions: [TextButton(onPressed: _save, child: const Text('儲存'))],
-      ),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
+      body: SafeArea(
+        child: Column(
           children: [
-            if (hasImages) ...[
-              if (ref.watch(coverFileProvider(widget.pit.id)).value !=
-                  null) ...[
-                Center(
-                  child: SizedBox(
-                    width: 160,
-                    height: 160,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(Radii.image),
-                      child: StoredImage(
-                        ref.watch(coverFileProvider(widget.pit.id)).value!,
-                        cacheWidth: 480,
+            const PitHeader(title: '編輯坑'),
+            Expanded(
+              child: Form(
+                key: _form,
+                child: CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                      sliver: SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // 坑內有圖才顯示封面預覽與「更換封面」。
+                            if (hasImages) ...[
+                              const PitFieldLabel('封面'),
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 18),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 110,
+                                      height: 110,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(
+                                          Radii.card,
+                                        ),
+                                        child: coverFile != null
+                                            ? StoredImage(
+                                                coverFile,
+                                                cacheWidth: 330,
+                                              )
+                                            : ColoredBox(
+                                                color: t.official.bg,
+                                                child: Center(
+                                                  child: SvgIcon(
+                                                    AppIcons.image,
+                                                    size: 30,
+                                                    strokeWidth: 1.5,
+                                                    color: dark
+                                                        ? Colors.white
+                                                              .withValues(
+                                                                alpha: .22,
+                                                              )
+                                                        : t.ink.withValues(
+                                                            alpha: .24,
+                                                          ),
+                                                  ),
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    GestureDetector(
+                                      onTap: () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => CoverPickPage(
+                                            pitId: widget.pit.id,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 7,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: t.surface,
+                                          border: Border.all(color: t.border),
+                                          borderRadius: BorderRadius.circular(
+                                            Radii.chip,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '更換封面',
+                                          style: TextStyle(
+                                            color: t.text2,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            const PitFieldLabel('坑名'),
+                            TextFormField(
+                              controller: _name,
+                              style: const TextStyle(fontSize: 15),
+                              decoration: pitInputDecoration(context),
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? '請輸入坑名'
+                                  : null,
+                            ),
+                            const SizedBox(height: 16),
+                            const PitFieldLabel('描述'),
+                            TextFormField(
+                              controller: _desc,
+                              minLines: 3,
+                              maxLines: 6,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                height: 1.55,
+                              ),
+                              decoration: pitInputDecoration(context),
+                            ),
+                            // 設計稿沒有封存欄位；封存功能保留，放在描述下方。
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '封存',
+                                      style: TextStyle(
+                                        color: t.text2,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  AppSwitch(
+                                    semanticLabel: '封存',
+                                    value: _archived,
+                                    onChanged: (v) =>
+                                        setState(() => _archived = v),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            PitPrimaryButton(label: '儲存', onPressed: _save),
+                            const SizedBox(height: 28),
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: _delete,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 13,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: dark
+                                        ? t.danger.withValues(alpha: .5)
+                                        : const Color(0xFFE7B9AE),
+                                    width: 1.5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    Radii.button,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SvgIcon(
+                                      AppIcons.trash,
+                                      size: 20,
+                                      color: t.danger,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '刪除這個坑',
+                                      style: TextStyle(
+                                        color: t.danger,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '刪除後坑內所有圖片、腦洞、草稿及成圖將一併移除',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 11.5, color: t.text4),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-              ],
-              OutlinedButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => CoverPickPage(pitId: widget.pit.id),
-                  ),
-                ),
-                child: const Text('更換封面'),
               ),
-              const SizedBox(height: 16),
-            ],
-            TextFormField(
-              controller: _name,
-              decoration: pitFieldDecoration(context, '坑名'),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? '請輸入坑名' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _desc,
-              minLines: 3,
-              maxLines: 6,
-              decoration: pitFieldDecoration(context, '描述'),
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('封存'),
-              value: _archived,
-              onChanged: (v) => setState(() => _archived = v),
-            ),
-            const SizedBox(height: 24),
-            TextButton(
-              onPressed: _delete,
-              child: Text('刪除這個坑', style: TextStyle(color: t.danger)),
             ),
           ],
         ),

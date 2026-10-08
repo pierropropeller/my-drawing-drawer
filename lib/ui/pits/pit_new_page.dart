@@ -39,29 +39,40 @@ class _PitNewPageState extends ConsumerState<PitNewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('開新坑'),
-        actions: [TextButton(onPressed: _save, child: const Text('建立'))],
-      ),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
+      body: SafeArea(
+        child: Column(
           children: [
-            TextFormField(
-              controller: _name,
-              autofocus: true,
-              textInputAction: TextInputAction.next,
-              decoration: pitFieldDecoration(context, '坑名'),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? '請輸入坑名' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _desc,
-              minLines: 3,
-              maxLines: 6,
-              decoration: pitFieldDecoration(context, '描述'),
+            const PitHeader(title: '開新坑'),
+            Expanded(
+              child: Form(
+                key: _form,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                  children: [
+                    const PitFieldLabel('坑名'),
+                    TextFormField(
+                      controller: _name,
+                      autofocus: true,
+                      textInputAction: TextInputAction.next,
+                      style: const TextStyle(fontSize: 15),
+                      decoration: pitInputDecoration(context),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? '請輸入坑名' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    const PitFieldLabel('描述'),
+                    TextFormField(
+                      controller: _desc,
+                      minLines: 3,
+                      maxLines: 6,
+                      style: const TextStyle(fontSize: 15, height: 1.55),
+                      decoration: pitInputDecoration(context),
+                    ),
+                    const SizedBox(height: 24),
+                    PitPrimaryButton(label: '建立', onPressed: _save),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

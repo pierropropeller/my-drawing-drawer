@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../theme/tokens.dart';
+import '../common/app_icons.dart';
 import '../common/responsive.dart';
+import '../common/svg_icon.dart';
 import 'album_image.dart';
 
-/// 兩欄瀑布流。選取模式時左上顯示圓圈，選中為 2px 主色框＋22px 實心主色圓圈白剔。
+/// 兩欄瀑布流（間距 12）。選取模式時右上顯示 22px 圓圈（未選：白框半透明；選中：2px 主色框＋實心主色圓圈白勾）。
 class ImageMasonry extends StatelessWidget {
   const ImageMasonry({
     super.key,
@@ -14,7 +16,7 @@ class ImageMasonry extends StatelessWidget {
     this.onLongPress,
     this.selecting = false,
     this.selected = const {},
-    this.padding = const EdgeInsets.fromLTRB(16, 8, 16, 96),
+    this.padding = const EdgeInsets.fromLTRB(20, 2, 20, 96),
   });
 
   final List<AlbumImage> images;
@@ -29,8 +31,8 @@ class ImageMasonry extends StatelessWidget {
     return MasonryGridView.count(
       padding: padding,
       crossAxisCount: columnsForWidth(MediaQuery.sizeOf(context).width),
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
       itemCount: images.length,
       itemBuilder: (_, i) {
         final im = images[i];
@@ -83,19 +85,27 @@ class _Tile extends StatelessWidget {
           if (selecting)
             Positioned(
               top: 8,
-              left: 8,
+              right: 8,
               child: Container(
                 width: 22,
                 height: 22,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? t.accent : Colors.black26,
+                  color: isSelected
+                      ? t.accent
+                      : const Color(0xFF2B2622).withValues(alpha: 0.18),
                   border: isSelected
                       ? null
-                      : Border.all(color: Colors.white, width: 1.5),
+                      : Border.all(color: Colors.white, width: 2),
                 ),
+                alignment: Alignment.center,
                 child: isSelected
-                    ? const Icon(Icons.check, size: 15, color: Colors.white)
+                    ? const SvgIcon(
+                        AppIcons.check,
+                        size: 13,
+                        color: Colors.white,
+                        strokeWidth: 3,
+                      )
                     : null,
               ),
             ),
@@ -109,37 +119,81 @@ class _Tile extends StatelessWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
-              children: [
-                tile,
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 6, 4, 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if ((image.author ?? '').isNotEmpty)
-                        Text(
-                          image.author!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: t.ink,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      if ((image.groupName ?? '').isNotEmpty)
-                        Text(
-                          image.groupName!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: t.text3, fontSize: 12),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+              children: [tile, _Caption(image)],
             )
           : tile,
     );
+  }
+}
+
+/// 圖下方的說明列：同人圖＝作者（12.5px 粗）＋分組小標；官方圖＝分組小標。各項為空就不顯示。
+class _Caption extends StatelessWidget {
+  const _Caption(this.image);
+  final AlbumImage image;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final author = image.author ?? '';
+    final group = image.groupName ?? '';
+    final (Color fg, Color bg) = image.kind == AlbumKind.official
+        ? (t.official.fg, t.official.bg)
+        : _sourceStyle(group, dark, t);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 7, 2, 0),
+      child: Row(
+        children: [
+          if (author.isNotEmpty)
+            Expanded(
+              child: Text(
+                author,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: t.ink,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          if (author.isNotEmpty && group.isNotEmpty) const SizedBox(width: 6),
+          if (group.isNotEmpty)
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  group,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: fg, fontSize: 10.5),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// FanArtList 設計稿的出處小標配色；自訂分組用中性色。深色模式一律中性。
+  static (Color, Color) _sourceStyle(String group, bool dark, AppTokens t) {
+    if (dark) return (t.text2, t.chipBg);
+    if (group.startsWith('推特')) {
+      return (const Color(0xFF3A5A78), const Color(0xFFE7ECF2));
+    }
+    if (group.startsWith('小紅書')) {
+      return (const Color(0xFFB23A4C), const Color(0xFFF6E7EA));
+    }
+    if (group.toLowerCase().startsWith('lofter')) {
+      return (const Color(0xFF4A7A9A), const Color(0xFFEAF0F5));
+    }
+    if (group.startsWith('朋友')) {
+      return (const Color(0xFF7A6A2E), const Color(0xFFF1EAD9));
+    }
+    return (const Color(0xFF6B6257), const Color(0xFFEFE7DC));
   }
 }

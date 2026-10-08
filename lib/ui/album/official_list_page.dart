@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/album_queries.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
+import '../common/app_icons.dart';
 import 'album_image.dart';
 import 'album_view.dart';
 import 'group_manage_page.dart';
@@ -44,6 +45,8 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
         ref.watch(groupsProvider((widget.pitId, 'official'))).value ?? const [];
     // 篩選中的分組被刪除時退回「全部」。
     final groupId = groups.any((g) => g.id == _groupId) ? _groupId : null;
+    final names = {for (final g in groups) g.id: g.name};
+    final total = ref.watch(pitStatsProvider(widget.pitId)).value?.official;
     final rows =
         ref.watch(officialProvider((widget.pitId, groupId))).value ?? const [];
     final images = [
@@ -54,6 +57,8 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
           width: r.width,
           height: r.height,
           kind: AlbumKind.official,
+          groupName: names[r.groupId],
+          createdAt: r.createdAt,
         ),
     ];
     return AlbumView(
@@ -61,7 +66,8 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
       title: '官方圖冊',
       images: images,
       emptyLabel: '還沒有官方圖',
-      emptyIcon: Icons.photo_library_outlined,
+      emptySvg: AppIcons.pitOfficial,
+      total: total,
       emptyColor: t.official,
       onAdd: () => _add(groupId),
       onDelete: (picked) => db.deleteOfficial(picked.map((e) => e.id)),
@@ -69,10 +75,8 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
         options: [for (final g in groups) (g.id, g.name)],
         selected: groupId,
         onSelected: (v) => setState(() => _groupId = v),
-        trailing: IconButton(
-          tooltip: '管理分組',
-          icon: Icon(Icons.tune, color: t.text2),
-          onPressed: () => Navigator.of(context).push(
+        trailing: ChipRowManageButton(
+          onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => GroupManagePage(pitId: widget.pitId),
             ),

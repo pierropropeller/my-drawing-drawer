@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/entity_queries.dart';
 import '../album/album_actions.dart';
 import '../album/album_image.dart';
+import '../common/app_icons.dart';
+import '../common/svg_icon.dart';
 
 /// 簡易全屏看圖（腦洞、草稿、成圖的圖片）：可左右滑、縮放、分享、下載。
 class ImageGalleryPage extends ConsumerStatefulWidget {
@@ -42,41 +44,100 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: Text(
-          '${_index + 1} / ${widget.images.length}',
-          style: const TextStyle(fontSize: 14),
+    // ImagePreview 設計稿：深色底（不跟隨主題）、頂部返回＋「N / 總數」、底部分享／下載。
+    const bg = Color(0xFF1E1B18);
+    const fg = Color(0xFFF5F0E8);
+    const sub = Color(0xFFE9E2D8);
+    Widget action(String icon, String label, VoidCallback onTap) => Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 52),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SvgIcon(icon, size: 22, strokeWidth: 1.7, color: sub),
+              const SizedBox(height: 5),
+              Text(label, style: const TextStyle(color: sub, fontSize: 11)),
+            ],
+          ),
         ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.ios_share),
-            onPressed: () => shareImage(ref, _current),
-          ),
-          IconButton(
-            icon: const Icon(Icons.download_outlined),
-            onPressed: () async {
-              final n = await downloadImages(ref, [_current]);
-              if (context.mounted) {
-                showSnack(context, n > 0 ? '已儲存到相簿' : '儲存失敗');
-              }
-            },
-          ),
-        ],
       ),
-      body: PageView.builder(
-        controller: _controller,
-        itemCount: widget.images.length,
-        onPageChanged: (i) => setState(() => _index = i),
-        itemBuilder: (_, i) => InteractiveViewer(
-          maxScale: 5,
-          child: SizedBox.expand(
-            child: StoredImage(widget.images[i].file, fit: BoxFit.contain),
-          ),
+    );
+    return Scaffold(
+      backgroundColor: bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
+              child: Row(
+                children: [
+                  InkResponse(
+                    radius: 24,
+                    onTap: () => Navigator.of(context).maybePop(),
+                    child: const SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Center(
+                        child: SvgIcon(
+                          AppIcons.back,
+                          size: 24,
+                          strokeWidth: 1.9,
+                          color: fg,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      '${_index + 1} / ${widget.images.length}',
+                      style: const TextStyle(
+                        color: fg,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: PageView.builder(
+                controller: _controller,
+                itemCount: widget.images.length,
+                onPageChanged: (i) => setState(() => _index = i),
+                itemBuilder: (_, i) => InteractiveViewer(
+                  maxScale: 5,
+                  child: SizedBox.expand(
+                    child: StoredImage(
+                      widget.images[i].file,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: Color(0x14FFFFFF))),
+              ),
+              child: Row(
+                children: [
+                  action(AppIcons.share, '分享', () => shareImage(ref, _current)),
+                  action(AppIcons.download, '下載', () async {
+                    final n = await downloadImages(ref, [_current]);
+                    if (context.mounted) {
+                      showSnack(context, n > 0 ? '已儲存到相簿' : '儲存失敗');
+                    }
+                  }),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

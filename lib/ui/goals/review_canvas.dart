@@ -4,12 +4,13 @@ import '../album/album_image.dart';
 import '../../theme/tokens.dart';
 
 /// 年度回顧可選的版面設定（HANDOFF 3.9）。
+// (欄數, 標籤)：標籤是「列 × 欄」，與設計稿 ReviewEdit 一致（預設 4 欄＝3 × 4）。
 const reviewColumnOptions = [
-  (1, '1×12'),
-  (2, '2×6'),
-  (3, '3×4'),
-  (4, '4×3'),
-  (6, '6×2'),
+  (12, '1 × 12'),
+  (6, '2 × 6'),
+  (4, '3 × 4'),
+  (3, '4 × 3'),
+  (2, '6 × 2'),
 ];
 const reviewRatioOptions = ['1:1', '4:3', '3:4', '9:16', '16:9', '2:1', '1:2'];
 const reviewMonthFormats = ['Jan', 'January', '一月', '1月', '01'];

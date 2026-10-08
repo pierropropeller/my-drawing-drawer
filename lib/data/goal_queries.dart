@@ -47,6 +47,11 @@ class TimelineItem {
     required this.time,
     required this.title,
     this.file,
+    this.files = const [],
+    this.text = '',
+    this.tagNames = const [],
+    this.actualLikes = 0,
+    this.targetLikes = 0,
   });
 
   final GoalKind kind;
@@ -55,6 +60,17 @@ class TimelineItem {
   final DateTime time;
   final String title;
   final String? file;
+
+  /// 所有圖片（時間軸顯示縮圖列）。
+  final List<String> files;
+
+  /// 內文（腦洞顯示）。
+  final String text;
+  final List<String> tagNames;
+
+  /// 成圖的互動量。
+  final int actualLikes;
+  final int targetLikes;
 }
 
 DateTime monthStart(int year, int month) => DateTime(year, month);
@@ -322,18 +338,32 @@ extension GoalQueries on AppDatabase {
     final end = start.add(const Duration(days: 1));
     return watchAssembled(
       this,
-      {ideas, drafts, pieces, entityImages},
+      {ideas, drafts, pieces, entityImages, tags, tagLinks},
       () async {
-        Future<String?> firstImage(OwnerType t, String id) async =>
+        Future<List<String>> images(OwnerType t, String id) async =>
             (await (select(entityImages)
                       ..where(
                         (e) =>
                             e.ownerType.equalsValue(t) & e.ownerId.equals(id),
                       )
-                      ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)])
-                      ..limit(1))
-                    .getSingleOrNull())
-                ?.imageFile;
+                      ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
+                    .get())
+                .map((e) => e.imageFile)
+                .toList();
+
+        Future<List<String>> tagNames(TagTarget t, String id) async {
+          final q =
+              select(
+                  tags,
+                ).join([innerJoin(tagLinks, tagLinks.tagId.equalsExp(tags.id))])
+                ..where(
+                  tagLinks.targetType.equalsValue(t) &
+                      tagLinks.targetId.equals(id) &
+                      tags.deletedAt.isNull(),
+                )
+                ..orderBy([OrderingTerm.asc(tags.name)]);
+          return (await q.get()).map((r) => r.readTable(tags).name).toList();
+        }
 
         final items = <TimelineItem>[];
         for (final i
@@ -344,6 +374,7 @@ extension GoalQueries on AppDatabase {
                       x.createdAt.isSmallerThanValue(end),
                 ))
                 .get()) {
+          final files = await images(OwnerType.idea, i.id);
           items.add(
             TimelineItem(
               kind: GoalKind.idea,
@@ -351,7 +382,10 @@ extension GoalQueries on AppDatabase {
               pitId: i.pitId,
               time: i.createdAt,
               title: i.title,
-              file: await firstImage(OwnerType.idea, i.id),
+              file: files.isEmpty ? null : files.first,
+              files: files,
+              text: i.body,
+              tagNames: await tagNames(TagTarget.idea, i.id),
             ),
           );
         }
@@ -363,6 +397,7 @@ extension GoalQueries on AppDatabase {
                       x.createdAt.isSmallerThanValue(end),
                 ))
                 .get()) {
+          final files = await images(OwnerType.draft, d.id);
           items.add(
             TimelineItem(
               kind: GoalKind.draft,
@@ -370,7 +405,9 @@ extension GoalQueries on AppDatabase {
               pitId: d.pitId,
               time: d.createdAt,
               title: d.title ?? '',
-              file: await firstImage(OwnerType.draft, d.id),
+              file: files.isEmpty ? null : files.first,
+              files: files,
+              tagNames: await tagNames(TagTarget.draft, d.id),
             ),
           );
         }
@@ -382,6 +419,7 @@ extension GoalQueries on AppDatabase {
                       x.finishedAt.isSmallerThanValue(end),
                 ))
                 .get()) {
+          final files = await images(OwnerType.piece, p.id);
           items.add(
             TimelineItem(
               kind: GoalKind.piece,
@@ -389,7 +427,11 @@ extension GoalQueries on AppDatabase {
               pitId: p.pitId,
               time: p.finishedAt,
               title: p.title,
-              file: await firstImage(OwnerType.piece, p.id),
+              file: files.isEmpty ? null : files.first,
+              files: files,
+              tagNames: await tagNames(TagTarget.piece, p.id),
+              actualLikes: p.actualLikes,
+              targetLikes: p.targetLikes,
             ),
           );
         }

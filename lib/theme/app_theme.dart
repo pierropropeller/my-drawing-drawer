@@ -4,8 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'tokens.dart';
 
 /// [useGoogleFonts] 僅供測試關閉（測試環境不能下載字型）。
-ThemeData buildTheme(Brightness brightness, {bool useGoogleFonts = true}) {
-  final t = brightness == Brightness.light ? AppTokens.light : AppTokens.dark;
+ThemeData buildTheme(
+  Brightness brightness, {
+  bool useGoogleFonts = true,
+  AccentPreset accent = AccentPreset.coral,
+}) {
+  final t = (brightness == Brightness.light ? AppTokens.light : AppTokens.dark)
+      .withAccent(accent, brightness);
   final scheme =
       ColorScheme.fromSeed(
         seedColor: t.accent,
@@ -55,22 +60,25 @@ ThemeData buildTheme(Brightness brightness, {bool useGoogleFonts = true}) {
         ),
       ),
     ),
-    // 開關：開＝主色軌道＋白色圓鈕；關＝淺灰軌道（chip-bg／border）＋白色圓鈕，沒有描邊。
-    // 數值就是這三個 token，要換色改這裡即可。
+    // 開關：設計稿是 46x28 軌道＋22 白圓鈕（見 AppSwitch，三處開關都用它）。
+    // 這裡是萬一還有原生 Switch 時的近似：同樣的顏色，沒有描邊。
     switchTheme: SwitchThemeData(
       thumbColor: const WidgetStatePropertyAll(Colors.white),
       trackColor: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.selected) ? t.accent : t.border,
+        (states) => states.contains(WidgetState.selected)
+            ? t.accent
+            : (brightness == Brightness.light
+                  ? const Color(0xFFD8CFC3)
+                  : const Color(0xFF4A423B)),
       ),
       trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: t.ink,
-      contentTextStyle: TextStyle(color: t.ground),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Radii.button),
-      ),
+      contentTextStyle: TextStyle(color: t.ground, fontSize: 13.5),
+      actionTextColor: const Color(0xFFE9A58F),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
     ),
     extensions: [t],
   );

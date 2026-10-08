@@ -18,6 +18,7 @@ class AlbumImage {
     required this.kind,
     this.author,
     this.groupName,
+    this.createdAt,
   });
 
   final String id;
@@ -29,6 +30,9 @@ class AlbumImage {
   /// 同人圖列表圖下方顯示的作者與分組（都留空就不顯示那一行）。
   final String? author;
   final String? groupName;
+
+  /// 加入時間（預覽頁顯示「2026 / 09 / 21 加入」）。
+  final DateTime? createdAt;
 
   bool get hasCaption =>
       (author ?? '').isNotEmpty || (groupName ?? '').isNotEmpty;

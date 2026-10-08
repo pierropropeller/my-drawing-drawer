@@ -5,7 +5,9 @@ import '../../data/entity_queries.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
+import '../common/app_icons.dart';
 import '../common/empty_state.dart';
+import '../common/svg_icon.dart';
 import 'draft_detail_page.dart';
 import 'draft_form_page.dart';
 import 'entity_widgets.dart';
@@ -43,65 +45,170 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final pitName = ref.watch(pitProvider(widget.pitId)).value?.name;
     final views = ref.watch(draftViewsProvider(widget.pitId)).value ?? const [];
+    final ideas =
+        ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? const [];
+    final ideaTitle = {for (final i in ideas) i.idea.id: i.idea.title};
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('我的草稿'),
-        actions: [
-          IconButton(
-            tooltip: _grid ? '切換為列表' : '切換為九宮格',
-            icon: Icon(_grid ? Icons.view_agenda_outlined : Icons.grid_view),
-            onPressed: () => setState(() => _grid = !_grid),
+      floatingActionButton: EntityFab(label: '新增草稿', onPressed: _add),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            SubPageHeader(
+              title: pitName == null ? '我的草稿' : '$pitName · 我的草稿',
+              trailing: [
+                HeaderCount('${views.length} 份'),
+                _ViewToggle(
+                  grid: _grid,
+                  onChanged: (g) => setState(() => _grid = g),
+                ),
+                const SizedBox(width: 6),
+              ],
+            ),
+            Expanded(
+              child: views.isEmpty
+                  ? EmptyState(
+                      icon: Icons.draw_outlined,
+                      text: '還沒有草稿',
+                      color: t.draft,
+                      actionLabel: '新增草稿',
+                      onAction: _add,
+                    )
+                  : _grid
+                  ? GridView.builder(
+                      padding: const EdgeInsets.only(top: 8, bottom: 96),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            mainAxisSpacing: 2,
+                            crossAxisSpacing: 2,
+                          ),
+                      itemCount: views.length,
+                      itemBuilder: (_, i) => _GridCell(
+                        view: views[i],
+                        onTap: () => _open(views[i]),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+                      itemCount: views.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (_, i) {
+                        final d = views[i];
+                        return d.imageOnly
+                            ? _ImageOnlyCard(view: d, onTap: () => _open(d))
+                            : _TextCard(
+                                view: d,
+                                onTap: () => _open(d),
+                                ideaTitles: [
+                                  for (final id in d.ideaIds)
+                                    if (ideaTitle[id] != null) ideaTitle[id]!,
+                                ],
+                              );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 列表／九宮格的分段切換（34×32 的兩格，選中＝深色底）。
+class _ViewToggle extends StatelessWidget {
+  const _ViewToggle({required this.grid, required this.onChanged});
+  final bool grid;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    Widget seg(
+      String icon,
+      double stroke,
+      String label,
+      bool on,
+      bool toGrid,
+    ) => Semantics(
+      button: true,
+      selected: on,
+      label: label,
+      child: GestureDetector(
+        onTap: () => onChanged(toGrid),
+        child: Container(
+          width: 34,
+          height: 32,
+          decoration: BoxDecoration(
+            color: on ? t.ink : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
           ),
+          child: Center(
+            child: SvgIcon(
+              icon,
+              size: 18,
+              strokeWidth: stroke,
+              color: on ? t.ground : t.text3,
+            ),
+          ),
+        ),
+      ),
+    );
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: t.surface,
+        border: Border.all(color: t.border),
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          seg(AppIcons.listRows, 1.8, '列表', !grid, false),
+          const SizedBox(width: 3),
+          seg(AppIcons.grid3x3, 1.7, '九宮格', grid, true),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: t.accent,
-        foregroundColor: Colors.white,
-        onPressed: _add,
-        child: const Icon(Icons.add),
+    );
+  }
+}
+
+/// 九宮格的一格：整張鋪滿、無圓角，多圖右下角張數。
+class _GridCell extends StatelessWidget {
+  const _GridCell({required this.view, required this.onTap});
+  final DraftView view;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final imgs = view.images;
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          imgs.isEmpty
+              ? const ImagePlaceholder()
+              : StoredImage(imgs.first.file, cacheWidth: 400),
+          if (imgs.length > 1)
+            Positioned(right: 5, bottom: 5, child: CountBadge(imgs.length)),
+        ],
       ),
-      body: views.isEmpty
-          ? EmptyState(
-              icon: Icons.draw_outlined,
-              text: '還沒有草稿',
-              color: t.draft,
-              actionLabel: '新增',
-              onAction: _add,
-            )
-          : _grid
-          ? GridView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 6,
-                crossAxisSpacing: 6,
-              ),
-              itemCount: views.length,
-              itemBuilder: (_, i) => ThumbSquare(
-                images: views[i].images,
-                onTap: () => _open(views[i]),
-              ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-              itemCount: views.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (_, i) {
-                final d = views[i];
-                return d.imageOnly
-                    ? _ImageOnlyCard(view: d, onTap: () => _open(d))
-                    : _TextCard(view: d, onTap: () => _open(d));
-              },
-            ),
     );
   }
 }
 
 class _TextCard extends StatelessWidget {
-  const _TextCard({required this.view, required this.onTap});
+  const _TextCard({
+    required this.view,
+    required this.onTap,
+    required this.ideaTitles,
+  });
   final DraftView view;
   final VoidCallback onTap;
+  final List<String> ideaTitles;
 
   @override
   Widget build(BuildContext context) {
@@ -111,66 +218,120 @@ class _TextCard extends StatelessWidget {
     final extra = view.images.length - 4;
     return EntityCard(
       onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
             children: [
               Expanded(
                 child: Text(
-                  (d.title ?? '').isEmpty ? '（無標題）' : d.title!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  d.title ?? '',
+                  style: TextStyle(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
                 ),
               ),
+              const SizedBox(width: 10),
               Text(
-                fmtDate(d.createdAt),
-                style: TextStyle(color: t.text3, fontSize: 12),
+                fmtMd(d.createdAt),
+                style: TextStyle(color: t.text4, fontSize: 11.5),
               ),
             ],
           ),
-          if ((d.body ?? '').isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              d.body!,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: t.text2, height: 1.4),
-            ),
-          ],
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              for (var i = 0; i < shown.length; i++)
-                Expanded(
-                  child: Padding(
+          if (shown.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                for (var i = 0; i < shown.length; i++)
+                  Padding(
                     padding: EdgeInsets.only(
                       right: i == shown.length - 1 ? 0 : 6,
                     ),
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(Radii.image),
-                            child: StoredImage(shown[i].file, cacheWidth: 300),
-                          ),
-                          if (i == 3 && extra > 0) _MoreOverlay(extra),
-                        ],
+                    child: SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            StoredImage(shown[i].file, cacheWidth: 300),
+                            if (i == 3 && extra > 0)
+                              MoreOverlay(extra, fontSize: 15),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              for (var i = shown.length; i < 4; i++)
-                const Expanded(child: SizedBox()),
-            ],
-          ),
-          if (view.tags.isNotEmpty) ...[
+              ],
+            ),
+          ],
+          if ((d.body ?? '').isNotEmpty) ...[
+            const SizedBox(height: 9),
+            Text(
+              d.body!,
+              style: TextStyle(color: t.text2, fontSize: 13, height: 1.5),
+            ),
+          ],
+          if (view.tags.isNotEmpty || ideaTitles.isNotEmpty) ...[
             const SizedBox(height: 10),
-            TagPills(view.tags),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                for (final tag in view.tags)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: t.chipBg,
+                      borderRadius: BorderRadius.circular(Radii.chip),
+                    ),
+                    child: Text(
+                      '#${tag.name}',
+                      style: TextStyle(color: t.text2, fontSize: 11),
+                    ),
+                  ),
+                for (final title in ideaTitles)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: t.idea.bg,
+                      borderRadius: BorderRadius.circular(Radii.chip),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SvgIcon(AppIcons.bulb, size: 12, color: t.idea.fg),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: t.idea.fg,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ],
         ],
       ),
@@ -178,7 +339,7 @@ class _TextCard extends StatelessWidget {
   }
 }
 
-/// 純圖草稿：單圖一張闊圖，多圖最多 3 格，超出疊「+N」；右上角顯示日期。
+/// 純圖草稿：日期在卡片右上；單圖一張闊圖（高 140），多圖最多 3 格（3 欄、間距 4），超出疊「+N」。
 class _ImageOnlyCard extends StatelessWidget {
   const _ImageOnlyCard({required this.view, required this.onTap});
   final DraftView view;
@@ -186,84 +347,66 @@ class _ImageOnlyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final imgs = view.images;
     final Widget body;
     if (imgs.length <= 1) {
-      body = AspectRatio(
-        aspectRatio: imgs.isEmpty ? 2 : imgs.first.aspect.clamp(1.2, 2.2),
+      body = SizedBox(
+        height: 140,
+        width: double.infinity,
         child: imgs.isEmpty
-            ? ColoredBox(color: context.tokens.chipBg)
+            ? const ImagePlaceholder(iconSize: 26)
             : StoredImage(imgs.first.file, cacheWidth: 900),
       );
     } else {
       final shown = imgs.take(3).toList();
       final extra = imgs.length - 3;
-      body = Row(
-        children: [
-          for (var i = 0; i < shown.length; i++)
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(right: i == shown.length - 1 ? 0 : 4),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      StoredImage(shown[i].file, cacheWidth: 400),
-                      if (i == 2 && extra > 0) _MoreOverlay(extra),
-                    ],
+      body = LayoutBuilder(
+        builder: (_, c) {
+          final cell = (c.maxWidth - 8) / 3;
+          return Row(
+            children: [
+              for (var i = 0; i < shown.length; i++)
+                Padding(
+                  padding: EdgeInsets.only(
+                    right: i == shown.length - 1 ? 0 : 4,
+                  ),
+                  child: SizedBox(
+                    width: cell,
+                    height: cell,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        StoredImage(shown[i].file, cacheWidth: 400),
+                        if (i == 2 && extra > 0) MoreOverlay(extra),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-        ],
+            ],
+          );
+        },
       );
     }
-    return GestureDetector(
+    return EntityCard(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(Radii.card),
-        child: Stack(
-          children: [
-            body,
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(Radii.chip),
-                ),
-                child: Text(
-                  fmtDate(view.draft.createdAt),
-                  style: const TextStyle(color: Colors.white, fontSize: 11),
-                ),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                fmtMd(view.draft.createdAt),
+                style: TextStyle(color: t.text4, fontSize: 11.5),
               ),
             ),
-          ],
-        ),
+          ),
+          ClipRRect(borderRadius: BorderRadius.circular(10), child: body),
+        ],
       ),
     );
   }
-}
-
-class _MoreOverlay extends StatelessWidget {
-  const _MoreOverlay(this.n);
-  final int n;
-
-  @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: Colors.black54,
-    child: Center(
-      child: Text(
-        '+$n',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    ),
-  );
 }

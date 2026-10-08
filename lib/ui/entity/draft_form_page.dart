@@ -7,7 +7,6 @@ import '../../data/entity_queries.dart';
 import '../../state/providers.dart';
 import '../album/album_actions.dart';
 import '../album/image_picker_field.dart';
-import '../pits/pit_form.dart';
 import '../tags/tag_picker.dart';
 import 'connect_field.dart';
 import 'entity_widgets.dart';
@@ -102,72 +101,93 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _addImages() async {
+    final picked = await ref.read(imagePickerProvider)();
+    if (picked.isNotEmpty) {
+      setState(() => _images.addAll(picked.map(ImageItem.picked)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ideas =
         ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? const [];
+    final isNew = widget.draftId == null;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.draftId == null ? '新增草稿' : '編輯草稿'),
-        actions: [
-          TextButton(
-            onPressed: (_loaded && !_saving) ? _save : null,
-            child: const Text('儲存'),
-          ),
-        ],
-      ),
-      body: !_loaded
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                ImagePickerField(
-                  items: _images,
-                  onAdd: () async {
-                    final picked = await ref.read(imagePickerProvider)();
-                    if (picked.isNotEmpty) {
-                      setState(
-                        () => _images.addAll(picked.map(ImageItem.picked)),
-                      );
-                    }
-                  },
-                  onRemove: (i) => setState(() => _images.removeAt(i)),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _title,
-                  decoration: pitFieldDecoration(context, '標題'),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _body,
-                  minLines: 4,
-                  maxLines: 10,
-                  decoration: pitFieldDecoration(context, '內文'),
-                ),
-                const SizedBox(height: 20),
-                TagPicker(
-                  pitId: widget.pitId,
-                  selected: _tagIds,
-                  onChanged: (v) => setState(() => _tagIds = v),
-                ),
-                const SizedBox(height: 12),
-                ConnectField(
-                  label: '連接腦洞',
-                  options: [
-                    for (final i in ideas)
-                      ConnectOption(
-                        id: i.idea.id,
-                        title: i.idea.title,
-                        file: i.images.isEmpty ? null : i.images.first.file,
-                      ),
-                  ],
-                  selected: _ideaIds,
-                  onChanged: (v) => setState(() => _ideaIds = v),
-                ),
-                const FormLabel(''),
-              ],
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            SubPageHeader(
+              title: isNew ? '新增草稿' : '編輯草稿',
+              titleSize: 20,
+              gap: 6,
             ),
+            Expanded(
+              child: !_loaded
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                      children: [
+                        const FormLabel('草稿圖'),
+                        FormImageGrid(
+                          items: _images,
+                          size: 84,
+                          onAdd: _addImages,
+                          onRemove: (i) => setState(() => _images.removeAt(i)),
+                        ),
+                        const SizedBox(height: 16),
+                        const FormLabel('標題'),
+                        TextField(
+                          controller: _title,
+                          style: const TextStyle(fontSize: 15),
+                          decoration: entityFieldDecoration(context, '為這張草稿命名'),
+                        ),
+                        const SizedBox(height: 16),
+                        const FormLabel('內文'),
+                        TextField(
+                          controller: _body,
+                          minLines: 3,
+                          maxLines: 10,
+                          style: const TextStyle(fontSize: 15, height: 1.55),
+                          decoration: entityFieldDecoration(
+                            context,
+                            '正在畫什麼、嘗試什麼構圖…',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TagPicker(
+                          pitId: widget.pitId,
+                          selected: _tagIds,
+                          onChanged: (v) => setState(() => _tagIds = v),
+                        ),
+                        const SizedBox(height: 16),
+                        ConnectField(
+                          label: '連接腦洞',
+                          options: [
+                            for (final i in ideas)
+                              ConnectOption(
+                                id: i.idea.id,
+                                title: i.idea.title,
+                                file: i.images.isEmpty
+                                    ? null
+                                    : i.images.first.file,
+                              ),
+                          ],
+                          selected: _ideaIds,
+                          onChanged: (v) => setState(() => _ideaIds = v),
+                        ),
+                        const SizedBox(height: 22),
+                        FormSubmitButton(
+                          label: isNew ? '建立草稿' : '儲存',
+                          onPressed: _saving ? null : _save,
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

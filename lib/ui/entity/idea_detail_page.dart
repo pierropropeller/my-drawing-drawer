@@ -6,6 +6,8 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../album/album_image.dart';
+import '../common/app_icons.dart';
+import 'connect_field.dart';
 import 'draft_detail_page.dart';
 import 'entity_widgets.dart';
 import 'idea_form_page.dart';
@@ -32,124 +34,204 @@ class IdeaDetailPage extends ConsumerWidget {
     final myPieces = pieces
         .where((p) => v.pieceIds.contains(p.piece.id))
         .toList();
+    final body = t.ink.withValues(alpha: 0.82);
+    Future<void> connect(
+      String label,
+      List<ConnectOption> options,
+      List<String> current,
+      Future<void> Function(List<String>) save,
+    ) async {
+      final r = await showConnectSheet(
+        context,
+        label: label,
+        options: options,
+        selected: current,
+      );
+      if (r != null) await save(r);
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        actions: [
-          IconButton(
-            tooltip: '編輯',
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => IdeaFormPage(pitId: pitId, ideaId: ideaId),
-              ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            SubPageHeader(
+              title: '腦洞詳情',
+              titleSize: 20,
+              gap: 6,
+              trailing: [
+                HeaderIconButton(
+                  icon: AppIcons.edit,
+                  label: '編輯',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          IdeaFormPage(pitId: pitId, ideaId: ideaId),
+                    ),
+                  ),
+                ),
+                HeaderIconButton(
+                  icon: AppIcons.trash,
+                  label: '刪除',
+                  color: t.danger,
+                  onTap: () async {
+                    final ok = await confirmDelete(context, title: '刪除這個腦洞？');
+                    if (!ok || !context.mounted) return;
+                    await ref.read(databaseProvider).deleteIdeas([ideaId]);
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                ),
+              ],
             ),
-          ),
-          IconButton(
-            tooltip: '刪除',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () async {
-              final ok = await confirmDelete(context, title: '刪除這個腦洞？');
-              if (!ok || !context.mounted) return;
-              await ref.read(databaseProvider).deleteIdeas([ideaId]);
-              if (context.mounted) Navigator.of(context).pop();
-            },
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-        children: [
-          Text(v.idea.title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              IdeaStatusChip(v),
-              const Spacer(),
-              Text(
-                fmtDate(v.idea.createdAt),
-                style: TextStyle(color: t.text3, fontSize: 12),
-              ),
-            ],
-          ),
-          if (v.idea.body.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(v.idea.body, style: const TextStyle(height: 1.6)),
-          ],
-          if (v.images.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 140,
+            Expanded(
               child: ListView(
-                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
                 children: [
-                  for (var i = 0; i < v.images.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 10),
-                      child: GestureDetector(
-                        onTap: () =>
-                            Navigator.of(context, rootNavigator: true).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => ImageGalleryPage(
-                                  images: v.images,
-                                  initialIndex: i,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          v.idea.title,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontSize: 23,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      IdeaStatusChip(v, short: true, fontSize: 11),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '建立於 ${fmtSlash(v.idea.createdAt)}',
+                    style: TextStyle(color: t.text4, fontSize: 12),
+                  ),
+                  if (v.idea.body.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      v.idea.body,
+                      style: TextStyle(
+                        color: body,
+                        fontSize: 14.5,
+                        height: 1.75,
+                      ),
+                    ),
+                  ],
+                  if (v.images.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      height: 96,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          for (var i = 0; i < v.images.length; i++)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: GestureDetector(
+                                onTap: () =>
+                                    Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => ImageGalleryPage(
+                                          images: v.images,
+                                          initialIndex: i,
+                                        ),
+                                      ),
+                                    ),
+                                child: SizedBox(
+                                  width: 96,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(
+                                      Radii.image,
+                                    ),
+                                    child: StoredImage(
+                                      v.images[i].file,
+                                      cacheWidth: 400,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                        child: SizedBox(
-                          width: 140,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(Radii.image),
-                            child: StoredImage(
-                              v.images[i].file,
-                              cacheWidth: 400,
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (v.tags.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    TagPills(v.tags, large: true),
+                  ],
+                  _Section(
+                    title: '連接的草稿',
+                    addLabel: '連接草稿',
+                    onAdd: () => connect(
+                      '連接草稿',
+                      [
+                        for (final d in drafts)
+                          ConnectOption(
+                            id: d.draft.id,
+                            title: d.draft.title ?? '',
+                          ),
+                      ],
+                      v.draftIds,
+                      (r) =>
+                          ref.read(databaseProvider).setIdeaDrafts(ideaId, r),
+                    ),
+                    children: [
+                      for (final d in myDrafts)
+                        ThumbSquare(
+                          images: d.images,
+                          size: 80,
+                          placeholder: t.draft.bg,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => DraftDetailPage(
+                                draftId: d.draft.id,
+                                pitId: pitId,
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                    ],
+                  ),
+                  _Section(
+                    title: '連接的成圖',
+                    addLabel: '連接成圖',
+                    onAdd: () => connect(
+                      '連接成圖',
+                      [
+                        for (final p in pieces)
+                          ConnectOption(id: p.piece.id, title: p.piece.title),
+                      ],
+                      v.pieceIds,
+                      (r) =>
+                          ref.read(databaseProvider).setIdeaPieces(ideaId, r),
                     ),
+                    children: [
+                      for (final p in myPieces)
+                        ThumbSquare(
+                          images: p.images,
+                          size: 80,
+                          placeholder: t.piece.bg,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => PieceDetailPage(
+                                pieceId: p.piece.id,
+                                pitId: pitId,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ],
-          if (v.tags.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            TagPills(v.tags),
-          ],
-          const SizedBox(height: 24),
-          _Section(
-            title: '連接的草稿',
-            empty: '還沒有連接草稿',
-            children: [
-              for (final d in myDrafts)
-                ThumbSquare(
-                  images: d.images,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          DraftDetailPage(draftId: d.draft.id, pitId: pitId),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _Section(
-            title: '連接的成圖',
-            empty: '還沒有連接成圖',
-            children: [
-              for (final p in myPieces)
-                ThumbSquare(
-                  images: p.images,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          PieceDetailPage(pieceId: p.piece.id, pitId: pitId),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -158,31 +240,35 @@ class IdeaDetailPage extends ConsumerWidget {
 class _Section extends StatelessWidget {
   const _Section({
     required this.title,
-    required this.empty,
+    required this.addLabel,
+    required this.onAdd,
     required this.children,
   });
   final String title;
-  final String empty;
+  final String addLabel;
+  final VoidCallback onAdd;
   final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    final t = context.tokens;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FormLabel(title),
-        if (children.isEmpty)
-          Text(empty, style: TextStyle(color: t.text3))
-        else
-          GridView.count(
-            crossAxisCount: 3,
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            children: children,
+        Padding(
+          padding: const EdgeInsets.only(top: 24, bottom: 10),
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
           ),
+        ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ...children,
+            DashedAddTile(size: 80, onTap: onAdd, semanticLabel: addLabel),
+          ],
+        ),
       ],
     );
   }

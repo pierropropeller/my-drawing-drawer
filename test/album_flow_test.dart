@@ -61,16 +61,15 @@ void main() {
     await tester.tap(find.text('官方圖冊'));
     await settle(tester);
     expect(find.text('還沒有官方圖'), findsOneWidget);
-    // 分組 chips 與「管理分組」
-    expect(find.text('設定圖'), findsOneWidget);
-    expect(find.byTooltip('管理分組'), findsOneWidget);
+    // 空白頁（OfficialEmpty）：沒有篩選列，只有「加圖」按鈕。
+    expect(find.text('0 張'), findsOneWidget);
 
-    // 右下新增：先打開相簿選圖（測試中由假的選圖器回傳一張），再進入新增頁。
-    await tester.tap(find.byType(FloatingActionButton));
+    // 新增：先打開相簿選圖（測試中由假的選圖器回傳一張），再進入新增頁。
+    await tester.tap(find.text('加圖'));
     await settle(tester);
     expect(find.text('新增官方圖'), findsOneWidget);
     expect(find.text('管理'), findsOneWidget); // 分組右上的管理按鈕
-    await tester.tap(find.text('儲存')); // 圖片已經帶入，不用再選
+    await tester.tap(find.text('加入官方圖冊')); // 圖片已經帶入，不用再選
     await settle(tester);
     await settle(tester);
 
@@ -81,6 +80,9 @@ void main() {
       isTrue,
     );
     expect(find.text('還沒有官方圖'), findsNothing);
+    // 有圖後出現分組 chips 與「管理分組」。
+    expect(find.text('設定圖'), findsWidgets);
+    expect(find.byTooltip('管理分組'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));
@@ -125,12 +127,12 @@ void main() {
     expect(pit.officialCoverId, isNotNull);
     expect(pit.coverImageId, isNull);
     expect(find.text('已設為官方圖冊封面'), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.close));
+    await tester.tap(find.byTooltip('返回'));
     await settle(tester);
     expect(find.text('目標'), findsOneWidget); // 回來後導覽列又出現
 
     // 好看同人圖：有作者／分組才顯示那一行
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('返回'));
     await settle(tester);
     await tester.tap(find.text('好看同人圖'));
     await settle(tester);

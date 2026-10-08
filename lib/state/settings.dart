@@ -3,6 +3,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../theme/tokens.dart';
+
 /// 由 main() 在啟動時覆蓋；測試或尚未載入時為 null，設定只存記憶體。
 final sharedPrefsProvider = Provider<SharedPreferences?>((ref) => null);
 
@@ -17,9 +19,13 @@ class AppSettings {
     this.avatarFile,
     this.onboarded = false,
     this.accountEmail,
+    this.accent = AccentPreset.coral,
   });
 
   final ThemeMode themeMode;
+
+  /// 主題色預設（珊瑚／霧藍／玫瑰／抹茶），每台裝置各自設定。
+  final AccentPreset accent;
 
   /// 前台自動刷新間隔（分鐘）：1／5／15／30，預設 5。
   final int refreshMinutes;
@@ -39,8 +45,10 @@ class AppSettings {
     Object? avatarFile = _keep,
     bool? onboarded,
     Object? accountEmail = _keep,
+    AccentPreset? accent,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
+    accent: accent ?? this.accent,
     refreshMinutes: refreshMinutes ?? this.refreshMinutes,
     autoSync: autoSync ?? this.autoSync,
     nickname: nickname ?? this.nickname,
@@ -70,6 +78,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
         (m) => m.name == p.getString('themeMode'),
         orElse: () => ThemeMode.system,
       ),
+      accent: AccentPreset.fromKey(p.getString('accent')),
       refreshMinutes: p.getInt('refreshMinutes') ?? 5,
       autoSync: p.getBool('autoSync') ?? true,
       nickname: p.getString('nickname') ?? '',
@@ -82,6 +91,11 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void setThemeMode(ThemeMode m) {
     state = state.copyWith(themeMode: m);
     _p?.setString('themeMode', m.name);
+  }
+
+  void setAccent(AccentPreset a) {
+    state = state.copyWith(accent: a);
+    _p?.setString('accent', a.key);
   }
 
   void setRefreshMinutes(int v) {

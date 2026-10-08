@@ -5,7 +5,6 @@ import '../../data/album_queries.dart';
 import '../../data/entity_queries.dart';
 import '../../state/providers.dart';
 import '../album/image_picker_field.dart';
-import '../pits/pit_form.dart';
 import '../tags/tag_picker.dart';
 import 'connect_field.dart';
 import 'entity_widgets.dart';
@@ -95,93 +94,121 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _addImages() async {
+    final picked = await ref.read(imagePickerProvider)();
+    if (picked.isNotEmpty) {
+      setState(() => _images.addAll(picked.map(ImageItem.picked)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final drafts =
         ref.watch(draftViewsProvider(widget.pitId)).value ?? const [];
     final pieces =
         ref.watch(pieceViewsProvider((widget.pitId, null))).value ?? const [];
+    final isNew = widget.ideaId == null;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.ideaId == null ? '新增腦洞' : '編輯腦洞'),
-        actions: [
-          TextButton(
-            onPressed: (_loaded && !_saving) ? _save : null,
-            child: const Text('儲存'),
-          ),
-        ],
-      ),
-      body: !_loaded
-          ? const Center(child: CircularProgressIndicator())
-          : Form(
-              key: _form,
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  TextFormField(
-                    controller: _title,
-                    decoration: pitFieldDecoration(context, '標題'),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? '請輸入標題' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _body,
-                    minLines: 5,
-                    maxLines: 12,
-                    decoration: pitFieldDecoration(context, '內文'),
-                  ),
-                  const SizedBox(height: 20),
-                  const FormLabel('配圖'),
-                  ImagePickerField(
-                    items: _images,
-                    onAdd: () async {
-                      final picked = await ref.read(imagePickerProvider)();
-                      if (picked.isNotEmpty) {
-                        setState(
-                          () => _images.addAll(picked.map(ImageItem.picked)),
-                        );
-                      }
-                    },
-                    onRemove: (i) => setState(() => _images.removeAt(i)),
-                  ),
-                  const SizedBox(height: 20),
-                  TagPicker(
-                    pitId: widget.pitId,
-                    selected: _tagIds,
-                    onChanged: (v) => setState(() => _tagIds = v),
-                  ),
-                  const SizedBox(height: 12),
-                  ConnectField(
-                    label: '連接草稿',
-                    options: [
-                      for (final d in drafts)
-                        ConnectOption(
-                          id: d.draft.id,
-                          title: d.draft.title ?? '',
-                          file: d.images.isEmpty ? null : d.images.first.file,
-                        ),
-                    ],
-                    selected: _draftIds,
-                    onChanged: (v) => setState(() => _draftIds = v),
-                  ),
-                  const SizedBox(height: 12),
-                  ConnectField(
-                    label: '連接成圖',
-                    options: [
-                      for (final p in pieces)
-                        ConnectOption(
-                          id: p.piece.id,
-                          title: p.piece.title,
-                          file: p.images.isEmpty ? null : p.images.first.file,
-                        ),
-                    ],
-                    selected: _pieceIds,
-                    onChanged: (v) => setState(() => _pieceIds = v),
-                  ),
-                ],
-              ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            SubPageHeader(
+              title: isNew ? '新增腦洞' : '編輯腦洞',
+              titleSize: 20,
+              gap: 6,
             ),
+            Expanded(
+              child: !_loaded
+                  ? const Center(child: CircularProgressIndicator())
+                  : Form(
+                      key: _form,
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                        children: [
+                          const FormLabel('標題'),
+                          TextFormField(
+                            controller: _title,
+                            style: const TextStyle(fontSize: 15),
+                            decoration: entityFieldDecoration(
+                              context,
+                              '用一句話記下想法',
+                            ),
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? '請輸入標題'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          const FormLabel('內文'),
+                          TextFormField(
+                            controller: _body,
+                            minLines: 4,
+                            maxLines: 12,
+                            style: const TextStyle(fontSize: 15, height: 1.55),
+                            decoration: entityFieldDecoration(
+                              context,
+                              '文字版的圖 —— 想畫什麼、哪個場景、什麼感覺…',
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const FormLabel('配圖'),
+                          FormImageGrid(
+                            items: _images,
+                            size: 72,
+                            onAdd: _addImages,
+                            onRemove: (i) =>
+                                setState(() => _images.removeAt(i)),
+                          ),
+                          const SizedBox(height: 16),
+                          TagPicker(
+                            pitId: widget.pitId,
+                            selected: _tagIds,
+                            onChanged: (v) => setState(() => _tagIds = v),
+                          ),
+                          const SizedBox(height: 16),
+                          ConnectField(
+                            label: '連接草稿',
+                            options: [
+                              for (final d in drafts)
+                                ConnectOption(
+                                  id: d.draft.id,
+                                  title: d.draft.title ?? '',
+                                  file: d.images.isEmpty
+                                      ? null
+                                      : d.images.first.file,
+                                ),
+                            ],
+                            selected: _draftIds,
+                            onChanged: (v) => setState(() => _draftIds = v),
+                          ),
+                          const SizedBox(height: 16),
+                          ConnectField(
+                            label: '連接成圖',
+                            options: [
+                              for (final p in pieces)
+                                ConnectOption(
+                                  id: p.piece.id,
+                                  title: p.piece.title,
+                                  file: p.images.isEmpty
+                                      ? null
+                                      : p.images.first.file,
+                                ),
+                            ],
+                            selected: _pieceIds,
+                            onChanged: (v) => setState(() => _pieceIds = v),
+                          ),
+                          const SizedBox(height: 22),
+                          FormSubmitButton(
+                            label: isNew ? '建立腦洞' : '儲存',
+                            onPressed: _saving ? null : _save,
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

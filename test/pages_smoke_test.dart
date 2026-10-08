@@ -35,6 +35,7 @@ import 'package:huakeng/ui/entity/idea_list_page.dart';
 import 'package:huakeng/ui/entity/image_gallery_page.dart';
 import 'package:huakeng/ui/entity/piece_detail_page.dart';
 import 'package:huakeng/ui/entity/piece_form_page.dart';
+import 'package:huakeng/ui/goals/day_page.dart';
 import 'package:huakeng/ui/goals/goal_new_page.dart';
 import 'package:huakeng/ui/goals/goals_page.dart';
 import 'package:huakeng/ui/goals/review_edit_page.dart';
@@ -270,6 +271,7 @@ void main() {
     'ImageGalleryPage': () =>
         const ImageGalleryPage(images: [ImageRef('a.png', 1, 1)]),
     'GoalsPage': () => const GoalsPage(),
+    'DayPage': () => DayPage(day: DateTime.now()),
     'GoalNewPage(new)': () =>
         GoalNewPage(period: GoalPeriod.year, year: DateTime.now().year),
     'GoalNewPage(edit)': () => GoalNewPage(

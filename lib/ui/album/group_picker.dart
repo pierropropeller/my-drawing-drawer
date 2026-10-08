@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/providers.dart';
+import '../../theme/tokens.dart';
 import 'album_view.dart';
 import 'group_manage_page.dart';
 
@@ -33,26 +34,45 @@ class GroupPicker extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => GroupManagePage(pitId: pitId, kind: kind),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 0, 2, 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: context.tokens.text2,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-              child: const Text('管理'),
-            ),
-          ],
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => GroupManagePage(pitId: pitId, kind: kind),
+                  ),
+                ),
+                child: Text(
+                  '管理',
+                  style: TextStyle(
+                    color: context.tokens.piece.fg,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         ChipRow(
           padding: EdgeInsets.zero,
+          accentSelected: true,
+          wrap: true,
           allLabel: null,
           options: [for (final g in groups) (g.id, g.name)],
           selected: selected,

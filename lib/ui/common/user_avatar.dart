@@ -7,8 +7,19 @@ import '../album/album_image.dart';
 
 /// 使用者頭像：有自訂圖片用圖片，否則顯示暱稱第一個字。
 class UserAvatar extends ConsumerWidget {
-  const UserAvatar({super.key, this.size = 40});
+  const UserAvatar({
+    super.key,
+    this.size = 40,
+    this.background,
+    this.foreground,
+    this.serif = false,
+  });
   final double size;
+
+  /// 沒有自訂圖片時的底色／字色（預設用 piece 分類色）；[serif] 用襯線字（我的頁大頭像）。
+  final Color? background;
+  final Color? foreground;
+  final bool serif;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,15 +33,24 @@ class UserAvatar extends ConsumerWidget {
         child: s.avatarFile != null
             ? StoredImage(s.avatarFile!, cacheWidth: (size * 3).round())
             : ColoredBox(
-                color: t.piece.bg,
+                color: background ?? t.piece.bg,
                 child: Center(
                   child: Text(
                     initial,
-                    style: TextStyle(
-                      color: t.piece.fg,
-                      fontSize: size * 0.45,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style:
+                        (serif
+                                ? Theme.of(context).textTheme.headlineSmall
+                                : null)
+                            ?.copyWith(
+                              color: foreground ?? t.piece.fg,
+                              fontSize: size * 0.45,
+                              fontWeight: FontWeight.w700,
+                            ) ??
+                        TextStyle(
+                          color: foreground ?? t.piece.fg,
+                          fontSize: size * 0.45,
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
                 ),
               ),
