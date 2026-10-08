@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/providers.dart';
+import '../common/nav_bar_hidden.dart';
 import 'pit_form.dart';
 
 /// 開新坑：只有坑名與描述，沒有封面欄位。
@@ -12,7 +13,8 @@ class PitNewPage extends ConsumerStatefulWidget {
   ConsumerState<PitNewPage> createState() => _PitNewPageState();
 }
 
-class _PitNewPageState extends ConsumerState<PitNewPage> {
+class _PitNewPageState extends ConsumerState<PitNewPage>
+    with HidesNavBar<PitNewPage> {
   final _form = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _desc = TextEditingController();
