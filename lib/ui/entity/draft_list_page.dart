@@ -7,15 +7,28 @@ import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../common/app_icons.dart';
 import '../common/empty_state.dart';
+import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import 'draft_detail_page.dart';
 import 'draft_form_page.dart';
 import 'entity_widgets.dart';
 
 /// 我的草稿：列表（有字的卡片／純圖卡）與九宮格切換。
+/// 瀏覽用頁面，有底部導覽列。圖片型卡片不顯示 tag（D-043，tag 只在詳情頁）。
 class DraftListPage extends ConsumerStatefulWidget {
-  const DraftListPage({super.key, required this.pitId});
+  const DraftListPage({
+    super.key,
+    required this.pitId,
+    this.tagId,
+    this.onTagTap,
+  });
   final String pitId;
+
+  /// 只顯示有這個 tag 的草稿（篩選列 UI 之後由搜尋接上，這裡只管資料）。
+  final String? tagId;
+
+  /// 傳給詳情頁的 tag 點擊回呼（預設不做事）。
+  final void Function(String tagId)? onTagTap;
 
   @override
   ConsumerState<DraftListPage> createState() => _DraftListPageState();
@@ -38,7 +51,11 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
 
   void _open(DraftView d) => Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => DraftDetailPage(draftId: d.draft.id, pitId: widget.pitId),
+      builder: (_) => DraftDetailPage(
+        draftId: d.draft.id,
+        pitId: widget.pitId,
+        onTagTap: widget.onTagTap,
+      ),
     ),
   );
 
@@ -46,12 +63,18 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final pitName = ref.watch(pitProvider(widget.pitId)).value?.name;
-    final views = ref.watch(draftViewsProvider(widget.pitId)).value ?? const [];
+    final views =
+        ref
+            .watch(draftViewsFilteredProvider((widget.pitId, widget.tagId)))
+            .value ??
+        const [];
     final ideas =
         ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? const [];
     final ideaTitle = {for (final i in ideas) i.idea.id: i.idea.title};
     return Scaffold(
-      floatingActionButton: EntityFab(label: '新增草稿', onPressed: _add),
+      floatingActionButton: views.isEmpty
+          ? null
+          : EntityFab(label: '新增草稿', onPressed: _add),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -70,7 +93,7 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
             Expanded(
               child: views.isEmpty
                   ? EmptyState(
-                      icon: Icons.draw_outlined,
+                      svg: AppIcons.edit,
                       text: '還沒有草稿',
                       color: t.draft,
                       actionLabel: '新增草稿',
@@ -79,35 +102,39 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
                   : _grid
                   ? GridView.builder(
                       padding: const EdgeInsets.only(top: 8, bottom: 96),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            mainAxisSpacing: 2,
-                            crossAxisSpacing: 2,
-                          ),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columnsForWidth(
+                          MediaQuery.sizeOf(context).width,
+                          phone: 3,
+                        ),
+                        mainAxisSpacing: 2,
+                        crossAxisSpacing: 2,
+                      ),
                       itemCount: views.length,
                       itemBuilder: (_, i) => _GridCell(
                         view: views[i],
                         onTap: () => _open(views[i]),
                       ),
                     )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
-                      itemCount: views.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (_, i) {
-                        final d = views[i];
-                        return d.imageOnly
-                            ? _ImageOnlyCard(view: d, onTap: () => _open(d))
-                            : _TextCard(
-                                view: d,
-                                onTap: () => _open(d),
-                                ideaTitles: [
-                                  for (final id in d.ideaIds)
-                                    if (ideaTitle[id] != null) ideaTitle[id]!,
-                                ],
-                              );
-                      },
+                  : ContentWidth(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+                        itemCount: views.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemBuilder: (_, i) {
+                          final d = views[i];
+                          return d.imageOnly
+                              ? _ImageOnlyCard(view: d, onTap: () => _open(d))
+                              : _TextCard(
+                                  view: d,
+                                  onTap: () => _open(d),
+                                  ideaTitles: [
+                                    for (final id in d.ideaIds)
+                                      if (ideaTitle[id] != null) ideaTitle[id]!,
+                                  ],
+                                );
+                        },
+                      ),
                     ),
             ),
           ],
@@ -278,28 +305,14 @@ class _TextCard extends StatelessWidget {
               style: TextStyle(color: t.text2, fontSize: 13, height: 1.5),
             ),
           ],
-          if (view.tags.isNotEmpty || ideaTitles.isNotEmpty) ...[
+          // D-043：圖片型卡片不顯示 tag，只留關聯腦洞的 chip。
+          if (ideaTitles.isNotEmpty) ...[
             const SizedBox(height: 10),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                for (final tag in view.tags)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: t.chipBg,
-                      borderRadius: BorderRadius.circular(Radii.chip),
-                    ),
-                    child: Text(
-                      '#${tag.name}',
-                      style: TextStyle(color: t.text2, fontSize: 11),
-                    ),
-                  ),
                 for (final title in ideaTitles)
                   Container(
                     padding: const EdgeInsets.symmetric(

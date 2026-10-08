@@ -6,32 +6,52 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../album/album_image.dart';
-import '../album/album_view.dart';
 import '../common/app_icons.dart';
 import '../common/empty_state.dart';
+import '../common/nav_bar_hidden.dart';
+import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import 'entity_widgets.dart';
 import 'idea_detail_page.dart';
 import 'idea_form_page.dart';
 
 /// 我的腦洞：卡片顯示標題、狀態、內文兩行、配圖、tag、日期；長按多選（只有刪除）。
+/// 瀏覽狀態有底部導覽列；多選時隱藏（IdeaSelect）。
 class IdeaListPage extends ConsumerStatefulWidget {
-  const IdeaListPage({super.key, required this.pitId});
+  const IdeaListPage({
+    super.key,
+    required this.pitId,
+    this.tagId,
+    this.onTagTap,
+  });
   final String pitId;
+
+  /// 只顯示有這個 tag 的腦洞（篩選列 UI 之後由搜尋接上，這裡只管資料）。
+  final String? tagId;
+
+  /// 點 tag 的回呼（預設不做事，搜尋接導覽）。
+  final void Function(String tagId)? onTagTap;
 
   @override
   ConsumerState<IdeaListPage> createState() => _IdeaListPageState();
 }
 
-class _IdeaListPageState extends ConsumerState<IdeaListPage> {
-  String? _tagId;
+class _IdeaListPageState extends ConsumerState<IdeaListPage>
+    with HidesNavBar<IdeaListPage> {
   bool _selecting = false;
   final Set<String> _selected = {};
 
-  void _exit() => setState(() {
-    _selecting = false;
-    _selected.clear();
-  });
+  // 瀏覽時有導覽列，進入多選才隱藏。
+  @override
+  bool get hidesNavBarOnOpen => false;
+
+  void _exit() {
+    setNavBarHidden(false);
+    setState(() {
+      _selecting = false;
+      _selected.clear();
+    });
+  }
 
   Future<void> _delete() async {
     final ok = await confirmDelete(
@@ -43,10 +63,13 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage> {
     if (mounted) _exit();
   }
 
-  void _toggle(String id) => setState(() {
-    if (!_selected.remove(id)) _selected.add(id);
-    if (_selected.isEmpty) _selecting = false;
-  });
+  void _toggle(String id) {
+    setState(() {
+      if (!_selected.remove(id)) _selected.add(id);
+      if (_selected.isEmpty) _selecting = false;
+    });
+    if (!_selecting) setNavBarHidden(false);
+  }
 
   void _openNew() => Navigator.of(context).push(
     MaterialPageRoute<void>(builder: (_) => IdeaFormPage(pitId: widget.pitId)),
@@ -56,10 +79,9 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final pitName = ref.watch(pitProvider(widget.pitId)).value?.name;
-    final tags = ref.watch(tagsProvider(widget.pitId)).value ?? const [];
-    final tagId = tags.any((e) => e.id == _tagId) ? _tagId : null;
     final views =
-        ref.watch(ideaViewsProvider((widget.pitId, tagId))).value ?? const [];
+        ref.watch(ideaViewsProvider((widget.pitId, widget.tagId))).value ??
+        const [];
     final unhatched = views.where((v) => v.status != IdeaStatus.hatched).length;
     final title = pitName == null ? '我的腦洞' : '$pitName · 我的腦洞';
     return PopScope(
@@ -68,7 +90,7 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage> {
         if (!didPop) _exit();
       },
       child: Scaffold(
-        floatingActionButton: _selecting
+        floatingActionButton: _selecting || views.isEmpty
             ? null
             : EntityFab(label: '新增腦洞', onPressed: _openNew),
         bottomNavigationBar: _selecting
@@ -87,14 +109,17 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage> {
                   onBack: _exit,
                   trailing: [
                     TextButton(
-                      onPressed: () => setState(() {
-                        if (_selected.length == views.length) {
-                          _selected.clear();
-                          _selecting = false;
-                        } else {
-                          _selected.addAll(views.map((v) => v.idea.id));
-                        }
-                      }),
+                      onPressed: () {
+                        setState(() {
+                          if (_selected.length == views.length) {
+                            _selected.clear();
+                            _selecting = false;
+                          } else {
+                            _selected.addAll(views.map((v) => v.idea.id));
+                          }
+                        });
+                        if (!_selecting) setNavBarHidden(false);
+                      },
                       style: TextButton.styleFrom(
                         foregroundColor: t.piece.fg,
                         padding: const EdgeInsets.symmetric(
@@ -123,72 +148,74 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage> {
                     ),
                   ],
                 ),
-              if (tags.isNotEmpty)
-                ChipRow(
-                  options: [for (final e in tags) (e.id, '#${e.name}')],
-                  selected: tagId,
-                  onSelected: (v) => setState(() => _tagId = v),
-                ),
               Expanded(
                 child: views.isEmpty
                     ? EmptyState(
-                        icon: Icons.lightbulb_outline,
+                        svg: AppIcons.pitIdea,
                         text: '還沒有腦洞',
                         color: t.idea,
                         actionLabel: '記下第一個腦洞',
                         onAction: _openNew,
                       )
-                    : ListView.separated(
-                        padding: EdgeInsets.fromLTRB(
-                          _selecting ? 16 : 20,
-                          8,
-                          20,
-                          96,
-                        ),
-                        itemCount: views.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemBuilder: (_, i) {
-                          final v = views[i];
-                          final isSel = _selected.contains(v.idea.id);
-                          final card = _IdeaCard(
-                            view: v,
-                            selected: isSel,
-                            selecting: _selecting,
-                          );
-                          if (!_selecting) {
-                            return GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => IdeaDetailPage(
-                                    ideaId: v.idea.id,
-                                    pitId: widget.pitId,
+                    : ContentWidth(
+                        child: ListView.separated(
+                          padding: EdgeInsets.fromLTRB(
+                            _selecting ? 16 : 20,
+                            8,
+                            20,
+                            96,
+                          ),
+                          itemCount: views.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (_, i) {
+                            final v = views[i];
+                            final isSel = _selected.contains(v.idea.id);
+                            final card = _IdeaCard(
+                              view: v,
+                              selected: isSel,
+                              selecting: _selecting,
+                              onTagTap: _selecting ? null : widget.onTagTap,
+                            );
+                            if (!_selecting) {
+                              return GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => IdeaDetailPage(
+                                      ideaId: v.idea.id,
+                                      pitId: widget.pitId,
+                                      onTagTap: widget.onTagTap,
+                                    ),
                                   ),
                                 ),
+                                onLongPress: () {
+                                  setNavBarHidden(true);
+                                  setState(() {
+                                    _selecting = true;
+                                    _selected.add(v.idea.id);
+                                  });
+                                },
+                                child: card,
+                              );
+                            }
+                            return GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _toggle(v.idea.id),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 16),
+                                    child: SelectDot(isSel),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: card),
+                                ],
                               ),
-                              onLongPress: () => setState(() {
-                                _selecting = true;
-                                _selected.add(v.idea.id);
-                              }),
-                              child: card,
                             );
-                          }
-                          return GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () => _toggle(v.idea.id),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 16),
-                                  child: SelectDot(isSel),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(child: card),
-                              ],
-                            ),
-                          );
-                        },
+                          },
+                        ),
                       ),
               ),
             ],
@@ -243,10 +270,12 @@ class _IdeaCard extends StatelessWidget {
     required this.view,
     required this.selected,
     required this.selecting,
+    this.onTagTap,
   });
   final IdeaView view;
   final bool selected;
   final bool selecting;
+  final void Function(String tagId)? onTagTap;
 
   @override
   Widget build(BuildContext context) {
@@ -312,7 +341,7 @@ class _IdeaCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(child: TagPills(view.tags)),
+              Expanded(child: TagPills(view.tags, onTagTap: onTagTap)),
               const SizedBox(width: 6),
               Text(
                 fmtMd(idea.createdAt),
