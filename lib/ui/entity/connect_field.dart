@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../common/app_icons.dart';
@@ -9,17 +10,30 @@ import 'entity_widgets.dart';
 
 /// 可被關聯的對象種類（腦洞、草稿、成圖）。
 enum ConnectKind {
-  idea('腦洞', '個'),
-  draft('草稿', '份'),
-  piece('成圖', '張');
+  idea,
+  draft,
+  piece;
 
-  const ConnectKind(this.noun, this.unit);
+  /// 「關聯草稿」欄位標籤。
+  String relateLabel(AppLocalizations l) => switch (this) {
+    ConnectKind.idea => l.entityConnectIdea,
+    ConnectKind.draft => l.entityConnectDraft,
+    ConnectKind.piece => l.entityConnectPiece,
+  };
 
-  /// 「選擇草稿」「關聯草稿」裡的名詞。
-  final String noun;
+  /// 「選擇草稿」面板標題與按鈕語意。
+  String selectLabel(AppLocalizations l) => switch (this) {
+    ConnectKind.idea => l.entityConnectSelectIdea,
+    ConnectKind.draft => l.entityConnectSelectDraft,
+    ConnectKind.piece => l.entityConnectSelectPiece,
+  };
 
-  /// 「已選 2 份」的量詞。
-  final String unit;
+  /// 「已選 2 份」。
+  String selectedLabel(AppLocalizations l, int n) => switch (this) {
+    ConnectKind.idea => l.entityConnectSelectedIdea(n),
+    ConnectKind.draft => l.entityConnectSelectedDraft(n),
+    ConnectKind.piece => l.entityConnectSelectedPiece(n),
+  };
 
   /// 由欄位／面板標籤判斷種類（標籤含「腦洞」「草稿」，其餘視為成圖）。
   static ConnectKind of(String label) => label.contains('腦洞')
@@ -67,6 +81,7 @@ class ConnectOption {
 Future<List<String>?> showConnectSheet(
   BuildContext context, {
   required String label,
+  ConnectKind? kind,
   required List<ConnectOption> options,
   required List<String> selected,
 }) => showModalBottomSheet<List<String>>(
@@ -81,7 +96,7 @@ Future<List<String>?> showConnectSheet(
     maxHeight: MediaQuery.sizeOf(context).height * 0.85,
   ),
   builder: (_) => ConnectSheet(
-    kind: ConnectKind.of(label),
+    kind: kind ?? ConnectKind.of(label),
     options: options,
     initial: selected,
   ),
@@ -122,7 +137,7 @@ class RelationChip extends StatelessWidget {
             const SizedBox(width: 6),
             Flexible(
               child: Text(
-                title.isEmpty ? '無標題' : title,
+                title.isEmpty ? context.l10n.commonNoTitle : title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -136,7 +151,7 @@ class RelationChip extends StatelessWidget {
               const SizedBox(width: 6),
               Semantics(
                 button: true,
-                label: '移除',
+                label: context.l10n.entityRemove,
                 child: GestureDetector(
                   onTap: onRemove,
                   child: SvgIcon(
@@ -162,12 +177,16 @@ class ConnectField extends StatelessWidget {
   const ConnectField({
     super.key,
     required this.label,
+    this.kind,
     required this.options,
     required this.selected,
     required this.onChanged,
   });
 
   final String label;
+
+  /// 種類；沒傳時由 [label] 判斷（舊用法）。
+  final ConnectKind? kind;
   final List<ConnectOption> options;
   final List<String> selected;
   final ValueChanged<List<String>> onChanged;
@@ -176,6 +195,7 @@ class ConnectField extends StatelessWidget {
     final result = await showConnectSheet(
       context,
       label: label,
+      kind: kind,
       options: options,
       selected: selected,
     );
@@ -184,7 +204,7 @@ class ConnectField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kind = ConnectKind.of(label);
+    final kind = this.kind ?? ConnectKind.of(label);
     final chosen = options.where((o) => selected.contains(o.id)).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,8 +222,8 @@ class ConnectField extends StatelessWidget {
                     onChanged(selected.where((e) => e != o.id).toList()),
               ),
             DashedAddChip(
-              label: '選擇',
-              semanticLabel: '選擇${kind.noun}',
+              label: context.l10n.commonSelect,
+              semanticLabel: kind.selectLabel(context.l10n),
               onTap: () => _open(context),
             ),
           ],
@@ -250,7 +270,7 @@ class _ConnectSheetState extends State<ConnectSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '選擇${kind.noun}',
+                    kind.selectLabel(context.l10n),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -258,7 +278,7 @@ class _ConnectSheetState extends State<ConnectSheet> {
                     ),
                   ),
                   Text(
-                    '已選 ${_sel.length} ${kind.unit}',
+                    kind.selectedLabel(context.l10n, _sel.length),
                     style: TextStyle(color: t.text3, fontSize: 12.5),
                   ),
                 ],
@@ -270,7 +290,7 @@ class _ConnectSheetState extends State<ConnectSheet> {
                       padding: const EdgeInsets.symmetric(vertical: 32),
                       child: Center(
                         child: Text(
-                          '沒有可選擇的項目',
+                          context.l10n.entityConnectEmpty,
                           style: TextStyle(color: t.text3),
                         ),
                       ),
@@ -294,7 +314,7 @@ class _ConnectSheetState extends State<ConnectSheet> {
             ),
             const SizedBox(height: 16),
             FormSubmitButton(
-              label: '完成',
+              label: context.l10n.commonDone,
               onPressed: () => Navigator.pop(context, _sel.toList()),
             ),
           ],
@@ -364,7 +384,7 @@ class _PickRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      untitled ? '無標題' : o.title,
+                      untitled ? context.l10n.commonNoTitle : o.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: untitled

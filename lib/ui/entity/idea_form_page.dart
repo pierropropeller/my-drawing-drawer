@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/entity_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../album/image_picker_field.dart';
 import '../common/nav_bar_hidden.dart';
@@ -118,7 +119,9 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
         child: Column(
           children: [
             SubPageHeader(
-              title: isNew ? '新增腦洞' : '編輯腦洞',
+              title: isNew
+                  ? context.l10n.ideaFormTitleNew
+                  : context.l10n.ideaFormTitleEdit,
               titleSize: 20,
               gap: 6,
             ),
@@ -131,20 +134,20 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                         child: ListView(
                           padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                           children: [
-                            const FormLabel('標題'),
+                            FormLabel(context.l10n.entityFieldTitle),
                             TextFormField(
                               controller: _title,
                               style: const TextStyle(fontSize: 15),
                               decoration: entityFieldDecoration(
                                 context,
-                                '用一句話記下想法',
+                                context.l10n.ideaFormTitleHint,
                               ),
                               validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? '請輸入標題'
+                                  ? context.l10n.entityTitleRequired
                                   : null,
                             ),
                             const SizedBox(height: 16),
-                            const FormLabel('內文'),
+                            FormLabel(context.l10n.entityFieldBody),
                             TextFormField(
                               controller: _body,
                               minLines: 4,
@@ -155,11 +158,11 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                               ),
                               decoration: entityFieldDecoration(
                                 context,
-                                '文字版的圖 —— 想畫什麼、哪個場景、什麼感覺…',
+                                context.l10n.ideaFormBodyHint,
                               ),
                             ),
                             const SizedBox(height: 16),
-                            const FormLabel('配圖'),
+                            FormLabel(context.l10n.ideaFormImages),
                             FormImageGrid(
                               items: _images,
                               size: 72,
@@ -175,7 +178,8 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                             ),
                             const SizedBox(height: 16),
                             ConnectField(
-                              label: '關聯草稿',
+                              label: context.l10n.entityConnectDraft,
+                              kind: ConnectKind.draft,
                               options: [
                                 for (final d in drafts)
                                   ConnectOption(
@@ -193,7 +197,8 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                             ),
                             const SizedBox(height: 16),
                             ConnectField(
-                              label: '關聯成圖',
+                              label: context.l10n.entityConnectPiece,
+                              kind: ConnectKind.piece,
                               options: [
                                 for (final p in pieces)
                                   ConnectOption(
@@ -211,7 +216,9 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                             ),
                             const SizedBox(height: 22),
                             FormSubmitButton(
-                              label: isNew ? '建立腦洞' : '儲存',
+                              label: isNew
+                                  ? context.l10n.ideaFormCreate
+                                  : context.l10n.commonSave,
                               onPressed: _saving ? null : _save,
                             ),
                           ],

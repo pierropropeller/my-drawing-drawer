@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/entity_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../album/album_actions.dart';
 import '../album/image_picker_field.dart';
@@ -83,7 +84,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
 
   Future<void> _save() async {
     if (_images.isEmpty) {
-      showSnack(context, '請至少新增一張圖片');
+      showSnack(context, context.l10n.draftFormMissingImage);
       return;
     }
     setState(() => _saving = true);
@@ -122,7 +123,9 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
         child: Column(
           children: [
             SubPageHeader(
-              title: isNew ? '新增草稿' : '編輯草稿',
+              title: isNew
+                  ? context.l10n.draftFormTitleNew
+                  : context.l10n.draftFormTitleEdit,
               titleSize: 20,
               gap: 6,
             ),
@@ -133,7 +136,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                         children: [
-                          const FormLabel('草稿圖'),
+                          FormLabel(context.l10n.draftFormImages),
                           FormImageGrid(
                             items: _images,
                             size: 84,
@@ -142,17 +145,17 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
                                 setState(() => _images.removeAt(i)),
                           ),
                           const SizedBox(height: 16),
-                          const FormLabel('標題'),
+                          FormLabel(context.l10n.entityFieldTitle),
                           TextField(
                             controller: _title,
                             style: const TextStyle(fontSize: 15),
                             decoration: entityFieldDecoration(
                               context,
-                              '為這張草稿命名',
+                              context.l10n.draftFormTitleHint,
                             ),
                           ),
                           const SizedBox(height: 16),
-                          const FormLabel('內文'),
+                          FormLabel(context.l10n.entityFieldBody),
                           TextField(
                             controller: _body,
                             minLines: 3,
@@ -160,7 +163,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
                             style: const TextStyle(fontSize: 15, height: 1.55),
                             decoration: entityFieldDecoration(
                               context,
-                              '正在畫什麼、嘗試什麼構圖…',
+                              context.l10n.draftFormBodyHint,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -171,7 +174,8 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
                           ),
                           const SizedBox(height: 16),
                           ConnectField(
-                            label: '關聯腦洞',
+                            label: context.l10n.entityConnectIdea,
+                            kind: ConnectKind.idea,
                             options: [
                               for (final i in ideas)
                                 ConnectOption(
@@ -189,7 +193,9 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
                           ),
                           const SizedBox(height: 22),
                           FormSubmitButton(
-                            label: isNew ? '建立草稿' : '儲存',
+                            label: isNew
+                                ? context.l10n.draftFormCreate
+                                : context.l10n.commonSave,
                             onPressed: _saving ? null : _save,
                           ),
                         ],

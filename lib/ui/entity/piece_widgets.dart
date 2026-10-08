@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../data/payment.dart';
+import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../album/image_picker_field.dart';
@@ -149,12 +150,14 @@ class PieceDateField extends StatelessWidget {
     super.key,
     required this.date,
     required this.onChanged,
-    this.emptyText = '選擇日期',
+    this.emptyText,
     this.semanticLabel,
   });
   final DateTime? date;
   final ValueChanged<DateTime> onChanged;
-  final String emptyText;
+
+  /// 沒選日期時的文字；沒傳時用「選擇日期」。
+  final String? emptyText;
   final String? semanticLabel;
 
   @override
@@ -186,7 +189,9 @@ class PieceDateField extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  date == null ? emptyText : fmtSlash(date!),
+                  date == null
+                      ? (emptyText ?? context.l10n.pieceDateEmpty)
+                      : fmtSlash(date!),
                   style: TextStyle(
                     fontSize: 15,
                     color: date == null ? t.text4 : t.ink,
@@ -280,7 +285,10 @@ class PieceHeartField extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Text('紅心', style: TextStyle(fontSize: 13, color: t.text3)),
+        Text(
+          context.l10n.pieceHeartUnit,
+          style: TextStyle(fontSize: 13, color: t.text3),
+        ),
       ],
     );
   }
@@ -331,7 +339,7 @@ class PieceImageGrid extends StatelessWidget {
                   right: -6,
                   child: Semantics(
                     button: true,
-                    label: '移除圖片',
+                    label: context.l10n.entityRemoveImage,
                     child: GestureDetector(
                       onTap: () => onRemove(i),
                       child: Container(
@@ -360,7 +368,7 @@ class PieceImageGrid extends StatelessWidget {
         DashedAddTile(
           size: size,
           onTap: onAdd,
-          semanticLabel: '加成品圖',
+          semanticLabel: context.l10n.pieceAddImage,
           iconSize: 26,
         ),
       ],
@@ -383,17 +391,19 @@ class PaymentChip extends StatelessWidget {
       PaymentStatus.unpaid => (
         dark ? const Color(0xFF4A2A26) : const Color(0xFFF9E1DC),
         dark ? const Color(0xFFF08A76) : const Color(0xFFC0392B),
-        '未收',
+        context.l10n.piecePaymentUnpaid,
       ),
       PaymentStatus.partial => (
         dark ? const Color(0xFF383126) : const Color(0xFFF1EAD9),
         dark ? const Color(0xFFD6B267) : const Color(0xFFA9812F),
-        '已收 ${formatPieceMoney(currency, state.received)}',
+        context.l10n.piecePaymentPartial(
+          formatPieceMoney(currency, state.received),
+        ),
       ),
       PaymentStatus.paid => (
         dark ? const Color(0xFF2D3324) : const Color(0xFFE6EBDC),
         dark ? const Color(0xFFADBD8C) : const Color(0xFF5C7A44),
-        '已收齊',
+        context.l10n.piecePaymentPaid,
       ),
     };
     return Container(

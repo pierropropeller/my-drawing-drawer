@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/entity_queries.dart';
+import '../../l10n/l10n.dart';
 import '../album/album_actions.dart';
 import '../album/album_image.dart';
 import '../common/app_icons.dart';
@@ -129,13 +130,26 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage>
               ),
               child: Row(
                 children: [
-                  action(AppIcons.share, '分享', () => shareImage(ref, _current)),
-                  action(AppIcons.download, '下載', () async {
-                    final n = await downloadImages(ref, [_current]);
-                    if (context.mounted) {
-                      showSnack(context, n > 0 ? '已儲存到相簿' : '儲存失敗');
-                    }
-                  }),
+                  action(
+                    AppIcons.share,
+                    context.l10n.commonShare,
+                    () => shareImage(ref, _current),
+                  ),
+                  action(
+                    AppIcons.download,
+                    context.l10n.commonDownload,
+                    () async {
+                      final n = await downloadImages(ref, [_current]);
+                      if (context.mounted) {
+                        showSnack(
+                          context,
+                          n > 0
+                              ? context.l10n.entityGallerySaved
+                              : context.l10n.entityGallerySaveFailed,
+                        );
+                      }
+                    },
+                  ),
                 ],
               ),
             ),

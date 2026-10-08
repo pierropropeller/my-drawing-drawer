@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
 import '../../data/entity_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../album/image_picker_field.dart';
@@ -415,14 +416,18 @@ class IdeaStatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final (label, bg, fg) = switch (view.status) {
-      IdeaStatus.open => ('未孵', t.chipBg, t.text3),
+      IdeaStatus.open => (context.l10n.ideaStatusOpen, t.chipBg, t.text3),
       IdeaStatus.hatching => (
-        short ? '孵化中' : '孵化中 · ${view.draftIds.length} 草稿',
+        short
+            ? context.l10n.ideaStatusHatchingShort
+            : context.l10n.ideaStatusHatching(view.draftIds.length),
         t.draft.bg,
         t.draft.fg,
       ),
       IdeaStatus.hatched => (
-        short ? '已孵' : '已孵 ${view.pieceIds.length} 成圖',
+        short
+            ? context.l10n.ideaStatusHatchedShort
+            : context.l10n.ideaStatusHatched(view.pieceIds.length),
         t.piece.bg,
         t.piece.fg,
       ),
@@ -560,11 +565,13 @@ class DashedAddChip extends StatelessWidget {
     super.key,
     required this.onTap,
     required this.semanticLabel,
-    this.label = '新增',
+    this.label,
   });
   final VoidCallback onTap;
   final String semanticLabel;
-  final String label;
+
+  /// 文字；沒傳時用「新增」。
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -590,7 +597,7 @@ class DashedAddChip extends StatelessWidget {
               ),
               const SizedBox(width: 3),
               Text(
-                label,
+                label ?? context.l10n.commonAdd,
                 style: TextStyle(
                   color: t.dashedText,
                   fontSize: 13,
@@ -694,7 +701,7 @@ class FormImageGrid extends ConsumerWidget {
                   right: -6,
                   child: Semantics(
                     button: true,
-                    label: '移除圖片',
+                    label: context.l10n.entityRemoveImage,
                     child: GestureDetector(
                       onTap: () => onRemove(i),
                       child: Container(
@@ -726,7 +733,7 @@ class FormImageGrid extends ConsumerWidget {
         DashedAddTile(
           size: size,
           onTap: onAdd,
-          semanticLabel: '加圖',
+          semanticLabel: context.l10n.entityAddImage,
           iconSize: 24,
         ),
       ],
