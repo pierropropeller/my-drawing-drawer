@@ -260,5 +260,220 @@
         "type": "int"
       }
     }
+  },
+  "goalsTitle": "目標",
+  "goalsPrevYear": "上一年",
+  "goalsNextYear": "下一年",
+  "goalsModeYear": "年",
+  "goalsModeMonth": "月",
+  "goalsModeDay": "日",
+  "goalsSectionYear": "年度目標",
+  "goalsSectionMonth": "月度小目標",
+  "goalsEmptyYear": "還沒有年度目標",
+  "goalsEmptyMonth": "還沒有月度目標",
+  "goalsNewGoal": "新增目標",
+  "goalsPrevItem": "上一個",
+  "goalsNextItem": "下一個",
+  "goalsPrevMonth": "上個月",
+  "goalsNextMonth": "下個月",
+  "goalsPrevDay": "前一天",
+  "goalsNextDay": "後一天",
+  "goalsMonthTitle": "{month} 月",
+  "@goalsMonthTitle": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsDayTitle": "{month} 月 {day} 日",
+  "@goalsDayTitle": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsMonthNum": "{month}月",
+  "@goalsMonthNum": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsMonthCn": "{month, select, 1{一月} 2{二月} 3{三月} 4{四月} 5{五月} 6{六月} 7{七月} 8{八月} 9{九月} 10{十月} 11{十一月} 12{十二月} other{}}",
+  "@goalsMonthCn": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "goalsMonthFormatCn": "一月",
+  "goalsMonthFormatNum": "1月",
+  "goalsWeekSun": "日",
+  "goalsWeekMon": "一",
+  "goalsWeekTue": "二",
+  "goalsWeekWed": "三",
+  "goalsWeekThu": "四",
+  "goalsWeekFri": "五",
+  "goalsWeekSat": "六",
+  "goalsCreatePitFirst": "請先建立一個坑",
+  "goalsDayEmpty": "這天沒有紀錄",
+  "goalsTimeline": "時間軸",
+  "goalsKindIdea": "腦洞",
+  "goalsKindDraft": "草稿",
+  "goalsKindPiece": "成圖",
+  "goalsUntitled": "（無標題）",
+  "goalsPickPit": "選擇坑",
+  "goalsRemove": "移除",
+  "goalsClear": "清除",
+  "goalsYearReview": "年度回顧",
+  "goalsReviewSelected": "已選 {count} / 12",
+  "@goalsReviewSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsLayout": "排版",
+  "goalsIncome": "商稿收入",
+  "goalsReviewLayoutTitle": "年度回顧排版",
+  "goalsRatio": "正方格比例",
+  "goalsMonthFormat": "月份格式",
+  "goalsMonthPosition": "月份位置",
+  "goalsOnImage": "圖上",
+  "goalsBlankSpace": "空白位置",
+  "goalsMonthAlign": "月份對齊",
+  "goalsAlignStart": "靠左",
+  "goalsAlignCenter": "置中",
+  "goalsAlignEnd": "靠右",
+  "goalsPreview": "預覽",
+  "goalsSaveExport": "儲存並匯出圖片",
+  "goalsSavedToAlbum": "已儲存到相簿",
+  "goalsExportFailed": "匯出失敗",
+  "goalsNoPieceThisMonth": "這個月沒有成圖",
+  "goalsReviewMonthSheetTitle": "{year} 年 {month} 月",
+  "@goalsReviewMonthSheetTitle": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsAutoNameIdea": "生產 {count} 個腦洞",
+  "@goalsAutoNameIdea": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsAutoNameDraft": "畫 {count} 份草稿",
+  "@goalsAutoNameDraft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsAutoNamePiece": "完成 {count} 張成圖",
+  "@goalsAutoNamePiece": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsAutoNamePieceLikes": "互動量過 {likes} 的成圖 {count} 張",
+  "@goalsAutoNamePieceLikes": {
+    "placeholders": {
+      "likes": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsEnterLikes": "請輸入需要達成的互動量",
+  "goalsNewYearGoal": "新增年度目標",
+  "goalsNewMonthGoal": "新增月度目標",
+  "goalsEditYearGoal": "編輯年度目標",
+  "goalsEditMonthGoal": "編輯月度目標",
+  "goalsDeleteConfirm": "刪除這個目標？",
+  "goalsFieldName": "目標名稱",
+  "goalsNameHint": "留空將自動命名",
+  "goalsFieldKind": "目標種類",
+  "goalsFieldCount": "目標數量",
+  "goalsFieldPit": "目標坑",
+  "goalsFieldTag": "目標 tag",
+  "goalsTagHintNoPit": "選擇坑之後才能選 tag",
+  "goalsTagHintPit": "只顯示所選坑內的 tag",
+  "goalsAddTag": "新增 tag",
+  "goalsRequireLikes": "需要達成互動量",
+  "goalsLikesAtLeast": "互動量 ≥",
+  "goalsHearts": "紅心",
+  "goalsCreateGoal": "建立目標",
+  "goalsIncomeYearTitle": "{year} 商稿收入",
+  "@goalsIncomeYearTitle": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsIncomeUnpaidCount": "未收齊 {count} 張",
+  "@goalsIncomeUnpaidCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsIncomeOwing": "尚欠 {amount}",
+  "@goalsIncomeOwing": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "goalsIncomeReceived": "已收 {amount}",
+  "@goalsIncomeReceived": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "goalsIncomeReceivedCount": "已收 {amount} · {count} 張",
+  "@goalsIncomeReceivedCount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsIncomeUnpaid": "未收",
+  "goalsIncomePaid": "已收齊",
+  "goalsCurrencyName": "{code, select, CNY{人民幣} HKD{港幣} TWD{新台幣} USD{美元} JPY{日圓} EUR{歐元} GBP{英鎊} KRW{韓元} SGD{新加坡幣} other{{code}}}",
+  "@goalsCurrencyName": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
   }
 }

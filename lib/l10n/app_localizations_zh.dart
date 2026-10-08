@@ -383,4 +383,336 @@ class AppLocalizationsZh extends AppLocalizations {
   String commonSelectedCount(int count) {
     return '已選 $count 張';
   }
+
+  @override
+  String get goalsTitle => '目標';
+
+  @override
+  String get goalsPrevYear => '上一年';
+
+  @override
+  String get goalsNextYear => '下一年';
+
+  @override
+  String get goalsModeYear => '年';
+
+  @override
+  String get goalsModeMonth => '月';
+
+  @override
+  String get goalsModeDay => '日';
+
+  @override
+  String get goalsSectionYear => '年度目標';
+
+  @override
+  String get goalsSectionMonth => '月度小目標';
+
+  @override
+  String get goalsEmptyYear => '還沒有年度目標';
+
+  @override
+  String get goalsEmptyMonth => '還沒有月度目標';
+
+  @override
+  String get goalsNewGoal => '新增目標';
+
+  @override
+  String get goalsPrevItem => '上一個';
+
+  @override
+  String get goalsNextItem => '下一個';
+
+  @override
+  String get goalsPrevMonth => '上個月';
+
+  @override
+  String get goalsNextMonth => '下個月';
+
+  @override
+  String get goalsPrevDay => '前一天';
+
+  @override
+  String get goalsNextDay => '後一天';
+
+  @override
+  String goalsMonthTitle(int month) {
+    return '$month 月';
+  }
+
+  @override
+  String goalsDayTitle(int month, int day) {
+    return '$month 月 $day 日';
+  }
+
+  @override
+  String goalsMonthNum(int month) {
+    return '$month月';
+  }
+
+  @override
+  String goalsMonthCn(String month) {
+    String _temp0 = intl.Intl.selectLogic(month, {
+      '1': '一月',
+      '2': '二月',
+      '3': '三月',
+      '4': '四月',
+      '5': '五月',
+      '6': '六月',
+      '7': '七月',
+      '8': '八月',
+      '9': '九月',
+      '10': '十月',
+      '11': '十一月',
+      '12': '十二月',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get goalsMonthFormatCn => '一月';
+
+  @override
+  String get goalsMonthFormatNum => '1月';
+
+  @override
+  String get goalsWeekSun => '日';
+
+  @override
+  String get goalsWeekMon => '一';
+
+  @override
+  String get goalsWeekTue => '二';
+
+  @override
+  String get goalsWeekWed => '三';
+
+  @override
+  String get goalsWeekThu => '四';
+
+  @override
+  String get goalsWeekFri => '五';
+
+  @override
+  String get goalsWeekSat => '六';
+
+  @override
+  String get goalsCreatePitFirst => '請先建立一個坑';
+
+  @override
+  String get goalsDayEmpty => '這天沒有紀錄';
+
+  @override
+  String get goalsTimeline => '時間軸';
+
+  @override
+  String get goalsKindIdea => '腦洞';
+
+  @override
+  String get goalsKindDraft => '草稿';
+
+  @override
+  String get goalsKindPiece => '成圖';
+
+  @override
+  String get goalsUntitled => '（無標題）';
+
+  @override
+  String get goalsPickPit => '選擇坑';
+
+  @override
+  String get goalsRemove => '移除';
+
+  @override
+  String get goalsClear => '清除';
+
+  @override
+  String get goalsYearReview => '年度回顧';
+
+  @override
+  String goalsReviewSelected(int count) {
+    return '已選 $count / 12';
+  }
+
+  @override
+  String get goalsLayout => '排版';
+
+  @override
+  String get goalsIncome => '商稿收入';
+
+  @override
+  String get goalsReviewLayoutTitle => '年度回顧排版';
+
+  @override
+  String get goalsRatio => '正方格比例';
+
+  @override
+  String get goalsMonthFormat => '月份格式';
+
+  @override
+  String get goalsMonthPosition => '月份位置';
+
+  @override
+  String get goalsOnImage => '圖上';
+
+  @override
+  String get goalsBlankSpace => '空白位置';
+
+  @override
+  String get goalsMonthAlign => '月份對齊';
+
+  @override
+  String get goalsAlignStart => '靠左';
+
+  @override
+  String get goalsAlignCenter => '置中';
+
+  @override
+  String get goalsAlignEnd => '靠右';
+
+  @override
+  String get goalsPreview => '預覽';
+
+  @override
+  String get goalsSaveExport => '儲存並匯出圖片';
+
+  @override
+  String get goalsSavedToAlbum => '已儲存到相簿';
+
+  @override
+  String get goalsExportFailed => '匯出失敗';
+
+  @override
+  String get goalsNoPieceThisMonth => '這個月沒有成圖';
+
+  @override
+  String goalsReviewMonthSheetTitle(int year, int month) {
+    return '$year 年 $month 月';
+  }
+
+  @override
+  String goalsAutoNameIdea(int count) {
+    return '生產 $count 個腦洞';
+  }
+
+  @override
+  String goalsAutoNameDraft(int count) {
+    return '畫 $count 份草稿';
+  }
+
+  @override
+  String goalsAutoNamePiece(int count) {
+    return '完成 $count 張成圖';
+  }
+
+  @override
+  String goalsAutoNamePieceLikes(int likes, int count) {
+    return '互動量過 $likes 的成圖 $count 張';
+  }
+
+  @override
+  String get goalsEnterLikes => '請輸入需要達成的互動量';
+
+  @override
+  String get goalsNewYearGoal => '新增年度目標';
+
+  @override
+  String get goalsNewMonthGoal => '新增月度目標';
+
+  @override
+  String get goalsEditYearGoal => '編輯年度目標';
+
+  @override
+  String get goalsEditMonthGoal => '編輯月度目標';
+
+  @override
+  String get goalsDeleteConfirm => '刪除這個目標？';
+
+  @override
+  String get goalsFieldName => '目標名稱';
+
+  @override
+  String get goalsNameHint => '留空將自動命名';
+
+  @override
+  String get goalsFieldKind => '目標種類';
+
+  @override
+  String get goalsFieldCount => '目標數量';
+
+  @override
+  String get goalsFieldPit => '目標坑';
+
+  @override
+  String get goalsFieldTag => '目標 tag';
+
+  @override
+  String get goalsTagHintNoPit => '選擇坑之後才能選 tag';
+
+  @override
+  String get goalsTagHintPit => '只顯示所選坑內的 tag';
+
+  @override
+  String get goalsAddTag => '新增 tag';
+
+  @override
+  String get goalsRequireLikes => '需要達成互動量';
+
+  @override
+  String get goalsLikesAtLeast => '互動量 ≥';
+
+  @override
+  String get goalsHearts => '紅心';
+
+  @override
+  String get goalsCreateGoal => '建立目標';
+
+  @override
+  String goalsIncomeYearTitle(int year) {
+    return '$year 商稿收入';
+  }
+
+  @override
+  String goalsIncomeUnpaidCount(int count) {
+    return '未收齊 $count 張';
+  }
+
+  @override
+  String goalsIncomeOwing(String amount) {
+    return '尚欠 $amount';
+  }
+
+  @override
+  String goalsIncomeReceived(String amount) {
+    return '已收 $amount';
+  }
+
+  @override
+  String goalsIncomeReceivedCount(String amount, int count) {
+    return '已收 $amount · $count 張';
+  }
+
+  @override
+  String get goalsIncomeUnpaid => '未收';
+
+  @override
+  String get goalsIncomePaid => '已收齊';
+
+  @override
+  String goalsCurrencyName(String code) {
+    String _temp0 = intl.Intl.selectLogic(code, {
+      'CNY': '人民幣',
+      'HKD': '港幣',
+      'TWD': '新台幣',
+      'USD': '美元',
+      'JPY': '日圓',
+      'EUR': '歐元',
+      'GBP': '英鎊',
+      'KRW': '韓元',
+      'SGD': '新加坡幣',
+      'other': '$code',
+    });
+    return '$_temp0';
+  }
 }

@@ -770,6 +770,552 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已選 {count} 張'**
   String commonSelectedCount(int count);
+
+  /// No description provided for @goalsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'目標'**
+  String get goalsTitle;
+
+  /// No description provided for @goalsPrevYear.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一年'**
+  String get goalsPrevYear;
+
+  /// No description provided for @goalsNextYear.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一年'**
+  String get goalsNextYear;
+
+  /// No description provided for @goalsModeYear.
+  ///
+  /// In zh, this message translates to:
+  /// **'年'**
+  String get goalsModeYear;
+
+  /// No description provided for @goalsModeMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'月'**
+  String get goalsModeMonth;
+
+  /// No description provided for @goalsModeDay.
+  ///
+  /// In zh, this message translates to:
+  /// **'日'**
+  String get goalsModeDay;
+
+  /// No description provided for @goalsSectionYear.
+  ///
+  /// In zh, this message translates to:
+  /// **'年度目標'**
+  String get goalsSectionYear;
+
+  /// No description provided for @goalsSectionMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'月度小目標'**
+  String get goalsSectionMonth;
+
+  /// No description provided for @goalsEmptyYear.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有年度目標'**
+  String get goalsEmptyYear;
+
+  /// No description provided for @goalsEmptyMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有月度目標'**
+  String get goalsEmptyMonth;
+
+  /// No description provided for @goalsNewGoal.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增目標'**
+  String get goalsNewGoal;
+
+  /// No description provided for @goalsPrevItem.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一個'**
+  String get goalsPrevItem;
+
+  /// No description provided for @goalsNextItem.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一個'**
+  String get goalsNextItem;
+
+  /// No description provided for @goalsPrevMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'上個月'**
+  String get goalsPrevMonth;
+
+  /// No description provided for @goalsNextMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'下個月'**
+  String get goalsNextMonth;
+
+  /// No description provided for @goalsPrevDay.
+  ///
+  /// In zh, this message translates to:
+  /// **'前一天'**
+  String get goalsPrevDay;
+
+  /// No description provided for @goalsNextDay.
+  ///
+  /// In zh, this message translates to:
+  /// **'後一天'**
+  String get goalsNextDay;
+
+  /// No description provided for @goalsMonthTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'{month} 月'**
+  String goalsMonthTitle(int month);
+
+  /// No description provided for @goalsDayTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'{month} 月 {day} 日'**
+  String goalsDayTitle(int month, int day);
+
+  /// No description provided for @goalsMonthNum.
+  ///
+  /// In zh, this message translates to:
+  /// **'{month}月'**
+  String goalsMonthNum(int month);
+
+  /// No description provided for @goalsMonthCn.
+  ///
+  /// In zh, this message translates to:
+  /// **'{month, select, 1{一月} 2{二月} 3{三月} 4{四月} 5{五月} 6{六月} 7{七月} 8{八月} 9{九月} 10{十月} 11{十一月} 12{十二月} other{}}'**
+  String goalsMonthCn(String month);
+
+  /// No description provided for @goalsMonthFormatCn.
+  ///
+  /// In zh, this message translates to:
+  /// **'一月'**
+  String get goalsMonthFormatCn;
+
+  /// No description provided for @goalsMonthFormatNum.
+  ///
+  /// In zh, this message translates to:
+  /// **'1月'**
+  String get goalsMonthFormatNum;
+
+  /// No description provided for @goalsWeekSun.
+  ///
+  /// In zh, this message translates to:
+  /// **'日'**
+  String get goalsWeekSun;
+
+  /// No description provided for @goalsWeekMon.
+  ///
+  /// In zh, this message translates to:
+  /// **'一'**
+  String get goalsWeekMon;
+
+  /// No description provided for @goalsWeekTue.
+  ///
+  /// In zh, this message translates to:
+  /// **'二'**
+  String get goalsWeekTue;
+
+  /// No description provided for @goalsWeekWed.
+  ///
+  /// In zh, this message translates to:
+  /// **'三'**
+  String get goalsWeekWed;
+
+  /// No description provided for @goalsWeekThu.
+  ///
+  /// In zh, this message translates to:
+  /// **'四'**
+  String get goalsWeekThu;
+
+  /// No description provided for @goalsWeekFri.
+  ///
+  /// In zh, this message translates to:
+  /// **'五'**
+  String get goalsWeekFri;
+
+  /// No description provided for @goalsWeekSat.
+  ///
+  /// In zh, this message translates to:
+  /// **'六'**
+  String get goalsWeekSat;
+
+  /// No description provided for @goalsCreatePitFirst.
+  ///
+  /// In zh, this message translates to:
+  /// **'請先建立一個坑'**
+  String get goalsCreatePitFirst;
+
+  /// No description provided for @goalsDayEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'這天沒有紀錄'**
+  String get goalsDayEmpty;
+
+  /// No description provided for @goalsTimeline.
+  ///
+  /// In zh, this message translates to:
+  /// **'時間軸'**
+  String get goalsTimeline;
+
+  /// No description provided for @goalsKindIdea.
+  ///
+  /// In zh, this message translates to:
+  /// **'腦洞'**
+  String get goalsKindIdea;
+
+  /// No description provided for @goalsKindDraft.
+  ///
+  /// In zh, this message translates to:
+  /// **'草稿'**
+  String get goalsKindDraft;
+
+  /// No description provided for @goalsKindPiece.
+  ///
+  /// In zh, this message translates to:
+  /// **'成圖'**
+  String get goalsKindPiece;
+
+  /// No description provided for @goalsUntitled.
+  ///
+  /// In zh, this message translates to:
+  /// **'（無標題）'**
+  String get goalsUntitled;
+
+  /// No description provided for @goalsPickPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇坑'**
+  String get goalsPickPit;
+
+  /// No description provided for @goalsRemove.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除'**
+  String get goalsRemove;
+
+  /// No description provided for @goalsClear.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除'**
+  String get goalsClear;
+
+  /// No description provided for @goalsYearReview.
+  ///
+  /// In zh, this message translates to:
+  /// **'年度回顧'**
+  String get goalsYearReview;
+
+  /// No description provided for @goalsReviewSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選 {count} / 12'**
+  String goalsReviewSelected(int count);
+
+  /// No description provided for @goalsLayout.
+  ///
+  /// In zh, this message translates to:
+  /// **'排版'**
+  String get goalsLayout;
+
+  /// No description provided for @goalsIncome.
+  ///
+  /// In zh, this message translates to:
+  /// **'商稿收入'**
+  String get goalsIncome;
+
+  /// No description provided for @goalsReviewLayoutTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'年度回顧排版'**
+  String get goalsReviewLayoutTitle;
+
+  /// No description provided for @goalsRatio.
+  ///
+  /// In zh, this message translates to:
+  /// **'正方格比例'**
+  String get goalsRatio;
+
+  /// No description provided for @goalsMonthFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'月份格式'**
+  String get goalsMonthFormat;
+
+  /// No description provided for @goalsMonthPosition.
+  ///
+  /// In zh, this message translates to:
+  /// **'月份位置'**
+  String get goalsMonthPosition;
+
+  /// No description provided for @goalsOnImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'圖上'**
+  String get goalsOnImage;
+
+  /// No description provided for @goalsBlankSpace.
+  ///
+  /// In zh, this message translates to:
+  /// **'空白位置'**
+  String get goalsBlankSpace;
+
+  /// No description provided for @goalsMonthAlign.
+  ///
+  /// In zh, this message translates to:
+  /// **'月份對齊'**
+  String get goalsMonthAlign;
+
+  /// No description provided for @goalsAlignStart.
+  ///
+  /// In zh, this message translates to:
+  /// **'靠左'**
+  String get goalsAlignStart;
+
+  /// No description provided for @goalsAlignCenter.
+  ///
+  /// In zh, this message translates to:
+  /// **'置中'**
+  String get goalsAlignCenter;
+
+  /// No description provided for @goalsAlignEnd.
+  ///
+  /// In zh, this message translates to:
+  /// **'靠右'**
+  String get goalsAlignEnd;
+
+  /// No description provided for @goalsPreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'預覽'**
+  String get goalsPreview;
+
+  /// No description provided for @goalsSaveExport.
+  ///
+  /// In zh, this message translates to:
+  /// **'儲存並匯出圖片'**
+  String get goalsSaveExport;
+
+  /// No description provided for @goalsSavedToAlbum.
+  ///
+  /// In zh, this message translates to:
+  /// **'已儲存到相簿'**
+  String get goalsSavedToAlbum;
+
+  /// No description provided for @goalsExportFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'匯出失敗'**
+  String get goalsExportFailed;
+
+  /// No description provided for @goalsNoPieceThisMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'這個月沒有成圖'**
+  String get goalsNoPieceThisMonth;
+
+  /// No description provided for @goalsReviewMonthSheetTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'{year} 年 {month} 月'**
+  String goalsReviewMonthSheetTitle(int year, int month);
+
+  /// No description provided for @goalsAutoNameIdea.
+  ///
+  /// In zh, this message translates to:
+  /// **'生產 {count} 個腦洞'**
+  String goalsAutoNameIdea(int count);
+
+  /// No description provided for @goalsAutoNameDraft.
+  ///
+  /// In zh, this message translates to:
+  /// **'畫 {count} 份草稿'**
+  String goalsAutoNameDraft(int count);
+
+  /// No description provided for @goalsAutoNamePiece.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成 {count} 張成圖'**
+  String goalsAutoNamePiece(int count);
+
+  /// No description provided for @goalsAutoNamePieceLikes.
+  ///
+  /// In zh, this message translates to:
+  /// **'互動量過 {likes} 的成圖 {count} 張'**
+  String goalsAutoNamePieceLikes(int likes, int count);
+
+  /// No description provided for @goalsEnterLikes.
+  ///
+  /// In zh, this message translates to:
+  /// **'請輸入需要達成的互動量'**
+  String get goalsEnterLikes;
+
+  /// No description provided for @goalsNewYearGoal.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增年度目標'**
+  String get goalsNewYearGoal;
+
+  /// No description provided for @goalsNewMonthGoal.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增月度目標'**
+  String get goalsNewMonthGoal;
+
+  /// No description provided for @goalsEditYearGoal.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯年度目標'**
+  String get goalsEditYearGoal;
+
+  /// No description provided for @goalsEditMonthGoal.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯月度目標'**
+  String get goalsEditMonthGoal;
+
+  /// No description provided for @goalsDeleteConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除這個目標？'**
+  String get goalsDeleteConfirm;
+
+  /// No description provided for @goalsFieldName.
+  ///
+  /// In zh, this message translates to:
+  /// **'目標名稱'**
+  String get goalsFieldName;
+
+  /// No description provided for @goalsNameHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'留空將自動命名'**
+  String get goalsNameHint;
+
+  /// No description provided for @goalsFieldKind.
+  ///
+  /// In zh, this message translates to:
+  /// **'目標種類'**
+  String get goalsFieldKind;
+
+  /// No description provided for @goalsFieldCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'目標數量'**
+  String get goalsFieldCount;
+
+  /// No description provided for @goalsFieldPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'目標坑'**
+  String get goalsFieldPit;
+
+  /// No description provided for @goalsFieldTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'目標 tag'**
+  String get goalsFieldTag;
+
+  /// No description provided for @goalsTagHintNoPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇坑之後才能選 tag'**
+  String get goalsTagHintNoPit;
+
+  /// No description provided for @goalsTagHintPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'只顯示所選坑內的 tag'**
+  String get goalsTagHintPit;
+
+  /// No description provided for @goalsAddTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增 tag'**
+  String get goalsAddTag;
+
+  /// No description provided for @goalsRequireLikes.
+  ///
+  /// In zh, this message translates to:
+  /// **'需要達成互動量'**
+  String get goalsRequireLikes;
+
+  /// No description provided for @goalsLikesAtLeast.
+  ///
+  /// In zh, this message translates to:
+  /// **'互動量 ≥'**
+  String get goalsLikesAtLeast;
+
+  /// No description provided for @goalsHearts.
+  ///
+  /// In zh, this message translates to:
+  /// **'紅心'**
+  String get goalsHearts;
+
+  /// No description provided for @goalsCreateGoal.
+  ///
+  /// In zh, this message translates to:
+  /// **'建立目標'**
+  String get goalsCreateGoal;
+
+  /// No description provided for @goalsIncomeYearTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'{year} 商稿收入'**
+  String goalsIncomeYearTitle(int year);
+
+  /// No description provided for @goalsIncomeUnpaidCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'未收齊 {count} 張'**
+  String goalsIncomeUnpaidCount(int count);
+
+  /// No description provided for @goalsIncomeOwing.
+  ///
+  /// In zh, this message translates to:
+  /// **'尚欠 {amount}'**
+  String goalsIncomeOwing(String amount);
+
+  /// No description provided for @goalsIncomeReceived.
+  ///
+  /// In zh, this message translates to:
+  /// **'已收 {amount}'**
+  String goalsIncomeReceived(String amount);
+
+  /// No description provided for @goalsIncomeReceivedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已收 {amount} · {count} 張'**
+  String goalsIncomeReceivedCount(String amount, int count);
+
+  /// No description provided for @goalsIncomeUnpaid.
+  ///
+  /// In zh, this message translates to:
+  /// **'未收'**
+  String get goalsIncomeUnpaid;
+
+  /// No description provided for @goalsIncomePaid.
+  ///
+  /// In zh, this message translates to:
+  /// **'已收齊'**
+  String get goalsIncomePaid;
+
+  /// No description provided for @goalsCurrencyName.
+  ///
+  /// In zh, this message translates to:
+  /// **'{code, select, CNY{人民幣} HKD{港幣} TWD{新台幣} USD{美元} JPY{日圓} EUR{歐元} GBP{英鎊} KRW{韓元} SGD{新加坡幣} other{{code}}}'**
+  String goalsCurrencyName(String code);
 }
 
 class _AppLocalizationsDelegate
