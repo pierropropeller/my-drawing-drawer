@@ -86,28 +86,7 @@ class _Tile extends StatelessWidget {
             Positioned(
               top: 8,
               right: 8,
-              child: Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected
-                      ? t.accent
-                      : const Color(0xFF2B2622).withValues(alpha: 0.18),
-                  border: isSelected
-                      ? null
-                      : Border.all(color: Colors.white, width: 2),
-                ),
-                alignment: Alignment.center,
-                child: isSelected
-                    ? const SvgIcon(
-                        AppIcons.check,
-                        size: 13,
-                        color: Colors.white,
-                        strokeWidth: 3,
-                      )
-                    : null,
-              ),
+              child: SelectMark(selected: isSelected),
             ),
         ],
       ),
@@ -122,6 +101,101 @@ class _Tile extends StatelessWidget {
               children: [tile, _Caption(image)],
             )
           : tile,
+    );
+  }
+}
+
+/// 雜物的 3 欄正方形純圖格（JunkList／JunkSelect）：欄距 2、無圓角、不顯示說明。
+/// 選取模式：右上 22px 圓圈（位置 6,6）；選中＝2px 主色內框＋實心主色圓圈白勾。
+class SquareGrid extends StatelessWidget {
+  const SquareGrid({
+    super.key,
+    required this.images,
+    required this.onTap,
+    this.onLongPress,
+    this.selecting = false,
+    this.selected = const {},
+    this.padding = const EdgeInsets.fromLTRB(0, 6, 0, 96),
+  });
+
+  final List<AlbumImage> images;
+  final void Function(AlbumImage image, int index) onTap;
+  final void Function(AlbumImage image)? onLongPress;
+  final bool selecting;
+  final Set<String> selected;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return GridView.builder(
+      padding: padding,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columnsForWidth(
+          MediaQuery.sizeOf(context).width,
+          phone: 3,
+        ),
+        mainAxisSpacing: 2,
+        crossAxisSpacing: 2,
+      ),
+      itemCount: images.length,
+      itemBuilder: (_, i) {
+        final im = images[i];
+        final isSelected = selected.contains(im.id);
+        return GestureDetector(
+          onTap: () => onTap(im, i),
+          onLongPress: onLongPress == null ? null : () => onLongPress!(im),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              StoredImage(im.file, cacheWidth: 400),
+              if (isSelected)
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: t.accent, width: 2),
+                  ),
+                ),
+              if (selecting)
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: SelectMark(selected: isSelected),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// 選取圓圈：未選＝白框半透明深底；選中＝實心主色圓圈白勾。
+class SelectMark extends StatelessWidget {
+  const SelectMark({super.key, required this.selected});
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: selected
+            ? t.accent
+            : const Color(0xFF2B2622).withValues(alpha: 0.18),
+        border: selected ? null : Border.all(color: Colors.white, width: 2),
+      ),
+      alignment: Alignment.center,
+      child: selected
+          ? const SvgIcon(
+              AppIcons.check,
+              size: 13,
+              color: Colors.white,
+              strokeWidth: 3,
+            )
+          : null,
     );
   }
 }

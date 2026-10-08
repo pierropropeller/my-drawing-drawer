@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
+import '../../data/junk_queries.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
@@ -58,11 +59,13 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
           height: r.height,
           kind: AlbumKind.official,
           groupName: names[r.groupId],
+          groupId: r.groupId,
           createdAt: r.createdAt,
         ),
     ];
     return AlbumView(
       pitId: widget.pitId,
+      cell: AlbumCell.official,
       title: '官方圖冊',
       images: images,
       emptyLabel: '還沒有官方圖',

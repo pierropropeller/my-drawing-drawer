@@ -40,7 +40,9 @@ class ImagePickerField extends ConsumerWidget {
   });
 
   final List<ImageItem> items;
-  final VoidCallback onAdd;
+
+  /// 為 null＝不顯示虛線「＋」格（例如編輯單張同人圖）。
+  final VoidCallback? onAdd;
   final void Function(int index) onRemove;
 
   @override
@@ -56,6 +58,8 @@ class ImagePickerField extends ConsumerWidget {
             height: 84,
             child: Stack(
               fit: StackFit.expand,
+              // 「×」按鈕超出縮圖右上角 6px（D-018、OfficialNew）。
+              clipBehavior: Clip.none,
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(Radii.image),
@@ -68,23 +72,28 @@ class ImagePickerField extends ConsumerWidget {
                       : StoredImage(items[i].stored!.file, cacheWidth: 300),
                 ),
                 Positioned(
-                  top: 4,
-                  right: 4,
-                  child: GestureDetector(
-                    onTap: () => onRemove(i),
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: const BoxDecoration(
-                        color: Colors.black54,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: const SvgIcon(
-                        AppIcons.closeX,
-                        size: 12,
-                        color: Colors.white,
-                        strokeWidth: 2.4,
+                  top: -6,
+                  right: -6,
+                  child: Semantics(
+                    button: true,
+                    label: '移除圖片',
+                    child: GestureDetector(
+                      onTap: () => onRemove(i),
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2B2622),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: t.ground, width: 2),
+                        ),
+                        alignment: Alignment.center,
+                        child: const SvgIcon(
+                          AppIcons.closeX,
+                          size: 11,
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
                       ),
                     ),
                   ),
@@ -92,23 +101,28 @@ class ImagePickerField extends ConsumerWidget {
               ],
             ),
           ),
-        GestureDetector(
-          onTap: onAdd,
-          child: Semantics(
-            label: '加圖',
-            child: SizedBox(
-              width: 84,
-              height: 84,
-              child: DashedBox(
-                color: t.dashed,
-                radius: Radii.image,
-                child: Center(
-                  child: SvgIcon(AppIcons.plus, size: 26, color: t.dashedText),
+        if (onAdd != null)
+          GestureDetector(
+            onTap: onAdd,
+            child: Semantics(
+              label: '加圖',
+              child: SizedBox(
+                width: 84,
+                height: 84,
+                child: DashedBox(
+                  color: t.dashed,
+                  radius: Radii.image,
+                  child: Center(
+                    child: SvgIcon(
+                      AppIcons.plus,
+                      size: 26,
+                      color: t.dashedText,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

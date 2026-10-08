@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 
-enum AlbumKind { official, fanArt }
+enum AlbumKind { official, fanArt, junk }
 
 /// 官方圖／同人圖的共同檢視資料。
 class AlbumImage {
@@ -18,6 +18,7 @@ class AlbumImage {
     required this.kind,
     this.author,
     this.groupName,
+    this.groupId,
     this.createdAt,
   });
 
@@ -30,6 +31,9 @@ class AlbumImage {
   /// 同人圖列表圖下方顯示的作者與分組（都留空就不顯示那一行）。
   final String? author;
   final String? groupName;
+
+  /// 所屬分組（官方分組／同人圖出處）的 id；移動 sheet 用來預選目前的分組。
+  final String? groupId;
 
   /// 加入時間（預覽頁顯示「2026 / 09 / 21 加入」）。
   final DateTime? createdAt;
