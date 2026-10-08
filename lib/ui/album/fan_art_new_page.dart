@@ -4,13 +4,15 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
 import '../../state/providers.dart';
+import '../common/nav_bar_hidden.dart';
 import '../pits/pit_form.dart';
 import '../tags/tag_picker.dart';
 import 'album_actions.dart';
+import 'album_form.dart';
 import 'group_picker.dart';
 import 'image_picker_field.dart';
 
-/// 新增同人圖：圖片、作者、分組、tag（沿用官方圖新增頁的版型）。
+/// 新增同人圖：圖片、作者、出處、tag。設計稿沒畫，版型沿用 OfficialNew。沒有底部導覽列。
 class FanArtNewPage extends ConsumerStatefulWidget {
   const FanArtNewPage({
     super.key,
@@ -26,7 +28,8 @@ class FanArtNewPage extends ConsumerStatefulWidget {
   ConsumerState<FanArtNewPage> createState() => _FanArtNewPageState();
 }
 
-class _FanArtNewPageState extends ConsumerState<FanArtNewPage> {
+class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
+    with HidesNavBar<FanArtNewPage> {
   late final List<ImageItem> _files = widget.initialImages
       .map(ImageItem.picked)
       .toList();
@@ -73,50 +76,36 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('新增同人圖'),
-        actions: [
-          TextButton(
-            onPressed: _saving ? null : _save,
-            child: const Text('儲存'),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          ImagePickerField(
-            items: _files,
-            onAdd: _pick,
-            onRemove: (i) => setState(() => _files.removeAt(i)),
-          ),
-          const SizedBox(height: 24),
-          TextField(
-            controller: _author,
-            decoration: pitFieldDecoration(context, '作者'),
-          ),
-          const SizedBox(height: 20),
-          GroupPicker(
-            pitId: widget.pitId,
-            kind: 'fan',
-            selected: _groupId,
-            allowClear: true,
-            onSelected: (v) => setState(() => _groupId = v),
-          ),
-          const SizedBox(height: 20),
-          TagPicker(
-            pitId: widget.pitId,
-            selected: _tagIds,
-            onChanged: (v) => setState(() => _tagIds = v),
-          ),
-          if (_saving)
-            const Padding(
-              padding: EdgeInsets.only(top: 24),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-        ],
-      ),
+    return AlbumFormScaffold(
+      title: '新增同人圖',
+      children: [
+        const AlbumFieldLabel('圖片'),
+        ImagePickerField(
+          items: _files,
+          onAdd: _pick,
+          onRemove: (i) => setState(() => _files.removeAt(i)),
+        ),
+        const SizedBox(height: 18),
+        const AlbumFieldLabel('作者'),
+        TextField(controller: _author, decoration: pitInputDecoration(context)),
+        const SizedBox(height: 18),
+        GroupPicker(
+          pitId: widget.pitId,
+          kind: 'fan',
+          label: '出處',
+          selected: _groupId,
+          allowClear: true,
+          onSelected: (v) => setState(() => _groupId = v),
+        ),
+        const SizedBox(height: 18),
+        TagPicker(
+          pitId: widget.pitId,
+          selected: _tagIds,
+          onChanged: (v) => setState(() => _tagIds = v),
+        ),
+        const SizedBox(height: 26),
+        AlbumSubmitButton(label: '加入好看同人圖', busy: _saving, onTap: _save),
+      ],
     );
   }
 }

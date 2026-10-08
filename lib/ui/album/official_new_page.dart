@@ -4,14 +4,13 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
 import '../../state/providers.dart';
-import '../../theme/tokens.dart';
-import '../common/app_icons.dart';
-import '../common/svg_icon.dart';
+import '../common/nav_bar_hidden.dart';
 import 'album_actions.dart';
+import 'album_form.dart';
 import 'group_picker.dart';
 import 'image_picker_field.dart';
 
-/// 新增官方圖：一次可加多張，選分組；官方圖沒有 tag。
+/// 新增官方圖（OfficialNew）：一次可加多張，選分組；官方圖沒有 tag。沒有底部導覽列。
 class OfficialNewPage extends ConsumerStatefulWidget {
   const OfficialNewPage({
     super.key,
@@ -29,7 +28,8 @@ class OfficialNewPage extends ConsumerStatefulWidget {
   ConsumerState<OfficialNewPage> createState() => _OfficialNewPageState();
 }
 
-class _OfficialNewPageState extends ConsumerState<OfficialNewPage> {
+class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
+    with HidesNavBar<OfficialNewPage> {
   late final List<ImageItem> _files = widget.initialImages
       .map(ImageItem.picked)
       .toList();
@@ -69,79 +69,29 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage> {
         : (groups.any((g) => g.id == widget.initialGroupId)
               ? widget.initialGroupId
               : (groups.isEmpty ? null : groups.first.id));
-    final t = context.tokens;
-    return Scaffold(
-      appBar: AppBar(
-        leadingWidth: 58,
-        titleSpacing: 6,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 14),
-          child: IconButton(
-            tooltip: '返回',
-            padding: EdgeInsets.zero,
-            icon: SvgIcon(AppIcons.back, color: t.ink, strokeWidth: 1.9),
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
+    return AlbumFormScaffold(
+      title: '新增官方圖',
+      children: [
+        const AlbumFieldLabel('圖片'),
+        ImagePickerField(
+          items: _files,
+          onAdd: _pick,
+          onRemove: (i) => setState(() => _files.removeAt(i)),
         ),
-        title: Text(
-          '新增官方圖',
-          style: Theme.of(context).textTheme.titleLarge
-              ?.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
+        const SizedBox(height: 18),
+        GroupPicker(
+          pitId: widget.pitId,
+          kind: 'official',
+          selected: groupId,
+          onSelected: (v) => setState(() => _groupId = v),
         ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
-            child: Text(
-              '圖片',
-              style: TextStyle(
-                color: t.text2,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ImagePickerField(
-            items: _files,
-            onAdd: _pick,
-            onRemove: (i) => setState(() => _files.removeAt(i)),
-          ),
-          const SizedBox(height: 18),
-          GroupPicker(
-            pitId: widget.pitId,
-            kind: 'official',
-            selected: groupId,
-            onSelected: (v) => setState(() => _groupId = v),
-          ),
-          const SizedBox(height: 26),
-          if (_saving)
-            const Center(child: CircularProgressIndicator())
-          else
-            GestureDetector(
-              onTap: groupId == null ? null : () => _save(groupId),
-              child: Container(
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                decoration: BoxDecoration(
-                  color: groupId == null
-                      ? t.accent.withValues(alpha: 0.4)
-                      : t.accent,
-                  borderRadius: BorderRadius.circular(Radii.button),
-                ),
-                child: const Text(
-                  '加入官方圖冊',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
+        const SizedBox(height: 26),
+        AlbumSubmitButton(
+          label: '加入官方圖冊',
+          busy: _saving,
+          onTap: groupId == null ? null : () => _save(groupId),
+        ),
+      ],
     );
   }
 }

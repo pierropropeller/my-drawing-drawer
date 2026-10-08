@@ -1,5 +1,3 @@
-import '../../app_name.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gal/gal.dart';
@@ -105,6 +103,10 @@ Future<String?> promptText(
   );
 }
 
+/// 下載存到的獨立相簿名稱（D-007）：Android 為 `Pictures/Drawer`。
+/// 固定英文，不跟隨 App 顯示名稱的在地化。
+const downloadAlbumName = 'Drawer';
+
 /// 儲存到系統相簿。回傳成功張數。
 Future<int> downloadImages(WidgetRef ref, Iterable<AlbumImage> images) async {
   final store = await ref.read(imageStoreProvider.future);
@@ -114,11 +116,21 @@ Future<int> downloadImages(WidgetRef ref, Iterable<AlbumImage> images) async {
   var ok = 0;
   for (final im in images) {
     try {
-      await Gal.putImage(store.fileOf(im.file).path, album: appName);
+      await Gal.putImage(store.fileOf(im.file).path, album: downloadAlbumName);
       ok++;
     } catch (_) {}
   }
   return ok;
+}
+
+/// 一次分享多張圖（雜物多選的「分享」）。
+Future<void> shareImages(WidgetRef ref, Iterable<AlbumImage> images) async {
+  final store = await ref.read(imageStoreProvider.future);
+  await SharePlus.instance.share(
+    ShareParams(
+      files: [for (final i in images) XFile(store.fileOf(i.file).path)],
+    ),
+  );
 }
 
 Future<void> shareImage(WidgetRef ref, AlbumImage image) async {

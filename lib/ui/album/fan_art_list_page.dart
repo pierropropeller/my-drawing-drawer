@@ -2,18 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
+import '../../data/junk_queries.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import 'album_image.dart';
 import 'album_view.dart';
 import 'fan_art_new_page.dart';
+import 'fan_art_preview_page.dart';
 import 'group_manage_page.dart';
 
-/// 好看同人圖：出處 chips 篩選。
+/// 好看同人圖：出處 chips 篩選；卡片開啟同人圖預覽（D-045）。
 class FanArtListPage extends ConsumerStatefulWidget {
-  const FanArtListPage({super.key, required this.pitId});
+  const FanArtListPage({
+    super.key,
+    required this.pitId,
+    this.tagId,
+    this.onTagTap,
+  });
   final String pitId;
+
+  /// 只列出有這個 tag 的同人圖（D-043 的 tag 篩選；標題列的「#tag ×」之後由搜尋區塊接上）。
+  final String? tagId;
+
+  /// 在預覽頁點 tag 時的處理（由搜尋區塊接上導覽）；省略＝不動作。
+  final ValueChanged<String>? onTagTap;
 
   @override
   ConsumerState<FanArtListPage> createState() => _FanArtListPageState();
@@ -44,9 +57,17 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
         ref.watch(groupsProvider((widget.pitId, 'fan'))).value ?? const [];
     final groupId = groups.any((g) => g.id == _groupId) ? _groupId : null;
     final names = {for (final g in groups) g.id: g.name};
-    final total = ref.watch(pitStatsProvider(widget.pitId)).value?.fanArts;
+    final filtered = widget.tagId != null;
+    final total = filtered
+        ? null
+        : ref.watch(pitStatsProvider(widget.pitId)).value?.fanArts;
     final rows =
-        ref.watch(fanArtsProvider((widget.pitId, groupId))).value ?? const [];
+        ref
+            .watch(
+              fanArtsFilteredProvider((widget.pitId, groupId, widget.tagId)),
+            )
+            .value ??
+        const [];
     final images = [
       for (final r in rows)
         AlbumImage(
@@ -57,11 +78,13 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
           kind: AlbumKind.fanArt,
           author: r.author,
           groupName: names[r.groupId],
+          groupId: r.groupId,
           createdAt: r.createdAt,
         ),
     ];
     return AlbumView(
       pitId: widget.pitId,
+      cell: AlbumCell.fan,
       title: '好看同人圖',
       images: images,
       emptyLabel: '還沒有同人圖',
@@ -70,6 +93,12 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
       emptyColor: context.tokens.fanArt,
       onAdd: () => _add(groupId),
       onDelete: (picked) => db.deleteFanArts(picked.map((e) => e.id)),
+      previewBuilder: (items, i) => FanArtPreviewPage(
+        pitId: widget.pitId,
+        images: items,
+        initialIndex: i,
+        onTagTap: widget.onTagTap ?? (_) {},
+      ),
       filter: ChipRow(
         options: [for (final g in groups) (g.id, g.name)],
         selected: groupId,

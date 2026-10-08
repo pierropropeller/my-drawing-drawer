@@ -5,6 +5,7 @@ import '../../data/album_queries.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
+import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
@@ -22,7 +23,8 @@ class CoverPickPage extends ConsumerStatefulWidget {
   ConsumerState<CoverPickPage> createState() => _CoverPickPageState();
 }
 
-class _CoverPickPageState extends ConsumerState<CoverPickPage> {
+class _CoverPickPageState extends ConsumerState<CoverPickPage>
+    with HidesNavBar<CoverPickPage> {
   String? _group; // null＝全部
 
   static const _kindLabels = {
@@ -111,11 +113,6 @@ class _CoverPickPageState extends ConsumerState<CoverPickPage> {
                     '選擇封面圖',
                     style: Theme.of(context).textTheme.titleLarge
                         ?.copyWith(fontSize: 19, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    kind == null ? '點選即設為封面' : '點選即設為封面・只顯示此圖冊內的圖片',
-                    style: TextStyle(fontSize: 12, color: t.text3),
                   ),
                   if (groups.isNotEmpty)
                     Padding(
