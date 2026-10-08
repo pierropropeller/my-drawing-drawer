@@ -1,3 +1,5 @@
+import '../../app_name.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -54,7 +56,7 @@ class WelcomePage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 22),
                     Text(
-                      '畫匣',
+                      appName,
                       style: Theme.of(context).textTheme.headlineLarge
                           ?.copyWith(fontSize: 34, letterSpacing: 1),
                     ),

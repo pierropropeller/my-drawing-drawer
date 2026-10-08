@@ -1,3 +1,5 @@
+import '../../app_name.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gal/gal.dart';
@@ -112,7 +114,7 @@ Future<int> downloadImages(WidgetRef ref, Iterable<AlbumImage> images) async {
   var ok = 0;
   for (final im in images) {
     try {
-      await Gal.putImage(store.fileOf(im.file).path, album: '畫匣');
+      await Gal.putImage(store.fileOf(im.file).path, album: appName);
       ok++;
     } catch (_) {}
   }

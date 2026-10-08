@@ -1,3 +1,5 @@
+import '../../app_name.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -223,7 +225,7 @@ class ProfilePage extends ConsumerWidget {
                             last: true,
                             onTap: () => showAboutDialog(
                               context: context,
-                              applicationName: '畫匣',
+                              applicationName: appName,
                               applicationLegalese: '把想畫的、畫好的，都收進坑裡。',
                             ),
                           ),
