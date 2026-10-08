@@ -10,6 +10,9 @@ import '../data/database.dart';
 import '../data/entity_queries.dart';
 import '../data/goal_queries.dart';
 import '../data/image_store.dart';
+import '../data/income_queries.dart';
+import '../data/junk_queries.dart';
+import '../data/search_queries.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -142,3 +145,52 @@ final coverCandidatesProvider =
           .watch(databaseProvider)
           .watchCoverCandidates(key.$1, kind: key.$2),
     );
+
+/// 常用的 tag 在前（坑內搜尋的常用 tag、tag 篩選）。
+final tagUsageByUsageProvider = StreamProvider.family<List<TagUsage>, String>(
+  (ref, pitId) =>
+      ref.watch(databaseProvider).watchTagUsage(pitId, byUsage: true),
+);
+
+/// 好看同人圖，可同時按分組（出處）與 tag 篩選。key＝(坑 id, 分組 id, tag id)。
+final fanArtsFilteredProvider =
+    StreamProvider.family<List<FanArt>, (String, String?, String?)>(
+      (ref, key) => ref
+          .watch(databaseProvider)
+          .watchFanArts(key.$1, groupId: key.$2, tagId: key.$3),
+    );
+
+/// 草稿，可按 tag 篩選。key＝(坑 id, tag id)。
+final draftViewsFilteredProvider =
+    StreamProvider.family<List<DraftView>, (String, String?)>(
+      (ref, key) =>
+          ref.watch(databaseProvider).watchDraftViews(key.$1, tagId: key.$2),
+    );
+
+/// 雜物（D-034）。
+final junkProvider = StreamProvider.family<List<JunkImage>, String>(
+  (ref, pitId) => ref.watch(databaseProvider).watchJunk(pitId),
+);
+
+/// 年度商稿收入（D-047）。
+final incomeProvider = StreamProvider.family<IncomeYear, int>(
+  (ref, year) => ref.watch(databaseProvider).watchIncome(year),
+);
+
+/// 坑內搜尋。key＝(坑 id, 文字, tag id)。
+final pitSearchProvider =
+    StreamProvider.family<PitSearchResult, (String, String, String?)>(
+      (ref, key) => ref
+          .watch(databaseProvider)
+          .watchPitSearch(key.$1, text: key.$2, tagId: key.$3),
+    );
+
+/// 圖片檔案是否已在本機（同步還沒下載完的封面蓋淡色＋下載 icon，D-028）。
+/// 檔案下載完成時會自動更新成 true。
+final imageExistsProvider = StreamProvider.family<bool, String>((
+  ref,
+  file,
+) async* {
+  final store = await ref.watch(imageStoreProvider.future);
+  yield* store.watchExists(file);
+});

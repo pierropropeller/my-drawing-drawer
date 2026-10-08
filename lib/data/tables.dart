@@ -35,6 +35,9 @@ class Pits extends Table with SyncColumns {
   TextColumn get officialCoverId => text().nullable()();
   TextColumn get fanArtCoverId => text().nullable()();
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
+
+  /// 編輯坑的「雜物」開關；開啟後坑內頁最底才出現雜物入口（D-034）。
+  BoolColumn get junkEnabled => boolean().withDefault(const Constant(false))();
 }
 
 /// 分組：官方圖冊的分組（kind=official）與好看同人圖的分組（kind=fan，預設是各出處）。
@@ -51,6 +54,13 @@ class OfficialImages extends Table with SyncColumns {
   TextColumn get imageFile => text()();
   IntColumn get width => integer().withDefault(const Constant(0))();
   IntColumn get height => integer().withDefault(const Constant(0))();
+
+  /// 同一張圖在官方圖冊／好看同人圖／雜物之間移動時的身分（D-044）；
+  /// 同一張圖在各格的列共用同一個 imageKey。舊資料回填成自己的 id。
+  TextColumn get imageKey => text().withDefault(const Constant(''))();
+
+  /// 移到別格後，原格的列會被隱藏（保留各格獨有的欄位，移回時恢復）。
+  BoolColumn get hidden => boolean().withDefault(const Constant(false))();
 }
 
 class FanArts extends Table with SyncColumns {
@@ -63,6 +73,28 @@ class FanArts extends Table with SyncColumns {
   /// 舊版的出處文字（v5 起改用 [groupId]，保留欄位以相容舊資料）。
   TextColumn get source => text().withDefault(const Constant(''))();
   TextColumn get groupId => text().nullable()();
+
+  /// 同一張圖在官方圖冊／好看同人圖／雜物之間移動時的身分（D-044）；
+  /// 同一張圖在各格的列共用同一個 imageKey。舊資料回填成自己的 id。
+  TextColumn get imageKey => text().withDefault(const Constant(''))();
+
+  /// 移到別格後，原格的列會被隱藏（保留各格獨有的欄位，移回時恢復）。
+  BoolColumn get hidden => boolean().withDefault(const Constant(false))();
+}
+
+/// 雜物（D-034）：純圖，不計入目標、不出現在時間軸、不能當封面、不參與搜尋。
+class JunkImages extends Table with SyncColumns {
+  TextColumn get pitId => text()();
+  TextColumn get imageFile => text()();
+  IntColumn get width => integer().withDefault(const Constant(0))();
+  IntColumn get height => integer().withDefault(const Constant(0))();
+
+  /// 同一張圖在官方圖冊／好看同人圖／雜物之間移動時的身分（D-044）；
+  /// 同一張圖在各格的列共用同一個 imageKey。舊資料回填成自己的 id。
+  TextColumn get imageKey => text().withDefault(const Constant(''))();
+
+  /// 移到別格後，原格的列會被隱藏（保留各格獨有的欄位，移回時恢復）。
+  BoolColumn get hidden => boolean().withDefault(const Constant(false))();
 }
 
 class Tags extends Table with SyncColumns {
@@ -89,6 +121,18 @@ class Pieces extends Table with SyncColumns {
   IntColumn get targetLikes => integer().withDefault(const Constant(0))();
   IntColumn get actualLikes => integer().withDefault(const Constant(0))();
   DateTimeColumn get finishedAt => dateTime().clientDefault(DateTime.now)();
+
+  /// 已公開發佈（D-046）。關閉時發佈日期、社交連結、互動量在 UI 隱藏（資料保留）。
+  BoolColumn get isPublished => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get publishedAt => dateTime().nullable()();
+
+  /// 商稿（D-046／D-050）。收款狀態由金額與已收金額推算，不儲存。
+  BoolColumn get isCommission => boolean().withDefault(const Constant(false))();
+  TextColumn get client => text().withDefault(const Constant(''))();
+  RealColumn get amount => real().nullable()();
+  TextColumn get currency => text().withDefault(const Constant('CNY'))();
+  RealColumn get receivedAmount => real().withDefault(const Constant(0))();
+  DateTimeColumn get dueAt => dateTime().nullable()();
 }
 
 /// 腦洞／草稿／成圖的多張圖片。
@@ -172,6 +216,12 @@ class ReviewSettings extends Table {
   TextColumn get ratio => text().withDefault(const Constant('1:1'))();
   TextColumn get monthFormat => text().withDefault(const Constant('Jan'))();
   BoolColumn get monthOnImage => boolean().withDefault(const Constant(true))();
+
+  /// 月份對齊（D-039）：`start`／`center`／`end`；null＝預設（月份在圖上＝靠左，在空白位置＝置中）。
+  TextColumn get monthAlign => text().nullable()();
+
+  /// 同步用的版本時間；舊資料為 null。
+  DateTimeColumn get updatedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {year};

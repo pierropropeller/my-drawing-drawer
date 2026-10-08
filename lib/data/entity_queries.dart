@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import 'album_queries.dart';
 import 'database.dart';
+import 'payment.dart';
 
 /// 腦洞狀態由關係推導，不儲存（HANDOFF 3.4）。
 enum IdeaStatus { open, hatching, hatched }
@@ -81,6 +82,10 @@ class PieceView {
   final List<SocialLink> links;
   final List<String> ideaIds;
   final List<String> draftIds;
+
+  /// 商稿收款狀態（只有 [Piece.isCommission] 時有意義）。
+  PaymentState get payment =>
+      paymentStateOf(amount: piece.amount, received: piece.receivedAmount);
 }
 
 /// 先取一次，之後每當相關資料表有變動就重新取。
@@ -196,6 +201,34 @@ extension EntityQueries on AppDatabase {
       }
     }
   }
+
+  // ---------- 一次性載入（搜尋等組合查詢用）----------
+  Future<List<IdeaView>> loadIdeaViews(String pitId) async => [
+    for (final r
+        in await (select(ideas)
+              ..where((i) => i.pitId.equals(pitId) & i.deletedAt.isNull())
+              ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
+            .get())
+      await _ideaView(r),
+  ];
+
+  Future<List<DraftView>> loadDraftViews(String pitId) async => [
+    for (final r
+        in await (select(drafts)
+              ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
+              ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+            .get())
+      await _draftView(r),
+  ];
+
+  Future<List<PieceView>> loadPieceViews(String pitId) async => [
+    for (final r
+        in await (select(pieces)
+              ..where((p) => p.pitId.equals(pitId) & p.deletedAt.isNull())
+              ..orderBy([(p) => OrderingTerm.desc(p.updatedAt)]))
+            .get())
+      await _pieceView(r),
+  ];
 
   // ---------- 腦洞 ----------
   Future<IdeaView> _ideaView(Idea i) async => IdeaView(
@@ -323,14 +356,18 @@ extension EntityQueries on AppDatabase {
             .toList(),
   );
 
-  Stream<List<DraftView>> watchDraftViews(String pitId) {
+  /// [tagId]：只列出有這個 tag 的草稿（D-043）。
+  Stream<List<DraftView>> watchDraftViews(String pitId, {String? tagId}) {
     return watchAssembled(this, _draftTables, () async {
       final rows =
           await (select(drafts)
                 ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
                 ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
               .get();
-      return [for (final r in rows) await _draftView(r)];
+      final views = [for (final r in rows) await _draftView(r)];
+      return tagId == null
+          ? views
+          : views.where((v) => v.tags.any((t) => t.id == tagId)).toList();
     });
   }
 
@@ -475,7 +512,25 @@ extension EntityQueries on AppDatabase {
     required DateTime finishedAt,
     required List<String> ideaIds,
     required List<String> draftIds,
+    bool? isPublished,
+    DateTime? publishedAt,
+    bool? isCommission,
+    String? client,
+    double? amount,
+    String? currency,
+    double? receivedAmount,
+    DateTime? dueAt,
   }) {
+    // 兩組欄位各自獨立：傳了 [isPublished] 才寫「公開發佈」組（isPublished、publishedAt）；
+    // 傳了 [isCommission] 才寫「商稿」組（isCommission、client、amount、currency、
+    // receivedAmount、dueAt）。沒傳的組在編輯時保持原樣，新增時用預設（未公開、非商稿）。
+    // 關閉開關時資料仍保留（UI 隱藏即可）。
+    final writePublish = isPublished != null;
+    final writeCommission = isCommission != null;
+    final cleanClient = (client ?? '').trim();
+    final cleanCurrency = (currency == null || currency.trim().isEmpty)
+        ? 'CNY'
+        : currency.trim();
     return transaction(() async {
       String pieceId;
       if (id == null) {
@@ -486,6 +541,18 @@ extension EntityQueries on AppDatabase {
             body: Value(body),
             targetLikes: Value(targetLikes),
             finishedAt: Value(finishedAt),
+            isPublished: Value(isPublished ?? false),
+            publishedAt: Value(
+              (isPublished ?? false)
+                  ? (publishedAt ?? finishedAt)
+                  : publishedAt,
+            ),
+            isCommission: Value(isCommission ?? false),
+            client: Value(cleanClient),
+            amount: Value(amount),
+            currency: Value(cleanCurrency),
+            receivedAmount: Value(receivedAmount ?? 0),
+            dueAt: Value(dueAt),
           ),
         );
         pieceId = row.id;
@@ -497,6 +564,24 @@ extension EntityQueries on AppDatabase {
             body: Value(body),
             targetLikes: Value(targetLikes),
             finishedAt: Value(finishedAt),
+            isPublished: writePublish
+                ? Value(isPublished)
+                : const Value.absent(),
+            publishedAt: writePublish
+                ? Value(isPublished ? (publishedAt ?? finishedAt) : publishedAt)
+                : const Value.absent(),
+            isCommission: writeCommission
+                ? Value(isCommission)
+                : const Value.absent(),
+            client: writeCommission ? Value(cleanClient) : const Value.absent(),
+            amount: writeCommission ? Value(amount) : const Value.absent(),
+            currency: writeCommission
+                ? Value(cleanCurrency)
+                : const Value.absent(),
+            receivedAmount: writeCommission
+                ? Value(receivedAmount ?? 0)
+                : const Value.absent(),
+            dueAt: writeCommission ? Value(dueAt) : const Value.absent(),
             updatedAt: Value(DateTime.now()),
           ),
         );
@@ -537,6 +622,16 @@ extension EntityQueries on AppDatabase {
       await into(draftPieces)
           .insert(DraftPiecesCompanion.insert(draftId: d, pieceId: pieceId));
     }
+  }
+
+  /// 只更新已收金額（詳情頁／收入頁快速收款用）。
+  Future<void> setReceivedAmount(String pieceId, double received) {
+    return (update(pieces)..where((p) => p.id.equals(pieceId))).write(
+      PiecesCompanion(
+        receivedAmount: Value(received < 0 ? 0 : received),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   Future<void> setActualLikes(String pieceId, int likes) {

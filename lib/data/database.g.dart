@@ -133,6 +133,21 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _junkEnabledMeta = const VerificationMeta(
+    'junkEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> junkEnabled = GeneratedColumn<bool>(
+    'junk_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("junk_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -146,6 +161,7 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
     officialCoverId,
     fanArtCoverId,
     archived,
+    junkEnabled,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -236,6 +252,15 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
         archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta),
       );
     }
+    if (data.containsKey('junk_enabled')) {
+      context.handle(
+        _junkEnabledMeta,
+        junkEnabled.isAcceptableOrUnknown(
+          data['junk_enabled']!,
+          _junkEnabledMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -289,6 +314,10 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
         DriftSqlType.bool,
         data['${effectivePrefix}archived'],
       )!,
+      junkEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}junk_enabled'],
+      )!,
     );
   }
 
@@ -313,6 +342,9 @@ class Pit extends DataClass implements Insertable<Pit> {
   final String? officialCoverId;
   final String? fanArtCoverId;
   final bool archived;
+
+  /// 編輯坑的「雜物」開關；開啟後坑內頁最底才出現雜物入口（D-034）。
+  final bool junkEnabled;
   const Pit({
     required this.id,
     required this.createdAt,
@@ -325,6 +357,7 @@ class Pit extends DataClass implements Insertable<Pit> {
     this.officialCoverId,
     this.fanArtCoverId,
     required this.archived,
+    required this.junkEnabled,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -350,6 +383,7 @@ class Pit extends DataClass implements Insertable<Pit> {
       map['fan_art_cover_id'] = Variable<String>(fanArtCoverId);
     }
     map['archived'] = Variable<bool>(archived);
+    map['junk_enabled'] = Variable<bool>(junkEnabled);
     return map;
   }
 
@@ -376,6 +410,7 @@ class Pit extends DataClass implements Insertable<Pit> {
           ? const Value.absent()
           : Value(fanArtCoverId),
       archived: Value(archived),
+      junkEnabled: Value(junkEnabled),
     );
   }
 
@@ -396,6 +431,7 @@ class Pit extends DataClass implements Insertable<Pit> {
       officialCoverId: serializer.fromJson<String?>(json['officialCoverId']),
       fanArtCoverId: serializer.fromJson<String?>(json['fanArtCoverId']),
       archived: serializer.fromJson<bool>(json['archived']),
+      junkEnabled: serializer.fromJson<bool>(json['junkEnabled']),
     );
   }
   @override
@@ -413,6 +449,7 @@ class Pit extends DataClass implements Insertable<Pit> {
       'officialCoverId': serializer.toJson<String?>(officialCoverId),
       'fanArtCoverId': serializer.toJson<String?>(fanArtCoverId),
       'archived': serializer.toJson<bool>(archived),
+      'junkEnabled': serializer.toJson<bool>(junkEnabled),
     };
   }
 
@@ -428,6 +465,7 @@ class Pit extends DataClass implements Insertable<Pit> {
     Value<String?> officialCoverId = const Value.absent(),
     Value<String?> fanArtCoverId = const Value.absent(),
     bool? archived,
+    bool? junkEnabled,
   }) => Pit(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -444,6 +482,7 @@ class Pit extends DataClass implements Insertable<Pit> {
         ? fanArtCoverId.value
         : this.fanArtCoverId,
     archived: archived ?? this.archived,
+    junkEnabled: junkEnabled ?? this.junkEnabled,
   );
   Pit copyWithCompanion(PitsCompanion data) {
     return Pit(
@@ -466,6 +505,9 @@ class Pit extends DataClass implements Insertable<Pit> {
           ? data.fanArtCoverId.value
           : this.fanArtCoverId,
       archived: data.archived.present ? data.archived.value : this.archived,
+      junkEnabled: data.junkEnabled.present
+          ? data.junkEnabled.value
+          : this.junkEnabled,
     );
   }
 
@@ -482,7 +524,8 @@ class Pit extends DataClass implements Insertable<Pit> {
           ..write('coverImageId: $coverImageId, ')
           ..write('officialCoverId: $officialCoverId, ')
           ..write('fanArtCoverId: $fanArtCoverId, ')
-          ..write('archived: $archived')
+          ..write('archived: $archived, ')
+          ..write('junkEnabled: $junkEnabled')
           ..write(')'))
         .toString();
   }
@@ -500,6 +543,7 @@ class Pit extends DataClass implements Insertable<Pit> {
     officialCoverId,
     fanArtCoverId,
     archived,
+    junkEnabled,
   );
   @override
   bool operator ==(Object other) =>
@@ -515,7 +559,8 @@ class Pit extends DataClass implements Insertable<Pit> {
           other.coverImageId == this.coverImageId &&
           other.officialCoverId == this.officialCoverId &&
           other.fanArtCoverId == this.fanArtCoverId &&
-          other.archived == this.archived);
+          other.archived == this.archived &&
+          other.junkEnabled == this.junkEnabled);
 }
 
 class PitsCompanion extends UpdateCompanion<Pit> {
@@ -530,6 +575,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
   final Value<String?> officialCoverId;
   final Value<String?> fanArtCoverId;
   final Value<bool> archived;
+  final Value<bool> junkEnabled;
   final Value<int> rowid;
   const PitsCompanion({
     this.id = const Value.absent(),
@@ -543,6 +589,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     this.officialCoverId = const Value.absent(),
     this.fanArtCoverId = const Value.absent(),
     this.archived = const Value.absent(),
+    this.junkEnabled = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PitsCompanion.insert({
@@ -557,6 +604,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     this.officialCoverId = const Value.absent(),
     this.fanArtCoverId = const Value.absent(),
     this.archived = const Value.absent(),
+    this.junkEnabled = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Pit> custom({
@@ -571,6 +619,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     Expression<String>? officialCoverId,
     Expression<String>? fanArtCoverId,
     Expression<bool>? archived,
+    Expression<bool>? junkEnabled,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -585,6 +634,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
       if (officialCoverId != null) 'official_cover_id': officialCoverId,
       if (fanArtCoverId != null) 'fan_art_cover_id': fanArtCoverId,
       if (archived != null) 'archived': archived,
+      if (junkEnabled != null) 'junk_enabled': junkEnabled,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -601,6 +651,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     Value<String?>? officialCoverId,
     Value<String?>? fanArtCoverId,
     Value<bool>? archived,
+    Value<bool>? junkEnabled,
     Value<int>? rowid,
   }) {
     return PitsCompanion(
@@ -615,6 +666,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
       officialCoverId: officialCoverId ?? this.officialCoverId,
       fanArtCoverId: fanArtCoverId ?? this.fanArtCoverId,
       archived: archived ?? this.archived,
+      junkEnabled: junkEnabled ?? this.junkEnabled,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -655,6 +707,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     if (archived.present) {
       map['archived'] = Variable<bool>(archived.value);
     }
+    if (junkEnabled.present) {
+      map['junk_enabled'] = Variable<bool>(junkEnabled.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -675,6 +730,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
           ..write('officialCoverId: $officialCoverId, ')
           ..write('fanArtCoverId: $fanArtCoverId, ')
           ..write('archived: $archived, ')
+          ..write('junkEnabled: $junkEnabled, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1338,6 +1394,31 @@ class $OfficialImagesTable extends OfficialImages
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _imageKeyMeta = const VerificationMeta(
+    'imageKey',
+  );
+  @override
+  late final GeneratedColumn<String> imageKey = GeneratedColumn<String>(
+    'image_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _hiddenMeta = const VerificationMeta('hidden');
+  @override
+  late final GeneratedColumn<bool> hidden = GeneratedColumn<bool>(
+    'hidden',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("hidden" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1350,6 +1431,8 @@ class $OfficialImagesTable extends OfficialImages
     imageFile,
     width,
     height,
+    imageKey,
+    hidden,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1426,6 +1509,18 @@ class $OfficialImagesTable extends OfficialImages
         height.isAcceptableOrUnknown(data['height']!, _heightMeta),
       );
     }
+    if (data.containsKey('image_key')) {
+      context.handle(
+        _imageKeyMeta,
+        imageKey.isAcceptableOrUnknown(data['image_key']!, _imageKeyMeta),
+      );
+    }
+    if (data.containsKey('hidden')) {
+      context.handle(
+        _hiddenMeta,
+        hidden.isAcceptableOrUnknown(data['hidden']!, _hiddenMeta),
+      );
+    }
     return context;
   }
 
@@ -1475,6 +1570,14 @@ class $OfficialImagesTable extends OfficialImages
         DriftSqlType.int,
         data['${effectivePrefix}height'],
       )!,
+      imageKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_key'],
+      )!,
+      hidden: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}hidden'],
+      )!,
     );
   }
 
@@ -1495,6 +1598,13 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
   final String imageFile;
   final int width;
   final int height;
+
+  /// 同一張圖在官方圖冊／好看同人圖／雜物之間移動時的身分（D-044）；
+  /// 同一張圖在各格的列共用同一個 imageKey。舊資料回填成自己的 id。
+  final String imageKey;
+
+  /// 移到別格後，原格的列會被隱藏（保留各格獨有的欄位，移回時恢復）。
+  final bool hidden;
   const OfficialImage({
     required this.id,
     required this.createdAt,
@@ -1506,6 +1616,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     required this.imageFile,
     required this.width,
     required this.height,
+    required this.imageKey,
+    required this.hidden,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1522,6 +1634,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     map['image_file'] = Variable<String>(imageFile);
     map['width'] = Variable<int>(width);
     map['height'] = Variable<int>(height);
+    map['image_key'] = Variable<String>(imageKey);
+    map['hidden'] = Variable<bool>(hidden);
     return map;
   }
 
@@ -1539,6 +1653,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       imageFile: Value(imageFile),
       width: Value(width),
       height: Value(height),
+      imageKey: Value(imageKey),
+      hidden: Value(hidden),
     );
   }
 
@@ -1558,6 +1674,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       imageFile: serializer.fromJson<String>(json['imageFile']),
       width: serializer.fromJson<int>(json['width']),
       height: serializer.fromJson<int>(json['height']),
+      imageKey: serializer.fromJson<String>(json['imageKey']),
+      hidden: serializer.fromJson<bool>(json['hidden']),
     );
   }
   @override
@@ -1574,6 +1692,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       'imageFile': serializer.toJson<String>(imageFile),
       'width': serializer.toJson<int>(width),
       'height': serializer.toJson<int>(height),
+      'imageKey': serializer.toJson<String>(imageKey),
+      'hidden': serializer.toJson<bool>(hidden),
     };
   }
 
@@ -1588,6 +1708,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     String? imageFile,
     int? width,
     int? height,
+    String? imageKey,
+    bool? hidden,
   }) => OfficialImage(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -1599,6 +1721,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     imageFile: imageFile ?? this.imageFile,
     width: width ?? this.width,
     height: height ?? this.height,
+    imageKey: imageKey ?? this.imageKey,
+    hidden: hidden ?? this.hidden,
   );
   OfficialImage copyWithCompanion(OfficialImagesCompanion data) {
     return OfficialImage(
@@ -1612,6 +1736,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
       width: data.width.present ? data.width.value : this.width,
       height: data.height.present ? data.height.value : this.height,
+      imageKey: data.imageKey.present ? data.imageKey.value : this.imageKey,
+      hidden: data.hidden.present ? data.hidden.value : this.hidden,
     );
   }
 
@@ -1627,7 +1753,9 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
           ..write('groupId: $groupId, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
-          ..write('height: $height')
+          ..write('height: $height, ')
+          ..write('imageKey: $imageKey, ')
+          ..write('hidden: $hidden')
           ..write(')'))
         .toString();
   }
@@ -1644,6 +1772,8 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     imageFile,
     width,
     height,
+    imageKey,
+    hidden,
   );
   @override
   bool operator ==(Object other) =>
@@ -1658,7 +1788,9 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
           other.groupId == this.groupId &&
           other.imageFile == this.imageFile &&
           other.width == this.width &&
-          other.height == this.height);
+          other.height == this.height &&
+          other.imageKey == this.imageKey &&
+          other.hidden == this.hidden);
 }
 
 class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
@@ -1672,6 +1804,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
   final Value<String> imageFile;
   final Value<int> width;
   final Value<int> height;
+  final Value<String> imageKey;
+  final Value<bool> hidden;
   final Value<int> rowid;
   const OfficialImagesCompanion({
     this.id = const Value.absent(),
@@ -1684,6 +1818,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     this.imageFile = const Value.absent(),
     this.width = const Value.absent(),
     this.height = const Value.absent(),
+    this.imageKey = const Value.absent(),
+    this.hidden = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   OfficialImagesCompanion.insert({
@@ -1697,6 +1833,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     required String imageFile,
     this.width = const Value.absent(),
     this.height = const Value.absent(),
+    this.imageKey = const Value.absent(),
+    this.hidden = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : pitId = Value(pitId),
        groupId = Value(groupId),
@@ -1712,6 +1850,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     Expression<String>? imageFile,
     Expression<int>? width,
     Expression<int>? height,
+    Expression<String>? imageKey,
+    Expression<bool>? hidden,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1725,6 +1865,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
       if (imageFile != null) 'image_file': imageFile,
       if (width != null) 'width': width,
       if (height != null) 'height': height,
+      if (imageKey != null) 'image_key': imageKey,
+      if (hidden != null) 'hidden': hidden,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1740,6 +1882,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     Value<String>? imageFile,
     Value<int>? width,
     Value<int>? height,
+    Value<String>? imageKey,
+    Value<bool>? hidden,
     Value<int>? rowid,
   }) {
     return OfficialImagesCompanion(
@@ -1753,6 +1897,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
       imageFile: imageFile ?? this.imageFile,
       width: width ?? this.width,
       height: height ?? this.height,
+      imageKey: imageKey ?? this.imageKey,
+      hidden: hidden ?? this.hidden,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1790,6 +1936,12 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     if (height.present) {
       map['height'] = Variable<int>(height.value);
     }
+    if (imageKey.present) {
+      map['image_key'] = Variable<String>(imageKey.value);
+    }
+    if (hidden.present) {
+      map['hidden'] = Variable<bool>(hidden.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1809,6 +1961,8 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
           ..write('height: $height, ')
+          ..write('imageKey: $imageKey, ')
+          ..write('hidden: $hidden, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1948,6 +2102,31 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _imageKeyMeta = const VerificationMeta(
+    'imageKey',
+  );
+  @override
+  late final GeneratedColumn<String> imageKey = GeneratedColumn<String>(
+    'image_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _hiddenMeta = const VerificationMeta('hidden');
+  @override
+  late final GeneratedColumn<bool> hidden = GeneratedColumn<bool>(
+    'hidden',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("hidden" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1962,6 +2141,8 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     author,
     source,
     groupId,
+    imageKey,
+    hidden,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2048,6 +2229,18 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
         groupId.isAcceptableOrUnknown(data['group_id']!, _groupIdMeta),
       );
     }
+    if (data.containsKey('image_key')) {
+      context.handle(
+        _imageKeyMeta,
+        imageKey.isAcceptableOrUnknown(data['image_key']!, _imageKeyMeta),
+      );
+    }
+    if (data.containsKey('hidden')) {
+      context.handle(
+        _hiddenMeta,
+        hidden.isAcceptableOrUnknown(data['hidden']!, _hiddenMeta),
+      );
+    }
     return context;
   }
 
@@ -2105,6 +2298,14 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
         DriftSqlType.string,
         data['${effectivePrefix}group_id'],
       ),
+      imageKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_key'],
+      )!,
+      hidden: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}hidden'],
+      )!,
     );
   }
 
@@ -2129,6 +2330,13 @@ class FanArt extends DataClass implements Insertable<FanArt> {
   /// 舊版的出處文字（v5 起改用 [groupId]，保留欄位以相容舊資料）。
   final String source;
   final String? groupId;
+
+  /// 同一張圖在官方圖冊／好看同人圖／雜物之間移動時的身分（D-044）；
+  /// 同一張圖在各格的列共用同一個 imageKey。舊資料回填成自己的 id。
+  final String imageKey;
+
+  /// 移到別格後，原格的列會被隱藏（保留各格獨有的欄位，移回時恢復）。
+  final bool hidden;
   const FanArt({
     required this.id,
     required this.createdAt,
@@ -2142,6 +2350,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     required this.author,
     required this.source,
     this.groupId,
+    required this.imageKey,
+    required this.hidden,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2162,6 +2372,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     if (!nullToAbsent || groupId != null) {
       map['group_id'] = Variable<String>(groupId);
     }
+    map['image_key'] = Variable<String>(imageKey);
+    map['hidden'] = Variable<bool>(hidden);
     return map;
   }
 
@@ -2183,6 +2395,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       groupId: groupId == null && nullToAbsent
           ? const Value.absent()
           : Value(groupId),
+      imageKey: Value(imageKey),
+      hidden: Value(hidden),
     );
   }
 
@@ -2204,6 +2418,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       author: serializer.fromJson<String>(json['author']),
       source: serializer.fromJson<String>(json['source']),
       groupId: serializer.fromJson<String?>(json['groupId']),
+      imageKey: serializer.fromJson<String>(json['imageKey']),
+      hidden: serializer.fromJson<bool>(json['hidden']),
     );
   }
   @override
@@ -2222,6 +2438,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       'author': serializer.toJson<String>(author),
       'source': serializer.toJson<String>(source),
       'groupId': serializer.toJson<String?>(groupId),
+      'imageKey': serializer.toJson<String>(imageKey),
+      'hidden': serializer.toJson<bool>(hidden),
     };
   }
 
@@ -2238,6 +2456,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     String? author,
     String? source,
     Value<String?> groupId = const Value.absent(),
+    String? imageKey,
+    bool? hidden,
   }) => FanArt(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -2251,6 +2471,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     author: author ?? this.author,
     source: source ?? this.source,
     groupId: groupId.present ? groupId.value : this.groupId,
+    imageKey: imageKey ?? this.imageKey,
+    hidden: hidden ?? this.hidden,
   );
   FanArt copyWithCompanion(FanArtsCompanion data) {
     return FanArt(
@@ -2266,6 +2488,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       author: data.author.present ? data.author.value : this.author,
       source: data.source.present ? data.source.value : this.source,
       groupId: data.groupId.present ? data.groupId.value : this.groupId,
+      imageKey: data.imageKey.present ? data.imageKey.value : this.imageKey,
+      hidden: data.hidden.present ? data.hidden.value : this.hidden,
     );
   }
 
@@ -2283,7 +2507,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           ..write('height: $height, ')
           ..write('author: $author, ')
           ..write('source: $source, ')
-          ..write('groupId: $groupId')
+          ..write('groupId: $groupId, ')
+          ..write('imageKey: $imageKey, ')
+          ..write('hidden: $hidden')
           ..write(')'))
         .toString();
   }
@@ -2302,6 +2528,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     author,
     source,
     groupId,
+    imageKey,
+    hidden,
   );
   @override
   bool operator ==(Object other) =>
@@ -2318,7 +2546,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           other.height == this.height &&
           other.author == this.author &&
           other.source == this.source &&
-          other.groupId == this.groupId);
+          other.groupId == this.groupId &&
+          other.imageKey == this.imageKey &&
+          other.hidden == this.hidden);
 }
 
 class FanArtsCompanion extends UpdateCompanion<FanArt> {
@@ -2334,6 +2564,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
   final Value<String> author;
   final Value<String> source;
   final Value<String?> groupId;
+  final Value<String> imageKey;
+  final Value<bool> hidden;
   final Value<int> rowid;
   const FanArtsCompanion({
     this.id = const Value.absent(),
@@ -2348,6 +2580,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.author = const Value.absent(),
     this.source = const Value.absent(),
     this.groupId = const Value.absent(),
+    this.imageKey = const Value.absent(),
+    this.hidden = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FanArtsCompanion.insert({
@@ -2363,6 +2597,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.author = const Value.absent(),
     this.source = const Value.absent(),
     this.groupId = const Value.absent(),
+    this.imageKey = const Value.absent(),
+    this.hidden = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : pitId = Value(pitId),
        imageFile = Value(imageFile);
@@ -2379,6 +2615,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Expression<String>? author,
     Expression<String>? source,
     Expression<String>? groupId,
+    Expression<String>? imageKey,
+    Expression<bool>? hidden,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2394,6 +2632,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       if (author != null) 'author': author,
       if (source != null) 'source': source,
       if (groupId != null) 'group_id': groupId,
+      if (imageKey != null) 'image_key': imageKey,
+      if (hidden != null) 'hidden': hidden,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2411,6 +2651,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Value<String>? author,
     Value<String>? source,
     Value<String?>? groupId,
+    Value<String>? imageKey,
+    Value<bool>? hidden,
     Value<int>? rowid,
   }) {
     return FanArtsCompanion(
@@ -2426,6 +2668,8 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       author: author ?? this.author,
       source: source ?? this.source,
       groupId: groupId ?? this.groupId,
+      imageKey: imageKey ?? this.imageKey,
+      hidden: hidden ?? this.hidden,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2469,6 +2713,12 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     if (groupId.present) {
       map['group_id'] = Variable<String>(groupId.value);
     }
+    if (imageKey.present) {
+      map['image_key'] = Variable<String>(imageKey.value);
+    }
+    if (hidden.present) {
+      map['hidden'] = Variable<bool>(hidden.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2490,6 +2740,649 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
           ..write('author: $author, ')
           ..write('source: $source, ')
           ..write('groupId: $groupId, ')
+          ..write('imageKey: $imageKey, ')
+          ..write('hidden: $hidden, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $JunkImagesTable extends JunkImages
+    with TableInfo<$JunkImagesTable, JunkImage> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $JunkImagesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => uuid.v4(),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _pitIdMeta = const VerificationMeta('pitId');
+  @override
+  late final GeneratedColumn<String> pitId = GeneratedColumn<String>(
+    'pit_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _imageFileMeta = const VerificationMeta(
+    'imageFile',
+  );
+  @override
+  late final GeneratedColumn<String> imageFile = GeneratedColumn<String>(
+    'image_file',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _widthMeta = const VerificationMeta('width');
+  @override
+  late final GeneratedColumn<int> width = GeneratedColumn<int>(
+    'width',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _heightMeta = const VerificationMeta('height');
+  @override
+  late final GeneratedColumn<int> height = GeneratedColumn<int>(
+    'height',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _imageKeyMeta = const VerificationMeta(
+    'imageKey',
+  );
+  @override
+  late final GeneratedColumn<String> imageKey = GeneratedColumn<String>(
+    'image_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _hiddenMeta = const VerificationMeta('hidden');
+  @override
+  late final GeneratedColumn<bool> hidden = GeneratedColumn<bool>(
+    'hidden',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("hidden" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    pitId,
+    imageFile,
+    width,
+    height,
+    imageKey,
+    hidden,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'junk_images';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<JunkImage> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('pit_id')) {
+      context.handle(
+        _pitIdMeta,
+        pitId.isAcceptableOrUnknown(data['pit_id']!, _pitIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pitIdMeta);
+    }
+    if (data.containsKey('image_file')) {
+      context.handle(
+        _imageFileMeta,
+        imageFile.isAcceptableOrUnknown(data['image_file']!, _imageFileMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_imageFileMeta);
+    }
+    if (data.containsKey('width')) {
+      context.handle(
+        _widthMeta,
+        width.isAcceptableOrUnknown(data['width']!, _widthMeta),
+      );
+    }
+    if (data.containsKey('height')) {
+      context.handle(
+        _heightMeta,
+        height.isAcceptableOrUnknown(data['height']!, _heightMeta),
+      );
+    }
+    if (data.containsKey('image_key')) {
+      context.handle(
+        _imageKeyMeta,
+        imageKey.isAcceptableOrUnknown(data['image_key']!, _imageKeyMeta),
+      );
+    }
+    if (data.containsKey('hidden')) {
+      context.handle(
+        _hiddenMeta,
+        hidden.isAcceptableOrUnknown(data['hidden']!, _hiddenMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  JunkImage map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return JunkImage(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+      pitId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pit_id'],
+      )!,
+      imageFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_file'],
+      )!,
+      width: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}width'],
+      )!,
+      height: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}height'],
+      )!,
+      imageKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_key'],
+      )!,
+      hidden: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}hidden'],
+      )!,
+    );
+  }
+
+  @override
+  $JunkImagesTable createAlias(String alias) {
+    return $JunkImagesTable(attachedDatabase, alias);
+  }
+}
+
+class JunkImage extends DataClass implements Insertable<JunkImage> {
+  final String id;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String deviceId;
+  final String pitId;
+  final String imageFile;
+  final int width;
+  final int height;
+
+  /// 同一張圖在官方圖冊／好看同人圖／雜物之間移動時的身分（D-044）；
+  /// 同一張圖在各格的列共用同一個 imageKey。舊資料回填成自己的 id。
+  final String imageKey;
+
+  /// 移到別格後，原格的列會被隱藏（保留各格獨有的欄位，移回時恢復）。
+  final bool hidden;
+  const JunkImage({
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.deviceId,
+    required this.pitId,
+    required this.imageFile,
+    required this.width,
+    required this.height,
+    required this.imageKey,
+    required this.hidden,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['device_id'] = Variable<String>(deviceId);
+    map['pit_id'] = Variable<String>(pitId);
+    map['image_file'] = Variable<String>(imageFile);
+    map['width'] = Variable<int>(width);
+    map['height'] = Variable<int>(height);
+    map['image_key'] = Variable<String>(imageKey);
+    map['hidden'] = Variable<bool>(hidden);
+    return map;
+  }
+
+  JunkImagesCompanion toCompanion(bool nullToAbsent) {
+    return JunkImagesCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      deviceId: Value(deviceId),
+      pitId: Value(pitId),
+      imageFile: Value(imageFile),
+      width: Value(width),
+      height: Value(height),
+      imageKey: Value(imageKey),
+      hidden: Value(hidden),
+    );
+  }
+
+  factory JunkImage.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return JunkImage(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+      pitId: serializer.fromJson<String>(json['pitId']),
+      imageFile: serializer.fromJson<String>(json['imageFile']),
+      width: serializer.fromJson<int>(json['width']),
+      height: serializer.fromJson<int>(json['height']),
+      imageKey: serializer.fromJson<String>(json['imageKey']),
+      hidden: serializer.fromJson<bool>(json['hidden']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'deviceId': serializer.toJson<String>(deviceId),
+      'pitId': serializer.toJson<String>(pitId),
+      'imageFile': serializer.toJson<String>(imageFile),
+      'width': serializer.toJson<int>(width),
+      'height': serializer.toJson<int>(height),
+      'imageKey': serializer.toJson<String>(imageKey),
+      'hidden': serializer.toJson<bool>(hidden),
+    };
+  }
+
+  JunkImage copyWith({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? deviceId,
+    String? pitId,
+    String? imageFile,
+    int? width,
+    int? height,
+    String? imageKey,
+    bool? hidden,
+  }) => JunkImage(
+    id: id ?? this.id,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    deviceId: deviceId ?? this.deviceId,
+    pitId: pitId ?? this.pitId,
+    imageFile: imageFile ?? this.imageFile,
+    width: width ?? this.width,
+    height: height ?? this.height,
+    imageKey: imageKey ?? this.imageKey,
+    hidden: hidden ?? this.hidden,
+  );
+  JunkImage copyWithCompanion(JunkImagesCompanion data) {
+    return JunkImage(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      pitId: data.pitId.present ? data.pitId.value : this.pitId,
+      imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
+      width: data.width.present ? data.width.value : this.width,
+      height: data.height.present ? data.height.value : this.height,
+      imageKey: data.imageKey.present ? data.imageKey.value : this.imageKey,
+      hidden: data.hidden.present ? data.hidden.value : this.hidden,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('JunkImage(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('pitId: $pitId, ')
+          ..write('imageFile: $imageFile, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
+          ..write('imageKey: $imageKey, ')
+          ..write('hidden: $hidden')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    pitId,
+    imageFile,
+    width,
+    height,
+    imageKey,
+    hidden,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is JunkImage &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.deviceId == this.deviceId &&
+          other.pitId == this.pitId &&
+          other.imageFile == this.imageFile &&
+          other.width == this.width &&
+          other.height == this.height &&
+          other.imageKey == this.imageKey &&
+          other.hidden == this.hidden);
+}
+
+class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String> deviceId;
+  final Value<String> pitId;
+  final Value<String> imageFile;
+  final Value<int> width;
+  final Value<int> height;
+  final Value<String> imageKey;
+  final Value<bool> hidden;
+  final Value<int> rowid;
+  const JunkImagesCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.pitId = const Value.absent(),
+    this.imageFile = const Value.absent(),
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
+    this.imageKey = const Value.absent(),
+    this.hidden = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  JunkImagesCompanion.insert({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    required String pitId,
+    required String imageFile,
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
+    this.imageKey = const Value.absent(),
+    this.hidden = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : pitId = Value(pitId),
+       imageFile = Value(imageFile);
+  static Insertable<JunkImage> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? deviceId,
+    Expression<String>? pitId,
+    Expression<String>? imageFile,
+    Expression<int>? width,
+    Expression<int>? height,
+    Expression<String>? imageKey,
+    Expression<bool>? hidden,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (pitId != null) 'pit_id': pitId,
+      if (imageFile != null) 'image_file': imageFile,
+      if (width != null) 'width': width,
+      if (height != null) 'height': height,
+      if (imageKey != null) 'image_key': imageKey,
+      if (hidden != null) 'hidden': hidden,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  JunkImagesCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String>? deviceId,
+    Value<String>? pitId,
+    Value<String>? imageFile,
+    Value<int>? width,
+    Value<int>? height,
+    Value<String>? imageKey,
+    Value<bool>? hidden,
+    Value<int>? rowid,
+  }) {
+    return JunkImagesCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      deviceId: deviceId ?? this.deviceId,
+      pitId: pitId ?? this.pitId,
+      imageFile: imageFile ?? this.imageFile,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      imageKey: imageKey ?? this.imageKey,
+      hidden: hidden ?? this.hidden,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (pitId.present) {
+      map['pit_id'] = Variable<String>(pitId.value);
+    }
+    if (imageFile.present) {
+      map['image_file'] = Variable<String>(imageFile.value);
+    }
+    if (width.present) {
+      map['width'] = Variable<int>(width.value);
+    }
+    if (height.present) {
+      map['height'] = Variable<int>(height.value);
+    }
+    if (imageKey.present) {
+      map['image_key'] = Variable<String>(imageKey.value);
+    }
+    if (hidden.present) {
+      map['hidden'] = Variable<bool>(hidden.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('JunkImagesCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('pitId: $pitId, ')
+          ..write('imageFile: $imageFile, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
+          ..write('imageKey: $imageKey, ')
+          ..write('hidden: $hidden, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4061,6 +4954,99 @@ class $PiecesTable extends Pieces with TableInfo<$PiecesTable, Piece> {
     requiredDuringInsert: false,
     clientDefault: DateTime.now,
   );
+  static const VerificationMeta _isPublishedMeta = const VerificationMeta(
+    'isPublished',
+  );
+  @override
+  late final GeneratedColumn<bool> isPublished = GeneratedColumn<bool>(
+    'is_published',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_published" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _publishedAtMeta = const VerificationMeta(
+    'publishedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> publishedAt = GeneratedColumn<DateTime>(
+    'published_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isCommissionMeta = const VerificationMeta(
+    'isCommission',
+  );
+  @override
+  late final GeneratedColumn<bool> isCommission = GeneratedColumn<bool>(
+    'is_commission',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_commission" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _clientMeta = const VerificationMeta('client');
+  @override
+  late final GeneratedColumn<String> client = GeneratedColumn<String>(
+    'client',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('CNY'),
+  );
+  static const VerificationMeta _receivedAmountMeta = const VerificationMeta(
+    'receivedAmount',
+  );
+  @override
+  late final GeneratedColumn<double> receivedAmount = GeneratedColumn<double>(
+    'received_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _dueAtMeta = const VerificationMeta('dueAt');
+  @override
+  late final GeneratedColumn<DateTime> dueAt = GeneratedColumn<DateTime>(
+    'due_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4074,6 +5060,14 @@ class $PiecesTable extends Pieces with TableInfo<$PiecesTable, Piece> {
     targetLikes,
     actualLikes,
     finishedAt,
+    isPublished,
+    publishedAt,
+    isCommission,
+    client,
+    amount,
+    currency,
+    receivedAmount,
+    dueAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4160,6 +5154,66 @@ class $PiecesTable extends Pieces with TableInfo<$PiecesTable, Piece> {
         finishedAt.isAcceptableOrUnknown(data['finished_at']!, _finishedAtMeta),
       );
     }
+    if (data.containsKey('is_published')) {
+      context.handle(
+        _isPublishedMeta,
+        isPublished.isAcceptableOrUnknown(
+          data['is_published']!,
+          _isPublishedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('published_at')) {
+      context.handle(
+        _publishedAtMeta,
+        publishedAt.isAcceptableOrUnknown(
+          data['published_at']!,
+          _publishedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_commission')) {
+      context.handle(
+        _isCommissionMeta,
+        isCommission.isAcceptableOrUnknown(
+          data['is_commission']!,
+          _isCommissionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('client')) {
+      context.handle(
+        _clientMeta,
+        client.isAcceptableOrUnknown(data['client']!, _clientMeta),
+      );
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
+    }
+    if (data.containsKey('received_amount')) {
+      context.handle(
+        _receivedAmountMeta,
+        receivedAmount.isAcceptableOrUnknown(
+          data['received_amount']!,
+          _receivedAmountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('due_at')) {
+      context.handle(
+        _dueAtMeta,
+        dueAt.isAcceptableOrUnknown(data['due_at']!, _dueAtMeta),
+      );
+    }
     return context;
   }
 
@@ -4213,6 +5267,38 @@ class $PiecesTable extends Pieces with TableInfo<$PiecesTable, Piece> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}finished_at'],
       )!,
+      isPublished: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_published'],
+      )!,
+      publishedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}published_at'],
+      ),
+      isCommission: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_commission'],
+      )!,
+      client: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      ),
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
+      receivedAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}received_amount'],
+      )!,
+      dueAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}due_at'],
+      ),
     );
   }
 
@@ -4234,6 +5320,18 @@ class Piece extends DataClass implements Insertable<Piece> {
   final int targetLikes;
   final int actualLikes;
   final DateTime finishedAt;
+
+  /// 已公開發佈（D-046）。關閉時發佈日期、社交連結、互動量在 UI 隱藏（資料保留）。
+  final bool isPublished;
+  final DateTime? publishedAt;
+
+  /// 商稿（D-046／D-050）。收款狀態由金額與已收金額推算，不儲存。
+  final bool isCommission;
+  final String client;
+  final double? amount;
+  final String currency;
+  final double receivedAmount;
+  final DateTime? dueAt;
   const Piece({
     required this.id,
     required this.createdAt,
@@ -4246,6 +5344,14 @@ class Piece extends DataClass implements Insertable<Piece> {
     required this.targetLikes,
     required this.actualLikes,
     required this.finishedAt,
+    required this.isPublished,
+    this.publishedAt,
+    required this.isCommission,
+    required this.client,
+    this.amount,
+    required this.currency,
+    required this.receivedAmount,
+    this.dueAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4263,6 +5369,20 @@ class Piece extends DataClass implements Insertable<Piece> {
     map['target_likes'] = Variable<int>(targetLikes);
     map['actual_likes'] = Variable<int>(actualLikes);
     map['finished_at'] = Variable<DateTime>(finishedAt);
+    map['is_published'] = Variable<bool>(isPublished);
+    if (!nullToAbsent || publishedAt != null) {
+      map['published_at'] = Variable<DateTime>(publishedAt);
+    }
+    map['is_commission'] = Variable<bool>(isCommission);
+    map['client'] = Variable<String>(client);
+    if (!nullToAbsent || amount != null) {
+      map['amount'] = Variable<double>(amount);
+    }
+    map['currency'] = Variable<String>(currency);
+    map['received_amount'] = Variable<double>(receivedAmount);
+    if (!nullToAbsent || dueAt != null) {
+      map['due_at'] = Variable<DateTime>(dueAt);
+    }
     return map;
   }
 
@@ -4281,6 +5401,20 @@ class Piece extends DataClass implements Insertable<Piece> {
       targetLikes: Value(targetLikes),
       actualLikes: Value(actualLikes),
       finishedAt: Value(finishedAt),
+      isPublished: Value(isPublished),
+      publishedAt: publishedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(publishedAt),
+      isCommission: Value(isCommission),
+      client: Value(client),
+      amount: amount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amount),
+      currency: Value(currency),
+      receivedAmount: Value(receivedAmount),
+      dueAt: dueAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueAt),
     );
   }
 
@@ -4301,6 +5435,14 @@ class Piece extends DataClass implements Insertable<Piece> {
       targetLikes: serializer.fromJson<int>(json['targetLikes']),
       actualLikes: serializer.fromJson<int>(json['actualLikes']),
       finishedAt: serializer.fromJson<DateTime>(json['finishedAt']),
+      isPublished: serializer.fromJson<bool>(json['isPublished']),
+      publishedAt: serializer.fromJson<DateTime?>(json['publishedAt']),
+      isCommission: serializer.fromJson<bool>(json['isCommission']),
+      client: serializer.fromJson<String>(json['client']),
+      amount: serializer.fromJson<double?>(json['amount']),
+      currency: serializer.fromJson<String>(json['currency']),
+      receivedAmount: serializer.fromJson<double>(json['receivedAmount']),
+      dueAt: serializer.fromJson<DateTime?>(json['dueAt']),
     );
   }
   @override
@@ -4318,6 +5460,14 @@ class Piece extends DataClass implements Insertable<Piece> {
       'targetLikes': serializer.toJson<int>(targetLikes),
       'actualLikes': serializer.toJson<int>(actualLikes),
       'finishedAt': serializer.toJson<DateTime>(finishedAt),
+      'isPublished': serializer.toJson<bool>(isPublished),
+      'publishedAt': serializer.toJson<DateTime?>(publishedAt),
+      'isCommission': serializer.toJson<bool>(isCommission),
+      'client': serializer.toJson<String>(client),
+      'amount': serializer.toJson<double?>(amount),
+      'currency': serializer.toJson<String>(currency),
+      'receivedAmount': serializer.toJson<double>(receivedAmount),
+      'dueAt': serializer.toJson<DateTime?>(dueAt),
     };
   }
 
@@ -4333,6 +5483,14 @@ class Piece extends DataClass implements Insertable<Piece> {
     int? targetLikes,
     int? actualLikes,
     DateTime? finishedAt,
+    bool? isPublished,
+    Value<DateTime?> publishedAt = const Value.absent(),
+    bool? isCommission,
+    String? client,
+    Value<double?> amount = const Value.absent(),
+    String? currency,
+    double? receivedAmount,
+    Value<DateTime?> dueAt = const Value.absent(),
   }) => Piece(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -4345,6 +5503,14 @@ class Piece extends DataClass implements Insertable<Piece> {
     targetLikes: targetLikes ?? this.targetLikes,
     actualLikes: actualLikes ?? this.actualLikes,
     finishedAt: finishedAt ?? this.finishedAt,
+    isPublished: isPublished ?? this.isPublished,
+    publishedAt: publishedAt.present ? publishedAt.value : this.publishedAt,
+    isCommission: isCommission ?? this.isCommission,
+    client: client ?? this.client,
+    amount: amount.present ? amount.value : this.amount,
+    currency: currency ?? this.currency,
+    receivedAmount: receivedAmount ?? this.receivedAmount,
+    dueAt: dueAt.present ? dueAt.value : this.dueAt,
   );
   Piece copyWithCompanion(PiecesCompanion data) {
     return Piece(
@@ -4365,6 +5531,22 @@ class Piece extends DataClass implements Insertable<Piece> {
       finishedAt: data.finishedAt.present
           ? data.finishedAt.value
           : this.finishedAt,
+      isPublished: data.isPublished.present
+          ? data.isPublished.value
+          : this.isPublished,
+      publishedAt: data.publishedAt.present
+          ? data.publishedAt.value
+          : this.publishedAt,
+      isCommission: data.isCommission.present
+          ? data.isCommission.value
+          : this.isCommission,
+      client: data.client.present ? data.client.value : this.client,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      receivedAmount: data.receivedAmount.present
+          ? data.receivedAmount.value
+          : this.receivedAmount,
+      dueAt: data.dueAt.present ? data.dueAt.value : this.dueAt,
     );
   }
 
@@ -4381,7 +5563,15 @@ class Piece extends DataClass implements Insertable<Piece> {
           ..write('body: $body, ')
           ..write('targetLikes: $targetLikes, ')
           ..write('actualLikes: $actualLikes, ')
-          ..write('finishedAt: $finishedAt')
+          ..write('finishedAt: $finishedAt, ')
+          ..write('isPublished: $isPublished, ')
+          ..write('publishedAt: $publishedAt, ')
+          ..write('isCommission: $isCommission, ')
+          ..write('client: $client, ')
+          ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
+          ..write('receivedAmount: $receivedAmount, ')
+          ..write('dueAt: $dueAt')
           ..write(')'))
         .toString();
   }
@@ -4399,6 +5589,14 @@ class Piece extends DataClass implements Insertable<Piece> {
     targetLikes,
     actualLikes,
     finishedAt,
+    isPublished,
+    publishedAt,
+    isCommission,
+    client,
+    amount,
+    currency,
+    receivedAmount,
+    dueAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -4414,7 +5612,15 @@ class Piece extends DataClass implements Insertable<Piece> {
           other.body == this.body &&
           other.targetLikes == this.targetLikes &&
           other.actualLikes == this.actualLikes &&
-          other.finishedAt == this.finishedAt);
+          other.finishedAt == this.finishedAt &&
+          other.isPublished == this.isPublished &&
+          other.publishedAt == this.publishedAt &&
+          other.isCommission == this.isCommission &&
+          other.client == this.client &&
+          other.amount == this.amount &&
+          other.currency == this.currency &&
+          other.receivedAmount == this.receivedAmount &&
+          other.dueAt == this.dueAt);
 }
 
 class PiecesCompanion extends UpdateCompanion<Piece> {
@@ -4429,6 +5635,14 @@ class PiecesCompanion extends UpdateCompanion<Piece> {
   final Value<int> targetLikes;
   final Value<int> actualLikes;
   final Value<DateTime> finishedAt;
+  final Value<bool> isPublished;
+  final Value<DateTime?> publishedAt;
+  final Value<bool> isCommission;
+  final Value<String> client;
+  final Value<double?> amount;
+  final Value<String> currency;
+  final Value<double> receivedAmount;
+  final Value<DateTime?> dueAt;
   final Value<int> rowid;
   const PiecesCompanion({
     this.id = const Value.absent(),
@@ -4442,6 +5656,14 @@ class PiecesCompanion extends UpdateCompanion<Piece> {
     this.targetLikes = const Value.absent(),
     this.actualLikes = const Value.absent(),
     this.finishedAt = const Value.absent(),
+    this.isPublished = const Value.absent(),
+    this.publishedAt = const Value.absent(),
+    this.isCommission = const Value.absent(),
+    this.client = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.receivedAmount = const Value.absent(),
+    this.dueAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PiecesCompanion.insert({
@@ -4456,6 +5678,14 @@ class PiecesCompanion extends UpdateCompanion<Piece> {
     this.targetLikes = const Value.absent(),
     this.actualLikes = const Value.absent(),
     this.finishedAt = const Value.absent(),
+    this.isPublished = const Value.absent(),
+    this.publishedAt = const Value.absent(),
+    this.isCommission = const Value.absent(),
+    this.client = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.receivedAmount = const Value.absent(),
+    this.dueAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : pitId = Value(pitId),
        title = Value(title);
@@ -4471,6 +5701,14 @@ class PiecesCompanion extends UpdateCompanion<Piece> {
     Expression<int>? targetLikes,
     Expression<int>? actualLikes,
     Expression<DateTime>? finishedAt,
+    Expression<bool>? isPublished,
+    Expression<DateTime>? publishedAt,
+    Expression<bool>? isCommission,
+    Expression<String>? client,
+    Expression<double>? amount,
+    Expression<String>? currency,
+    Expression<double>? receivedAmount,
+    Expression<DateTime>? dueAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -4485,6 +5723,14 @@ class PiecesCompanion extends UpdateCompanion<Piece> {
       if (targetLikes != null) 'target_likes': targetLikes,
       if (actualLikes != null) 'actual_likes': actualLikes,
       if (finishedAt != null) 'finished_at': finishedAt,
+      if (isPublished != null) 'is_published': isPublished,
+      if (publishedAt != null) 'published_at': publishedAt,
+      if (isCommission != null) 'is_commission': isCommission,
+      if (client != null) 'client': client,
+      if (amount != null) 'amount': amount,
+      if (currency != null) 'currency': currency,
+      if (receivedAmount != null) 'received_amount': receivedAmount,
+      if (dueAt != null) 'due_at': dueAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4501,6 +5747,14 @@ class PiecesCompanion extends UpdateCompanion<Piece> {
     Value<int>? targetLikes,
     Value<int>? actualLikes,
     Value<DateTime>? finishedAt,
+    Value<bool>? isPublished,
+    Value<DateTime?>? publishedAt,
+    Value<bool>? isCommission,
+    Value<String>? client,
+    Value<double?>? amount,
+    Value<String>? currency,
+    Value<double>? receivedAmount,
+    Value<DateTime?>? dueAt,
     Value<int>? rowid,
   }) {
     return PiecesCompanion(
@@ -4515,6 +5769,14 @@ class PiecesCompanion extends UpdateCompanion<Piece> {
       targetLikes: targetLikes ?? this.targetLikes,
       actualLikes: actualLikes ?? this.actualLikes,
       finishedAt: finishedAt ?? this.finishedAt,
+      isPublished: isPublished ?? this.isPublished,
+      publishedAt: publishedAt ?? this.publishedAt,
+      isCommission: isCommission ?? this.isCommission,
+      client: client ?? this.client,
+      amount: amount ?? this.amount,
+      currency: currency ?? this.currency,
+      receivedAmount: receivedAmount ?? this.receivedAmount,
+      dueAt: dueAt ?? this.dueAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4555,6 +5817,30 @@ class PiecesCompanion extends UpdateCompanion<Piece> {
     if (finishedAt.present) {
       map['finished_at'] = Variable<DateTime>(finishedAt.value);
     }
+    if (isPublished.present) {
+      map['is_published'] = Variable<bool>(isPublished.value);
+    }
+    if (publishedAt.present) {
+      map['published_at'] = Variable<DateTime>(publishedAt.value);
+    }
+    if (isCommission.present) {
+      map['is_commission'] = Variable<bool>(isCommission.value);
+    }
+    if (client.present) {
+      map['client'] = Variable<String>(client.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
+    }
+    if (receivedAmount.present) {
+      map['received_amount'] = Variable<double>(receivedAmount.value);
+    }
+    if (dueAt.present) {
+      map['due_at'] = Variable<DateTime>(dueAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4575,6 +5861,14 @@ class PiecesCompanion extends UpdateCompanion<Piece> {
           ..write('targetLikes: $targetLikes, ')
           ..write('actualLikes: $actualLikes, ')
           ..write('finishedAt: $finishedAt, ')
+          ..write('isPublished: $isPublished, ')
+          ..write('publishedAt: $publishedAt, ')
+          ..write('isCommission: $isCommission, ')
+          ..write('client: $client, ')
+          ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
+          ..write('receivedAmount: $receivedAmount, ')
+          ..write('dueAt: $dueAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7761,6 +9055,28 @@ class $ReviewSettingsTable extends ReviewSettings
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _monthAlignMeta = const VerificationMeta(
+    'monthAlign',
+  );
+  @override
+  late final GeneratedColumn<String> monthAlign = GeneratedColumn<String>(
+    'month_align',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     year,
@@ -7768,6 +9084,8 @@ class $ReviewSettingsTable extends ReviewSettings
     ratio,
     monthFormat,
     monthOnImage,
+    monthAlign,
+    updatedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -7817,6 +9135,18 @@ class $ReviewSettingsTable extends ReviewSettings
         ),
       );
     }
+    if (data.containsKey('month_align')) {
+      context.handle(
+        _monthAlignMeta,
+        monthAlign.isAcceptableOrUnknown(data['month_align']!, _monthAlignMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -7846,6 +9176,14 @@ class $ReviewSettingsTable extends ReviewSettings
         DriftSqlType.bool,
         data['${effectivePrefix}month_on_image'],
       )!,
+      monthAlign: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}month_align'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
     );
   }
 
@@ -7861,12 +9199,20 @@ class ReviewSetting extends DataClass implements Insertable<ReviewSetting> {
   final String ratio;
   final String monthFormat;
   final bool monthOnImage;
+
+  /// 月份對齊（D-039）：`start`／`center`／`end`；null＝預設（月份在圖上＝靠左，在空白位置＝置中）。
+  final String? monthAlign;
+
+  /// 同步用的版本時間；舊資料為 null。
+  final DateTime? updatedAt;
   const ReviewSetting({
     required this.year,
     required this.columns,
     required this.ratio,
     required this.monthFormat,
     required this.monthOnImage,
+    this.monthAlign,
+    this.updatedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -7876,6 +9222,12 @@ class ReviewSetting extends DataClass implements Insertable<ReviewSetting> {
     map['ratio'] = Variable<String>(ratio);
     map['month_format'] = Variable<String>(monthFormat);
     map['month_on_image'] = Variable<bool>(monthOnImage);
+    if (!nullToAbsent || monthAlign != null) {
+      map['month_align'] = Variable<String>(monthAlign);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
     return map;
   }
 
@@ -7886,6 +9238,12 @@ class ReviewSetting extends DataClass implements Insertable<ReviewSetting> {
       ratio: Value(ratio),
       monthFormat: Value(monthFormat),
       monthOnImage: Value(monthOnImage),
+      monthAlign: monthAlign == null && nullToAbsent
+          ? const Value.absent()
+          : Value(monthAlign),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
     );
   }
 
@@ -7900,6 +9258,8 @@ class ReviewSetting extends DataClass implements Insertable<ReviewSetting> {
       ratio: serializer.fromJson<String>(json['ratio']),
       monthFormat: serializer.fromJson<String>(json['monthFormat']),
       monthOnImage: serializer.fromJson<bool>(json['monthOnImage']),
+      monthAlign: serializer.fromJson<String?>(json['monthAlign']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
     );
   }
   @override
@@ -7911,6 +9271,8 @@ class ReviewSetting extends DataClass implements Insertable<ReviewSetting> {
       'ratio': serializer.toJson<String>(ratio),
       'monthFormat': serializer.toJson<String>(monthFormat),
       'monthOnImage': serializer.toJson<bool>(monthOnImage),
+      'monthAlign': serializer.toJson<String?>(monthAlign),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
     };
   }
 
@@ -7920,12 +9282,16 @@ class ReviewSetting extends DataClass implements Insertable<ReviewSetting> {
     String? ratio,
     String? monthFormat,
     bool? monthOnImage,
+    Value<String?> monthAlign = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
   }) => ReviewSetting(
     year: year ?? this.year,
     columns: columns ?? this.columns,
     ratio: ratio ?? this.ratio,
     monthFormat: monthFormat ?? this.monthFormat,
     monthOnImage: monthOnImage ?? this.monthOnImage,
+    monthAlign: monthAlign.present ? monthAlign.value : this.monthAlign,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
   );
   ReviewSetting copyWithCompanion(ReviewSettingsCompanion data) {
     return ReviewSetting(
@@ -7938,6 +9304,10 @@ class ReviewSetting extends DataClass implements Insertable<ReviewSetting> {
       monthOnImage: data.monthOnImage.present
           ? data.monthOnImage.value
           : this.monthOnImage,
+      monthAlign: data.monthAlign.present
+          ? data.monthAlign.value
+          : this.monthAlign,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
 
@@ -7948,14 +9318,23 @@ class ReviewSetting extends DataClass implements Insertable<ReviewSetting> {
           ..write('columns: $columns, ')
           ..write('ratio: $ratio, ')
           ..write('monthFormat: $monthFormat, ')
-          ..write('monthOnImage: $monthOnImage')
+          ..write('monthOnImage: $monthOnImage, ')
+          ..write('monthAlign: $monthAlign, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(year, columns, ratio, monthFormat, monthOnImage);
+  int get hashCode => Object.hash(
+    year,
+    columns,
+    ratio,
+    monthFormat,
+    monthOnImage,
+    monthAlign,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -7964,7 +9343,9 @@ class ReviewSetting extends DataClass implements Insertable<ReviewSetting> {
           other.columns == this.columns &&
           other.ratio == this.ratio &&
           other.monthFormat == this.monthFormat &&
-          other.monthOnImage == this.monthOnImage);
+          other.monthOnImage == this.monthOnImage &&
+          other.monthAlign == this.monthAlign &&
+          other.updatedAt == this.updatedAt);
 }
 
 class ReviewSettingsCompanion extends UpdateCompanion<ReviewSetting> {
@@ -7973,12 +9354,16 @@ class ReviewSettingsCompanion extends UpdateCompanion<ReviewSetting> {
   final Value<String> ratio;
   final Value<String> monthFormat;
   final Value<bool> monthOnImage;
+  final Value<String?> monthAlign;
+  final Value<DateTime?> updatedAt;
   const ReviewSettingsCompanion({
     this.year = const Value.absent(),
     this.columns = const Value.absent(),
     this.ratio = const Value.absent(),
     this.monthFormat = const Value.absent(),
     this.monthOnImage = const Value.absent(),
+    this.monthAlign = const Value.absent(),
+    this.updatedAt = const Value.absent(),
   });
   ReviewSettingsCompanion.insert({
     this.year = const Value.absent(),
@@ -7986,6 +9371,8 @@ class ReviewSettingsCompanion extends UpdateCompanion<ReviewSetting> {
     this.ratio = const Value.absent(),
     this.monthFormat = const Value.absent(),
     this.monthOnImage = const Value.absent(),
+    this.monthAlign = const Value.absent(),
+    this.updatedAt = const Value.absent(),
   });
   static Insertable<ReviewSetting> custom({
     Expression<int>? year,
@@ -7993,6 +9380,8 @@ class ReviewSettingsCompanion extends UpdateCompanion<ReviewSetting> {
     Expression<String>? ratio,
     Expression<String>? monthFormat,
     Expression<bool>? monthOnImage,
+    Expression<String>? monthAlign,
+    Expression<DateTime>? updatedAt,
   }) {
     return RawValuesInsertable({
       if (year != null) 'year': year,
@@ -8000,6 +9389,8 @@ class ReviewSettingsCompanion extends UpdateCompanion<ReviewSetting> {
       if (ratio != null) 'ratio': ratio,
       if (monthFormat != null) 'month_format': monthFormat,
       if (monthOnImage != null) 'month_on_image': monthOnImage,
+      if (monthAlign != null) 'month_align': monthAlign,
+      if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
 
@@ -8009,6 +9400,8 @@ class ReviewSettingsCompanion extends UpdateCompanion<ReviewSetting> {
     Value<String>? ratio,
     Value<String>? monthFormat,
     Value<bool>? monthOnImage,
+    Value<String?>? monthAlign,
+    Value<DateTime?>? updatedAt,
   }) {
     return ReviewSettingsCompanion(
       year: year ?? this.year,
@@ -8016,6 +9409,8 @@ class ReviewSettingsCompanion extends UpdateCompanion<ReviewSetting> {
       ratio: ratio ?? this.ratio,
       monthFormat: monthFormat ?? this.monthFormat,
       monthOnImage: monthOnImage ?? this.monthOnImage,
+      monthAlign: monthAlign ?? this.monthAlign,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
@@ -8037,6 +9432,12 @@ class ReviewSettingsCompanion extends UpdateCompanion<ReviewSetting> {
     if (monthOnImage.present) {
       map['month_on_image'] = Variable<bool>(monthOnImage.value);
     }
+    if (monthAlign.present) {
+      map['month_align'] = Variable<String>(monthAlign.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
     return map;
   }
 
@@ -8047,7 +9448,9 @@ class ReviewSettingsCompanion extends UpdateCompanion<ReviewSetting> {
           ..write('columns: $columns, ')
           ..write('ratio: $ratio, ')
           ..write('monthFormat: $monthFormat, ')
-          ..write('monthOnImage: $monthOnImage')
+          ..write('monthOnImage: $monthOnImage, ')
+          ..write('monthAlign: $monthAlign, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
@@ -8714,6 +10117,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $OfficialGroupsTable officialGroups = $OfficialGroupsTable(this);
   late final $OfficialImagesTable officialImages = $OfficialImagesTable(this);
   late final $FanArtsTable fanArts = $FanArtsTable(this);
+  late final $JunkImagesTable junkImages = $JunkImagesTable(this);
   late final $TagsTable tags = $TagsTable(this);
   late final $IdeasTable ideas = $IdeasTable(this);
   late final $DraftsTable drafts = $DraftsTable(this);
@@ -8740,6 +10144,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     officialGroups,
     officialImages,
     fanArts,
+    junkImages,
     tags,
     ideas,
     drafts,
@@ -8770,6 +10175,7 @@ typedef $$PitsTableCreateCompanionBuilder = PitsCompanion Function({
   Value<String?> officialCoverId,
   Value<String?> fanArtCoverId,
   Value<bool> archived,
+  Value<bool> junkEnabled,
   Value<int> rowid,
 });
 typedef $$PitsTableUpdateCompanionBuilder = PitsCompanion Function({
@@ -8784,6 +10190,7 @@ typedef $$PitsTableUpdateCompanionBuilder = PitsCompanion Function({
   Value<String?> officialCoverId,
   Value<String?> fanArtCoverId,
   Value<bool> archived,
+  Value<bool> junkEnabled,
   Value<int> rowid,
 });
 
@@ -8847,6 +10254,11 @@ class $$PitsTableFilterComposer extends Composer<_$AppDatabase, $PitsTable> {
 
   ColumnFilters<bool> get archived => $composableBuilder(
     column: $table.archived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get junkEnabled => $composableBuilder(
+    column: $table.junkEnabled,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -8913,6 +10325,11 @@ class $$PitsTableOrderingComposer extends Composer<_$AppDatabase, $PitsTable> {
     column: $table.archived,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get junkEnabled => $composableBuilder(
+    column: $table.junkEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PitsTableAnnotationComposer
@@ -8964,6 +10381,11 @@ class $$PitsTableAnnotationComposer
 
   GeneratedColumn<bool> get archived =>
       $composableBuilder(column: $table.archived, builder: (column) => column);
+
+  GeneratedColumn<bool> get junkEnabled => $composableBuilder(
+    column: $table.junkEnabled,
+    builder: (column) => column,
+  );
 }
 
 class $$PitsTableTableManager
@@ -9005,6 +10427,7 @@ class $$PitsTableTableManager
                 Value<String?> officialCoverId = const Value.absent(),
                 Value<String?> fanArtCoverId = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
+                Value<bool> junkEnabled = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PitsCompanion(
                 id: id,
@@ -9018,6 +10441,7 @@ class $$PitsTableTableManager
                 officialCoverId: officialCoverId,
                 fanArtCoverId: fanArtCoverId,
                 archived: archived,
+                junkEnabled: junkEnabled,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9033,6 +10457,7 @@ class $$PitsTableTableManager
                 Value<String?> officialCoverId = const Value.absent(),
                 Value<String?> fanArtCoverId = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
+                Value<bool> junkEnabled = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PitsCompanion.insert(
                 id: id,
@@ -9046,6 +10471,7 @@ class $$PitsTableTableManager
                 officialCoverId: officialCoverId,
                 fanArtCoverId: fanArtCoverId,
                 archived: archived,
+                junkEnabled: junkEnabled,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -9374,6 +10800,8 @@ typedef $$OfficialImagesTableCreateCompanionBuilder =
       required String imageFile,
       Value<int> width,
       Value<int> height,
+      Value<String> imageKey,
+      Value<bool> hidden,
       Value<int> rowid,
     });
 typedef $$OfficialImagesTableUpdateCompanionBuilder =
@@ -9388,6 +10816,8 @@ typedef $$OfficialImagesTableUpdateCompanionBuilder =
       Value<String> imageFile,
       Value<int> width,
       Value<int> height,
+      Value<String> imageKey,
+      Value<bool> hidden,
       Value<int> rowid,
     });
 
@@ -9447,6 +10877,16 @@ class $$OfficialImagesTableFilterComposer
 
   ColumnFilters<int> get height => $composableBuilder(
     column: $table.height,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageKey => $composableBuilder(
+    column: $table.imageKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hidden => $composableBuilder(
+    column: $table.hidden,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -9509,6 +10949,16 @@ class $$OfficialImagesTableOrderingComposer
     column: $table.height,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get imageKey => $composableBuilder(
+    column: $table.imageKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hidden => $composableBuilder(
+    column: $table.hidden,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$OfficialImagesTableAnnotationComposer
@@ -9549,6 +10999,12 @@ class $$OfficialImagesTableAnnotationComposer
 
   GeneratedColumn<int> get height =>
       $composableBuilder(column: $table.height, builder: (column) => column);
+
+  GeneratedColumn<String> get imageKey =>
+      $composableBuilder(column: $table.imageKey, builder: (column) => column);
+
+  GeneratedColumn<bool> get hidden =>
+      $composableBuilder(column: $table.hidden, builder: (column) => column);
 }
 
 class $$OfficialImagesTableTableManager
@@ -9594,6 +11050,8 @@ class $$OfficialImagesTableTableManager
                 Value<String> imageFile = const Value.absent(),
                 Value<int> width = const Value.absent(),
                 Value<int> height = const Value.absent(),
+                Value<String> imageKey = const Value.absent(),
+                Value<bool> hidden = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OfficialImagesCompanion(
                 id: id,
@@ -9606,6 +11064,8 @@ class $$OfficialImagesTableTableManager
                 imageFile: imageFile,
                 width: width,
                 height: height,
+                imageKey: imageKey,
+                hidden: hidden,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9620,6 +11080,8 @@ class $$OfficialImagesTableTableManager
                 required String imageFile,
                 Value<int> width = const Value.absent(),
                 Value<int> height = const Value.absent(),
+                Value<String> imageKey = const Value.absent(),
+                Value<bool> hidden = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OfficialImagesCompanion.insert(
                 id: id,
@@ -9632,6 +11094,8 @@ class $$OfficialImagesTableTableManager
                 imageFile: imageFile,
                 width: width,
                 height: height,
+                imageKey: imageKey,
+                hidden: hidden,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -9681,6 +11145,8 @@ typedef $$FanArtsTableCreateCompanionBuilder = FanArtsCompanion Function({
   Value<String> author,
   Value<String> source,
   Value<String?> groupId,
+  Value<String> imageKey,
+  Value<bool> hidden,
   Value<int> rowid,
 });
 typedef $$FanArtsTableUpdateCompanionBuilder = FanArtsCompanion Function({
@@ -9696,6 +11162,8 @@ typedef $$FanArtsTableUpdateCompanionBuilder = FanArtsCompanion Function({
   Value<String> author,
   Value<String> source,
   Value<String?> groupId,
+  Value<String> imageKey,
+  Value<bool> hidden,
   Value<int> rowid,
 });
 
@@ -9765,6 +11233,16 @@ class $$FanArtsTableFilterComposer
 
   ColumnFilters<String> get groupId => $composableBuilder(
     column: $table.groupId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageKey => $composableBuilder(
+    column: $table.imageKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hidden => $composableBuilder(
+    column: $table.hidden,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -9837,6 +11315,16 @@ class $$FanArtsTableOrderingComposer
     column: $table.groupId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get imageKey => $composableBuilder(
+    column: $table.imageKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hidden => $composableBuilder(
+    column: $table.hidden,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FanArtsTableAnnotationComposer
@@ -9883,6 +11371,12 @@ class $$FanArtsTableAnnotationComposer
 
   GeneratedColumn<String> get groupId =>
       $composableBuilder(column: $table.groupId, builder: (column) => column);
+
+  GeneratedColumn<String> get imageKey =>
+      $composableBuilder(column: $table.imageKey, builder: (column) => column);
+
+  GeneratedColumn<bool> get hidden =>
+      $composableBuilder(column: $table.hidden, builder: (column) => column);
 }
 
 class $$FanArtsTableTableManager
@@ -9925,6 +11419,8 @@ class $$FanArtsTableTableManager
                 Value<String> author = const Value.absent(),
                 Value<String> source = const Value.absent(),
                 Value<String?> groupId = const Value.absent(),
+                Value<String> imageKey = const Value.absent(),
+                Value<bool> hidden = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FanArtsCompanion(
                 id: id,
@@ -9939,6 +11435,8 @@ class $$FanArtsTableTableManager
                 author: author,
                 source: source,
                 groupId: groupId,
+                imageKey: imageKey,
+                hidden: hidden,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9955,6 +11453,8 @@ class $$FanArtsTableTableManager
                 Value<String> author = const Value.absent(),
                 Value<String> source = const Value.absent(),
                 Value<String?> groupId = const Value.absent(),
+                Value<String> imageKey = const Value.absent(),
+                Value<bool> hidden = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FanArtsCompanion.insert(
                 id: id,
@@ -9969,6 +11469,8 @@ class $$FanArtsTableTableManager
                 author: author,
                 source: source,
                 groupId: groupId,
+                imageKey: imageKey,
+                hidden: hidden,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -10000,6 +11502,324 @@ typedef $$FanArtsTableProcessedTableManager =
       $$FanArtsTableUpdateCompanionBuilder,
       (FanArt, BaseReferences<_$AppDatabase, $FanArtsTable, FanArt>),
       FanArt,
+      PrefetchHooks Function()
+    >;
+typedef $$JunkImagesTableCreateCompanionBuilder = JunkImagesCompanion Function({
+  Value<String> id,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<String> deviceId,
+  required String pitId,
+  required String imageFile,
+  Value<int> width,
+  Value<int> height,
+  Value<String> imageKey,
+  Value<bool> hidden,
+  Value<int> rowid,
+});
+typedef $$JunkImagesTableUpdateCompanionBuilder = JunkImagesCompanion Function({
+  Value<String> id,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<String> deviceId,
+  Value<String> pitId,
+  Value<String> imageFile,
+  Value<int> width,
+  Value<int> height,
+  Value<String> imageKey,
+  Value<bool> hidden,
+  Value<int> rowid,
+});
+
+class $$JunkImagesTableFilterComposer
+    extends Composer<_$AppDatabase, $JunkImagesTable> {
+  $$JunkImagesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pitId => $composableBuilder(
+    column: $table.pitId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageFile => $composableBuilder(
+    column: $table.imageFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageKey => $composableBuilder(
+    column: $table.imageKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hidden => $composableBuilder(
+    column: $table.hidden,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$JunkImagesTableOrderingComposer
+    extends Composer<_$AppDatabase, $JunkImagesTable> {
+  $$JunkImagesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pitId => $composableBuilder(
+    column: $table.pitId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get imageFile => $composableBuilder(
+    column: $table.imageFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get imageKey => $composableBuilder(
+    column: $table.imageKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hidden => $composableBuilder(
+    column: $table.hidden,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$JunkImagesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $JunkImagesTable> {
+  $$JunkImagesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get pitId =>
+      $composableBuilder(column: $table.pitId, builder: (column) => column);
+
+  GeneratedColumn<String> get imageFile =>
+      $composableBuilder(column: $table.imageFile, builder: (column) => column);
+
+  GeneratedColumn<int> get width =>
+      $composableBuilder(column: $table.width, builder: (column) => column);
+
+  GeneratedColumn<int> get height =>
+      $composableBuilder(column: $table.height, builder: (column) => column);
+
+  GeneratedColumn<String> get imageKey =>
+      $composableBuilder(column: $table.imageKey, builder: (column) => column);
+
+  GeneratedColumn<bool> get hidden =>
+      $composableBuilder(column: $table.hidden, builder: (column) => column);
+}
+
+class $$JunkImagesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $JunkImagesTable,
+          JunkImage,
+          $$JunkImagesTableFilterComposer,
+          $$JunkImagesTableOrderingComposer,
+          $$JunkImagesTableAnnotationComposer,
+          $$JunkImagesTableCreateCompanionBuilder,
+          $$JunkImagesTableUpdateCompanionBuilder,
+          (
+            JunkImage,
+            BaseReferences<_$AppDatabase, $JunkImagesTable, JunkImage>,
+          ),
+          JunkImage,
+          PrefetchHooks Function()
+        > {
+  $$JunkImagesTableTableManager(_$AppDatabase db, $JunkImagesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$JunkImagesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$JunkImagesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$JunkImagesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<String> pitId = const Value.absent(),
+                Value<String> imageFile = const Value.absent(),
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
+                Value<String> imageKey = const Value.absent(),
+                Value<bool> hidden = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => JunkImagesCompanion(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                pitId: pitId,
+                imageFile: imageFile,
+                width: width,
+                height: height,
+                imageKey: imageKey,
+                hidden: hidden,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                required String pitId,
+                required String imageFile,
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
+                Value<String> imageKey = const Value.absent(),
+                Value<bool> hidden = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => JunkImagesCompanion.insert(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                pitId: pitId,
+                imageFile: imageFile,
+                width: width,
+                height: height,
+                imageKey: imageKey,
+                hidden: hidden,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$JunkImagesTable, JunkImage>(table),
+                  BaseReferences<_$AppDatabase, $JunkImagesTable, JunkImage>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$JunkImagesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $JunkImagesTable,
+      JunkImage,
+      $$JunkImagesTableFilterComposer,
+      $$JunkImagesTableOrderingComposer,
+      $$JunkImagesTableAnnotationComposer,
+      $$JunkImagesTableCreateCompanionBuilder,
+      $$JunkImagesTableUpdateCompanionBuilder,
+      (JunkImage, BaseReferences<_$AppDatabase, $JunkImagesTable, JunkImage>),
+      JunkImage,
       PrefetchHooks Function()
     >;
 typedef $$TagsTableCreateCompanionBuilder = TagsCompanion Function({
@@ -10762,6 +12582,14 @@ typedef $$PiecesTableCreateCompanionBuilder = PiecesCompanion Function({
   Value<int> targetLikes,
   Value<int> actualLikes,
   Value<DateTime> finishedAt,
+  Value<bool> isPublished,
+  Value<DateTime?> publishedAt,
+  Value<bool> isCommission,
+  Value<String> client,
+  Value<double?> amount,
+  Value<String> currency,
+  Value<double> receivedAmount,
+  Value<DateTime?> dueAt,
   Value<int> rowid,
 });
 typedef $$PiecesTableUpdateCompanionBuilder = PiecesCompanion Function({
@@ -10776,6 +12604,14 @@ typedef $$PiecesTableUpdateCompanionBuilder = PiecesCompanion Function({
   Value<int> targetLikes,
   Value<int> actualLikes,
   Value<DateTime> finishedAt,
+  Value<bool> isPublished,
+  Value<DateTime?> publishedAt,
+  Value<bool> isCommission,
+  Value<String> client,
+  Value<double?> amount,
+  Value<String> currency,
+  Value<double> receivedAmount,
+  Value<DateTime?> dueAt,
   Value<int> rowid,
 });
 
@@ -10840,6 +12676,46 @@ class $$PiecesTableFilterComposer
 
   ColumnFilters<DateTime> get finishedAt => $composableBuilder(
     column: $table.finishedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isPublished => $composableBuilder(
+    column: $table.isPublished,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get publishedAt => $composableBuilder(
+    column: $table.publishedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isCommission => $composableBuilder(
+    column: $table.isCommission,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get client => $composableBuilder(
+    column: $table.client,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get receivedAmount => $composableBuilder(
+    column: $table.receivedAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dueAt => $composableBuilder(
+    column: $table.dueAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -10907,6 +12783,46 @@ class $$PiecesTableOrderingComposer
     column: $table.finishedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isPublished => $composableBuilder(
+    column: $table.isPublished,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get publishedAt => $composableBuilder(
+    column: $table.publishedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isCommission => $composableBuilder(
+    column: $table.isCommission,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get client => $composableBuilder(
+    column: $table.client,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get receivedAmount => $composableBuilder(
+    column: $table.receivedAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dueAt => $composableBuilder(
+    column: $table.dueAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PiecesTableAnnotationComposer
@@ -10956,6 +12872,38 @@ class $$PiecesTableAnnotationComposer
     column: $table.finishedAt,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get isPublished => $composableBuilder(
+    column: $table.isPublished,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get publishedAt => $composableBuilder(
+    column: $table.publishedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isCommission => $composableBuilder(
+    column: $table.isCommission,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get client =>
+      $composableBuilder(column: $table.client, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<double> get receivedAmount => $composableBuilder(
+    column: $table.receivedAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get dueAt =>
+      $composableBuilder(column: $table.dueAt, builder: (column) => column);
 }
 
 class $$PiecesTableTableManager
@@ -10997,6 +12945,14 @@ class $$PiecesTableTableManager
                 Value<int> targetLikes = const Value.absent(),
                 Value<int> actualLikes = const Value.absent(),
                 Value<DateTime> finishedAt = const Value.absent(),
+                Value<bool> isPublished = const Value.absent(),
+                Value<DateTime?> publishedAt = const Value.absent(),
+                Value<bool> isCommission = const Value.absent(),
+                Value<String> client = const Value.absent(),
+                Value<double?> amount = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<double> receivedAmount = const Value.absent(),
+                Value<DateTime?> dueAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PiecesCompanion(
                 id: id,
@@ -11010,6 +12966,14 @@ class $$PiecesTableTableManager
                 targetLikes: targetLikes,
                 actualLikes: actualLikes,
                 finishedAt: finishedAt,
+                isPublished: isPublished,
+                publishedAt: publishedAt,
+                isCommission: isCommission,
+                client: client,
+                amount: amount,
+                currency: currency,
+                receivedAmount: receivedAmount,
+                dueAt: dueAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -11025,6 +12989,14 @@ class $$PiecesTableTableManager
                 Value<int> targetLikes = const Value.absent(),
                 Value<int> actualLikes = const Value.absent(),
                 Value<DateTime> finishedAt = const Value.absent(),
+                Value<bool> isPublished = const Value.absent(),
+                Value<DateTime?> publishedAt = const Value.absent(),
+                Value<bool> isCommission = const Value.absent(),
+                Value<String> client = const Value.absent(),
+                Value<double?> amount = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<double> receivedAmount = const Value.absent(),
+                Value<DateTime?> dueAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PiecesCompanion.insert(
                 id: id,
@@ -11038,6 +13010,14 @@ class $$PiecesTableTableManager
                 targetLikes: targetLikes,
                 actualLikes: actualLikes,
                 finishedAt: finishedAt,
+                isPublished: isPublished,
+                publishedAt: publishedAt,
+                isCommission: isCommission,
+                client: client,
+                amount: amount,
+                currency: currency,
+                receivedAmount: receivedAmount,
+                dueAt: dueAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -12828,6 +14808,8 @@ typedef $$ReviewSettingsTableCreateCompanionBuilder =
       Value<String> ratio,
       Value<String> monthFormat,
       Value<bool> monthOnImage,
+      Value<String?> monthAlign,
+      Value<DateTime?> updatedAt,
     });
 typedef $$ReviewSettingsTableUpdateCompanionBuilder =
     ReviewSettingsCompanion Function({
@@ -12836,6 +14818,8 @@ typedef $$ReviewSettingsTableUpdateCompanionBuilder =
       Value<String> ratio,
       Value<String> monthFormat,
       Value<bool> monthOnImage,
+      Value<String?> monthAlign,
+      Value<DateTime?> updatedAt,
     });
 
 class $$ReviewSettingsTableFilterComposer
@@ -12869,6 +14853,16 @@ class $$ReviewSettingsTableFilterComposer
 
   ColumnFilters<bool> get monthOnImage => $composableBuilder(
     column: $table.monthOnImage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get monthAlign => $composableBuilder(
+    column: $table.monthAlign,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -12906,6 +14900,16 @@ class $$ReviewSettingsTableOrderingComposer
     column: $table.monthOnImage,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get monthAlign => $composableBuilder(
+    column: $table.monthAlign,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ReviewSettingsTableAnnotationComposer
@@ -12935,6 +14939,14 @@ class $$ReviewSettingsTableAnnotationComposer
     column: $table.monthOnImage,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get monthAlign => $composableBuilder(
+    column: $table.monthAlign,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
 
 class $$ReviewSettingsTableTableManager
@@ -12975,12 +14987,16 @@ class $$ReviewSettingsTableTableManager
                 Value<String> ratio = const Value.absent(),
                 Value<String> monthFormat = const Value.absent(),
                 Value<bool> monthOnImage = const Value.absent(),
+                Value<String?> monthAlign = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
               }) => ReviewSettingsCompanion(
                 year: year,
                 columns: columns,
                 ratio: ratio,
                 monthFormat: monthFormat,
                 monthOnImage: monthOnImage,
+                monthAlign: monthAlign,
+                updatedAt: updatedAt,
               ),
           createCompanionCallback:
               ({
@@ -12989,12 +15005,16 @@ class $$ReviewSettingsTableTableManager
                 Value<String> ratio = const Value.absent(),
                 Value<String> monthFormat = const Value.absent(),
                 Value<bool> monthOnImage = const Value.absent(),
+                Value<String?> monthAlign = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
               }) => ReviewSettingsCompanion.insert(
                 year: year,
                 columns: columns,
                 ratio: ratio,
                 monthFormat: monthFormat,
                 monthOnImage: monthOnImage,
+                monthAlign: monthAlign,
+                updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -13422,6 +15442,8 @@ class $AppDatabaseManager {
       $$OfficialImagesTableTableManager(_db, _db.officialImages);
   $$FanArtsTableTableManager get fanArts =>
       $$FanArtsTableTableManager(_db, _db.fanArts);
+  $$JunkImagesTableTableManager get junkImages =>
+      $$JunkImagesTableTableManager(_db, _db.junkImages);
   $$TagsTableTableManager get tags => $$TagsTableTableManager(_db, _db.tags);
   $$IdeasTableTableManager get ideas =>
       $$IdeasTableTableManager(_db, _db.ideas);
