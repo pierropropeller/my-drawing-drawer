@@ -1,9 +1,8 @@
-import '../../app_name.dart';
-
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gal/gal.dart';
 
@@ -13,8 +12,13 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../album/album_image.dart';
+import '../common/nav_bar_hidden.dart';
+import '../common/responsive.dart';
 import '../entity/entity_widgets.dart';
 import 'review_canvas.dart';
+
+/// 年度回顧匯出圖片存進的相簿名稱（D-007）：固定英文，不隨系統語言（Android：`Pictures/Drawer`）。
+const reviewAlbumName = 'Drawer';
 
 /// 年度回顧排版：格數、比例、月份格式、月份位置；點某月可換圖；儲存並匯出 PNG。
 class ReviewEditPage extends ConsumerStatefulWidget {
@@ -25,12 +29,14 @@ class ReviewEditPage extends ConsumerStatefulWidget {
   ConsumerState<ReviewEditPage> createState() => _ReviewEditPageState();
 }
 
-class _ReviewEditPageState extends ConsumerState<ReviewEditPage> {
+class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
+    with HidesNavBar {
   final _boundary = GlobalKey();
   int? _columns;
   String? _ratio;
   String? _format;
   bool? _onImage;
+  String? _align; // 使用者明確選過的月份對齊；null＝跟隨預設
   Map<int, List<String>> _byMonth = {};
   bool _exporting = false;
 
@@ -128,8 +134,8 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage> {
       }
       await Gal.putImageBytes(
         bytes,
-        name: '$appName-${widget.year}-回顧',
-        album: appName,
+        name: 'Drawer-${widget.year}-review',
+        album: reviewAlbumName,
       );
       if (mounted) showSnack(context, '已儲存到相簿');
     } catch (_) {
@@ -152,149 +158,200 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage> {
     final ratio = _ratio ?? saved.ratio;
     final format = _format ?? saved.monthFormat;
     final onImage = _onImage ?? saved.monthOnImage;
-    final current = ReviewSetting(
-      year: widget.year,
+    // 沒選過對齊時，預設跟著月份位置走：圖上＝靠左、空白位置＝置中。
+    final align = _align ?? saved.monthAlign ?? (onImage ? 'start' : 'center');
+    final current = saved.copyWith(
       columns: columns,
       ratio: ratio,
       monthFormat: format,
       monthOnImage: onImage,
+      monthAlign: Value(_align ?? saved.monthAlign),
     );
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            const SubPageHeader(title: '年度回顧排版', titleSize: 20, gap: 6),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
-                children: [
-                  const _Sec('排版', top: 0),
-                  LayoutBuilder(
-                    builder: (context, c) => Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final o in reviewColumnOptions)
-                          _LayoutOption(
-                            width: ((c.maxWidth - 16) / 3).floorToDouble(),
-                            columns: o.$1,
-                            label: o.$2,
-                            selected: columns == o.$1,
-                            dark: dark,
-                            onTap: () => setState(() => _columns = o.$1),
-                          ),
-                      ],
+        child: ContentWidth(
+          child: Column(
+            children: [
+              const SubPageHeader(title: '年度回顧排版', titleSize: 20, gap: 6),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+                  children: [
+                    const _Sec('排版', top: 0),
+                    LayoutBuilder(
+                      builder: (context, c) => Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final o in reviewColumnOptions)
+                            _LayoutOption(
+                              width: ((c.maxWidth - 16) / 3).floorToDouble(),
+                              columns: o.$1,
+                              label: o.$2,
+                              selected: columns == o.$1,
+                              dark: dark,
+                              onTap: () => setState(() => _columns = o.$1),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const _Sec('正方格比例'),
-                  _Choices(
-                    options: reviewRatioOptions,
-                    selected: ratio,
-                    onSelected: (v) => setState(() => _ratio = v),
-                  ),
-                  const _Sec('月份格式'),
-                  _Choices(
-                    options: reviewMonthFormats,
-                    selected: format,
-                    onSelected: (v) => setState(() => _format = v),
-                  ),
-                  const _Sec('月份位置'),
-                  Row(
-                    spacing: 8,
-                    children: [
-                      for (final (on, label) in [(true, '圖上'), (false, '空白位置')])
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _onImage = on),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: onImage == on ? t.ink : t.surface,
-                                border: Border.all(color: t.border),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                label,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: onImage == on ? t.ground : t.text2,
+                    const _Sec('正方格比例'),
+                    _Choices(
+                      options: reviewRatioOptions,
+                      selected: ratio,
+                      onSelected: (v) => setState(() => _ratio = v),
+                    ),
+                    const _Sec('月份格式'),
+                    _Choices(
+                      options: reviewMonthFormats,
+                      selected: format,
+                      onSelected: (v) => setState(() => _format = v),
+                    ),
+                    const _Sec('月份位置'),
+                    Row(
+                      spacing: 8,
+                      children: [
+                        for (final (on, label) in [
+                          (true, '圖上'),
+                          (false, '空白位置'),
+                        ])
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _onImage = on),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: onImage == on ? t.ink : t.surface,
+                                  border: Border.all(color: t.border),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: onImage == on ? t.ground : t.text2,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: t.surface,
-                      border: Border.all(color: t.borderCard),
-                      borderRadius: BorderRadius.circular(Radii.card),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '預覽',
-                          style: TextStyle(fontSize: 11, color: t.text3),
-                        ),
-                        const SizedBox(height: 12),
-                        RepaintBoundary(
-                          key: _boundary,
-                          child: ReviewCanvas(
-                            files: _files(chosen),
-                            columns: columns,
-                            ratio: ratio,
-                            monthFormat: format,
-                            monthOnImage: onImage,
-                            onTapMonth: (m) => _pickMonth(m, chosen),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '點選某個月份可更換圖片',
-                          style: TextStyle(color: t.text3, fontSize: 11),
-                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap: _exporting ? null : () => _export(current),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      alignment: Alignment.center,
+                    const _Sec('月份對齊'),
+                    Row(
+                      spacing: 8,
+                      children: [
+                        for (final (key, label) in [
+                          ('start', '靠左'),
+                          ('center', '置中'),
+                          ('end', '靠右'),
+                        ])
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _align = key),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: align == key ? t.ink : t.surface,
+                                  border: Border.all(color: t.border),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: align == key ? t.ground : t.text2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: _exporting
-                            ? t.accent.withValues(alpha: .5)
-                            : t.accent,
-                        borderRadius: BorderRadius.circular(Radii.button),
+                        color: t.surface,
+                        border: Border.all(color: t.borderCard),
+                        borderRadius: BorderRadius.circular(Radii.card),
                       ),
-                      child: const Text(
-                        '儲存並匯出圖片',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '預覽',
+                            style: TextStyle(fontSize: 11, color: t.text3),
+                          ),
+                          const SizedBox(height: 12),
+                          // 外框＝匯出圖片的邊界（無圓角）；框內的白邊會一起匯出，框線不會。
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: dark
+                                    ? t.dashed
+                                    : const Color(0xFFD8CFC3),
+                              ),
+                            ),
+                            child: RepaintBoundary(
+                              key: _boundary,
+                              child: ReviewCanvas(
+                                files: _files(chosen),
+                                columns: columns,
+                                ratio: ratio,
+                                monthFormat: format,
+                                monthOnImage: onImage,
+                                monthAlign: align,
+                                onTapMonth: (m) => _pickMonth(m, chosen),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: _exporting ? null : () => _export(current),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: _exporting
+                              ? t.accent.withValues(alpha: .5)
+                              : t.accent,
+                          borderRadius: BorderRadius.circular(Radii.button),
+                        ),
+                        child: const Text(
+                          '儲存並匯出圖片',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  if (_exporting)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 20),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                ],
+                    if (_exporting)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 20),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

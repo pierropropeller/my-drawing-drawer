@@ -8,11 +8,12 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../entity/entity_widgets.dart';
-import '../album/album_image.dart';
 import '../common/app_icons.dart';
 import '../common/app_switch.dart';
-import '../common/svg_icon.dart';
+import '../common/nav_bar_hidden.dart';
+import '../common/responsive.dart';
 import 'goal_widgets.dart';
+import 'pit_pill.dart';
 
 /// 新增／編輯目標。可選的 tag 依所選的坑而定；未選坑時不能選 tag。
 class GoalNewPage extends ConsumerStatefulWidget {
@@ -32,7 +33,7 @@ class GoalNewPage extends ConsumerStatefulWidget {
   ConsumerState<GoalNewPage> createState() => _GoalNewPageState();
 }
 
-class _GoalNewPageState extends ConsumerState<GoalNewPage> {
+class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
   final _name = TextEditingController();
   final _likes = TextEditingController();
   final _countCtl = TextEditingController(text: '1');
@@ -204,9 +205,6 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> {
     final pitTags = _pitId == null
         ? const <Tag>[]
         : (ref.watch(tagsProvider(_pitId!)).value ?? const <Tag>[]);
-    final cover = pit == null
-        ? null
-        : ref.watch(coverFileProvider(pit.id)).value;
     final scope = switch (widget.period) {
       GoalPeriod.year => '年度',
       GoalPeriod.month => '月度',
@@ -216,339 +214,318 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            SubPageHeader(
-              title: title,
-              titleSize: 20,
-              gap: 6,
-              trailing: [
-                if (widget.goalId != null)
-                  HeaderIconButton(
-                    label: '刪除',
-                    icon: AppIcons.trash,
-                    color: t.danger,
-                    onTap: () async {
-                      final ok = await confirmDelete(context, title: '刪除這個目標？');
-                      if (!ok || !context.mounted) return;
-                      await ref
-                          .read(databaseProvider)
-                          .deleteGoal(widget.goalId!);
-                      if (context.mounted) Navigator.of(context).pop();
-                    },
-                  ),
-              ],
-            ),
-            Expanded(
-              child: !_loaded
-                  ? const Center(child: CircularProgressIndicator())
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
-                          child: Text(
-                            '預覽',
-                            style: TextStyle(fontSize: 11, color: t.text3),
+        child: ContentWidth(
+          child: Column(
+            children: [
+              SubPageHeader(
+                title: title,
+                titleSize: 20,
+                gap: 6,
+                trailing: [
+                  if (widget.goalId != null)
+                    HeaderIconButton(
+                      label: '刪除',
+                      icon: AppIcons.trash,
+                      color: t.danger,
+                      onTap: () async {
+                        final ok = await confirmDelete(
+                          context,
+                          title: '刪除這個目標？',
+                        );
+                        if (!ok || !context.mounted) return;
+                        await ref
+                            .read(databaseProvider)
+                            .deleteGoal(widget.goalId!);
+                        if (context.mounted) Navigator.of(context).pop();
+                      },
+                    ),
+                ],
+              ),
+              Expanded(
+                child: !_loaded
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
+                            child: Text(
+                              '預覽',
+                              style: TextStyle(fontSize: 11, color: t.text3),
+                            ),
                           ),
-                        ),
-                        GoalCardBody(
-                          label: _previewLabel,
-                          progress: 0,
-                          target: _count,
-                          pitName: pit?.name,
-                          coverFile: cover,
-                          tags: [
-                            for (final tag in pitTags)
-                              if (_tagIds.contains(tag.id)) '#${tag.name}',
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        const FormLabel('目標名稱'),
-                        TextField(
-                          controller: _name,
-                          style: fieldStyle,
-                          onChanged: (_) => setState(() {}),
-                          decoration: entityFieldDecoration(context, '留空將自動命名'),
-                        ),
-                        const SizedBox(height: 16),
-                        _requiredLabel(context, '目標種類'),
-                        Row(
-                          spacing: 8,
-                          children: [
-                            for (final (k, label) in [
-                              (GoalKind.idea, '腦洞'),
-                              (GoalKind.draft, '草稿'),
-                              (GoalKind.piece, '成圖'),
-                            ])
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setState(() => _kind = k),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 11,
-                                    ),
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: _kind == k ? t.accent : t.surface,
-                                      border: Border.all(
-                                        color: _kind == k ? t.accent : t.border,
+                          GoalCardBody(
+                            label: _previewLabel,
+                            progress: 0,
+                            target: _count,
+                            pitName: pit?.name,
+                            tags: [
+                              for (final tag in pitTags)
+                                if (_tagIds.contains(tag.id)) '#${tag.name}',
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          const FormLabel('目標名稱'),
+                          TextField(
+                            controller: _name,
+                            style: fieldStyle,
+                            onChanged: (_) => setState(() {}),
+                            decoration: entityFieldDecoration(
+                              context,
+                              '留空將自動命名',
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _requiredLabel(context, '目標種類'),
+                          Row(
+                            spacing: 8,
+                            children: [
+                              for (final (k, label) in [
+                                (GoalKind.idea, '腦洞'),
+                                (GoalKind.draft, '草稿'),
+                                (GoalKind.piece, '成圖'),
+                              ])
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _kind = k),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 11,
                                       ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      label,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
                                         color: _kind == k
-                                            ? Colors.white
-                                            : t.text2,
+                                            ? t.accent
+                                            : t.surface,
+                                        border: Border.all(
+                                          color: _kind == k
+                                              ? t.accent
+                                              : t.border,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _requiredLabel(context, '目標數量'),
-                        Row(
-                          spacing: 10,
-                          children: [
-                            _stepButton(
-                              context,
-                              '−',
-                              () => _setCount(_count - 1),
-                            ),
-                            Expanded(
-                              child: TextField(
-                                controller: _countCtl,
-                                keyboardType: TextInputType.number,
-                                textAlign: TextAlign.center,
-                                style: fieldStyle,
-                                onChanged: (v) {
-                                  final n = int.tryParse(v);
-                                  if (n != null && n > 0) {
-                                    setState(() => _count = n);
-                                  }
-                                },
-                                decoration: entityFieldDecoration(context, ''),
-                              ),
-                            ),
-                            _stepButton(
-                              context,
-                              '＋',
-                              () => _setCount(_count + 1),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const FormLabel('目標坑'),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            if (pit != null)
-                              Container(
-                                padding: const EdgeInsets.fromLTRB(6, 5, 10, 5),
-                                decoration: BoxDecoration(
-                                  color: t.surface,
-                                  border: Border.all(color: mockLine(context)),
-                                  borderRadius: BorderRadius.circular(
-                                    Radii.chip,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(7),
-                                        child: cover == null
-                                            ? ColoredBox(color: t.official.bg)
-                                            : StoredImage(
-                                                cover,
-                                                cacheWidth: 80,
-                                              ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 7),
-                                    Text(
-                                      pit.name,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 7),
-                                    GestureDetector(
-                                      onTap: () => setState(() {
-                                        _pitId = null;
-                                        _tagIds = [];
-                                      }),
-                                      child: Semantics(
-                                        button: true,
-                                        label: '移除',
-                                        child: SvgIcon(
-                                          AppIcons.closeX,
-                                          size: 13,
-                                          strokeWidth: 2,
-                                          color: t.text4,
+                                      child: Text(
+                                        label,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: _kind == k
+                                              ? Colors.white
+                                              : t.text2,
                                         ),
                                       ),
                                     ),
-                                  ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _requiredLabel(context, '目標數量'),
+                          Row(
+                            spacing: 10,
+                            children: [
+                              _stepButton(
+                                context,
+                                '−',
+                                () => _setCount(_count - 1),
+                              ),
+                              Expanded(
+                                child: TextField(
+                                  controller: _countCtl,
+                                  keyboardType: TextInputType.number,
+                                  textAlign: TextAlign.center,
+                                  style: fieldStyle,
+                                  onChanged: (v) {
+                                    final n = int.tryParse(v);
+                                    if (n != null && n > 0) {
+                                      setState(() => _count = n);
+                                    }
+                                  },
+                                  decoration: entityFieldDecoration(
+                                    context,
+                                    '',
+                                  ),
                                 ),
                               ),
-                            DashedAddChip(
-                              semanticLabel: '新增坑',
-                              onTap: () => _pickPit(allPits),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const FormLabel('目標 tag'),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
-                          child: Text(
-                            _pitId == null ? '選擇坑之後才能選 tag' : '只顯示所選坑內的 tag',
-                            style: TextStyle(fontSize: 11.5, color: t.text4),
+                              _stepButton(
+                                context,
+                                '＋',
+                                () => _setCount(_count + 1),
+                              ),
+                            ],
                           ),
-                        ),
-                        if (_pitId != null)
+                          const SizedBox(height: 16),
+                          const FormLabel('目標坑'),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              for (final tag in pitTags)
-                                _pill(
-                                  context,
-                                  '#${tag.name}',
-                                  _tagIds.contains(tag.id),
-                                  () => setState(
-                                    () => _tagIds.contains(tag.id)
-                                        ? _tagIds = _tagIds
-                                              .where((e) => e != tag.id)
-                                              .toList()
-                                        : _tagIds = [..._tagIds, tag.id],
-                                  ),
+                              if (pit != null)
+                                PitPill(
+                                  name: pit.name,
+                                  large: true,
+                                  onRemove: () => setState(() {
+                                    _pitId = null;
+                                    _tagIds = [];
+                                  }),
                                 ),
                               DashedAddChip(
-                                semanticLabel: '新增 tag',
-                                onTap: () async {
-                                  final name = await promptText(
-                                    context,
-                                    title: '新增 tag',
-                                  );
-                                  if (name == null) return;
-                                  final id = await ref
-                                      .read(databaseProvider)
-                                      .createTag(_pitId!, name);
-                                  if (mounted && !_tagIds.contains(id)) {
-                                    setState(() => _tagIds = [..._tagIds, id]);
-                                  }
-                                },
+                                semanticLabel: '選擇坑',
+                                label: '選擇',
+                                onTap: () => _pickPit(allPits),
                               ),
                             ],
                           ),
-                        const SizedBox(height: 16),
-                        if (_kind == GoalKind.piece) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 4,
+                          const SizedBox(height: 16),
+                          const FormLabel('目標 tag'),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
+                            child: Text(
+                              _pitId == null ? '選擇坑之後才能選 tag' : '只顯示所選坑內的 tag',
+                              style: TextStyle(fontSize: 11.5, color: t.text4),
                             ),
-                            decoration: BoxDecoration(
-                              color: t.surface,
-                              border: Border.all(color: t.borderCard),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Column(
+                          ),
+                          if (_pitId != null)
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
+                                for (final tag in pitTags)
+                                  _pill(
+                                    context,
+                                    '#${tag.name}',
+                                    _tagIds.contains(tag.id),
+                                    () => setState(
+                                      () => _tagIds.contains(tag.id)
+                                          ? _tagIds = _tagIds
+                                                .where((e) => e != tag.id)
+                                                .toList()
+                                          : _tagIds = [..._tagIds, tag.id],
+                                    ),
                                   ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        '需要達成互動量',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      AppSwitch(
-                                        value: _requireLikes,
-                                        semanticLabel: '需要達成互動量',
-                                        onChanged: (v) =>
-                                            setState(() => _requireLikes = v),
-                                      ),
-                                    ],
-                                  ),
+                                DashedAddChip(
+                                  semanticLabel: '新增 tag',
+                                  onTap: () async {
+                                    final name = await promptText(
+                                      context,
+                                      title: '新增 tag',
+                                    );
+                                    if (name == null) return;
+                                    final id = await ref
+                                        .read(databaseProvider)
+                                        .createTag(_pitId!, name);
+                                    if (mounted && !_tagIds.contains(id)) {
+                                      setState(
+                                        () => _tagIds = [..._tagIds, id],
+                                      );
+                                    }
+                                  },
                                 ),
-                                if (_requireLikes)
+                              ],
+                            ),
+                          const SizedBox(height: 16),
+                          if (_kind == GoalKind.piece) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: t.surface,
+                                border: Border.all(color: t.borderCard),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Column(
+                                children: [
                                   Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      0,
-                                      2,
-                                      0,
-                                      14,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
                                     ),
                                     child: Row(
-                                      spacing: 10,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          '互動量 ≥',
+                                        const Text(
+                                          '需要達成互動量',
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: t.text2,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        SizedBox(
-                                          width: 110,
-                                          child: TextField(
-                                            controller: _likes,
-                                            keyboardType: TextInputType.number,
-                                            textAlign: TextAlign.center,
-                                            style: fieldStyle,
-                                            onChanged: (_) => setState(() {}),
-                                            decoration: entityFieldDecoration(
-                                              context,
-                                              '',
-                                            ),
-                                          ),
-                                        ),
-                                        Text(
-                                          '紅心',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: t.text3,
-                                          ),
+                                        AppSwitch(
+                                          value: _requireLikes,
+                                          semanticLabel: '需要達成互動量',
+                                          onChanged: (v) => setState(() {
+                                            _requireLikes = v;
+                                            // 開啟時門檻預設 100（GoalNewHot）。
+                                            if (v &&
+                                                _likes.text.trim().isEmpty) {
+                                              _likes.text = '100';
+                                            }
+                                          }),
                                         ),
                                       ],
                                     ),
                                   ),
-                              ],
+                                  if (_requireLikes)
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        0,
+                                        2,
+                                        0,
+                                        14,
+                                      ),
+                                      child: Row(
+                                        spacing: 10,
+                                        children: [
+                                          Text(
+                                            '互動量 ≥',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: t.text2,
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width: 110,
+                                            child: TextField(
+                                              controller: _likes,
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              textAlign: TextAlign.center,
+                                              style: fieldStyle,
+                                              onChanged: (_) => setState(() {}),
+                                              decoration: entityFieldDecoration(
+                                                context,
+                                                '',
+                                              ),
+                                            ),
+                                          ),
+                                          Text(
+                                            '紅心',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: t.text3,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
+                            const SizedBox(height: 16),
+                          ],
+                          FormSubmitButton(
+                            label: widget.goalId == null ? '建立目標' : '儲存',
+                            onPressed: _loaded ? _save : null,
                           ),
-                          const SizedBox(height: 16),
                         ],
-                        FormSubmitButton(
-                          label: widget.goalId == null ? '建立目標' : '儲存',
-                          onPressed: _loaded ? _save : null,
-                        ),
-                      ],
-                    ),
-            ),
-          ],
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

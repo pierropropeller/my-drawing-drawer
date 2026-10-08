@@ -2,24 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../data/goal_queries.dart';
 import '../../theme/tokens.dart';
-import '../album/album_image.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
+import 'pit_pill.dart';
 
 String kindLabel(String kind) => kind;
 
 /// 目標卡片（GoalYear／Month）：名稱 14.5/600、右側 完成數（主色 15/700）/ 目標數，
-/// 8px 進度條；坑是白色 pill（前面放封面小方塊），tag 每個獨立一顆灰色 pill。
+/// 8px 進度條；坑是白色 pill（前面放資料夾 icon），tag 每個獨立一顆灰色 pill。
 class GoalCard extends StatelessWidget {
-  const GoalCard({
-    super.key,
-    required this.view,
-    required this.onTap,
-    this.coverFile,
-  });
+  const GoalCard({super.key, required this.view, required this.onTap});
   final GoalView view;
   final VoidCallback onTap;
-  final String? coverFile;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +23,6 @@ class GoalCard extends StatelessWidget {
       target: view.target,
       onTap: onTap,
       pitName: view.pit?.name,
-      coverFile: coverFile,
       tags: [for (final tag in view.tags) '#${tag.name}'],
     );
   }
@@ -44,7 +37,6 @@ class GoalCardBody extends StatelessWidget {
     required this.target,
     this.onTap,
     this.pitName,
-    this.coverFile,
     this.tags = const [],
   });
   final String label;
@@ -52,7 +44,6 @@ class GoalCardBody extends StatelessWidget {
   final int target;
   final VoidCallback? onTap;
   final String? pitName;
-  final String? coverFile;
   final List<String> tags;
 
   @override
@@ -126,8 +117,7 @@ class GoalCardBody extends StatelessWidget {
                 runSpacing: 6,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  if (pitName != null)
-                    PitPill(name: pitName!, coverFile: coverFile),
+                  if (pitName != null) PitPill(name: pitName!),
                   for (final tag in tags)
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -148,52 +138,6 @@ class GoalCardBody extends StatelessWidget {
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// 設計稿 #E3D8C9（輸入框／pill 邊線；沒有 token，深色用 border）。
-Color mockLine(BuildContext context) =>
-    Theme.of(context).brightness == Brightness.dark
-    ? context.tokens.border
-    : const Color(0xFFE3D8C9);
-
-/// 坑 pill：白底、1px 邊、封面小方塊 16（圓角 5）＋坑名 11/600。
-class PitPill extends StatelessWidget {
-  const PitPill({super.key, required this.name, this.coverFile});
-  final String name;
-  final String? coverFile;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(3, 2, 9, 2),
-      decoration: BoxDecoration(
-        color: t.surface,
-        borderRadius: BorderRadius.circular(Radii.chip),
-        border: Border.all(color: mockLine(context)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 16,
-            height: 16,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(5),
-              child: coverFile == null
-                  ? ColoredBox(color: t.official.bg)
-                  : StoredImage(coverFile!, cacheWidth: 80),
-            ),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            name,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-          ),
-        ],
       ),
     );
   }

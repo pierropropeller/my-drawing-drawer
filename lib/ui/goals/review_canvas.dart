@@ -72,9 +72,17 @@ String monthLabel(int m, String format) {
   };
 }
 
+/// 月份對齊（`start`／`center`／`end`）對應的水平對齊與文字對齊。
+Alignment monthAlignment(String align) => switch (align) {
+  'center' => Alignment.center,
+  'end' => Alignment.centerRight,
+  _ => Alignment.centerLeft,
+};
+
 /// 年度回顧畫布。預覽與匯出圖片共用同一個 widget。
-/// [onImage] 為 true：圖上排版，12 格直角貼合，月份白字加陰影；
-/// 否則為空白位置排版：格之間有 padding，白底黑字。
+/// 最外層是白色邊框（[margin]，代表匯出圖片的留白，無圓角）。
+/// [monthOnImage] 為 true：圖上排版，12 格直角貼合，月份白字加陰影；
+/// 否則為空白位置排版：格之間有 6px 間距，白底黑字。月份文字依 [monthAlign] 對齊（D-039）。
 class ReviewCanvas extends StatelessWidget {
   const ReviewCanvas({
     super.key,
@@ -83,8 +91,9 @@ class ReviewCanvas extends StatelessWidget {
     required this.ratio,
     required this.monthFormat,
     required this.monthOnImage,
+    this.monthAlign = 'start',
     this.onTapMonth,
-    this.compact = false,
+    this.margin = 12,
   });
 
   final Map<int, String?> files; // 月 → 檔名
@@ -92,41 +101,41 @@ class ReviewCanvas extends StatelessWidget {
   final String ratio;
   final String monthFormat;
   final bool monthOnImage;
+  final String monthAlign;
   final void Function(int month)? onTapMonth;
 
-  /// 縮小預覽（年度頁的 4×3 預覽不顯示月份文字）。
-  final bool compact;
+  /// 外圍白色留白（匯出圖片的邊）。
+  final double margin;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final aspect = ratioValue(ratio);
-    final pad = monthOnImage ? 0.0 : 8.0;
+    final gap = monthOnImage ? 0.0 : 6.0;
     final rows = 12 ~/ columns;
     return Container(
-      color: monthOnImage ? Colors.black12 : Colors.white,
-      padding: EdgeInsets.all(pad),
+      color: Colors.white,
+      padding: EdgeInsets.all(margin),
       child: LayoutBuilder(
         builder: (context, c) {
-          final cellW = (c.maxWidth - pad * (columns - 1)) / columns;
+          final cellW = (c.maxWidth - gap * (columns - 1)) / columns;
           final cellH = cellW / aspect;
           return Column(
             children: [
               for (var r = 0; r < rows; r++)
                 Padding(
-                  padding: EdgeInsets.only(bottom: r == rows - 1 ? 0 : pad),
+                  padding: EdgeInsets.only(bottom: r == rows - 1 ? 0 : gap),
                   child: Row(
                     children: [
                       for (var col = 0; col < columns; col++) ...[
-                        if (col > 0) SizedBox(width: pad),
+                        if (col > 0) SizedBox(width: gap),
                         _Cell(
                           width: cellW,
                           height: cellH,
                           month: r * columns + col + 1,
                           file: files[r * columns + col + 1],
-                          label: compact
-                              ? null
-                              : monthLabel(r * columns + col + 1, monthFormat),
+                          label: monthLabel(r * columns + col + 1, monthFormat),
+                          align: monthAlign,
                           onImage: monthOnImage,
                           placeholder: t.chipBg,
                           onTap: onTapMonth,
@@ -150,6 +159,7 @@ class _Cell extends StatelessWidget {
     required this.month,
     required this.file,
     required this.label,
+    required this.align,
     required this.onImage,
     required this.placeholder,
     required this.onTap,
@@ -159,7 +169,8 @@ class _Cell extends StatelessWidget {
   final double height;
   final int month;
   final String? file;
-  final String? label;
+  final String label;
+  final String align;
   final bool onImage;
   final Color placeholder;
   final void Function(int month)? onTap;
@@ -173,44 +184,56 @@ class _Cell extends StatelessWidget {
           ? ColoredBox(color: placeholder)
           : StoredImage(file!, cacheWidth: 600),
     );
+    // 太窄放不下的月份名（例如 12 欄的 September）縮小而不是截掉。
+    Widget text(TextStyle style) => SizedBox(
+      width: double.infinity,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: monthAlignment(align),
+        child: Text(label, maxLines: 1, style: style),
+      ),
+    );
     Widget cell;
     if (onImage) {
       cell = Stack(
         children: [
           image,
-          if (label != null)
-            Positioned(
-              left: 6,
-              bottom: 4,
-              child: Text(
-                label!,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: (width / 6).clamp(9, 22),
-                  fontWeight: FontWeight.w700,
-                  shadows: const [Shadow(blurRadius: 4, color: Colors.black87)],
-                ),
+          Positioned(
+            left: 3,
+            right: 3,
+            bottom: 2,
+            child: text(
+              const TextStyle(
+                color: Colors.white,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                shadows: [
+                  Shadow(
+                    blurRadius: 2,
+                    offset: Offset(0, 1),
+                    color: Color(0x8C000000),
+                  ),
+                ],
               ),
             ),
+          ),
         ],
       );
     } else {
       cell = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           image,
-          if (label != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 2),
-              child: Text(
-                label!,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: (width / 6).clamp(9, 22),
-                  fontWeight: FontWeight.w600,
-                ),
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.all(2),
+            child: text(
+              const TextStyle(
+                color: Color(0xFF2B2622),
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
               ),
             ),
+          ),
         ],
       );
     }

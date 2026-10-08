@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
 import '../../data/goal_queries.dart';
+import '../../data/income_queries.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -10,7 +11,10 @@ import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
 import 'goal_widgets.dart';
+import 'goals_icons.dart';
 import 'goals_page.dart';
+import 'income_year_page.dart';
+import 'money_format.dart';
 import 'review_edit_page.dart';
 
 /// 年度（GoalYear／GoalEmpty）：年度回顧 4×3 預覽（已選 N / 12、排版）＋年度目標列表。
@@ -64,6 +68,7 @@ class _YearViewState extends ConsumerState<YearView> {
       for (var m = 1; m <= 12; m++)
         m: chosen.containsKey(m) ? chosen[m] : _byMonth[m]?.first,
     };
+    final income = ref.watch(incomeProvider(widget.year)).value;
     final selected = files.values.where((f) => f != null).length;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
@@ -110,14 +115,106 @@ class _YearViewState extends ConsumerState<YearView> {
               ),
           ],
         ),
-        GoalList(period: GoalPeriod.year, year: widget.year),
+        if (income != null && !income.isEmpty)
+          _IncomeCard(income: income, year: widget.year),
+        GoalList(
+          period: GoalPeriod.year,
+          year: widget.year,
+          topGap: income != null && !income.isEmpty ? 20 : null,
+        ),
       ],
     );
   }
 }
 
+/// 商稿收入卡（D-047）：各幣種金額合計（不換算）＋張數，點進 IncomeYear。
+/// 沒有任何商稿時不顯示（GoalEmpty 沒有畫）。
+class _IncomeCard extends StatelessWidget {
+  const _IncomeCard({required this.income, required this.year});
+  final IncomeYear income;
+  final int year;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final count = income.months.fold<int>(0, (n, m) => n + m.entries.length);
+    final sums = [
+      for (final c in income.currencies) formatMoney(c.currency, c.total),
+    ].join('\u3000');
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => IncomeYearPage(year: year)),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: t.surface,
+            border: Border.all(color: t.borderCard),
+            borderRadius: BorderRadius.circular(Radii.card),
+          ),
+          child: Row(
+            spacing: 12,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: dark
+                      ? const Color(0xFF2D3324)
+                      : const Color(0xFFE6EBDC),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: SvgIcon(
+                    GoalsIcons.wallet,
+                    size: 21,
+                    strokeWidth: 1.8,
+                    color: dark
+                        ? const Color(0xFFADBD8C)
+                        : const Color(0xFF627248),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '商稿收入',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(sums, style: TextStyle(fontSize: 13, color: t.text2)),
+                  ],
+                ),
+              ),
+              Text(
+                '$count 張',
+                style: TextStyle(fontSize: 12.5, color: t.text4),
+              ),
+              SvgIcon(
+                AppIcons.chevronRight,
+                size: 18,
+                strokeWidth: 2,
+                color: t.text4,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 年度回顧預覽的一格：有圖＝圖＋左下白色月份標籤；沒圖＝虛線格（有圖示）；
-/// 整年都沒有時（GoalEmpty）＝純虛線格＋英文月份縮寫。
+/// 整年都沒有時（GoalEmpty）＝純虛線格＋中文月份（D-025：「1月」）。
 class _MonthCell extends StatelessWidget {
   const _MonthCell({
     required this.month,
@@ -172,7 +269,7 @@ class _MonthCell extends StatelessWidget {
         child: Align(
           alignment: Alignment.bottomLeft,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(9, 0, 0, 8),
+            padding: const EdgeInsets.fromLTRB(6.5, 0, 0, 6.5),
             child: Text(
               '$month月',
               style: const TextStyle(
@@ -200,8 +297,8 @@ class _MonthCell extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: 9,
-              bottom: 8,
+              left: 11.5,
+              bottom: 6.5,
               child: Text(
                 '$month月',
                 style: TextStyle(
