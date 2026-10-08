@@ -11,6 +11,8 @@ import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
+import '../search/tag_filter_bar.dart';
+import '../search/tagged_list.dart';
 import 'entity_widgets.dart';
 import 'idea_detail_page.dart';
 import 'idea_form_page.dart';
@@ -26,10 +28,10 @@ class IdeaListPage extends ConsumerStatefulWidget {
   });
   final String pitId;
 
-  /// 只顯示有這個 tag 的腦洞（篩選列 UI 之後由搜尋接上，這裡只管資料）。
+  /// 只顯示有這個 tag 的腦洞；有值時標題列下多一條「#tag ×」篩選列（D-043）。
   final String? tagId;
 
-  /// 點 tag 的回呼（預設不做事，搜尋接導覽）。
+  /// 點 tag 的回呼；省略＝預設導覽（回到本格列表並篩選）。
   final void Function(String tagId)? onTagTap;
 
   @override
@@ -75,6 +77,16 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
     MaterialPageRoute<void>(builder: (_) => IdeaFormPage(pitId: widget.pitId)),
   );
 
+  /// 卡片或詳情頁點 tag 的預設處理（D-043）。
+  void _tagTap(String id, {bool fromDetail = false}) => onListTagTap(
+    context,
+    pitId: widget.pitId,
+    kind: TaggedKind.idea,
+    tagId: id,
+    listFiltered: widget.tagId != null,
+    fromDetail: fromDetail,
+  );
+
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
@@ -82,7 +94,11 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
     final views =
         ref.watch(ideaViewsProvider((widget.pitId, widget.tagId))).value ??
         const [];
-    final unhatched = views.where((v) => v.status != IdeaStatus.hatched).length;
+    // 標題列一律顯示全部數量；篩選時符合的數量在篩選列。
+    final all = widget.tagId == null
+        ? views
+        : (ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? views);
+    final unhatched = all.where((v) => v.status != IdeaStatus.hatched).length;
     final title = pitName == null ? '我的腦洞' : '$pitName · 我的腦洞';
     return PopScope(
       canPop: !_selecting,
@@ -143,10 +159,18 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                   trailing: [
                     HeaderCount(
                       unhatched > 0
-                          ? '${views.length} 個 · $unhatched 未孵'
-                          : '${views.length} 個',
+                          ? '${all.length} 個 · $unhatched 未孵'
+                          : '${all.length} 個',
                     ),
+                    SearchIconButton(pitId: widget.pitId),
                   ],
+                ),
+              if (!_selecting && widget.tagId != null)
+                TagFilterBar(
+                  pitId: widget.pitId,
+                  kind: TaggedKind.idea,
+                  tagId: widget.tagId!,
+                  countText: '${views.length} 個',
                 ),
               Expanded(
                 child: views.isEmpty
@@ -175,7 +199,9 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                               view: v,
                               selected: isSel,
                               selecting: _selecting,
-                              onTagTap: _selecting ? null : widget.onTagTap,
+                              onTagTap: _selecting
+                                  ? null
+                                  : (widget.onTagTap ?? _tagTap),
                             );
                             if (!_selecting) {
                               return GestureDetector(
@@ -185,7 +211,9 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                                     builder: (_) => IdeaDetailPage(
                                       ideaId: v.idea.id,
                                       pitId: widget.pitId,
-                                      onTagTap: widget.onTagTap,
+                                      onTagTap:
+                                          widget.onTagTap ??
+                                          (id) => _tagTap(id, fromDetail: true),
                                     ),
                                   ),
                                 ),
