@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/tokens.dart';
 import '../state/settings.dart';
@@ -18,17 +19,34 @@ class AppShell extends ConsumerStatefulWidget {
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
+/// 導覽列的 icon 直接取自設計稿（Main／GoalYear／Profile 的 nav）：
+/// 資料夾、雙圓靶心、人像；未選中線寬 1.8，選中線寬 2。
 class _Tab {
-  const _Tab(this.label, this.icon, this.activeIcon);
+  const _Tab(this.label, this.shapes);
   final String label;
-  final IconData icon;
-  final IconData activeIcon;
+
+  /// SVG（24×24）內的圖形，線寬在建立時帶入。
+  final String shapes;
+
+  String svg(double strokeWidth) =>
+      '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" '
+      'fill="none" stroke="currentColor" stroke-width="$strokeWidth" '
+      'stroke-linecap="round" stroke-linejoin="round">$shapes</svg>';
 }
 
 const _tabs = [
-  _Tab('坑', Icons.collections_bookmark_outlined, Icons.collections_bookmark),
-  _Tab('目標', Icons.flag_outlined, Icons.flag),
-  _Tab('我的', Icons.person_outline, Icons.person),
+  _Tab(
+    '坑',
+    '<path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  ),
+  _Tab(
+    '目標',
+    '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/>',
+  ),
+  _Tab(
+    '我的',
+    '<circle cx="12" cy="8" r="4"/><path d="M4.5 20c0-4.2 3.8-6 7.5-6s7.5 1.8 7.5 6"/>',
+  ),
 ];
 
 class _AppShellState extends ConsumerState<AppShell> {
@@ -96,7 +114,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: SafeArea(
           top: false,
           child: SizedBox(
-            height: 60,
+            height: 64,
             child: Row(
               children: [
                 for (var i = 0; i < _tabs.length; i++)
@@ -136,14 +154,19 @@ class _NavItem extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(selected ? tab.activeIcon : tab.icon, color: color, size: 24),
-          const SizedBox(height: 2),
+          SvgPicture.string(
+            tab.svg(selected ? 2 : 1.8),
+            width: 24,
+            height: 24,
+            theme: SvgTheme(currentColor: color),
+          ),
+          const SizedBox(height: 3),
           Text(
             tab.label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               color: color,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
         ],
