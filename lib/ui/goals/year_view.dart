@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database.dart';
 import '../../data/goal_queries.dart';
 import '../../data/income_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -74,21 +75,21 @@ class _YearViewState extends ConsumerState<YearView> {
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
       children: [
         GoalSectionRow(
-          title: '年度回顧',
+          title: context.l10n.goalsYearReview,
           padding: const EdgeInsets.only(bottom: 10),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             spacing: 12,
             children: [
               Text(
-                '已選 $selected / 12',
+                context.l10n.goalsReviewSelected(selected),
                 style: TextStyle(fontSize: 12, color: t.text3),
               ),
               GestureDetector(
                 onTap: _editLayout,
                 behavior: HitTestBehavior.opaque,
                 child: Text(
-                  '排版',
+                  context.l10n.goalsLayout,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -183,9 +184,9 @@ class _IncomeCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '商稿收入',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.goalsIncome,
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -196,7 +197,7 @@ class _IncomeCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '$count 張',
+                context.l10n.commonCountImages(count),
                 style: TextStyle(fontSize: 12.5, color: t.text4),
               ),
               SvgIcon(
@@ -250,7 +251,7 @@ class _MonthCell extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '$month月',
+                  context.l10n.goalsMonthNum(month),
                   style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -271,7 +272,7 @@ class _MonthCell extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(6.5, 0, 0, 6.5),
             child: Text(
-              '$month月',
+              context.l10n.goalsMonthNum(month),
               style: const TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
@@ -300,7 +301,7 @@ class _MonthCell extends StatelessWidget {
               left: 11.5,
               bottom: 6.5,
               child: Text(
-                '$month月',
+                context.l10n.goalsMonthNum(month),
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,

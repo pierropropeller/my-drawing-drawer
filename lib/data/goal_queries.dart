@@ -20,9 +20,8 @@ class GoalView {
   bool get done => progress >= target;
   double get ratio => target == 0 ? 0 : (progress / target).clamp(0.0, 1.0);
 
-  /// 名稱留空時自動生成：生產 N 個腦洞／畫 N 份草稿／完成 N 張成圖；
-  /// 有互動量條件時為「互動量過 N 的成圖 N 張」。
-  String get displayName => goalAutoName(goal);
+  /// 自訂名稱；留空為 null，由 UI 層（`goalDisplayName`）依種類／數量／互動量自動命名。
+  String? get customName => goalCustomName(goal);
 }
 
 /// 目標依進度百分比由高到低排列，已達成（100% 以上）的沉到最底；
@@ -41,17 +40,11 @@ List<GoalView> sortGoalsByProgress(Iterable<GoalView> goals) {
   return list;
 }
 
-String goalAutoName(Goal g) {
+/// 使用者填的目標名稱（去頭尾空白）；沒填為 null。
+/// 自動命名的文字在 UI 層由 ARB 組出（`goalDisplayName`）。
+String? goalCustomName(Goal g) {
   final custom = g.name?.trim();
-  if (custom != null && custom.isNotEmpty) return custom;
-  return switch (g.kind) {
-    GoalKind.idea => '生產 ${g.count} 個腦洞',
-    GoalKind.draft => '畫 ${g.count} 份草稿',
-    GoalKind.piece =>
-      g.requireLikes != null
-          ? '互動量過 ${g.requireLikes} 的成圖 ${g.count} 張'
-          : '完成 ${g.count} 張成圖',
-  };
+  return (custom != null && custom.isNotEmpty) ? custom : null;
 }
 
 /// 時間軸上的一筆（腦洞／草稿／成圖）。

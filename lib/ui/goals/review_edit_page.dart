@@ -8,6 +8,7 @@ import 'package:gal/gal.dart';
 
 import '../../data/database.dart';
 import '../../data/goal_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
@@ -69,13 +70,13 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
                 children: [
                   Expanded(
                     child: Text(
-                      '${widget.year} 年 $month 月',
+                      ctx.l10n.goalsReviewMonthSheetTitle(widget.year, month),
                       style: Theme.of(ctx).textTheme.titleLarge,
                     ),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, ''),
-                    child: const Text('清除'),
+                    child: Text(ctx.l10n.goalsClear),
                   ),
                 ],
               ),
@@ -84,7 +85,7 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
               child: options.isEmpty
                   ? Center(
                       child: Text(
-                        '這個月沒有成圖',
+                        ctx.l10n.goalsNoPieceThisMonth,
                         style: TextStyle(color: ctx.tokens.text3),
                       ),
                     )
@@ -137,9 +138,9 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
         name: 'Drawer-${widget.year}-review',
         album: reviewAlbumName,
       );
-      if (mounted) showSnack(context, '已儲存到相簿');
+      if (mounted) showSnack(context, context.l10n.goalsSavedToAlbum);
     } catch (_) {
-      if (mounted) showSnack(context, '匯出失敗');
+      if (mounted) showSnack(context, context.l10n.goalsExportFailed);
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
@@ -174,12 +175,16 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
         child: ContentWidth(
           child: Column(
             children: [
-              const SubPageHeader(title: '年度回顧排版', titleSize: 20, gap: 6),
+              SubPageHeader(
+                title: context.l10n.goalsReviewLayoutTitle,
+                titleSize: 20,
+                gap: 6,
+              ),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
                   children: [
-                    const _Sec('排版', top: 0),
+                    _Sec(context.l10n.goalsLayout, top: 0),
                     LayoutBuilder(
                       builder: (context, c) => Wrap(
                         spacing: 8,
@@ -197,25 +202,26 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
                         ],
                       ),
                     ),
-                    const _Sec('正方格比例'),
+                    _Sec(context.l10n.goalsRatio),
                     _Choices(
                       options: reviewRatioOptions,
                       selected: ratio,
                       onSelected: (v) => setState(() => _ratio = v),
                     ),
-                    const _Sec('月份格式'),
+                    _Sec(context.l10n.goalsMonthFormat),
                     _Choices(
                       options: reviewMonthFormats,
+                      labelOf: (o) => monthFormatOptionLabel(context.l10n, o),
                       selected: format,
                       onSelected: (v) => setState(() => _format = v),
                     ),
-                    const _Sec('月份位置'),
+                    _Sec(context.l10n.goalsMonthPosition),
                     Row(
                       spacing: 8,
                       children: [
                         for (final (on, label) in [
-                          (true, '圖上'),
-                          (false, '空白位置'),
+                          (true, context.l10n.goalsOnImage),
+                          (false, context.l10n.goalsBlankSpace),
                         ])
                           Expanded(
                             child: GestureDetector(
@@ -243,14 +249,14 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
                           ),
                       ],
                     ),
-                    const _Sec('月份對齊'),
+                    _Sec(context.l10n.goalsMonthAlign),
                     Row(
                       spacing: 8,
                       children: [
                         for (final (key, label) in [
-                          ('start', '靠左'),
-                          ('center', '置中'),
-                          ('end', '靠右'),
+                          ('start', context.l10n.goalsAlignStart),
+                          ('center', context.l10n.goalsAlignCenter),
+                          ('end', context.l10n.goalsAlignEnd),
                         ])
                           Expanded(
                             child: GestureDetector(
@@ -290,7 +296,7 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '預覽',
+                            context.l10n.goalsPreview,
                             style: TextStyle(fontSize: 11, color: t.text3),
                           ),
                           const SizedBox(height: 12),
@@ -332,9 +338,9 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
                               : t.accent,
                           borderRadius: BorderRadius.circular(Radii.button),
                         ),
-                        child: const Text(
-                          '儲存並匯出圖片',
-                          style: TextStyle(
+                        child: Text(
+                          context.l10n.goalsSaveExport,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -454,7 +460,9 @@ class _Choices extends StatelessWidget {
     required this.options,
     required this.selected,
     required this.onSelected,
+    this.labelOf,
   });
+  final String Function(String)? labelOf;
   final List<String> options;
   final String selected;
   final ValueChanged<String> onSelected;
@@ -477,7 +485,7 @@ class _Choices extends StatelessWidget {
                 borderRadius: BorderRadius.circular(Radii.chip),
               ),
               child: Text(
-                o,
+                labelOf?.call(o) ?? o,
                 style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w500,
