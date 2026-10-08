@@ -8,3 +8,6 @@ export 'app_localizations.dart';
 extension L10nContext on BuildContext {
   AppLocalizations get l10n => AppLocalizations.of(this);
 }
+
+/// 沒有 BuildContext 的地方（controller、錯誤訊息）取字串用；語言固定是目前唯一的繁體中文。
+AppLocalizations get l10nStatic => lookupAppLocalizations(const Locale('zh'));

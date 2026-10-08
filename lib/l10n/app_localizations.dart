@@ -99,6 +99,150 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'把想畫的、畫好的，都收進坑裡。'**
   String get appTagline;
+
+  /// No description provided for @commonCancel.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消'**
+  String get commonCancel;
+
+  /// No description provided for @commonConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'確認'**
+  String get commonConfirm;
+
+  /// No description provided for @commonDone.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成'**
+  String get commonDone;
+
+  /// No description provided for @commonSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'儲存'**
+  String get commonSave;
+
+  /// No description provided for @commonAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增'**
+  String get commonAdd;
+
+  /// No description provided for @commonSelect.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇'**
+  String get commonSelect;
+
+  /// No description provided for @commonEdit.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯'**
+  String get commonEdit;
+
+  /// No description provided for @commonDelete.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除'**
+  String get commonDelete;
+
+  /// No description provided for @commonShare.
+  ///
+  /// In zh, this message translates to:
+  /// **'分享'**
+  String get commonShare;
+
+  /// No description provided for @commonDownload.
+  ///
+  /// In zh, this message translates to:
+  /// **'下載'**
+  String get commonDownload;
+
+  /// No description provided for @commonMove.
+  ///
+  /// In zh, this message translates to:
+  /// **'移動'**
+  String get commonMove;
+
+  /// No description provided for @commonBack.
+  ///
+  /// In zh, this message translates to:
+  /// **'返回'**
+  String get commonBack;
+
+  /// No description provided for @commonSearch.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜尋'**
+  String get commonSearch;
+
+  /// No description provided for @commonAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部'**
+  String get commonAll;
+
+  /// No description provided for @commonManage.
+  ///
+  /// In zh, this message translates to:
+  /// **'管理'**
+  String get commonManage;
+
+  /// No description provided for @commonClose.
+  ///
+  /// In zh, this message translates to:
+  /// **'關閉'**
+  String get commonClose;
+
+  /// No description provided for @commonSelectAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全選'**
+  String get commonSelectAll;
+
+  /// No description provided for @commonDeselectAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消全選'**
+  String get commonDeselectAll;
+
+  /// No description provided for @commonManageTags.
+  ///
+  /// In zh, this message translates to:
+  /// **'管理 tag'**
+  String get commonManageTags;
+
+  /// No description provided for @commonNoTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'無標題'**
+  String get commonNoTitle;
+
+  /// No description provided for @commonRetry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重試'**
+  String get commonRetry;
+
+  /// No description provided for @commonOther.
+  ///
+  /// In zh, this message translates to:
+  /// **'其他'**
+  String get commonOther;
+
+  /// No description provided for @commonCountImages.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張'**
+  String commonCountImages(int count);
+
+  /// No description provided for @commonSelectedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選 {count} 張'**
+  String commonSelectedCount(int count);
 }
 
 class _AppLocalizationsDelegate

@@ -1,9 +1,4 @@
 {
-  "@@locale": "zh",
-  "appTagline": "把想畫的、畫好的，都收進坑裡。",
-  "@appTagline": {
-    "description": "關於 App 的標語"
-  },
   "commonCancel": "取消",
   "commonConfirm": "確認",
   "commonDone": "完成",
@@ -27,19 +22,7 @@
   "commonRetry": "重試",
   "commonOther": "其他",
   "commonCountImages": "{count} 張",
-  "@commonCountImages": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
+  "@commonCountImages": { "placeholders": { "count": { "type": "int" } } },
   "commonSelectedCount": "已選 {count} 張",
-  "@commonSelectedCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  }
+  "@commonSelectedCount": { "placeholders": { "count": { "type": "int" } } }
 }
