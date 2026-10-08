@@ -385,6 +385,255 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get entityRemove => '移除';
+
+  @override
+  String get entityRemoveImage => '移除圖片';
+
+  @override
+  String get entityAddImage => '加圖';
+
+  @override
+  String get entityFieldTitle => '標題';
+
+  @override
+  String get entityFieldBody => '內文';
+
+  @override
+  String get entityTitleRequired => '請輸入標題';
+
+  @override
+  String get entityConnectIdea => '關聯腦洞';
+
+  @override
+  String get entityConnectDraft => '關聯草稿';
+
+  @override
+  String get entityConnectPiece => '關聯成圖';
+
+  @override
+  String get entityConnectSelectIdea => '選擇腦洞';
+
+  @override
+  String get entityConnectSelectDraft => '選擇草稿';
+
+  @override
+  String get entityConnectSelectPiece => '選擇成圖';
+
+  @override
+  String entityConnectSelectedIdea(int count) {
+    return '已選 $count 個';
+  }
+
+  @override
+  String entityConnectSelectedDraft(int count) {
+    return '已選 $count 份';
+  }
+
+  @override
+  String entityConnectSelectedPiece(int count) {
+    return '已選 $count 張';
+  }
+
+  @override
+  String get entityConnectEmpty => '沒有可選擇的項目';
+
+  @override
+  String get entityGallerySaved => '已儲存到相簿';
+
+  @override
+  String get entityGallerySaveFailed => '儲存失敗';
+
+  @override
+  String get ideaStatusOpen => '未孵';
+
+  @override
+  String get ideaStatusHatchingShort => '孵化中';
+
+  @override
+  String ideaStatusHatching(int count) {
+    return '孵化中 · $count 草稿';
+  }
+
+  @override
+  String get ideaStatusHatchedShort => '已孵';
+
+  @override
+  String ideaStatusHatched(int count) {
+    return '已孵 $count 成圖';
+  }
+
+  @override
+  String get ideaFormTitleNew => '新增腦洞';
+
+  @override
+  String get ideaFormTitleEdit => '編輯腦洞';
+
+  @override
+  String get ideaFormTitleHint => '用一句話記下想法';
+
+  @override
+  String get ideaFormBodyHint => '文字版的圖 —— 想畫什麼、哪個場景、什麼感覺…';
+
+  @override
+  String get ideaFormImages => '配圖';
+
+  @override
+  String get ideaFormCreate => '建立腦洞';
+
+  @override
+  String get draftFormMissingImage => '請至少新增一張圖片';
+
+  @override
+  String get draftFormTitleNew => '新增草稿';
+
+  @override
+  String get draftFormTitleEdit => '編輯草稿';
+
+  @override
+  String get draftFormImages => '草稿圖';
+
+  @override
+  String get draftFormTitleHint => '為這張草稿命名';
+
+  @override
+  String get draftFormBodyHint => '正在畫什麼、嘗試什麼構圖…';
+
+  @override
+  String get draftFormCreate => '建立草稿';
+
+  @override
+  String get pieceFormMissingImage => '請至少選擇一張圖片';
+
+  @override
+  String get pieceFormLinkHint => '貼上連結網址';
+
+  @override
+  String get pieceFormPublishDate => '發佈日期';
+
+  @override
+  String get pieceFormSocialLinks => '社交媒體連結';
+
+  @override
+  String get pieceFormAddSocialLink => '加社交連結';
+
+  @override
+  String get pieceFormTarget => '目標互動量';
+
+  @override
+  String get pieceFormActual => '實際互動量';
+
+  @override
+  String get pieceFormClient => '委託人';
+
+  @override
+  String get pieceFormAmount => '金額';
+
+  @override
+  String get pieceFormCurrency => '幣種';
+
+  @override
+  String get pieceFormReceived => '已收金額';
+
+  @override
+  String get pieceFormPaidInFull => '已收齊';
+
+  @override
+  String get pieceFormDueDate => '交稿日期';
+
+  @override
+  String get pieceFormTitleNew => '新增成圖';
+
+  @override
+  String get pieceFormTitleEdit => '編輯成圖';
+
+  @override
+  String get pieceFormImages => '成品圖';
+
+  @override
+  String get pieceFormTitleHint => '為這張成圖命名';
+
+  @override
+  String get pieceFormBodyHint => '想說的話、創作筆記…';
+
+  @override
+  String get pieceFormPublished => '已公開發佈';
+
+  @override
+  String get pieceFormCommission => '商稿';
+
+  @override
+  String get pieceFormFinishedAt => '完成時間';
+
+  @override
+  String get pieceFormCreate => '建立成圖';
+
+  @override
+  String get pieceAddImage => '加成品圖';
+
+  @override
+  String get pieceDateEmpty => '選擇日期';
+
+  @override
+  String get pieceHeartUnit => '紅心';
+
+  @override
+  String get piecePaymentUnpaid => '未收';
+
+  @override
+  String piecePaymentPartial(String amount) {
+    return '已收 $amount';
+  }
+
+  @override
+  String get piecePaymentPaid => '已收齊';
+
+  @override
+  String get entityPlatformTwitter => '推特';
+
+  @override
+  String get entityPlatformTwitterFull => '推特（Twitter/X）';
+
+  @override
+  String get entityPlatformXiaohongshu => '小紅書';
+
+  @override
+  String get entityPlatformLofter => 'Lofter';
+
+  @override
+  String get entityPlatformPixiv => 'Pixiv';
+
+  @override
+  String get entityPlatformWeibo => '微博';
+
+  @override
+  String get entityPlatformInstagram => 'Instagram';
+
+  @override
+  String get entityPlatformOther => '其他';
+
+  @override
+  String get entityPlatformLink => '連結';
+
+  @override
+  String get entityPlatformMarkTwitter => 'X';
+
+  @override
+  String get entityPlatformMarkXiaohongshu => '紅';
+
+  @override
+  String get entityPlatformMarkLofter => 'Lo';
+
+  @override
+  String get entityPlatformMarkPixiv => 'Px';
+
+  @override
+  String get entityPlatformMarkWeibo => '微';
+
+  @override
+  String get entityPlatformMarkInstagram => 'IG';
+
+  @override
   String get goalsTitle => '目標';
 
   @override

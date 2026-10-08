@@ -261,6 +261,127 @@
       }
     }
   },
+  "entityRemove": "移除",
+  "entityRemoveImage": "移除圖片",
+  "entityAddImage": "加圖",
+  "entityFieldTitle": "標題",
+  "entityFieldBody": "內文",
+  "entityTitleRequired": "請輸入標題",
+  "entityConnectIdea": "關聯腦洞",
+  "entityConnectDraft": "關聯草稿",
+  "entityConnectPiece": "關聯成圖",
+  "entityConnectSelectIdea": "選擇腦洞",
+  "entityConnectSelectDraft": "選擇草稿",
+  "entityConnectSelectPiece": "選擇成圖",
+  "entityConnectSelectedIdea": "已選 {count} 個",
+  "@entityConnectSelectedIdea": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "entityConnectSelectedDraft": "已選 {count} 份",
+  "@entityConnectSelectedDraft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "entityConnectSelectedPiece": "已選 {count} 張",
+  "@entityConnectSelectedPiece": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "entityConnectEmpty": "沒有可選擇的項目",
+  "entityGallerySaved": "已儲存到相簿",
+  "entityGallerySaveFailed": "儲存失敗",
+  "ideaStatusOpen": "未孵",
+  "ideaStatusHatchingShort": "孵化中",
+  "ideaStatusHatching": "孵化中 · {count} 草稿",
+  "@ideaStatusHatching": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ideaStatusHatchedShort": "已孵",
+  "ideaStatusHatched": "已孵 {count} 成圖",
+  "@ideaStatusHatched": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ideaFormTitleNew": "新增腦洞",
+  "ideaFormTitleEdit": "編輯腦洞",
+  "ideaFormTitleHint": "用一句話記下想法",
+  "ideaFormBodyHint": "文字版的圖 —— 想畫什麼、哪個場景、什麼感覺…",
+  "ideaFormImages": "配圖",
+  "ideaFormCreate": "建立腦洞",
+  "draftFormMissingImage": "請至少新增一張圖片",
+  "draftFormTitleNew": "新增草稿",
+  "draftFormTitleEdit": "編輯草稿",
+  "draftFormImages": "草稿圖",
+  "draftFormTitleHint": "為這張草稿命名",
+  "draftFormBodyHint": "正在畫什麼、嘗試什麼構圖…",
+  "draftFormCreate": "建立草稿",
+  "pieceFormMissingImage": "請至少選擇一張圖片",
+  "pieceFormLinkHint": "貼上連結網址",
+  "pieceFormPublishDate": "發佈日期",
+  "pieceFormSocialLinks": "社交媒體連結",
+  "pieceFormAddSocialLink": "加社交連結",
+  "pieceFormTarget": "目標互動量",
+  "pieceFormActual": "實際互動量",
+  "pieceFormClient": "委託人",
+  "pieceFormAmount": "金額",
+  "pieceFormCurrency": "幣種",
+  "pieceFormReceived": "已收金額",
+  "pieceFormPaidInFull": "已收齊",
+  "pieceFormDueDate": "交稿日期",
+  "pieceFormTitleNew": "新增成圖",
+  "pieceFormTitleEdit": "編輯成圖",
+  "pieceFormImages": "成品圖",
+  "pieceFormTitleHint": "為這張成圖命名",
+  "pieceFormBodyHint": "想說的話、創作筆記…",
+  "pieceFormPublished": "已公開發佈",
+  "pieceFormCommission": "商稿",
+  "pieceFormFinishedAt": "完成時間",
+  "pieceFormCreate": "建立成圖",
+  "pieceAddImage": "加成品圖",
+  "pieceDateEmpty": "選擇日期",
+  "pieceHeartUnit": "紅心",
+  "piecePaymentUnpaid": "未收",
+  "piecePaymentPartial": "已收 {amount}",
+  "@piecePaymentPartial": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "piecePaymentPaid": "已收齊",
+  "entityPlatformTwitter": "推特",
+  "entityPlatformTwitterFull": "推特（Twitter/X）",
+  "entityPlatformXiaohongshu": "小紅書",
+  "entityPlatformLofter": "Lofter",
+  "entityPlatformPixiv": "Pixiv",
+  "entityPlatformWeibo": "微博",
+  "entityPlatformInstagram": "Instagram",
+  "entityPlatformOther": "其他",
+  "entityPlatformLink": "連結",
+  "entityPlatformMarkTwitter": "X",
+  "entityPlatformMarkXiaohongshu": "紅",
+  "entityPlatformMarkLofter": "Lo",
+  "entityPlatformMarkPixiv": "Px",
+  "entityPlatformMarkWeibo": "微",
+  "entityPlatformMarkInstagram": "IG",
   "goalsTitle": "目標",
   "goalsPrevYear": "上一年",
   "goalsNextYear": "下一年",

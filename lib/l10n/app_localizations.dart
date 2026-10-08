@@ -771,6 +771,480 @@ abstract class AppLocalizations {
   /// **'已選 {count} 張'**
   String commonSelectedCount(int count);
 
+  /// No description provided for @entityRemove.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除'**
+  String get entityRemove;
+
+  /// No description provided for @entityRemoveImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除圖片'**
+  String get entityRemoveImage;
+
+  /// No description provided for @entityAddImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'加圖'**
+  String get entityAddImage;
+
+  /// No description provided for @entityFieldTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'標題'**
+  String get entityFieldTitle;
+
+  /// No description provided for @entityFieldBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'內文'**
+  String get entityFieldBody;
+
+  /// No description provided for @entityTitleRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'請輸入標題'**
+  String get entityTitleRequired;
+
+  /// No description provided for @entityConnectIdea.
+  ///
+  /// In zh, this message translates to:
+  /// **'關聯腦洞'**
+  String get entityConnectIdea;
+
+  /// No description provided for @entityConnectDraft.
+  ///
+  /// In zh, this message translates to:
+  /// **'關聯草稿'**
+  String get entityConnectDraft;
+
+  /// No description provided for @entityConnectPiece.
+  ///
+  /// In zh, this message translates to:
+  /// **'關聯成圖'**
+  String get entityConnectPiece;
+
+  /// No description provided for @entityConnectSelectIdea.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇腦洞'**
+  String get entityConnectSelectIdea;
+
+  /// No description provided for @entityConnectSelectDraft.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇草稿'**
+  String get entityConnectSelectDraft;
+
+  /// No description provided for @entityConnectSelectPiece.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇成圖'**
+  String get entityConnectSelectPiece;
+
+  /// No description provided for @entityConnectSelectedIdea.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選 {count} 個'**
+  String entityConnectSelectedIdea(int count);
+
+  /// No description provided for @entityConnectSelectedDraft.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選 {count} 份'**
+  String entityConnectSelectedDraft(int count);
+
+  /// No description provided for @entityConnectSelectedPiece.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選 {count} 張'**
+  String entityConnectSelectedPiece(int count);
+
+  /// No description provided for @entityConnectEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'沒有可選擇的項目'**
+  String get entityConnectEmpty;
+
+  /// No description provided for @entityGallerySaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'已儲存到相簿'**
+  String get entityGallerySaved;
+
+  /// No description provided for @entityGallerySaveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'儲存失敗'**
+  String get entityGallerySaveFailed;
+
+  /// No description provided for @ideaStatusOpen.
+  ///
+  /// In zh, this message translates to:
+  /// **'未孵'**
+  String get ideaStatusOpen;
+
+  /// No description provided for @ideaStatusHatchingShort.
+  ///
+  /// In zh, this message translates to:
+  /// **'孵化中'**
+  String get ideaStatusHatchingShort;
+
+  /// No description provided for @ideaStatusHatching.
+  ///
+  /// In zh, this message translates to:
+  /// **'孵化中 · {count} 草稿'**
+  String ideaStatusHatching(int count);
+
+  /// No description provided for @ideaStatusHatchedShort.
+  ///
+  /// In zh, this message translates to:
+  /// **'已孵'**
+  String get ideaStatusHatchedShort;
+
+  /// No description provided for @ideaStatusHatched.
+  ///
+  /// In zh, this message translates to:
+  /// **'已孵 {count} 成圖'**
+  String ideaStatusHatched(int count);
+
+  /// No description provided for @ideaFormTitleNew.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增腦洞'**
+  String get ideaFormTitleNew;
+
+  /// No description provided for @ideaFormTitleEdit.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯腦洞'**
+  String get ideaFormTitleEdit;
+
+  /// No description provided for @ideaFormTitleHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'用一句話記下想法'**
+  String get ideaFormTitleHint;
+
+  /// No description provided for @ideaFormBodyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'文字版的圖 —— 想畫什麼、哪個場景、什麼感覺…'**
+  String get ideaFormBodyHint;
+
+  /// No description provided for @ideaFormImages.
+  ///
+  /// In zh, this message translates to:
+  /// **'配圖'**
+  String get ideaFormImages;
+
+  /// No description provided for @ideaFormCreate.
+  ///
+  /// In zh, this message translates to:
+  /// **'建立腦洞'**
+  String get ideaFormCreate;
+
+  /// No description provided for @draftFormMissingImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'請至少新增一張圖片'**
+  String get draftFormMissingImage;
+
+  /// No description provided for @draftFormTitleNew.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增草稿'**
+  String get draftFormTitleNew;
+
+  /// No description provided for @draftFormTitleEdit.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯草稿'**
+  String get draftFormTitleEdit;
+
+  /// No description provided for @draftFormImages.
+  ///
+  /// In zh, this message translates to:
+  /// **'草稿圖'**
+  String get draftFormImages;
+
+  /// No description provided for @draftFormTitleHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'為這張草稿命名'**
+  String get draftFormTitleHint;
+
+  /// No description provided for @draftFormBodyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在畫什麼、嘗試什麼構圖…'**
+  String get draftFormBodyHint;
+
+  /// No description provided for @draftFormCreate.
+  ///
+  /// In zh, this message translates to:
+  /// **'建立草稿'**
+  String get draftFormCreate;
+
+  /// No description provided for @pieceFormMissingImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'請至少選擇一張圖片'**
+  String get pieceFormMissingImage;
+
+  /// No description provided for @pieceFormLinkHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'貼上連結網址'**
+  String get pieceFormLinkHint;
+
+  /// No description provided for @pieceFormPublishDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'發佈日期'**
+  String get pieceFormPublishDate;
+
+  /// No description provided for @pieceFormSocialLinks.
+  ///
+  /// In zh, this message translates to:
+  /// **'社交媒體連結'**
+  String get pieceFormSocialLinks;
+
+  /// No description provided for @pieceFormAddSocialLink.
+  ///
+  /// In zh, this message translates to:
+  /// **'加社交連結'**
+  String get pieceFormAddSocialLink;
+
+  /// No description provided for @pieceFormTarget.
+  ///
+  /// In zh, this message translates to:
+  /// **'目標互動量'**
+  String get pieceFormTarget;
+
+  /// No description provided for @pieceFormActual.
+  ///
+  /// In zh, this message translates to:
+  /// **'實際互動量'**
+  String get pieceFormActual;
+
+  /// No description provided for @pieceFormClient.
+  ///
+  /// In zh, this message translates to:
+  /// **'委託人'**
+  String get pieceFormClient;
+
+  /// No description provided for @pieceFormAmount.
+  ///
+  /// In zh, this message translates to:
+  /// **'金額'**
+  String get pieceFormAmount;
+
+  /// No description provided for @pieceFormCurrency.
+  ///
+  /// In zh, this message translates to:
+  /// **'幣種'**
+  String get pieceFormCurrency;
+
+  /// No description provided for @pieceFormReceived.
+  ///
+  /// In zh, this message translates to:
+  /// **'已收金額'**
+  String get pieceFormReceived;
+
+  /// No description provided for @pieceFormPaidInFull.
+  ///
+  /// In zh, this message translates to:
+  /// **'已收齊'**
+  String get pieceFormPaidInFull;
+
+  /// No description provided for @pieceFormDueDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'交稿日期'**
+  String get pieceFormDueDate;
+
+  /// No description provided for @pieceFormTitleNew.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增成圖'**
+  String get pieceFormTitleNew;
+
+  /// No description provided for @pieceFormTitleEdit.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯成圖'**
+  String get pieceFormTitleEdit;
+
+  /// No description provided for @pieceFormImages.
+  ///
+  /// In zh, this message translates to:
+  /// **'成品圖'**
+  String get pieceFormImages;
+
+  /// No description provided for @pieceFormTitleHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'為這張成圖命名'**
+  String get pieceFormTitleHint;
+
+  /// No description provided for @pieceFormBodyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'想說的話、創作筆記…'**
+  String get pieceFormBodyHint;
+
+  /// No description provided for @pieceFormPublished.
+  ///
+  /// In zh, this message translates to:
+  /// **'已公開發佈'**
+  String get pieceFormPublished;
+
+  /// No description provided for @pieceFormCommission.
+  ///
+  /// In zh, this message translates to:
+  /// **'商稿'**
+  String get pieceFormCommission;
+
+  /// No description provided for @pieceFormFinishedAt.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成時間'**
+  String get pieceFormFinishedAt;
+
+  /// No description provided for @pieceFormCreate.
+  ///
+  /// In zh, this message translates to:
+  /// **'建立成圖'**
+  String get pieceFormCreate;
+
+  /// No description provided for @pieceAddImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'加成品圖'**
+  String get pieceAddImage;
+
+  /// No description provided for @pieceDateEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇日期'**
+  String get pieceDateEmpty;
+
+  /// No description provided for @pieceHeartUnit.
+  ///
+  /// In zh, this message translates to:
+  /// **'紅心'**
+  String get pieceHeartUnit;
+
+  /// No description provided for @piecePaymentUnpaid.
+  ///
+  /// In zh, this message translates to:
+  /// **'未收'**
+  String get piecePaymentUnpaid;
+
+  /// No description provided for @piecePaymentPartial.
+  ///
+  /// In zh, this message translates to:
+  /// **'已收 {amount}'**
+  String piecePaymentPartial(String amount);
+
+  /// No description provided for @piecePaymentPaid.
+  ///
+  /// In zh, this message translates to:
+  /// **'已收齊'**
+  String get piecePaymentPaid;
+
+  /// No description provided for @entityPlatformTwitter.
+  ///
+  /// In zh, this message translates to:
+  /// **'推特'**
+  String get entityPlatformTwitter;
+
+  /// No description provided for @entityPlatformTwitterFull.
+  ///
+  /// In zh, this message translates to:
+  /// **'推特（Twitter/X）'**
+  String get entityPlatformTwitterFull;
+
+  /// No description provided for @entityPlatformXiaohongshu.
+  ///
+  /// In zh, this message translates to:
+  /// **'小紅書'**
+  String get entityPlatformXiaohongshu;
+
+  /// No description provided for @entityPlatformLofter.
+  ///
+  /// In zh, this message translates to:
+  /// **'Lofter'**
+  String get entityPlatformLofter;
+
+  /// No description provided for @entityPlatformPixiv.
+  ///
+  /// In zh, this message translates to:
+  /// **'Pixiv'**
+  String get entityPlatformPixiv;
+
+  /// No description provided for @entityPlatformWeibo.
+  ///
+  /// In zh, this message translates to:
+  /// **'微博'**
+  String get entityPlatformWeibo;
+
+  /// No description provided for @entityPlatformInstagram.
+  ///
+  /// In zh, this message translates to:
+  /// **'Instagram'**
+  String get entityPlatformInstagram;
+
+  /// No description provided for @entityPlatformOther.
+  ///
+  /// In zh, this message translates to:
+  /// **'其他'**
+  String get entityPlatformOther;
+
+  /// No description provided for @entityPlatformLink.
+  ///
+  /// In zh, this message translates to:
+  /// **'連結'**
+  String get entityPlatformLink;
+
+  /// No description provided for @entityPlatformMarkTwitter.
+  ///
+  /// In zh, this message translates to:
+  /// **'X'**
+  String get entityPlatformMarkTwitter;
+
+  /// No description provided for @entityPlatformMarkXiaohongshu.
+  ///
+  /// In zh, this message translates to:
+  /// **'紅'**
+  String get entityPlatformMarkXiaohongshu;
+
+  /// No description provided for @entityPlatformMarkLofter.
+  ///
+  /// In zh, this message translates to:
+  /// **'Lo'**
+  String get entityPlatformMarkLofter;
+
+  /// No description provided for @entityPlatformMarkPixiv.
+  ///
+  /// In zh, this message translates to:
+  /// **'Px'**
+  String get entityPlatformMarkPixiv;
+
+  /// No description provided for @entityPlatformMarkWeibo.
+  ///
+  /// In zh, this message translates to:
+  /// **'微'**
+  String get entityPlatformMarkWeibo;
+
+  /// No description provided for @entityPlatformMarkInstagram.
+  ///
+  /// In zh, this message translates to:
+  /// **'IG'**
+  String get entityPlatformMarkInstagram;
+
   /// No description provided for @goalsTitle.
   ///
   /// In zh, this message translates to:
