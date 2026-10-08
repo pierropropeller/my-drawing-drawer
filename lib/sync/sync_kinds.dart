@@ -26,6 +26,28 @@ abstract class SyncKind {
   Set<String> imageFiles(Map<String, dynamic> data) => const {};
 }
 
+/// 舊版文件缺少新欄位：補上預設值再交給 drift 的 fromJson（缺 key 的非空欄位會丟例外）。
+/// [defaults] 的值可以是函式 `(data) => 值`，用來依同文件其他欄位推算。
+Map<String, dynamic> withDefaults(
+  Map<String, dynamic> data,
+  Map<String, Object?> defaults,
+) {
+  final out = Map<String, dynamic>.of(data);
+  defaults.forEach((k, v) {
+    if (!out.containsKey(k)) {
+      out[k] = v is Object? Function(Map<String, dynamic>) ? v(data) : v;
+    }
+  });
+  return out;
+}
+
+const _albumImageDefaults = <String, Object?>{'hidden': false};
+
+Map<String, dynamic> _albumImageJson(Map<String, dynamic> data) => withDefaults(
+  data,
+  {..._albumImageDefaults, 'imageKey': (Map<String, dynamic> d) => d['id']},
+);
+
 Future<List<String>> _tagIdsOf(
   AppDatabase db,
   TagTarget type,
@@ -80,8 +102,11 @@ class PitsKind extends SyncKind {
         db.pits,
       )..where((t) => t.id.equals(id))).getSingle()).toJson();
   @override
-  Future<void> apply(AppDatabase db, Map<String, dynamic> data) =>
-      db.into(db.pits).insertOnConflictUpdate(Pit.fromJson(data));
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
+      .into(db.pits)
+      .insertOnConflictUpdate(
+        Pit.fromJson(withDefaults(data, {'junkEnabled': false})),
+      );
 }
 
 class GroupsKind extends SyncKind {
@@ -121,7 +146,7 @@ class OfficialKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.officialImages)
-      .insertOnConflictUpdate(OfficialImage.fromJson(data));
+      .insertOnConflictUpdate(OfficialImage.fromJson(_albumImageJson(data)));
   @override
   Set<String> imageFiles(Map<String, dynamic> data) => {
     data['imageFile'] as String,
@@ -146,13 +171,38 @@ class FanArtKind extends SyncKind {
   };
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
-    final row = FanArt.fromJson(data);
+    final row = FanArt.fromJson(_albumImageJson(data));
     await db.into(db.fanArts).insertOnConflictUpdate(row);
     await db.setTags(TagTarget.fanArt, row.id, [
       for (final t in data['tagIds'] as List<dynamic>) t as String,
     ]);
   }
 
+  @override
+  Set<String> imageFiles(Map<String, dynamic> data) => {
+    data['imageFile'] as String,
+  };
+}
+
+/// 雜物（D-034）。
+class JunkKind extends SyncKind {
+  const JunkKind();
+  @override
+  String get name => 'junk';
+  @override
+  Future<Map<String, int>> versions(AppDatabase db) async => {
+    for (final r in await db.select(db.junkImages).get())
+      r.id: r.updatedAt.millisecondsSinceEpoch,
+  };
+  @override
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>
+      (await (db.select(
+        db.junkImages,
+      )..where((t) => t.id.equals(id))).getSingle()).toJson();
+  @override
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
+      .into(db.junkImages)
+      .insertOnConflictUpdate(JunkImage.fromJson(_albumImageJson(data)));
   @override
   Set<String> imageFiles(Map<String, dynamic> data) => {
     data['imageFile'] as String,
@@ -295,7 +345,17 @@ class PiecesKind extends SyncKind {
   };
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
-    final row = Piece.fromJson(data);
+    // 舊版文件沒有公開發佈／商稿欄位：舊版的成圖一律是公開的，發佈日期沿用完成日期。
+    final row = Piece.fromJson(
+      withDefaults(data, {
+        'isPublished': true,
+        'publishedAt': (Map<String, dynamic> d) => d['finishedAt'],
+        'isCommission': false,
+        'client': '',
+        'currency': 'CNY',
+        'receivedAmount': 0.0,
+      }),
+    );
     await db.transaction(() async {
       await db.into(db.pieces).insertOnConflictUpdate(row);
       await db.setTags(TagTarget.piece, row.id, [
@@ -386,15 +446,38 @@ class ReviewMonthsKind extends SyncKind {
   };
 }
 
+/// 年度回顧排版設定（id＝年份）。
+class ReviewSettingsKind extends SyncKind {
+  const ReviewSettingsKind();
+  @override
+  String get name => 'reviewsettings';
+  @override
+  Future<Map<String, int>> versions(AppDatabase db) async => {
+    for (final r in await db.select(db.reviewSettings).get())
+      '${r.year}': r.updatedAt?.millisecondsSinceEpoch ?? 0,
+  };
+  @override
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>
+      (await (db.select(
+        db.reviewSettings,
+      )..where((t) => t.year.equals(int.parse(id)))).getSingle()).toJson();
+  @override
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
+      .into(db.reviewSettings)
+      .insertOnConflictUpdate(ReviewSetting.fromJson(data));
+}
+
 const allSyncKinds = <SyncKind>[
   PitsKind(),
   GroupsKind(),
   TagsKind(),
   OfficialKind(),
   FanArtKind(),
+  JunkKind(),
   IdeasKind(),
   DraftsKind(),
   PiecesKind(),
   GoalsKind(),
   ReviewMonthsKind(),
+  ReviewSettingsKind(),
 ];

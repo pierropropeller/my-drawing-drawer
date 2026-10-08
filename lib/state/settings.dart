@@ -21,9 +21,17 @@ class AppSettings {
     this.accountEmail,
     this.accent = AccentPreset.coral,
     this.language = AppLanguage.system,
+    this.defaultCurrency = 'CNY',
+    this.syncedAccount,
   });
 
   final ThemeMode themeMode;
+
+  /// 新增商稿時預設的幣種（D-047），每張商稿仍可各自選；本機設定，不同步。
+  final String defaultCurrency;
+
+  /// 已完成過首次同步的帳號；和 [accountEmail] 不同＝這個帳號還沒做過首次同步。
+  final String? syncedAccount;
 
   /// App 介面語言（預留）：目前只有繁體中文，英文介面之後再補。
   final AppLanguage language;
@@ -51,10 +59,16 @@ class AppSettings {
     Object? accountEmail = _keep,
     AccentPreset? accent,
     AppLanguage? language,
+    String? defaultCurrency,
+    Object? syncedAccount = _keep,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     accent: accent ?? this.accent,
     language: language ?? this.language,
+    defaultCurrency: defaultCurrency ?? this.defaultCurrency,
+    syncedAccount: identical(syncedAccount, _keep)
+        ? this.syncedAccount
+        : syncedAccount as String?,
     refreshMinutes: refreshMinutes ?? this.refreshMinutes,
     autoSync: autoSync ?? this.autoSync,
     nickname: nickname ?? this.nickname,
@@ -108,6 +122,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
       avatarFile: p.getString('avatarFile'),
       onboarded: p.getBool('onboarded') ?? false,
       accountEmail: p.getString('accountEmail'),
+      defaultCurrency: p.getString('defaultCurrency') ?? 'CNY',
+      syncedAccount: p.getString('syncedAccount'),
     );
   }
 
@@ -124,6 +140,21 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void setLanguage(AppLanguage l) {
     state = state.copyWith(language: l);
     _p?.setString('language', l.name);
+  }
+
+  void setDefaultCurrency(String code) {
+    state = state.copyWith(defaultCurrency: code);
+    _p?.setString('defaultCurrency', code);
+  }
+
+  /// 記錄這個帳號已完成首次同步（null＝清除）。
+  void setSyncedAccount(String? email) {
+    state = state.copyWith(syncedAccount: email);
+    if (email == null) {
+      _p?.remove('syncedAccount');
+    } else {
+      _p?.setString('syncedAccount', email);
+    }
   }
 
   void setRefreshMinutes(int v) {
@@ -168,6 +199,12 @@ class SettingsNotifier extends Notifier<AppSettings> {
 final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(
   SettingsNotifier.new,
 );
+
+/// 已連結帳號但還沒完成首次同步。
+final firstSyncPendingProvider = Provider<bool>((ref) {
+  final s = ref.watch(settingsProvider);
+  return s.accountEmail != null && s.syncedAccount != s.accountEmail;
+});
 
 final themeModeProvider = Provider<ThemeMode>(
   (ref) => ref.watch(settingsProvider).themeMode,
