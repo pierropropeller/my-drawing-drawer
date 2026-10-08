@@ -8,7 +8,8 @@ import '../state/settings.dart';
 import 'sync_controller.dart';
 
 /// 在前台時自動同步：啟動、回到前台、恢復網絡、本機資料變動（防抖）、以及依設定的間隔定時。
-/// 沒有手動備份按鈕；一切在背景完成。
+/// 一切在背景完成；使用者也可在「備份與同步」按「立即同步」。首次連結帳號時另由
+/// SyncFirst 頁顯示進度（同步本身仍由 SyncController 執行，這裡只負責觸發）。
 class SyncDriver extends ConsumerStatefulWidget {
   const SyncDriver({super.key, required this.child});
   final Widget child;

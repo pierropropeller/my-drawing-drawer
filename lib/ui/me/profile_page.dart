@@ -1,41 +1,22 @@
-import '../../app_name.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
-import '../album/album_actions.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import '../common/user_avatar.dart';
+import 'about_page.dart';
 import 'backup_page.dart';
 import 'me_widgets.dart';
 import 'language_page.dart';
+import 'profile_edit_page.dart';
 import 'theme_page.dart';
 
 /// 我的：頭像、暱稱、編輯個人資料、主題色／備份與同步／關於 App 入口。
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
-
-  Future<void> _pickAvatar(BuildContext context, WidgetRef ref) async {
-    final picked = await ref.read(imagePickerProvider)();
-    if (picked.isEmpty) return;
-    final store = await ref.read(imageStoreProvider.future);
-    final im = await store.import(picked.first);
-    ref.read(settingsProvider.notifier).setAvatar(im.file);
-  }
-
-  Future<void> _editProfile(
-    BuildContext context,
-    WidgetRef ref,
-    String current,
-  ) async {
-    final name = await promptText(context, title: '暱稱', initial: current);
-    if (name != null) ref.read(settingsProvider.notifier).setNickname(name);
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -128,17 +109,11 @@ class ProfilePage extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(0, 14, 0, 22),
                     child: Column(
                       children: [
-                        GestureDetector(
-                          onTap: () => _pickAvatar(context, ref),
-                          child: UserAvatar(
-                            size: 84,
-                            serif: true,
-                            background: Color.alphaBlend(
-                              t.accent.withValues(alpha: dark ? 0.25 : 0.18),
-                              t.ground,
-                            ),
-                            foreground: t.accent,
-                          ),
+                        UserAvatar(
+                          size: 84,
+                          serif: true,
+                          background: t.accentSoft,
+                          foreground: t.accent,
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -148,7 +123,11 @@ class ProfilePage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 8),
                         GestureDetector(
-                          onTap: () => _editProfile(context, ref, s.nickname),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const ProfileEditPage(),
+                            ),
+                          ),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
@@ -195,8 +174,13 @@ class ProfilePage extends ConsumerWidget {
                           ),
                           row(
                             icon: AppIcons.globe,
-                            tileBg: t.draft.bg,
-                            tileFg: t.draft.fg,
+                            // 設計稿的語言列是固定的綠色底（#E7EFE4／#6B7F5A），深色版沒有畫。
+                            tileBg: dark
+                                ? const Color(0xFF2E3528)
+                                : const Color(0xFFE7EFE4),
+                            tileFg: dark
+                                ? const Color(0xFFA3B88A)
+                                : const Color(0xFF6B7F5A),
                             title: '語言',
                             value: s.language.label,
                             onTap: () => Navigator.of(context).push(
@@ -207,7 +191,9 @@ class ProfilePage extends ConsumerWidget {
                           ),
                           row(
                             icon: AppIcons.cloud,
-                            tileBg: t.official.bg,
+                            tileBg: dark
+                                ? t.official.bg
+                                : const Color(0xFFEAF0F5),
                             tileFg: t.official.fg,
                             title: '備份與同步',
                             value: backupLabel,
@@ -223,10 +209,10 @@ class ProfilePage extends ConsumerWidget {
                             tileFg: t.text3,
                             title: '關於 App',
                             last: true,
-                            onTap: () => showAboutDialog(
-                              context: context,
-                              applicationName: appName,
-                              applicationLegalese: '把想畫的、畫好的，都收進坑裡。',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const AboutPage(),
+                              ),
                             ),
                           ),
                         ],

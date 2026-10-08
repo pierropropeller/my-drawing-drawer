@@ -3,12 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
-import '../common/app_icons.dart';
-import '../common/svg_icon.dart';
+import '../common/nav_bar_hidden.dart';
 import 'me_widgets.dart';
 
-/// 語言：先預留選項。目前介面只有繁體中文；English 之後補上翻譯才能選。
-/// App 在桌面與 Google 登入畫面顯示的名稱，則由系統語言決定（英文系統顯示 Drawer）。
+/// 語言（LanguagePick）：跟隨系統／繁體中文可選；English 停用，右邊顯示「即將推出」。
+/// 沒有導覽列，也沒有說明小字。
 class LanguagePage extends ConsumerWidget {
   const LanguagePage({super.key});
 
@@ -18,86 +17,117 @@ class LanguagePage extends ConsumerWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final current = ref.watch(settingsProvider.select((s) => s.language));
     final divider = dark ? t.border : const Color(0xFFF1EADF);
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            const MeSubHeader('語言'),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                children: [
-                  MePanel(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: Column(
-                        children: [
-                          for (final (i, l) in AppLanguage.values.indexed)
-                            InkWell(
-                              onTap: l.available
-                                  ? () => ref
-                                        .read(settingsProvider.notifier)
-                                        .setLanguage(l)
-                                  : null,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: i == AppLanguage.values.length - 1
-                                      ? null
-                                      : Border(
-                                          bottom: BorderSide(color: divider),
-                                        ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        l.label,
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w500,
-                                          color: l.available ? t.ink : t.text4,
-                                        ),
-                                      ),
+    final muted = dark ? t.text4 : const Color(0xFFB7ADA0);
+    return HideNavBar(
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              const MeSubHeader('語言', bottom: 8),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                  children: [
+                    MePanel(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: Column(
+                          children: [
+                            for (final (i, l) in AppLanguage.values.indexed)
+                              Semantics(
+                                inMutuallyExclusiveGroup: true,
+                                checked: l.available ? l == current : null,
+                                enabled: l.available,
+                                child: InkWell(
+                                  onTap: l.available
+                                      ? () => ref
+                                            .read(settingsProvider.notifier)
+                                            .setLanguage(l)
+                                      : null,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 15,
                                     ),
-                                    if (!l.available)
-                                      Text(
-                                        '即將推出',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: t.text4,
+                                    decoration: BoxDecoration(
+                                      border: i == AppLanguage.values.length - 1
+                                          ? null
+                                          : Border(
+                                              bottom: BorderSide(
+                                                color: divider,
+                                              ),
+                                            ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            l.label,
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w500,
+                                              color: l.available
+                                                  ? t.ink
+                                                  : muted,
+                                            ),
+                                          ),
                                         ),
-                                      )
-                                    else if (l == current)
-                                      SvgIcon(
-                                        AppIcons.check,
-                                        size: 20,
-                                        color: t.accent,
-                                        strokeWidth: 2.2,
-                                      ),
-                                  ],
+                                        if (!l.available)
+                                          Text(
+                                            '即將推出',
+                                            style: TextStyle(
+                                              fontSize: 12.5,
+                                              color: muted,
+                                            ),
+                                          )
+                                        else
+                                          _Radio(selected: l == current),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '目前介面只有繁體中文，English 翻譯完成後會開放。\n'
-                    '桌面上的 App 名稱與 Google 登入畫面，會依系統語言顯示（英文系統為 Drawer，中文系統為畫匣）。',
-                    style: TextStyle(fontSize: 12, color: t.text3, height: 1.6),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// 單選圓鈕：22px 圓，選中＝主題色 2px 外框＋10px 實心點，未選＝虛線色外框。
+class _Radio extends StatelessWidget {
+  const _Radio({required this.selected});
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      width: 22,
+      height: 22,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: selected ? t.accent : t.dashed, width: 2),
+      ),
+      child: selected
+          ? Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: t.accent,
+                shape: BoxShape.circle,
+              ),
+            )
+          : null,
     );
   }
 }

@@ -6,14 +6,17 @@ import '../common/svg_icon.dart';
 
 /// 我的 → 子頁（主題色、備份與同步）的自訂標題列：返回箭頭＋襯線標題（設計稿 22/14/12）。
 class MeSubHeader extends StatelessWidget {
-  const MeSubHeader(this.title, {super.key});
+  const MeSubHeader(this.title, {super.key, this.bottom = 12});
   final String title;
+
+  /// 標題列下方留白：主題色／備份 12，其餘子頁 8。
+  final double bottom;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 22, 14, 12),
+      padding: EdgeInsets.fromLTRB(14, 22, 14, bottom),
       child: Row(
         children: [
           Tooltip(

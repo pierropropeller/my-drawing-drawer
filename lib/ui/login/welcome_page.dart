@@ -11,6 +11,7 @@ import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
 import '../pits/pit_form.dart';
+import 'sync_first_page.dart';
 
 /// 開頭畫面：用 Google 帳號開始（Drive 同步），或離線繼續。
 /// 沒有自家帳號系統；Google 帳號只用於 Drive 同步。
@@ -210,7 +211,8 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
     final n = ref.read(settingsProvider.notifier);
     n.setAccount(_email);
     n.setOnboarded(true);
-    Navigator.of(context).popUntil((r) => r.isFirst);
+    // 首次連結：進「首次同步中」頁（可按「先開始使用」離開，同步在背景繼續）。
+    SyncFirstPage.open(context, ref, replace: true);
   }
 
   @override

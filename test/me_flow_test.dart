@@ -98,6 +98,12 @@ void main() {
     await settle(tester);
     expect(c.read(settingsProvider).accountEmail, 'me@example.com');
     expect(c.read(settingsProvider).onboarded, isTrue);
+    // 首次連結：同步中畫面；同步完會自動離開，沒離開就按「先開始使用」。
+    if (find.text('先開始使用').evaluate().isNotEmpty) {
+      await tester.tap(find.text('先開始使用'));
+      await settle(tester);
+    }
+    expect(find.text('我的坑'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));
   });
@@ -133,6 +139,11 @@ void main() {
     expect(find.text('尚未連結 Google 帳號'), findsOneWidget);
     await tester.tap(find.text('連結 Google 帳號'));
     await settle(tester);
+    // 同步中畫面（MemoryRemote 同步很快，頁面會自動離開；沒離開就手動離開）。
+    if (find.text('先開始使用').evaluate().isNotEmpty) {
+      await tester.tap(find.text('先開始使用'));
+      await settle(tester);
+    }
     expect(find.text('me@example.com'), findsOneWidget);
     expect(find.text('自動同步'), findsOneWidget);
     expect(find.text('每 5 分鐘'), findsOneWidget);

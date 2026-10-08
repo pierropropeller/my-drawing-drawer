@@ -25,6 +25,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.dashedText,
     required this.accent,
     required this.accentStrong,
+    required this.accentSoft,
     required this.danger,
     required this.official,
     required this.fanArt,
@@ -47,6 +48,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
   final Color dashedText;
   final Color accent;
   final Color accentStrong;
+
+  /// 頭像底、淡色強調底（ColorSystem 的 soft）。
+  final Color accentSoft;
   final Color danger;
   final CategoryColor official;
   final CategoryColor fanArt;
@@ -69,6 +73,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     dashedText: Color(0xFFA58C6A),
     accent: Color(0xFFD9634E),
     accentStrong: Color(0xFFB84B38),
+    accentSoft: Color(0xFFF6E3DC),
     danger: Color(0xFFC0392B),
     official: CategoryColor(Color(0xFFE7ECF2), Color(0xFF5B7A99)),
     fanArt: CategoryColor(Color(0xFFF6E7EA), Color(0xFFB76A7C)),
@@ -92,6 +97,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     dashedText: Color(0xFFB39A78),
     accent: Color(0xFFE27560),
     accentStrong: Color(0xFFE8876F),
+    accentSoft: Color(0xFF3D2A24),
     danger: Color(0xFFF08A76),
     official: CategoryColor(Color(0xFF2B323A), Color(0xFF93AECB)),
     fanArt: CategoryColor(Color(0xFF3A2C30), Color(0xFFD99AAB)),
@@ -100,18 +106,10 @@ class AppTokens extends ThemeExtension<AppTokens> {
     piece: CategoryColor(Color(0xFF3E2A23), Color(0xFFE8876F)),
   );
 
-  /// 換主題色：只替換 accent／accentStrong，其餘不變。
+  /// 換主題色：只替換 accent／strong／soft 三色（ColorSystem 色值表，淺／深各一組），其餘不變。
   AppTokens withAccent(AccentPreset preset, Brightness brightness) {
-    final dark = brightness == Brightness.dark;
     if (preset == AccentPreset.coral) return this;
-    final base = HSLColor.fromColor(preset.color);
-    // 深色版：提亮一點讓它在深底上仍清楚；Strong 為更深（淺色）或更亮（深色）的版本。
-    final a = dark
-        ? base.withLightness((base.lightness + 0.08).clamp(0, 1))
-        : base;
-    final strong = dark
-        ? base.withLightness((base.lightness + 0.14).clamp(0, 1))
-        : base.withLightness((base.lightness - 0.09).clamp(0, 1));
+    final c = preset.colors(brightness);
     return AppTokens(
       ground: ground,
       surface: surface,
@@ -125,8 +123,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
       chipBg: chipBg,
       dashed: dashed,
       dashedText: dashedText,
-      accent: a.toColor(),
-      accentStrong: strong.toColor(),
+      accent: c.accent,
+      accentStrong: c.strong,
+      accentSoft: c.soft,
       danger: danger,
       official: official,
       fanArt: fanArt,
@@ -144,17 +143,51 @@ class AppTokens extends ThemeExtension<AppTokens> {
       t < 0.5 ? this : (other as AppTokens? ?? this);
 }
 
-/// 主題色預設（Theme 設計稿）：珊瑚（預設）／霧藍／玫瑰／抹茶。
-enum AccentPreset {
-  coral('coral', '珊瑚', Color(0xFFD9634E)),
-  slate('slate', '霧藍', Color(0xFF5B7A99)),
-  rose('rose', '玫瑰', Color(0xFFB76A7C)),
-  matcha('matcha', '抹茶', Color(0xFF7A8B5B));
+/// 一個主題色在某個亮度下的三色。
+class AccentColors {
+  const AccentColors(this.accent, this.strong, this.soft);
+  final Color accent;
+  final Color strong;
+  final Color soft;
+}
 
-  const AccentPreset(this.key, this.label, this.color);
+/// 主題色預設（ColorSystem／HANDOFF 第 7 節）：珊瑚（預設）／霧藍／玫瑰／抹茶。
+enum AccentPreset {
+  coral(
+    'coral',
+    '珊瑚',
+    AccentColors(Color(0xFFD9634E), Color(0xFFB84B38), Color(0xFFF6E3DC)),
+    AccentColors(Color(0xFFE27560), Color(0xFFE8876F), Color(0xFF3D2A24)),
+  ),
+  slate(
+    'slate',
+    '霧藍',
+    AccentColors(Color(0xFF5B7A99), Color(0xFF46627E), Color(0xFFE3EAF1)),
+    AccentColors(Color(0xFF7F9DBB), Color(0xFF93AECB), Color(0xFF26303A)),
+  ),
+  rose(
+    'rose',
+    '玫瑰',
+    AccentColors(Color(0xFFB76A7C), Color(0xFF9A5264), Color(0xFFF3E2E6)),
+    AccentColors(Color(0xFFCF8A9B), Color(0xFFD99AAB), Color(0xFF3A2A2F)),
+  ),
+  matcha(
+    'matcha',
+    '抹茶',
+    AccentColors(Color(0xFF7A8B5B), Color(0xFF627248), Color(0xFFE6EBDC)),
+    AccentColors(Color(0xFF9AAB79), Color(0xFFADBD8C), Color(0xFF2D3324)),
+  );
+
+  const AccentPreset(this.key, this.label, this.light, this.dark);
   final String key;
   final String label;
-  final Color color;
+  final AccentColors light;
+  final AccentColors dark;
+
+  /// 淺色版 accent（色票圓點用）。
+  Color get color => light.accent;
+
+  AccentColors colors(Brightness b) => b == Brightness.dark ? dark : light;
 
   static AccentPreset fromKey(String? key) =>
       values.firstWhere((p) => p.key == key, orElse: () => coral);
