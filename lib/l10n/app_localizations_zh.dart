@@ -10,6 +10,306 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get pitsDeleteTitle => '刪除這個坑？';
+
+  @override
+  String get pitsDeleteBody => '坑內的內容也會一併刪除。';
+
+  @override
+  String get pitsSelectCover => '選擇封面';
+
+  @override
+  String get pitsChangeCover => '更換封面';
+
+  @override
+  String get pitsFieldCover => '封面';
+
+  @override
+  String get pitsEditTitle => '編輯坑';
+
+  @override
+  String get pitsFieldName => '坑名';
+
+  @override
+  String get pitsNameRequired => '請輸入坑名';
+
+  @override
+  String get pitsFieldDesc => '描述';
+
+  @override
+  String get pitsArchive => '封存';
+
+  @override
+  String get pitsDeleteThis => '刪除這個坑';
+
+  @override
+  String get pitsDeleteHint => '刪除後坑內所有圖片、腦洞、草稿及成圖將一併移除';
+
+  @override
+  String get pitsNewTitle => '開新坑';
+
+  @override
+  String get pitsCreate => '建立';
+
+  @override
+  String get pitsOfficial => '官方圖冊';
+
+  @override
+  String get pitsFanArt => '好看同人圖';
+
+  @override
+  String get pitsDrafts => '我的草稿';
+
+  @override
+  String get pitsIdeas => '我的腦洞';
+
+  @override
+  String get pitsPieces => '我的成圖';
+
+  @override
+  String pitsCountDrafts(int count) {
+    return '$count 份';
+  }
+
+  @override
+  String pitsCountIdeas(int count) {
+    return '$count 個';
+  }
+
+  @override
+  String get pitsPiecesEmpty => '還沒有成圖・開始你的第一張';
+
+  @override
+  String get pitsMyPits => '我的坑';
+
+  @override
+  String get pitsActive => '現坑';
+
+  @override
+  String get pitsArchived => '封存坑';
+
+  @override
+  String pitsLoadFailed(String error) {
+    return '載入失敗：$error';
+  }
+
+  @override
+  String get pitsViewGrid => '田字檢視';
+
+  @override
+  String get pitsViewWaterfall => '瀑布檢視';
+
+  @override
+  String pitsSyncingImages(int done, int total) {
+    return '同步中・圖片 $done / $total';
+  }
+
+  @override
+  String get pitsSyncing => '同步中';
+
+  @override
+  String get pitsOffline => '離線中・恢復網絡後將自動上傳';
+
+  @override
+  String get pitsEmptyArchived => '沒有封存的坑';
+
+  @override
+  String get pitsEmpty => '還沒有坑';
+
+  @override
+  String get pitsNotDownloaded => '尚未下載';
+
+  @override
+  String pitsStatsLine(int pieces, int ideas) {
+    return '$pieces 成圖 · $ideas 腦洞未孵';
+  }
+
+  @override
+  String get junkTitle => '雜物';
+
+  @override
+  String get junkEmpty => '還沒有雜物';
+
+  @override
+  String get tagsScopeNote => 'tag 按坑獨立，不同坑之間不共用';
+
+  @override
+  String tagsUsedCount(int count) {
+    return '$count 項';
+  }
+
+  @override
+  String tagsRename(String name) {
+    return '重新命名 #$name';
+  }
+
+  @override
+  String get tagsRenamePrompt => 'Tag 名稱';
+
+  @override
+  String tagsDelete(String name) {
+    return '刪除 #$name';
+  }
+
+  @override
+  String tagsDeleteTitle(String name) {
+    return '刪除 tag「$name」？';
+  }
+
+  @override
+  String get tagsDeleteBody => '已使用的內容會一併移除這個 tag。';
+
+  @override
+  String get tagsAdd => '新增 tag';
+
+  @override
+  String get albumConfirm => '確定';
+
+  @override
+  String get albumAddImage => '加圖';
+
+  @override
+  String get albumSavedToGallery => '已儲存到相簿';
+
+  @override
+  String albumSavedCountToGallery(int count) {
+    return '已儲存 $count 張到相簿';
+  }
+
+  @override
+  String get albumSaveFailed => '儲存失敗';
+
+  @override
+  String albumMovedCount(int count, String target) {
+    return '已移動 $count 張到$target';
+  }
+
+  @override
+  String get albumDeleteImageTitle => '刪除這張圖？';
+
+  @override
+  String albumDeleteImagesTitle(int count) {
+    return '刪除 $count 張圖？';
+  }
+
+  @override
+  String get albumCancelSelect => '取消選擇';
+
+  @override
+  String albumTitleWithPit(String pit, String title) {
+    return '$pit · $title';
+  }
+
+  @override
+  String get albumManageGroups => '管理分組';
+
+  @override
+  String get albumCoverSet => '已設為坑的封面';
+
+  @override
+  String get albumCoverPickTitle => '選擇坑的封面';
+
+  @override
+  String albumCoverHolding(String label) {
+    return '長按中：$label 封面';
+  }
+
+  @override
+  String get albumCoverPickHeading => '選擇封面圖';
+
+  @override
+  String get albumCoverNone => '沒有可選的圖';
+
+  @override
+  String get albumSetCover => '設為封面';
+
+  @override
+  String get albumFanEditTitle => '編輯同人圖';
+
+  @override
+  String get albumFieldImage => '圖片';
+
+  @override
+  String get albumFieldAuthor => '作者';
+
+  @override
+  String get albumFieldSource => '出處';
+
+  @override
+  String get albumFanNewTitle => '新增同人圖';
+
+  @override
+  String get albumPickImageFirst => '請先選擇圖片';
+
+  @override
+  String get albumFanAdd => '加入好看同人圖';
+
+  @override
+  String albumGroupDeleteTitle(String name) {
+    return '刪除分組「$name」？';
+  }
+
+  @override
+  String get albumGroupDeleteBody => '組內的圖會移到其他分組。';
+
+  @override
+  String get albumGroupKeepOne => '至少要保留一個分組';
+
+  @override
+  String get albumGroupNameTitle => '分組名稱';
+
+  @override
+  String get albumGroupHintFan => '分組只用於好看同人圖，拖曳可調整次序';
+
+  @override
+  String get albumGroupHintOfficial => '分組只用於官方圖冊，拖曳可調整次序';
+
+  @override
+  String albumGroupRename(String name) {
+    return '重新命名 $name';
+  }
+
+  @override
+  String albumGroupDelete(String name) {
+    return '刪除 $name';
+  }
+
+  @override
+  String get albumGroupAdd => '新增分組';
+
+  @override
+  String get albumGroupLabel => '分組';
+
+  @override
+  String get albumRemoveImage => '移除圖片';
+
+  @override
+  String get albumChangeGroup => '更換分組';
+
+  @override
+  String get albumGroupChanged => '已更換分組';
+
+  @override
+  String get albumCoverSetOfficial => '已設為官方圖冊封面';
+
+  @override
+  String get albumMoveTo => '移動到';
+
+  @override
+  String get albumOfficialEmpty => '還沒有官方圖';
+
+  @override
+  String get albumOfficialNewTitle => '新增官方圖';
+
+  @override
+  String get albumOfficialAdd => '加入官方圖冊';
+
+  @override
+  String albumPreviewDateAdded(int year, String month, String day) {
+    return '$year / $month / $day 加入';
+  }
+
+  @override
   String get shellTabPits => '坑';
 
   @override

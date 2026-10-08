@@ -94,6 +94,534 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[Locale('zh')];
 
+  /// No description provided for @pitsDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除這個坑？'**
+  String get pitsDeleteTitle;
+
+  /// No description provided for @pitsDeleteBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'坑內的內容也會一併刪除。'**
+  String get pitsDeleteBody;
+
+  /// No description provided for @pitsSelectCover.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇封面'**
+  String get pitsSelectCover;
+
+  /// No description provided for @pitsChangeCover.
+  ///
+  /// In zh, this message translates to:
+  /// **'更換封面'**
+  String get pitsChangeCover;
+
+  /// No description provided for @pitsFieldCover.
+  ///
+  /// In zh, this message translates to:
+  /// **'封面'**
+  String get pitsFieldCover;
+
+  /// No description provided for @pitsEditTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯坑'**
+  String get pitsEditTitle;
+
+  /// No description provided for @pitsFieldName.
+  ///
+  /// In zh, this message translates to:
+  /// **'坑名'**
+  String get pitsFieldName;
+
+  /// No description provided for @pitsNameRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'請輸入坑名'**
+  String get pitsNameRequired;
+
+  /// No description provided for @pitsFieldDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'描述'**
+  String get pitsFieldDesc;
+
+  /// No description provided for @pitsArchive.
+  ///
+  /// In zh, this message translates to:
+  /// **'封存'**
+  String get pitsArchive;
+
+  /// No description provided for @pitsDeleteThis.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除這個坑'**
+  String get pitsDeleteThis;
+
+  /// No description provided for @pitsDeleteHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除後坑內所有圖片、腦洞、草稿及成圖將一併移除'**
+  String get pitsDeleteHint;
+
+  /// No description provided for @pitsNewTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'開新坑'**
+  String get pitsNewTitle;
+
+  /// No description provided for @pitsCreate.
+  ///
+  /// In zh, this message translates to:
+  /// **'建立'**
+  String get pitsCreate;
+
+  /// No description provided for @pitsOfficial.
+  ///
+  /// In zh, this message translates to:
+  /// **'官方圖冊'**
+  String get pitsOfficial;
+
+  /// No description provided for @pitsFanArt.
+  ///
+  /// In zh, this message translates to:
+  /// **'好看同人圖'**
+  String get pitsFanArt;
+
+  /// No description provided for @pitsDrafts.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的草稿'**
+  String get pitsDrafts;
+
+  /// No description provided for @pitsIdeas.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的腦洞'**
+  String get pitsIdeas;
+
+  /// No description provided for @pitsPieces.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的成圖'**
+  String get pitsPieces;
+
+  /// No description provided for @pitsCountDrafts.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 份'**
+  String pitsCountDrafts(int count);
+
+  /// No description provided for @pitsCountIdeas.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 個'**
+  String pitsCountIdeas(int count);
+
+  /// No description provided for @pitsPiecesEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有成圖・開始你的第一張'**
+  String get pitsPiecesEmpty;
+
+  /// No description provided for @pitsMyPits.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的坑'**
+  String get pitsMyPits;
+
+  /// No description provided for @pitsActive.
+  ///
+  /// In zh, this message translates to:
+  /// **'現坑'**
+  String get pitsActive;
+
+  /// No description provided for @pitsArchived.
+  ///
+  /// In zh, this message translates to:
+  /// **'封存坑'**
+  String get pitsArchived;
+
+  /// No description provided for @pitsLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'載入失敗：{error}'**
+  String pitsLoadFailed(String error);
+
+  /// No description provided for @pitsViewGrid.
+  ///
+  /// In zh, this message translates to:
+  /// **'田字檢視'**
+  String get pitsViewGrid;
+
+  /// No description provided for @pitsViewWaterfall.
+  ///
+  /// In zh, this message translates to:
+  /// **'瀑布檢視'**
+  String get pitsViewWaterfall;
+
+  /// No description provided for @pitsSyncingImages.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步中・圖片 {done} / {total}'**
+  String pitsSyncingImages(int done, int total);
+
+  /// No description provided for @pitsSyncing.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步中'**
+  String get pitsSyncing;
+
+  /// No description provided for @pitsOffline.
+  ///
+  /// In zh, this message translates to:
+  /// **'離線中・恢復網絡後將自動上傳'**
+  String get pitsOffline;
+
+  /// No description provided for @pitsEmptyArchived.
+  ///
+  /// In zh, this message translates to:
+  /// **'沒有封存的坑'**
+  String get pitsEmptyArchived;
+
+  /// No description provided for @pitsEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有坑'**
+  String get pitsEmpty;
+
+  /// No description provided for @pitsNotDownloaded.
+  ///
+  /// In zh, this message translates to:
+  /// **'尚未下載'**
+  String get pitsNotDownloaded;
+
+  /// No description provided for @pitsStatsLine.
+  ///
+  /// In zh, this message translates to:
+  /// **'{pieces} 成圖 · {ideas} 腦洞未孵'**
+  String pitsStatsLine(int pieces, int ideas);
+
+  /// No description provided for @junkTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'雜物'**
+  String get junkTitle;
+
+  /// No description provided for @junkEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有雜物'**
+  String get junkEmpty;
+
+  /// No description provided for @tagsScopeNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'tag 按坑獨立，不同坑之間不共用'**
+  String get tagsScopeNote;
+
+  /// No description provided for @tagsUsedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 項'**
+  String tagsUsedCount(int count);
+
+  /// No description provided for @tagsRename.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新命名 #{name}'**
+  String tagsRename(String name);
+
+  /// No description provided for @tagsRenamePrompt.
+  ///
+  /// In zh, this message translates to:
+  /// **'Tag 名稱'**
+  String get tagsRenamePrompt;
+
+  /// No description provided for @tagsDelete.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除 #{name}'**
+  String tagsDelete(String name);
+
+  /// No description provided for @tagsDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除 tag「{name}」？'**
+  String tagsDeleteTitle(String name);
+
+  /// No description provided for @tagsDeleteBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'已使用的內容會一併移除這個 tag。'**
+  String get tagsDeleteBody;
+
+  /// No description provided for @tagsAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增 tag'**
+  String get tagsAdd;
+
+  /// No description provided for @albumConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'確定'**
+  String get albumConfirm;
+
+  /// No description provided for @albumAddImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'加圖'**
+  String get albumAddImage;
+
+  /// No description provided for @albumSavedToGallery.
+  ///
+  /// In zh, this message translates to:
+  /// **'已儲存到相簿'**
+  String get albumSavedToGallery;
+
+  /// No description provided for @albumSavedCountToGallery.
+  ///
+  /// In zh, this message translates to:
+  /// **'已儲存 {count} 張到相簿'**
+  String albumSavedCountToGallery(int count);
+
+  /// No description provided for @albumSaveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'儲存失敗'**
+  String get albumSaveFailed;
+
+  /// No description provided for @albumMovedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已移動 {count} 張到{target}'**
+  String albumMovedCount(int count, String target);
+
+  /// No description provided for @albumDeleteImageTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除這張圖？'**
+  String get albumDeleteImageTitle;
+
+  /// No description provided for @albumDeleteImagesTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除 {count} 張圖？'**
+  String albumDeleteImagesTitle(int count);
+
+  /// No description provided for @albumCancelSelect.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消選擇'**
+  String get albumCancelSelect;
+
+  /// No description provided for @albumTitleWithPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'{pit} · {title}'**
+  String albumTitleWithPit(String pit, String title);
+
+  /// No description provided for @albumManageGroups.
+  ///
+  /// In zh, this message translates to:
+  /// **'管理分組'**
+  String get albumManageGroups;
+
+  /// No description provided for @albumCoverSet.
+  ///
+  /// In zh, this message translates to:
+  /// **'已設為坑的封面'**
+  String get albumCoverSet;
+
+  /// No description provided for @albumCoverPickTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇坑的封面'**
+  String get albumCoverPickTitle;
+
+  /// No description provided for @albumCoverHolding.
+  ///
+  /// In zh, this message translates to:
+  /// **'長按中：{label} 封面'**
+  String albumCoverHolding(String label);
+
+  /// No description provided for @albumCoverPickHeading.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇封面圖'**
+  String get albumCoverPickHeading;
+
+  /// No description provided for @albumCoverNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'沒有可選的圖'**
+  String get albumCoverNone;
+
+  /// No description provided for @albumSetCover.
+  ///
+  /// In zh, this message translates to:
+  /// **'設為封面'**
+  String get albumSetCover;
+
+  /// No description provided for @albumFanEditTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯同人圖'**
+  String get albumFanEditTitle;
+
+  /// No description provided for @albumFieldImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'圖片'**
+  String get albumFieldImage;
+
+  /// No description provided for @albumFieldAuthor.
+  ///
+  /// In zh, this message translates to:
+  /// **'作者'**
+  String get albumFieldAuthor;
+
+  /// No description provided for @albumFieldSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'出處'**
+  String get albumFieldSource;
+
+  /// No description provided for @albumFanNewTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增同人圖'**
+  String get albumFanNewTitle;
+
+  /// No description provided for @albumPickImageFirst.
+  ///
+  /// In zh, this message translates to:
+  /// **'請先選擇圖片'**
+  String get albumPickImageFirst;
+
+  /// No description provided for @albumFanAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'加入好看同人圖'**
+  String get albumFanAdd;
+
+  /// No description provided for @albumGroupDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除分組「{name}」？'**
+  String albumGroupDeleteTitle(String name);
+
+  /// No description provided for @albumGroupDeleteBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'組內的圖會移到其他分組。'**
+  String get albumGroupDeleteBody;
+
+  /// No description provided for @albumGroupKeepOne.
+  ///
+  /// In zh, this message translates to:
+  /// **'至少要保留一個分組'**
+  String get albumGroupKeepOne;
+
+  /// No description provided for @albumGroupNameTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'分組名稱'**
+  String get albumGroupNameTitle;
+
+  /// No description provided for @albumGroupHintFan.
+  ///
+  /// In zh, this message translates to:
+  /// **'分組只用於好看同人圖，拖曳可調整次序'**
+  String get albumGroupHintFan;
+
+  /// No description provided for @albumGroupHintOfficial.
+  ///
+  /// In zh, this message translates to:
+  /// **'分組只用於官方圖冊，拖曳可調整次序'**
+  String get albumGroupHintOfficial;
+
+  /// No description provided for @albumGroupRename.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新命名 {name}'**
+  String albumGroupRename(String name);
+
+  /// No description provided for @albumGroupDelete.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除 {name}'**
+  String albumGroupDelete(String name);
+
+  /// No description provided for @albumGroupAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增分組'**
+  String get albumGroupAdd;
+
+  /// No description provided for @albumGroupLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'分組'**
+  String get albumGroupLabel;
+
+  /// No description provided for @albumRemoveImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除圖片'**
+  String get albumRemoveImage;
+
+  /// No description provided for @albumChangeGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'更換分組'**
+  String get albumChangeGroup;
+
+  /// No description provided for @albumGroupChanged.
+  ///
+  /// In zh, this message translates to:
+  /// **'已更換分組'**
+  String get albumGroupChanged;
+
+  /// No description provided for @albumCoverSetOfficial.
+  ///
+  /// In zh, this message translates to:
+  /// **'已設為官方圖冊封面'**
+  String get albumCoverSetOfficial;
+
+  /// No description provided for @albumMoveTo.
+  ///
+  /// In zh, this message translates to:
+  /// **'移動到'**
+  String get albumMoveTo;
+
+  /// No description provided for @albumOfficialEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有官方圖'**
+  String get albumOfficialEmpty;
+
+  /// No description provided for @albumOfficialNewTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增官方圖'**
+  String get albumOfficialNewTitle;
+
+  /// No description provided for @albumOfficialAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'加入官方圖冊'**
+  String get albumOfficialAdd;
+
+  /// No description provided for @albumPreviewDateAdded.
+  ///
+  /// In zh, this message translates to:
+  /// **'{year} / {month} / {day} 加入'**
+  String albumPreviewDateAdded(int year, String month, String day);
+
   /// No description provided for @shellTabPits.
   ///
   /// In zh, this message translates to:
