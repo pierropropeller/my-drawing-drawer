@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/nav_bar_hidden.dart';
 import 'pit_form.dart';
@@ -44,25 +45,26 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
       body: SafeArea(
         child: Column(
           children: [
-            const PitHeader(title: '開新坑'),
+            PitHeader(title: context.l10n.pitsNewTitle),
             Expanded(
               child: Form(
                 key: _form,
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   children: [
-                    const PitFieldLabel('坑名'),
+                    PitFieldLabel(context.l10n.pitsFieldName),
                     TextFormField(
                       controller: _name,
                       autofocus: true,
                       textInputAction: TextInputAction.next,
                       style: const TextStyle(fontSize: 15),
                       decoration: pitInputDecoration(context),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? '請輸入坑名' : null,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? context.l10n.pitsNameRequired
+                          : null,
                     ),
                     const SizedBox(height: 16),
-                    const PitFieldLabel('描述'),
+                    PitFieldLabel(context.l10n.pitsFieldDesc),
                     TextFormField(
                       controller: _desc,
                       minLines: 3,
@@ -71,7 +73,10 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
                       decoration: pitInputDecoration(context),
                     ),
                     const SizedBox(height: 24),
-                    PitPrimaryButton(label: '建立', onPressed: _save),
+                    PitPrimaryButton(
+                      label: context.l10n.pitsCreate,
+                      onPressed: _save,
+                    ),
                   ],
                 ),
               ),

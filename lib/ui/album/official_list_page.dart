@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/junk_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
@@ -66,9 +67,9 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
     return AlbumView(
       pitId: widget.pitId,
       cell: AlbumCell.official,
-      title: '官方圖冊',
+      title: context.l10n.pitsOfficial,
       images: images,
-      emptyLabel: '還沒有官方圖',
+      emptyLabel: context.l10n.albumOfficialEmpty,
       emptySvg: AppIcons.pitOfficial,
       total: total,
       emptyColor: t.official,

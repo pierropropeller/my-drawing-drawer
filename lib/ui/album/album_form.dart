@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
@@ -25,7 +26,7 @@ class AlbumFormScaffold extends StatelessWidget {
         leading: Padding(
           padding: const EdgeInsets.only(left: 14),
           child: IconButton(
-            tooltip: '返回',
+            tooltip: context.l10n.commonBack,
             padding: EdgeInsets.zero,
             icon: SvgIcon(AppIcons.back, color: t.ink, strokeWidth: 1.9),
             onPressed: () => Navigator.of(context).maybePop(),

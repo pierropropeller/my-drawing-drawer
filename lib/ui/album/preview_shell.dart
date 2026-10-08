@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import 'album_image.dart';
@@ -24,8 +25,12 @@ abstract final class PreviewPalette {
 }
 
 /// 「2026 / 09 / 21 加入」。
-String previewDate(DateTime d) =>
-    '${d.year} / ${d.month.toString().padLeft(2, '0')} / ${d.day.toString().padLeft(2, '0')} 加入';
+String previewDate(DateTime d, [AppLocalizations? l10n]) =>
+    (l10n ?? l10nStatic).albumPreviewDateAdded(
+      d.year,
+      d.month.toString().padLeft(2, '0'),
+      d.day.toString().padLeft(2, '0'),
+    );
 
 class PreviewAction {
   const PreviewAction(this.svg, this.label, this.onTap, {this.color});
@@ -68,7 +73,7 @@ class PreviewShell extends StatelessWidget {
               child: Row(
                 children: [
                   IconButton(
-                    tooltip: '返回',
+                    tooltip: context.l10n.commonBack,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints.tightFor(
                       width: 40,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
@@ -29,12 +30,13 @@ class GroupManagePage extends ConsumerWidget {
   ) async {
     final ok = await confirmDelete(
       context,
-      title: '刪除分組「${g.name}」？',
-      message: '組內的圖會移到其他分組。',
+      title: context.l10n.albumGroupDeleteTitle(g.name),
+      message: context.l10n.albumGroupDeleteBody,
     );
     if (!ok) return;
     final done = await ref.read(databaseProvider).deleteGroup(g.id);
-    if (!done && context.mounted) showSnack(context, '至少要保留一個分組');
+    if (!done && context.mounted)
+      showSnack(context, context.l10n.albumGroupKeepOne);
   }
 
   Future<void> _rename(
@@ -42,7 +44,11 @@ class GroupManagePage extends ConsumerWidget {
     WidgetRef ref,
     OfficialGroup g,
   ) async {
-    final name = await promptText(context, title: '分組名稱', initial: g.name);
+    final name = await promptText(
+      context,
+      title: context.l10n.albumGroupNameTitle,
+      initial: g.name,
+    );
     if (name != null) await ref.read(databaseProvider).renameGroup(g.id, name);
   }
 
@@ -76,14 +82,14 @@ class GroupManagePage extends ConsumerWidget {
           leading: Padding(
             padding: const EdgeInsets.only(left: 14),
             child: IconButton(
-              tooltip: '返回',
+              tooltip: context.l10n.commonBack,
               padding: EdgeInsets.zero,
               icon: SvgIcon(AppIcons.back, color: t.ink, strokeWidth: 1.9),
               onPressed: () => Navigator.of(context).maybePop(),
             ),
           ),
           title: Text(
-            '管理分組',
+            context.l10n.albumManageGroups,
             style: Theme.of(context).textTheme.titleLarge
                 ?.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
           ),
@@ -94,7 +100,9 @@ class GroupManagePage extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(2, 0, 2, 12),
               child: Text(
-                kind == 'fan' ? '分組只用於好看同人圖，拖曳可調整次序' : '分組只用於官方圖冊，拖曳可調整次序',
+                kind == 'fan'
+                    ? context.l10n.albumGroupHintFan
+                    : context.l10n.albumGroupHintOfficial,
                 style: TextStyle(color: t.text3, fontSize: 12.5),
               ),
             ),
@@ -168,7 +176,9 @@ class GroupManagePage extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.only(right: 2),
                               child: Text(
-                                '${counts[g.id] ?? 0} 張',
+                                context.l10n.commonCountImages(
+                                  counts[g.id] ?? 0,
+                                ),
                                 style: TextStyle(
                                   color: t.text4,
                                   fontSize: 12.5,
@@ -176,13 +186,13 @@ class GroupManagePage extends ConsumerWidget {
                               ),
                             ),
                             _RowButton(
-                              tooltip: '重新命名 ${g.name}',
+                              tooltip: context.l10n.albumGroupRename(g.name),
                               svg: AppIcons.edit,
                               color: t.text2,
                               onTap: () => _rename(context, ref, g),
                             ),
                             _RowButton(
-                              tooltip: '刪除 ${g.name}',
+                              tooltip: context.l10n.albumGroupDelete(g.name),
                               svg: AppIcons.trash,
                               color: t.danger,
                               onTap: () => _delete(context, ref, g),
@@ -194,7 +204,10 @@ class GroupManagePage extends ConsumerWidget {
                   ),
                   InkWell(
                     onTap: () async {
-                      final name = await promptText(context, title: '新增分組');
+                      final name = await promptText(
+                        context,
+                        title: context.l10n.albumGroupAdd,
+                      );
                       if (name != null) {
                         await db.addGroup(pitId, name, kind: kind);
                       }
@@ -211,7 +224,7 @@ class GroupManagePage extends ConsumerWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '新增分組',
+                            context.l10n.albumGroupAdd,
                             style: TextStyle(
                               color: t.dashedText,
                               fontSize: 14.5,

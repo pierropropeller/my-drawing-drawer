@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/image_store.dart';
+import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
@@ -76,7 +77,7 @@ class ImagePickerField extends ConsumerWidget {
                   right: -6,
                   child: Semantics(
                     button: true,
-                    label: '移除圖片',
+                    label: context.l10n.albumRemoveImage,
                     child: GestureDetector(
                       onTap: () => onRemove(i),
                       child: Container(
@@ -105,7 +106,7 @@ class ImagePickerField extends ConsumerWidget {
           GestureDetector(
             onTap: onAdd,
             child: Semantics(
-              label: '加圖',
+              label: context.l10n.albumAddImage,
               child: SizedBox(
                 width: 84,
                 height: 84,

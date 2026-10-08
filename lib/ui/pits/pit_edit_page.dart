@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -58,16 +59,19 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('刪除這個坑？'),
-        content: const Text('坑內的內容也會一併刪除。'),
+        title: Text(ctx.l10n.pitsDeleteTitle),
+        content: Text(ctx.l10n.pitsDeleteBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
+            child: Text(ctx.l10n.commonCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('刪除', style: TextStyle(color: ctx.tokens.danger)),
+            child: Text(
+              ctx.l10n.commonDelete,
+              style: TextStyle(color: ctx.tokens.danger),
+            ),
           ),
         ],
       ),
@@ -92,7 +96,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
       // 有圖但還沒設封面：虛線正方框＋號，點了進選擇封面。
       tile = Semantics(
         button: true,
-        label: '選擇封面',
+        label: context.l10n.pitsSelectCover,
         child: GestureDetector(
           onTap: _pickCover,
           child: SizedBox(
@@ -135,7 +139,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                 borderRadius: BorderRadius.circular(Radii.chip),
               ),
               child: Text(
-                '更換封面',
+                context.l10n.pitsChangeCover,
                 style: TextStyle(
                   color: t.text2,
                   fontSize: 13,
@@ -150,7 +154,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const PitFieldLabel('封面'),
+        PitFieldLabel(context.l10n.pitsFieldCover),
         Padding(padding: const EdgeInsets.only(bottom: 18), child: tile),
       ],
     );
@@ -167,7 +171,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
       body: SafeArea(
         child: Column(
           children: [
-            const PitHeader(title: '編輯坑'),
+            PitHeader(title: context.l10n.pitsEditTitle),
             Expanded(
               child: Form(
                 key: _form,
@@ -181,17 +185,17 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             if (hasImages) _coverSection(coverFile),
-                            const PitFieldLabel('坑名'),
+                            PitFieldLabel(context.l10n.pitsFieldName),
                             TextFormField(
                               controller: _name,
                               style: const TextStyle(fontSize: 15),
                               decoration: pitInputDecoration(context),
                               validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? '請輸入坑名'
+                                  ? context.l10n.pitsNameRequired
                                   : null,
                             ),
                             const SizedBox(height: 16),
-                            const PitFieldLabel('描述'),
+                            PitFieldLabel(context.l10n.pitsFieldDesc),
                             TextFormField(
                               controller: _desc,
                               minLines: 3,
@@ -204,19 +208,22 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                             ),
                             const SizedBox(height: 16),
                             _SwitchCard(
-                              label: '雜物',
+                              label: context.l10n.junkTitle,
                               value: _junk,
                               onChanged: (v) => setState(() => _junk = v),
                             ),
                             // 設計稿沒有封存欄位；封存功能保留，樣式比照雜物開關。
                             const SizedBox(height: 10),
                             _SwitchCard(
-                              label: '封存',
+                              label: context.l10n.pitsArchive,
                               value: _archived,
                               onChanged: (v) => setState(() => _archived = v),
                             ),
                             const SizedBox(height: 22),
-                            PitPrimaryButton(label: '儲存', onPressed: _save),
+                            PitPrimaryButton(
+                              label: context.l10n.commonSave,
+                              onPressed: _save,
+                            ),
                             const SizedBox(height: 28),
                             const Spacer(),
                             GestureDetector(
@@ -246,7 +253,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      '刪除這個坑',
+                                      context.l10n.pitsDeleteThis,
                                       style: TextStyle(
                                         color: t.danger,
                                         fontSize: 15,
@@ -259,7 +266,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              '刪除後坑內所有圖片、腦洞、草稿及成圖將一併移除',
+                              context.l10n.pitsDeleteHint,
                               textAlign: TextAlign.center,
                               style: TextStyle(fontSize: 11.5, color: t.text4),
                             ),

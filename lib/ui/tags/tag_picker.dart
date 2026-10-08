@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
@@ -51,7 +52,7 @@ class TagPicker extends ConsumerWidget {
                   ),
                 ),
                 child: Text(
-                  '管理',
+                  context.l10n.commonManage,
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
@@ -77,9 +78,12 @@ class TagPicker extends ConsumerWidget {
                 ),
               ),
             DashedAddChip(
-              semanticLabel: '新增 tag',
+              semanticLabel: context.l10n.tagsAdd,
               onTap: () async {
-                final name = await promptText(context, title: '新增 tag');
+                final name = await promptText(
+                  context,
+                  title: context.l10n.tagsAdd,
+                );
                 if (name == null) return;
                 final id = await ref
                     .read(databaseProvider)

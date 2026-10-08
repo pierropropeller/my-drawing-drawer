@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gal/gal.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
@@ -62,11 +63,14 @@ Future<bool> confirmDelete(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('取消'),
+          child: Text(ctx.l10n.commonCancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(ctx, true),
-          child: Text('刪除', style: TextStyle(color: ctx.tokens.danger)),
+          child: Text(
+            ctx.l10n.commonDelete,
+            style: TextStyle(color: ctx.tokens.danger),
+          ),
         ),
       ],
     ),
@@ -89,14 +93,14 @@ Future<String?> promptText(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('取消'),
+          child: Text(ctx.l10n.commonCancel),
         ),
         TextButton(
           onPressed: () {
             final v = c.text.trim();
             Navigator.pop(ctx, v.isEmpty ? null : v);
           },
-          child: const Text('確定'),
+          child: Text(ctx.l10n.albumConfirm),
         ),
       ],
     ),

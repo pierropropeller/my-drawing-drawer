@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/nav_bar_hidden.dart';
 import '../pits/pit_form.dart';
@@ -53,7 +54,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
 
   Future<void> _save() async {
     if (_files.isEmpty) {
-      showSnack(context, '請先選擇圖片');
+      showSnack(context, context.l10n.albumPickImageFirst);
       return;
     }
     setState(() => _saving = true);
@@ -77,22 +78,22 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
   @override
   Widget build(BuildContext context) {
     return AlbumFormScaffold(
-      title: '新增同人圖',
+      title: context.l10n.albumFanNewTitle,
       children: [
-        const AlbumFieldLabel('圖片'),
+        AlbumFieldLabel(context.l10n.albumFieldImage),
         ImagePickerField(
           items: _files,
           onAdd: _pick,
           onRemove: (i) => setState(() => _files.removeAt(i)),
         ),
         const SizedBox(height: 18),
-        const AlbumFieldLabel('作者'),
+        AlbumFieldLabel(context.l10n.albumFieldAuthor),
         TextField(controller: _author, decoration: pitInputDecoration(context)),
         const SizedBox(height: 18),
         GroupPicker(
           pitId: widget.pitId,
           kind: 'fan',
-          label: '出處',
+          label: context.l10n.albumFieldSource,
           selected: _groupId,
           allowClear: true,
           onSelected: (v) => setState(() => _groupId = v),
@@ -104,7 +105,11 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
           onChanged: (v) => setState(() => _tagIds = v),
         ),
         const SizedBox(height: 26),
-        AlbumSubmitButton(label: '加入好看同人圖', busy: _saving, onTap: _save),
+        AlbumSubmitButton(
+          label: context.l10n.albumFanAdd,
+          busy: _saving,
+          onTap: _save,
+        ),
       ],
     );
   }

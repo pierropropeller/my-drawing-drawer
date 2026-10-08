@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/junk_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_icons.dart';
@@ -46,9 +47,9 @@ class JunkListPage extends ConsumerWidget {
       cell: AlbumCell.junk,
       squares: true,
       shareInSelect: true,
-      title: '雜物',
+      title: context.l10n.junkTitle,
       images: images,
-      emptyLabel: '還沒有雜物',
+      emptyLabel: context.l10n.junkEmpty,
       emptySvg: AlbumIcons.junk,
       emptyColor: CategoryColor(t.chipBg, t.text3),
       onAdd: () => _add(context, ref),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
@@ -68,7 +69,7 @@ class PitHeader extends StatelessWidget {
         children: [
           Semantics(
             button: true,
-            label: '返回',
+            label: context.l10n.commonBack,
             child: InkResponse(
               onTap: () => Navigator.of(context).maybePop(),
               radius: 24,

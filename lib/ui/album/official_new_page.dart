@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/nav_bar_hidden.dart';
 import 'album_actions.dart';
@@ -45,7 +46,7 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
 
   Future<void> _save(String groupId) async {
     if (_files.isEmpty) {
-      showSnack(context, '請先選擇圖片');
+      showSnack(context, context.l10n.albumPickImageFirst);
       return;
     }
     setState(() => _saving = true);
@@ -70,9 +71,9 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
               ? widget.initialGroupId
               : (groups.isEmpty ? null : groups.first.id));
     return AlbumFormScaffold(
-      title: '新增官方圖',
+      title: context.l10n.albumOfficialNewTitle,
       children: [
-        const AlbumFieldLabel('圖片'),
+        AlbumFieldLabel(context.l10n.albumFieldImage),
         ImagePickerField(
           items: _files,
           onAdd: _pick,
@@ -87,7 +88,7 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
         ),
         const SizedBox(height: 26),
         AlbumSubmitButton(
-          label: '加入官方圖冊',
+          label: context.l10n.albumOfficialAdd,
           busy: _saving,
           onTap: groupId == null ? null : () => _save(groupId),
         ),
