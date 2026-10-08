@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../data/album_queries.dart';
 import '../../data/entity_queries.dart';
 import '../../data/payment.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
@@ -168,7 +169,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     if (_images.isEmpty) {
-      showSnack(context, '請至少選擇一張圖片');
+      showSnack(context, context.l10n.pieceFormMissingImage);
       return;
     }
     setState(() => _saving = true);
@@ -229,7 +230,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
               onChanged: (_) => setState(() {}),
               style: const TextStyle(fontSize: 13),
               decoration: InputDecoration(
-                hintText: '貼上連結網址',
+                hintText: context.l10n.pieceFormLinkHint,
                 hintStyle: TextStyle(color: t.text4, fontSize: 13),
                 isDense: true,
                 filled: false,
@@ -242,7 +243,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
           ),
           Semantics(
             button: true,
-            label: '移除',
+            label: context.l10n.entityRemove,
             child: InkResponse(
               radius: 18,
               onTap: () => setState(() => _links.removeAt(i).url.dispose()),
@@ -265,14 +266,14 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
   Widget _publishFields(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const FormLabel('發佈日期'),
+      FormLabel(context.l10n.pieceFormPublishDate),
       PieceDateField(
         date: _publishedAt ?? _finishedAt,
-        semanticLabel: '發佈日期',
+        semanticLabel: context.l10n.pieceFormPublishDate,
         onChanged: (d) => setState(() => _publishedAt = d),
       ),
       const SizedBox(height: 14),
-      const FormLabel('社交媒體連結'),
+      FormLabel(context.l10n.pieceFormSocialLinks),
       for (var i = 0; i < _links.length; i++)
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
@@ -282,25 +283,25 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
       Align(
         alignment: Alignment.centerLeft,
         child: DashedAddChip(
-          label: '加社交連結',
-          semanticLabel: '加社交連結',
+          label: context.l10n.pieceFormAddSocialLink,
+          semanticLabel: context.l10n.pieceFormAddSocialLink,
           onTap: () => setState(() => _links.add(_LinkRow(''))),
         ),
       ),
       const SizedBox(height: 16),
-      const FormLabel('目標互動量'),
+      FormLabel(context.l10n.pieceFormTarget),
       PieceHeartField(
         fieldKey: const Key('piece-target'),
         controller: _target,
-        semanticLabel: '目標互動量',
+        semanticLabel: context.l10n.pieceFormTarget,
       ),
       const SizedBox(height: 14),
       if (_isEdit) ...[
-        const FormLabel('實際互動量'),
+        FormLabel(context.l10n.pieceFormActual),
         PieceHeartField(
           fieldKey: const Key('piece-actual'),
           controller: _actual,
-          semanticLabel: '實際互動量',
+          semanticLabel: context.l10n.pieceFormActual,
         ),
         const SizedBox(height: 14),
       ],
@@ -313,7 +314,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const FormLabel('委託人'),
+        FormLabel(context.l10n.pieceFormClient),
         TextField(
           key: const Key('piece-client'),
           controller: _client,
@@ -321,14 +322,14 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
           decoration: entityFieldDecoration(context, ''),
         ),
         const SizedBox(height: 14),
-        const FormLabel('金額'),
+        FormLabel(context.l10n.pieceFormAmount),
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Semantics(
                 button: true,
-                label: '幣種',
+                label: context.l10n.pieceFormCurrency,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () async {
@@ -364,7 +365,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
               const SizedBox(width: 8),
               Expanded(
                 child: Semantics(
-                  label: '金額',
+                  label: context.l10n.pieceFormAmount,
                   child: TextField(
                     key: const Key('piece-amount'),
                     controller: _amount,
@@ -381,7 +382,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
           ),
         ),
         const SizedBox(height: 14),
-        const FormLabel('已收金額'),
+        FormLabel(context.l10n.pieceFormReceived),
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -394,7 +395,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                       const SizedBox(width: 8),
                       Expanded(
                         child: Semantics(
-                          label: '已收金額',
+                          label: context.l10n.pieceFormReceived,
                           child: TextField(
                             key: const Key('piece-received'),
                             controller: _received,
@@ -413,7 +414,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
               ),
               const SizedBox(width: 8),
               PieceChipButton(
-                label: '已收齊',
+                label: context.l10n.pieceFormPaidInFull,
                 on: _fullyReceived,
                 onTap: _toggleReceivedAll,
               ),
@@ -421,10 +422,10 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
           ),
         ),
         const SizedBox(height: 14),
-        const FormLabel('交稿日期'),
+        FormLabel(context.l10n.pieceFormDueDate),
         PieceDateField(
           date: _dueAt,
-          semanticLabel: '交稿日期',
+          semanticLabel: context.l10n.pieceFormDueDate,
           onChanged: (d) => setState(() => _dueAt = d),
         ),
         const SizedBox(height: 14),
@@ -443,7 +444,12 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
         bottom: false,
         child: Column(
           children: [
-            SubPageHeader(title: _isEdit ? '編輯成圖' : '新增成圖', titleSize: 20),
+            SubPageHeader(
+              title: _isEdit
+                  ? context.l10n.pieceFormTitleEdit
+                  : context.l10n.pieceFormTitleNew,
+              titleSize: 20,
+            ),
             Expanded(
               child: !_loaded
                   ? const Center(child: CircularProgressIndicator())
@@ -452,7 +458,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                         children: [
-                          const FormLabel('成品圖'),
+                          FormLabel(context.l10n.pieceFormImages),
                           PieceImageGrid(
                             items: _images,
                             onAdd: () async {
@@ -471,21 +477,21 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                                 setState(() => _images.removeAt(i)),
                           ),
                           const SizedBox(height: 16),
-                          const FormLabel('標題'),
+                          FormLabel(context.l10n.entityFieldTitle),
                           TextFormField(
                             key: const Key('piece-title'),
                             controller: _title,
                             style: const TextStyle(fontSize: 15),
                             decoration: entityFieldDecoration(
                               context,
-                              '為這張成圖命名',
+                              context.l10n.pieceFormTitleHint,
                             ),
                             validator: (v) => (v == null || v.trim().isEmpty)
-                                ? '請輸入標題'
+                                ? context.l10n.entityTitleRequired
                                 : null,
                           ),
                           const SizedBox(height: 16),
-                          const FormLabel('內文'),
+                          FormLabel(context.l10n.entityFieldBody),
                           TextFormField(
                             controller: _body,
                             minLines: 3,
@@ -493,7 +499,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                             style: const TextStyle(fontSize: 15, height: 1.55),
                             decoration: entityFieldDecoration(
                               context,
-                              '想說的話、創作筆記…',
+                              context.l10n.pieceFormBodyHint,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -504,27 +510,28 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                           ),
                           const SizedBox(height: 16),
                           PieceSwitchCard(
-                            title: '已公開發佈',
+                            title: context.l10n.pieceFormPublished,
                             value: _published,
                             onChanged: (v) => setState(() => _published = v),
                             child: _publishFields(context),
                           ),
                           PieceSwitchCard(
-                            title: '商稿',
+                            title: context.l10n.pieceFormCommission,
                             value: _commission,
                             bottomGap: 18,
                             onChanged: (v) => setState(() => _commission = v),
                             child: _commissionFields(context),
                           ),
-                          const FormLabel('完成時間'),
+                          FormLabel(context.l10n.pieceFormFinishedAt),
                           PieceDateField(
                             date: _finishedAt,
-                            semanticLabel: '完成時間',
+                            semanticLabel: context.l10n.pieceFormFinishedAt,
                             onChanged: (d) => setState(() => _finishedAt = d),
                           ),
                           const SizedBox(height: 16),
                           ConnectField(
-                            label: '關聯腦洞',
+                            label: context.l10n.entityConnectIdea,
+                            kind: ConnectKind.idea,
                             options: [
                               for (final i in ideas)
                                 ConnectOption(
@@ -540,7 +547,8 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                           ),
                           const SizedBox(height: 16),
                           ConnectField(
-                            label: '關聯草稿',
+                            label: context.l10n.entityConnectDraft,
+                            kind: ConnectKind.draft,
                             options: [
                               for (final d in drafts)
                                 ConnectOption(
@@ -556,7 +564,9 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                           ),
                           const SizedBox(height: 22),
                           FormSubmitButton(
-                            label: _isEdit ? '儲存' : '建立成圖',
+                            label: _isEdit
+                                ? context.l10n.commonSave
+                                : context.l10n.pieceFormCreate,
                             onPressed: _saving ? null : _save,
                           ),
                         ],
