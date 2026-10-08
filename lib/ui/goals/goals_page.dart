@@ -7,6 +7,7 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
+import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import 'day_page.dart';
 import 'goal_new_page.dart';
@@ -38,71 +39,76 @@ class _GoalsPageState extends State<GoalsPage> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        '目標',
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        '$headerYear',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w400,
-                          color: t.text3,
+        child: ContentWidth(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          '目標',
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
-                      ),
-                      const Spacer(),
-                      if (_mode == 0) ...[
-                        _YearStep(
-                          icon: AppIcons.back,
-                          tooltip: '上一年',
-                          onTap: () => setState(() => _year--),
+                        const SizedBox(width: 10),
+                        Text(
+                          '$headerYear',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w400,
+                                color: t.text3,
+                              ),
                         ),
-                        _YearStep(
-                          icon: AppIcons.chevronRight,
-                          tooltip: '下一年',
-                          onTap: () => setState(() => _year++),
-                        ),
+                        const Spacer(),
+                        if (_mode == 0) ...[
+                          _YearStep(
+                            icon: AppIcons.back,
+                            tooltip: '上一年',
+                            onTap: () => setState(() => _year--),
+                          ),
+                          _YearStep(
+                            icon: AppIcons.chevronRight,
+                            tooltip: '下一年',
+                            onTap: () => setState(() => _year++),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  _Segmented(
-                    labels: const ['年', '月', '日'],
-                    selected: _mode,
-                    onChanged: (i) => setState(() => _mode = i),
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 14),
+                    _Segmented(
+                      labels: const ['年', '月', '日'],
+                      selected: _mode,
+                      onChanged: (i) => setState(() => _mode = i),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: IndexedStack(
-                index: _mode,
-                children: [
-                  YearView(year: _year),
-                  MonthView(
-                    onYearChanged: (y) => setState(() => _years[0] = y),
-                  ),
-                  DayView(onYearChanged: (y) => setState(() => _years[1] = y)),
-                ],
+              Expanded(
+                child: IndexedStack(
+                  index: _mode,
+                  children: [
+                    YearView(year: _year),
+                    MonthView(
+                      onYearChanged: (y) => setState(() => _years[0] = y),
+                    ),
+                    DayView(
+                      onYearChanged: (y) => setState(() => _years[1] = y),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -214,10 +220,14 @@ class GoalList extends ConsumerWidget {
     required this.period,
     required this.year,
     this.month,
+    this.topGap,
   });
   final GoalPeriod period;
   final int year;
   final int? month;
+
+  /// 標題上方的間距；預設年度 22（GoalEmpty）、月度 20，年度頁有商稿收入卡時是 20。
+  final double? topGap;
 
   void _new(BuildContext context) => Navigator.of(context).push(
     MaterialPageRoute<void>(
@@ -236,7 +246,7 @@ class GoalList extends ConsumerWidget {
         GoalSectionRow(
           title: title,
           padding: EdgeInsets.only(
-            top: period == GoalPeriod.year ? 22 : 20,
+            top: topGap ?? (period == GoalPeriod.year ? 22 : 20),
             bottom: 10,
           ),
           trailing: views.isEmpty ? null : AddLink(onTap: () => _new(context)),
@@ -328,7 +338,7 @@ class DashedGoalEmpty extends StatelessWidget {
   }
 }
 
-class _GoalTile extends ConsumerWidget {
+class _GoalTile extends StatelessWidget {
   const _GoalTile({
     required this.view,
     required this.period,
@@ -341,13 +351,9 @@ class _GoalTile extends ConsumerWidget {
   final int? month;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cover = view.pit == null
-        ? null
-        : ref.watch(coverFileProvider(view.pit!.id)).value;
+  Widget build(BuildContext context) {
     return GoalCard(
       view: view,
-      coverFile: cover,
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => GoalNewPage(
