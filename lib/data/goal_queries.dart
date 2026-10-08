@@ -25,6 +25,22 @@ class GoalView {
   String get displayName => goalAutoName(goal);
 }
 
+/// 目標依進度百分比由高到低排列，已達成（100% 以上）的沉到最底；
+/// 同百分比保持原本順序（建立時間，D-022）。年度、月度共用。
+List<GoalView> sortGoalsByProgress(Iterable<GoalView> goals) {
+  final list = goals.toList();
+  final order = {for (var i = 0; i < list.length; i++) list[i]: i};
+  list.sort((a, b) {
+    if (a.done != b.done) return a.done ? 1 : -1;
+    if (!a.done) {
+      final c = b.ratio.compareTo(a.ratio);
+      if (c != 0) return c;
+    }
+    return order[a]!.compareTo(order[b]!);
+  });
+  return list;
+}
+
 String goalAutoName(Goal g) {
   final custom = g.name?.trim();
   if (custom != null && custom.isNotEmpty) return custom;
@@ -71,6 +87,12 @@ class TimelineItem {
   /// 成圖的互動量。
   final int actualLikes;
   final int targetLikes;
+}
+
+extension ReviewSettingAlign on ReviewSetting {
+  /// 月份對齊（D-039）：沒設定時，月份在圖上＝靠左（start），在空白位置＝置中（center）。
+  String get effectiveMonthAlign =>
+      monthAlign ?? (monthOnImage ? 'start' : 'center');
 }
 
 DateTime monthStart(int year, int month) => DateTime(year, month);
@@ -149,11 +171,13 @@ extension GoalQueries on AppDatabase {
                       (g.pitId == null
                           ? const Constant(true)
                           : i.pitId.equals(g.pitId!)) &
+                      // 互動量門檻只計算已公開發佈的成圖（D-046）。
                       (g.requireLikes == null
                           ? const Constant(true)
-                          : i.actualLikes.isBiggerOrEqualValue(
-                              g.requireLikes!,
-                            )),
+                          : i.isPublished.equals(true) &
+                                i.actualLikes.isBiggerOrEqualValue(
+                                  g.requireLikes!,
+                                )),
                 ))
                 .get();
         for (final r in rows) {
@@ -206,7 +230,7 @@ extension GoalQueries on AppDatabase {
                 )
                 ..orderBy([(g) => OrderingTerm.asc(g.createdAt)]))
               .get();
-      return [for (final r in rows) await _goalView(r)];
+      return sortGoalsByProgress([for (final r in rows) await _goalView(r)]);
     });
   }
 
@@ -506,7 +530,9 @@ extension GoalQueries on AppDatabase {
     );
   }
 
+  /// 儲存回顧排版；順便蓋上 updatedAt 讓同步判斷新舊。
   Future<void> saveReviewSettings(ReviewSetting s) {
-    return into(reviewSettings).insertOnConflictUpdate(s);
+    return into(reviewSettings)
+        .insertOnConflictUpdate(s.copyWith(updatedAt: Value(DateTime.now())));
   }
 }

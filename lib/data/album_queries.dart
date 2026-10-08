@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 
 import 'database.dart';
+import 'junk_queries.dart';
 import 'entity_queries.dart' show watchAssembled;
+import 'tables.dart' show uuid;
 
 /// 匯入後待寫入資料庫的圖片。
 class NewImage {
@@ -125,6 +127,7 @@ extension AlbumQueries on AppDatabase {
             (i) =>
                 i.pitId.equals(pitId) &
                 i.deletedAt.isNull() &
+                i.hidden.equals(false) &
                 (groupId == null
                     ? const Constant(true)
                     : i.groupId.equals(groupId)),
@@ -140,16 +143,27 @@ extension AlbumQueries on AppDatabase {
   ) {
     return batch((b) {
       b.insertAll(officialImages, [
-        for (final im in images)
-          OfficialImagesCompanion.insert(
-            pitId: pitId,
-            groupId: groupId,
-            imageFile: im.file,
-            width: Value(im.width),
-            height: Value(im.height),
-          ),
+        for (final im in images) _newOfficial(pitId, groupId, im),
       ]);
     });
+  }
+
+  /// 新增一張官方圖：imageKey 先設成自己的 id（之後移動時跟著走）。
+  OfficialImagesCompanion _newOfficial(
+    String pitId,
+    String groupId,
+    NewImage im,
+  ) {
+    final id = uuid.v4();
+    return OfficialImagesCompanion.insert(
+      id: Value(id),
+      pitId: pitId,
+      groupId: groupId,
+      imageFile: im.file,
+      width: Value(im.width),
+      height: Value(im.height),
+      imageKey: Value(id),
+    );
   }
 
   Future<void> setOfficialGroup(String id, String groupId) {
@@ -164,9 +178,7 @@ extension AlbumQueries on AppDatabase {
   Future<void> deleteOfficial(Iterable<String> ids) {
     final now = DateTime.now();
     return transaction(() async {
-      await (update(officialImages)..where((i) => i.id.isIn(ids))).write(
-        OfficialImagesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
-      );
+      await deleteAlbumImageRows(ids, now);
       await _clearCoverIn(ids);
     });
   }
@@ -185,18 +197,34 @@ extension AlbumQueries on AppDatabase {
   }
 
   // ---- 好看同人圖 ----
-  Stream<List<FanArt>> watchFanArts(String pitId, {String? groupId}) {
-    return (select(fanArts)
-          ..where(
-            (i) =>
-                i.pitId.equals(pitId) &
-                i.deletedAt.isNull() &
-                (groupId == null
-                    ? const Constant(true)
-                    : i.groupId.equals(groupId)),
-          )
-          ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
-        .watch();
+  /// [tagId]：只列出有這個 tag 的同人圖（D-043，點 tag 回到列表的篩選）。
+  Stream<List<FanArt>> watchFanArts(
+    String pitId, {
+    String? groupId,
+    String? tagId,
+  }) {
+    final q = select(fanArts)
+      ..where(
+        (i) =>
+            i.pitId.equals(pitId) &
+            i.deletedAt.isNull() &
+            i.hidden.equals(false) &
+            (groupId == null
+                ? const Constant(true)
+                : i.groupId.equals(groupId)) &
+            (tagId == null
+                ? const Constant(true)
+                : i.id.isInQuery(
+                    selectOnly(tagLinks)
+                      ..addColumns([tagLinks.targetId])
+                      ..where(
+                        tagLinks.tagId.equals(tagId) &
+                            tagLinks.targetType.equalsValue(TagTarget.fanArt),
+                      ),
+                  )),
+      )
+      ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]);
+    return q.watch();
   }
 
   Future<void> addFanArts(
@@ -208,8 +236,11 @@ extension AlbumQueries on AppDatabase {
   }) {
     return transaction(() async {
       for (final im in images) {
+        final id = uuid.v4();
         final row = await into(fanArts).insertReturning(
           FanArtsCompanion.insert(
+            id: Value(id),
+            imageKey: Value(id),
             pitId: pitId,
             imageFile: im.file,
             width: Value(im.width),
@@ -244,9 +275,7 @@ extension AlbumQueries on AppDatabase {
   Future<void> deleteFanArts(Iterable<String> ids) {
     final now = DateTime.now();
     return transaction(() async {
-      await (update(fanArts)..where((i) => i.id.isIn(ids))).write(
-        FanArtsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
-      );
+      await deleteAlbumImageRows(ids, now);
       await _clearCoverIn(ids);
     });
   }
@@ -259,20 +288,89 @@ extension AlbumQueries on AppDatabase {
         .watch();
   }
 
-  Stream<List<TagUsage>> watchTagUsage(String pitId) {
-    return watchTags(pitId).asyncMap((list) async {
-      final out = <TagUsage>[];
-      for (final t in list) {
-        final n =
-            await (selectOnly(tagLinks)
-                  ..addColumns([tagLinks.targetId.count()])
-                  ..where(tagLinks.tagId.equals(t.id)))
-                .map((r) => r.read(tagLinks.targetId.count()) ?? 0)
-                .getSingle();
-        out.add(TagUsage(t, n));
+  /// 使用次數只算還存在的項目（已刪除、被移走而隱藏的同人圖不算）。
+  /// [byUsage]：true＝常用的在前（次數相同按名稱）；false＝按名稱。
+  Stream<List<TagUsage>> watchTagUsage(String pitId, {bool byUsage = false}) {
+    return watchAssembled(
+      this,
+      {tags, tagLinks, fanArts, ideas, drafts, pieces, goals},
+      () async {
+        final list =
+            await (select(tags)
+                  ..where((t) => t.pitId.equals(pitId) & t.deletedAt.isNull())
+                  ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+                .get();
+        final counts = await _tagCounts(list.map((t) => t.id).toList());
+        final out = [for (final t in list) TagUsage(t, counts[t.id] ?? 0)];
+        if (byUsage) {
+          out.sort((a, b) {
+            final c = b.count.compareTo(a.count);
+            return c != 0 ? c : a.tag.name.compareTo(b.tag.name);
+          });
+        }
+        return out;
+      },
+    );
+  }
+
+  Future<Map<String, int>> _tagCounts(List<String> tagIds) async {
+    if (tagIds.isEmpty) return {};
+    final rows = await (select(
+      tagLinks,
+    )..where((l) => l.tagId.isIn(tagIds))).get();
+
+    Future<Set<String>> live(TagTarget type) async {
+      final ids = [
+        for (final r in rows)
+          if (r.targetType == type) r.targetId,
+      ];
+      if (ids.isEmpty) return {};
+      final found = switch (type) {
+        TagTarget.fanArt =>
+          (await (select(fanArts)..where(
+                    (x) =>
+                        x.id.isIn(ids) &
+                        x.deletedAt.isNull() &
+                        x.hidden.equals(false),
+                  ))
+                  .get())
+              .map((x) => x.id),
+        TagTarget.idea =>
+          (await (select(
+            ideas,
+          )..where((x) => x.id.isIn(ids) & x.deletedAt.isNull())).get()).map(
+            (x) => x.id,
+          ),
+        TagTarget.draft =>
+          (await (select(
+            drafts,
+          )..where((x) => x.id.isIn(ids) & x.deletedAt.isNull())).get()).map(
+            (x) => x.id,
+          ),
+        TagTarget.piece =>
+          (await (select(
+            pieces,
+          )..where((x) => x.id.isIn(ids) & x.deletedAt.isNull())).get()).map(
+            (x) => x.id,
+          ),
+        TagTarget.goal =>
+          (await (select(
+            goals,
+          )..where((x) => x.id.isIn(ids) & x.deletedAt.isNull())).get()).map(
+            (x) => x.id,
+          ),
+      };
+      return found.toSet();
+    }
+
+    final alive = {for (final t in TagTarget.values) t: await live(t)};
+    final out = <String, int>{};
+    for (final r in rows) {
+      if (alive[r.targetType]!.contains(r.targetId)) {
+        out[r.tagId] = (out[r.tagId] ?? 0) + 1;
       }
-      return out;
-    });
+    }
+    return out;
   }
 
   /// 已存在同名 tag 則回傳既有的 id。
@@ -365,13 +463,21 @@ extension AlbumQueries on AppDatabase {
   /// 以圖片 id 找出檔名（官方圖或同人圖）。找不到回傳 null。
   Future<String?> imageFileOf(String imageId) async {
     final o =
-        await (select(officialImages)
-              ..where((i) => i.id.equals(imageId) & i.deletedAt.isNull()))
+        await (select(officialImages)..where(
+              (i) =>
+                  i.id.equals(imageId) &
+                  i.deletedAt.isNull() &
+                  i.hidden.equals(false),
+            ))
             .getSingleOrNull();
     if (o != null) return o.imageFile;
     final f =
-        await (select(fanArts)
-              ..where((i) => i.id.equals(imageId) & i.deletedAt.isNull()))
+        await (select(fanArts)..where(
+              (i) =>
+                  i.id.equals(imageId) &
+                  i.deletedAt.isNull() &
+                  i.hidden.equals(false),
+            ))
             .getSingleOrNull();
     if (f != null) return f.imageFile;
     final e =
@@ -414,13 +520,22 @@ extension CellCoverQueries on AppDatabase {
           final set = pit?.officialCoverId;
           if (set != null) {
             final f =
-                await (select(officialImages)
-                      ..where((i) => i.id.equals(set) & i.deletedAt.isNull()))
+                await (select(officialImages)..where(
+                      (i) =>
+                          i.id.equals(set) &
+                          i.deletedAt.isNull() &
+                          i.hidden.equals(false),
+                    ))
                     .getSingleOrNull();
             if (f != null) return f.imageFile;
           }
           return (await (select(officialImages)
-                    ..where((i) => i.pitId.equals(pitId) & i.deletedAt.isNull())
+                    ..where(
+                      (i) =>
+                          i.pitId.equals(pitId) &
+                          i.deletedAt.isNull() &
+                          i.hidden.equals(false),
+                    )
                     ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)])
                     ..limit(1))
                   .getSingleOrNull())
@@ -431,13 +546,22 @@ extension CellCoverQueries on AppDatabase {
           final set = pit?.fanArtCoverId;
           if (set != null) {
             final f =
-                await (select(fanArts)
-                      ..where((i) => i.id.equals(set) & i.deletedAt.isNull()))
+                await (select(fanArts)..where(
+                      (i) =>
+                          i.id.equals(set) &
+                          i.deletedAt.isNull() &
+                          i.hidden.equals(false),
+                    ))
                     .getSingleOrNull();
             if (f != null) return f.imageFile;
           }
           return (await (select(fanArts)
-                    ..where((i) => i.pitId.equals(pitId) & i.deletedAt.isNull())
+                    ..where(
+                      (i) =>
+                          i.pitId.equals(pitId) &
+                          i.deletedAt.isNull() &
+                          i.hidden.equals(false),
+                    )
                     ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)])
                     ..limit(1))
                   .getSingleOrNull())
@@ -534,7 +658,12 @@ extension CoverCandidateQueries on AppDatabase {
         if (kind == null || kind == 'official') {
           for (final r
               in await (select(officialImages)
-                    ..where((i) => i.pitId.equals(pitId) & i.deletedAt.isNull())
+                    ..where(
+                      (i) =>
+                          i.pitId.equals(pitId) &
+                          i.deletedAt.isNull() &
+                          i.hidden.equals(false),
+                    )
                     ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
                   .get()) {
             out.add(
@@ -551,7 +680,12 @@ extension CoverCandidateQueries on AppDatabase {
         if (kind == null || kind == 'fan') {
           for (final r
               in await (select(fanArts)
-                    ..where((i) => i.pitId.equals(pitId) & i.deletedAt.isNull())
+                    ..where(
+                      (i) =>
+                          i.pitId.equals(pitId) &
+                          i.deletedAt.isNull() &
+                          i.hidden.equals(false),
+                    )
                     ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
                   .get()) {
             out.add(

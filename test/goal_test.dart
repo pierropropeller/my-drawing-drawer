@@ -21,6 +21,7 @@ void main() {
     String pit,
     DateTime at, {
     int likes = 0,
+    bool published = true,
     List<String> tagIds = const [],
   }) async {
     final id = await db.savePiece(
@@ -34,6 +35,7 @@ void main() {
       finishedAt: at,
       ideaIds: const [],
       draftIds: const [],
+      isPublished: published,
     );
     await db.setActualLikes(id, likes);
     return id;
@@ -64,6 +66,8 @@ void main() {
     await piece(pitId, DateTime(2026, 8, 9), likes: 100);
     await piece(otherPit, DateTime(2026, 8, 9), likes: 900);
     await piece(pitId, DateTime(2025, 12, 31), likes: 900); // 去年不算
+    // 未公開發佈：算進一般的成圖目標，但不算進「需要互動量」的目標（D-046）
+    await piece(pitId, DateTime(2026, 9, 1), likes: 900, published: false);
     await db.saveGoal(
       period: GoalPeriod.year,
       year: 2026,
@@ -85,8 +89,9 @@ void main() {
       requireLikes: 500,
     );
     final views = await db.watchGoalViews(GoalPeriod.year, 2026).first;
-    expect(views.map((v) => v.progress), [3, 2, 2]);
-    expect(views[1].pit!.name, 'A');
+    // D-022：依進度百分比由高到低（0.6、0.4、0.4），同比例維持建立順序
+    expect(views.map((v) => v.progress), [3, 4, 2]);
+    expect(views[0].pit!.name, 'A');
   });
 
   test('月度目標與 tag（需同時符合）', () async {
@@ -157,5 +162,27 @@ void main() {
       (s.columns, s.ratio, s.monthFormat, s.monthOnImage),
       (4, '1:1', 'Jan', true),
     );
+  });
+
+  test('目標排序：進度百分比由高到低，已達成的沉到最底（年度、月度共用）', () async {
+    await piece(pitId, DateTime(2026, 5, 1));
+    await piece(pitId, DateTime(2026, 5, 2));
+    Future<void> goal(int count, {String? name}) => db.saveGoal(
+      period: GoalPeriod.month,
+      year: 2026,
+      month: 5,
+      kind: GoalKind.piece,
+      count: count,
+      name: name,
+    );
+    await goal(2, name: '已達成'); // 2/2 → 100%，最底
+    await goal(10, name: '兩成'); // 20%
+    await goal(4, name: '五成'); // 50%
+    await goal(1, name: '超額'); // 2/1 → 100%，最底
+    final views = await db
+        .watchGoalViews(GoalPeriod.month, 2026, month: 5)
+        .first;
+    expect(views.map((v) => v.displayName), ['五成', '兩成', '已達成', '超額']);
+    expect(sortGoalsByProgress(views.reversed).first.displayName, '五成');
   });
 }
