@@ -11,6 +11,8 @@ import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import 'draft_detail_page.dart';
 import 'draft_form_page.dart';
+import '../search/tag_filter_bar.dart';
+import '../search/tagged_list.dart';
 import 'entity_widgets.dart';
 
 /// 我的草稿：列表（有字的卡片／純圖卡）與九宮格切換。
@@ -24,10 +26,10 @@ class DraftListPage extends ConsumerStatefulWidget {
   });
   final String pitId;
 
-  /// 只顯示有這個 tag 的草稿（篩選列 UI 之後由搜尋接上，這裡只管資料）。
+  /// 只顯示有這個 tag 的草稿；有值時標題列下多一條「#tag ×」篩選列（D-043）。
   final String? tagId;
 
-  /// 傳給詳情頁的 tag 點擊回呼（預設不做事）。
+  /// 傳給詳情頁的 tag 點擊回呼；省略＝預設導覽（回到本格列表並篩選）。
   final void Function(String tagId)? onTagTap;
 
   @override
@@ -54,7 +56,16 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
       builder: (_) => DraftDetailPage(
         draftId: d.draft.id,
         pitId: widget.pitId,
-        onTagTap: widget.onTagTap,
+        onTagTap:
+            widget.onTagTap ??
+            (id) => onListTagTap(
+              context,
+              pitId: widget.pitId,
+              kind: TaggedKind.draft,
+              tagId: id,
+              listFiltered: widget.tagId != null,
+              fromDetail: true,
+            ),
       ),
     ),
   );
@@ -68,6 +79,12 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
             .watch(draftViewsFilteredProvider((widget.pitId, widget.tagId)))
             .value ??
         const [];
+    // 標題列一律顯示全部份數；篩選時符合的份數在篩選列。
+    final total = widget.tagId == null
+        ? views.length
+        : (ref.watch(draftViewsFilteredProvider((widget.pitId, null))).value ??
+                  views)
+              .length;
     final ideas =
         ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? const [];
     final ideaTitle = {for (final i in ideas) i.idea.id: i.idea.title};
@@ -82,7 +99,8 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
             SubPageHeader(
               title: pitName == null ? '我的草稿' : '$pitName · 我的草稿',
               trailing: [
-                HeaderCount('${views.length} 份'),
+                HeaderCount('$total 份'),
+                SearchIconButton(pitId: widget.pitId),
                 _ViewToggle(
                   grid: _grid,
                   onChanged: (g) => setState(() => _grid = g),
@@ -90,6 +108,13 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
                 const SizedBox(width: 6),
               ],
             ),
+            if (widget.tagId != null)
+              TagFilterBar(
+                pitId: widget.pitId,
+                kind: TaggedKind.draft,
+                tagId: widget.tagId!,
+                countText: '${views.length} 份',
+              ),
             Expanded(
               child: views.isEmpty
                   ? EmptyState(

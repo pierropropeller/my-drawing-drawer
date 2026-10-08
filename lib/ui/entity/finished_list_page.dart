@@ -9,6 +9,8 @@ import '../album/album_image.dart';
 import '../common/app_icons.dart';
 import '../common/empty_state.dart';
 import '../common/svg_icon.dart';
+import '../search/tag_filter_bar.dart';
+import '../search/tagged_list.dart';
 import 'entity_widgets.dart';
 import 'piece_detail_page.dart';
 import 'piece_form_page.dart';
@@ -18,11 +20,19 @@ enum _Mode { waterfall, grid, nine }
 /// 成圖列表（Finished）：瀑布／田字／九宮格切換；顯示互動量；有導覽列。
 /// D-043：頂部不放 tag chips，卡片不顯示 tag；[tagId] 只篩選內容（篩選列另有人接）。
 class FinishedListPage extends ConsumerStatefulWidget {
-  const FinishedListPage({super.key, required this.pitId, this.tagId});
+  const FinishedListPage({
+    super.key,
+    required this.pitId,
+    this.tagId,
+    this.onTagTap,
+  });
   final String pitId;
 
-  /// 只列出有這個 tag 的成圖。
+  /// 只列出有這個 tag 的成圖；有值時標題列下多一條「#tag ×」篩選列（D-043）。
   final String? tagId;
+
+  /// 詳情頁點 tag 的處理；省略＝預設導覽（回到本格列表並篩選）。
+  final ValueChanged<String>? onTagTap;
 
   @override
   ConsumerState<FinishedListPage> createState() => _FinishedListPageState();
@@ -45,7 +55,20 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
 
   void _open(PieceView v) => Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => PieceDetailPage(pieceId: v.piece.id, pitId: widget.pitId),
+      builder: (_) => PieceDetailPage(
+        pieceId: v.piece.id,
+        pitId: widget.pitId,
+        onTagTap:
+            widget.onTagTap ??
+            (id) => onListTagTap(
+              context,
+              pitId: widget.pitId,
+              kind: TaggedKind.piece,
+              tagId: id,
+              listFiltered: widget.tagId != null,
+              fromDetail: true,
+            ),
+      ),
     ),
   );
 
@@ -68,12 +91,20 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
                   title: pit == null ? '成圖' : '${pit.name} · 成圖',
                   titleSize: 19,
                   trailing: [
+                    SearchIconButton(pitId: widget.pitId),
                     _ModeToggle(
                       mode: _mode,
                       onChanged: (m) => setState(() => _mode = m),
                     ),
                   ],
                 ),
+                if (widget.tagId != null)
+                  TagFilterBar(
+                    pitId: widget.pitId,
+                    kind: TaggedKind.piece,
+                    tagId: widget.tagId!,
+                    countText: '${views.length} 張',
+                  ),
                 Expanded(
                   child: views.isEmpty
                       ? EmptyState(

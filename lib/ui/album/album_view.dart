@@ -33,6 +33,7 @@ class AlbumView extends ConsumerStatefulWidget {
     this.total,
     this.filter,
     this.appBarActions = const [],
+    this.searchAction,
     this.cell,
     this.squares = false,
     this.shareInSelect = false,
@@ -71,6 +72,9 @@ class AlbumView extends ConsumerStatefulWidget {
   /// 顯示在清單上方的篩選 chips。
   final Widget? filter;
   final List<Widget> appBarActions;
+
+  /// 標題列最右（張數之後）的搜尋 icon（D-043）；省略＝沒有。
+  final Widget? searchAction;
 
   @override
   ConsumerState<AlbumView> createState() => _AlbumViewState();
@@ -275,12 +279,18 @@ class _AlbumViewState extends ConsumerState<AlbumView>
               : [
                   ...widget.appBarActions,
                   Padding(
-                    padding: const EdgeInsets.only(right: 22),
+                    padding: EdgeInsets.only(
+                      right: widget.searchAction == null ? 22 : 6,
+                    ),
                     child: Text(
                       '$total 張',
                       style: TextStyle(color: t.text3, fontSize: 12),
                     ),
                   ),
+                  if (widget.searchAction != null) ...[
+                    widget.searchAction!,
+                    const SizedBox(width: 12),
+                  ],
                 ],
         ),
         floatingActionButton: (_selecting || fullyEmpty)
