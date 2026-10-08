@@ -210,7 +210,7 @@ class ProfilePage extends ConsumerWidget {
                             last: true,
                             onTap: () => showAboutDialog(
                               context: context,
-                              applicationName: '畫坑',
+                              applicationName: '畫匣',
                               applicationLegalese: '把想畫的、畫好的，都收進坑裡。',
                             ),
                           ),

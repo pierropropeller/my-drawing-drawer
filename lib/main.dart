@@ -26,7 +26,7 @@ class HuaKengApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final accent = ref.watch(settingsProvider.select((s) => s.accent));
     return MaterialApp(
-      title: '畫坑',
+      title: '畫匣',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(
         Brightness.light,

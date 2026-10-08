@@ -112,7 +112,7 @@ Future<int> downloadImages(WidgetRef ref, Iterable<AlbumImage> images) async {
   var ok = 0;
   for (final im in images) {
     try {
-      await Gal.putImage(store.fileOf(im.file).path, album: '畫坑');
+      await Gal.putImage(store.fileOf(im.file).path, album: '畫匣');
       ok++;
     } catch (_) {}
   }

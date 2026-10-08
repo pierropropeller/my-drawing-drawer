@@ -1,4 +1,4 @@
-# 畫坑
+# 畫匣
 
 自用、非社交的同人創作管理 App（Flutter，Android 先行）。完整需求見 [docs/HANDOFF.md](docs/HANDOFF.md)。
 

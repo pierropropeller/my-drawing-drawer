@@ -124,7 +124,7 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage> {
       if (!await Gal.hasAccess()) {
         await Gal.requestAccess();
       }
-      await Gal.putImageBytes(bytes, name: '畫坑-${widget.year}-回顧', album: '畫坑');
+      await Gal.putImageBytes(bytes, name: '畫匣-${widget.year}-回顧', album: '畫匣');
       if (mounted) showSnack(context, '已儲存到相簿');
     } catch (_) {
       if (mounted) showSnack(context, '匯出失敗');

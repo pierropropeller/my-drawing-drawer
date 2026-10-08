@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "app.huakeng.huakeng"
+    namespace = "io.molly.drawer"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "app.huakeng.huakeng"
+        applicationId = "io.molly.drawer"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // google_sign_in（Credential Manager）等套件需要 API 23 以上；取 24。

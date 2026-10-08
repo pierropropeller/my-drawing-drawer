@@ -6,16 +6,16 @@ App 的同步程式（本機優先、Drive App 專用資料夾、衝突以 `upda
 
 ## 步驟
 
-1. 開啟 <https://console.cloud.google.com/>，建立一個專案（例如「畫坑」）。
+1. 開啟 <https://console.cloud.google.com/>，建立一個專案（例如「畫匣」）。
 2. **啟用 API**：「API 和服務」→「程式庫」→ 搜尋 **Google Drive API** → 啟用。
 3. **OAuth 同意畫面**：
    - 使用者類型選「外部」。
-   - 填 App 名稱（畫坑）與你的 email。
+   - 填 App 名稱（畫匣）與你的 email。
    - 「測試使用者」加入你自己的 Google 帳號（自用的話停在「測試中」狀態即可，不需要送審）。
    - 「範圍」加入 `https://www.googleapis.com/auth/drive.appdata`（只存取 App 專用資料夾，Drive 裡看不到）。
 4. **建立兩個 OAuth 用戶端 ID**（「API 和服務」→「憑證」→「建立憑證」→「OAuth 用戶端 ID」）：
    1. 類型 **Android**：
-      - 套件名稱：`app.huakeng.huakeng`
+      - 套件名稱：`io.molly.drawer`
       - SHA-1 憑證指紋（repo 內固定的 debug 簽名檔）：
         `24:A9:F0:CA:9A:29:DF:92:EA:A0:F7:7C:54:E5:B7:52:D2:09:1E:41`
    2. 類型 **網頁應用程式**（Web application）：名稱隨意，不需填重新導向 URI。

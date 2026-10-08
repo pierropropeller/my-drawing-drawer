@@ -54,7 +54,7 @@ class WelcomePage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 22),
                     Text(
-                      '畫坑',
+                      '畫匣',
                       style: Theme.of(context).textTheme.headlineLarge
                           ?.copyWith(fontSize: 34, letterSpacing: 1),
                     ),

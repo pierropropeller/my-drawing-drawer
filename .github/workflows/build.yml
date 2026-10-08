@@ -39,8 +39,8 @@ jobs:
       - name: Name APK
         id: apk
         run: |
-          cp build/app/outputs/flutter-apk/app-debug.apk "huakeng-debug-${{ github.run_number }}.apk"
-          echo "path=huakeng-debug-${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
+          cp build/app/outputs/flutter-apk/app-debug.apk "drawer-debug-${{ github.run_number }}.apk"
+          echo "path=drawer-debug-${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
