@@ -13,6 +13,7 @@ import 'me_widgets.dart';
 import 'language_page.dart';
 import 'profile_edit_page.dart';
 import 'theme_page.dart';
+import '../../l10n/l10n.dart';
 
 /// 我的：頭像、暱稱、編輯個人資料、主題色／備份與同步／關於 App 入口。
 class ProfilePage extends ConsumerWidget {
@@ -25,13 +26,15 @@ class ProfilePage extends ConsumerWidget {
     final s = ref.watch(settingsProvider);
     final sync = ref.watch(syncControllerProvider);
     final modeLabel = switch (s.themeMode) {
-      ThemeMode.light => '淺色',
-      ThemeMode.dark => '深色',
-      ThemeMode.system => '跟隨系統',
+      ThemeMode.light => context.l10n.themeModeLight,
+      ThemeMode.dark => context.l10n.themeModeDark,
+      ThemeMode.system => context.l10n.themeModeSystem,
     };
     final backupLabel = s.accountEmail == null
-        ? '未連結'
-        : (sync.lastSyncAt == null ? '已連結' : meTimeLabel(sync.lastSyncAt));
+        ? context.l10n.meBackupNotLinked
+        : (sync.lastSyncAt == null
+              ? context.l10n.meBackupLinked
+              : meTimeLabel(sync.lastSyncAt));
     final chevron = dark ? t.text4 : const Color(0xFFB7ADA0);
     final divider = dark ? t.border : const Color(0xFFF1EADF);
 
@@ -96,7 +99,7 @@ class ProfilePage extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 4),
               child: Text(
-                '我的',
+                context.l10n.meTitle,
                 style: Theme.of(context).textTheme.headlineMedium
                     ?.copyWith(fontSize: 24),
               ),
@@ -117,7 +120,9 @@ class ProfilePage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          s.nickname.isEmpty ? '設定暱稱' : s.nickname,
+                          s.nickname.isEmpty
+                              ? context.l10n.meSetNickname
+                              : s.nickname,
                           style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(fontSize: 22),
                         ),
@@ -143,7 +148,7 @@ class ProfilePage extends ConsumerWidget {
                               ),
                             ),
                             child: Text(
-                              '編輯個人資料',
+                              context.l10n.meEditProfile,
                               style: TextStyle(fontSize: 12.5, color: t.text2),
                             ),
                           ),
@@ -164,8 +169,11 @@ class ProfilePage extends ConsumerWidget {
                             icon: AppIcons.palette,
                             tileBg: t.piece.bg,
                             tileFg: t.piece.fg,
-                            title: '主題色',
-                            value: '${s.accent.label} · $modeLabel',
+                            title: context.l10n.meThemeColor,
+                            value: context.l10n.meThemeValue(
+                              s.accent.labelOf(context.l10n),
+                              modeLabel,
+                            ),
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (_) => const ThemePage(),
@@ -181,8 +189,8 @@ class ProfilePage extends ConsumerWidget {
                             tileFg: dark
                                 ? const Color(0xFFA3B88A)
                                 : const Color(0xFF6B7F5A),
-                            title: '語言',
-                            value: s.language.label,
+                            title: context.l10n.meLanguage,
+                            value: s.language.labelOf(context.l10n),
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (_) => const LanguagePage(),
@@ -195,7 +203,7 @@ class ProfilePage extends ConsumerWidget {
                                 ? t.official.bg
                                 : const Color(0xFFEAF0F5),
                             tileFg: t.official.fg,
-                            title: '備份與同步',
+                            title: context.l10n.meBackupSync,
                             value: backupLabel,
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
@@ -207,7 +215,7 @@ class ProfilePage extends ConsumerWidget {
                             icon: AppIcons.info,
                             tileBg: dark ? t.chipBg : const Color(0xFFEEEAE2),
                             tileFg: t.text3,
-                            title: '關於 App',
+                            title: context.l10n.meAbout,
                             last: true,
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(

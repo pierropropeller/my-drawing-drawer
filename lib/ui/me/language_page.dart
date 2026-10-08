@@ -5,6 +5,7 @@ import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../common/nav_bar_hidden.dart';
 import 'me_widgets.dart';
+import '../../l10n/l10n.dart';
 
 /// 語言（LanguagePick）：跟隨系統／繁體中文可選；English 停用，右邊顯示「即將推出」。
 /// 沒有導覽列，也沒有說明小字。
@@ -23,7 +24,7 @@ class LanguagePage extends ConsumerWidget {
         body: SafeArea(
           child: Column(
             children: [
-              const MeSubHeader('語言', bottom: 8),
+              MeSubHeader(context.l10n.meLanguage, bottom: 8),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -62,7 +63,7 @@ class LanguagePage extends ConsumerWidget {
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            l.label,
+                                            l.labelOf(context.l10n),
                                             style: TextStyle(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w500,
@@ -74,7 +75,7 @@ class LanguagePage extends ConsumerWidget {
                                         ),
                                         if (!l.available)
                                           Text(
-                                            '即將推出',
+                                            context.l10n.meLanguageComingSoon,
                                             style: TextStyle(
                                               fontSize: 12.5,
                                               color: muted,

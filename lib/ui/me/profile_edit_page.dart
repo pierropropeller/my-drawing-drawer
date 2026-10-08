@@ -12,6 +12,7 @@ import '../common/user_avatar.dart';
 import '../pits/pit_form.dart';
 import 'me_icons.dart';
 import 'me_widgets.dart';
+import '../../l10n/l10n.dart';
 
 /// 編輯個人資料（ProfileEdit）：點頭像更換、暱稱、儲存。沒有導覽列。
 /// 頭像和暱稱都在按「儲存」時才寫入設定。
@@ -69,7 +70,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage>
       body: SafeArea(
         child: Column(
           children: [
-            const MeSubHeader('編輯個人資料', bottom: 8),
+            MeSubHeader(context.l10n.meEditProfile, bottom: 8),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -79,7 +80,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage>
                     Center(
                       child: Semantics(
                         button: true,
-                        label: '更換頭像',
+                        label: context.l10n.meChangeAvatar,
                         child: GestureDetector(
                           onTap: _pickAvatar,
                           child: Padding(
@@ -137,7 +138,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage>
                       ),
                     ),
                     Text(
-                      '點選頭像更換',
+                      context.l10n.meTapAvatarToChange,
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 12.5, color: t.text3),
                     ),
@@ -145,7 +146,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage>
                     Padding(
                       padding: const EdgeInsets.only(left: 2, bottom: 8),
                       child: Text(
-                        '暱稱',
+                        context.l10n.meNickname,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -170,7 +171,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage>
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      child: const Text('儲存'),
+                      child: Text(context.l10n.commonSave),
                     ),
                   ],
                 ),

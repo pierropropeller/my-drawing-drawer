@@ -8,6 +8,7 @@ import '../state/settings.dart';
 import '../sync/sync_driver.dart';
 import 'common/nav_bar_hidden.dart';
 import 'goals/goals_page.dart';
+import '../l10n/l10n.dart';
 import 'login/welcome_page.dart';
 import 'me/profile_page.dart';
 import 'pits/pits_page.dart';
@@ -23,8 +24,14 @@ class AppShell extends ConsumerStatefulWidget {
 /// 導覽列的 icon 直接取自設計稿（Main／GoalYear／Profile 的 nav）：
 /// 資料夾、雙圓靶心、人像；未選中線寬 1.8，選中線寬 2。
 class _Tab {
-  const _Tab(this.label, this.shapes);
-  final String label;
+  const _Tab(this.id, this.shapes);
+  final int id;
+
+  String label(AppLocalizations l) => switch (id) {
+    0 => l.shellTabPits,
+    1 => l.shellTabGoals,
+    _ => l.shellTabMe,
+  };
 
   /// SVG（24×24）內的圖形，線寬在建立時帶入。
   final String shapes;
@@ -37,15 +44,12 @@ class _Tab {
 
 const _tabs = [
   _Tab(
-    '坑',
+    0,
     '<path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   ),
+  _Tab(1, '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/>'),
   _Tab(
-    '目標',
-    '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/>',
-  ),
-  _Tab(
-    '我的',
+    2,
     '<circle cx="12" cy="8" r="4"/><path d="M4.5 20c0-4.2 3.8-6 7.5-6s7.5 1.8 7.5 6"/>',
   ),
 ];
@@ -63,7 +67,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     2 => const ProfilePage(),
     _ => Center(
       child: Text(
-        _tabs[i].label,
+        _tabs[i].label(context.l10n),
         style: Theme.of(context).textTheme.headlineMedium,
       ),
     ),
@@ -170,7 +174,7 @@ class _NavItem extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            tab.label,
+            tab.label(context.l10n),
             style: TextStyle(
               fontSize: 11,
               color: color,

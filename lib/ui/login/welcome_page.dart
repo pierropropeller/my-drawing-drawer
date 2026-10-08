@@ -12,6 +12,7 @@ import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
 import '../pits/pit_form.dart';
 import 'sync_first_page.dart';
+import '../../l10n/l10n.dart';
 
 /// 開頭畫面：用 Google 帳號開始（Drive 同步），或離線繼續。
 /// 沒有自家帳號系統；Google 帳號只用於 Drive 同步。
@@ -63,7 +64,7 @@ class WelcomePage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '（暫定名稱，可更改）',
+                      context.l10n.loginTentativeName,
                       style: TextStyle(
                         fontSize: 11,
                         letterSpacing: .5,
@@ -72,7 +73,7 @@ class WelcomePage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      '一個坑一個坑，\n收藏你的同人宇宙',
+                      context.l10n.loginTagline,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
@@ -112,7 +113,7 @@ class WelcomePage extends ConsumerWidget {
                               ),
                         ),
                       ),
-                      label: '用 Google 帳號開始',
+                      label: context.l10n.loginStartWithGoogle,
                     ),
                     const SizedBox(height: 12),
                     GestureDetector(
@@ -130,7 +131,7 @@ class WelcomePage extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(Radii.button),
                         ),
                         child: Text(
-                          '離線使用，暫不同步',
+                          context.l10n.loginOfflineNoSync,
                           style: TextStyle(
                             color: t.text2,
                             fontSize: 15,
@@ -232,7 +233,7 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
                 alignment: Alignment.centerLeft,
                 child: Semantics(
                   button: true,
-                  label: '返回',
+                  label: context.l10n.commonBack,
                   child: InkResponse(
                     onTap: () => Navigator.of(context).maybePop(),
                     radius: 24,
@@ -261,14 +262,14 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
                     const _Illustration(),
                     const SizedBox(height: 26),
                     Text(
-                      '連結 Google 帳號',
+                      context.l10n.loginConnectGoogle,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(fontSize: 24),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      '連結後，跨設備自動同步',
+                      context.l10n.loginConnectHint,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
@@ -329,7 +330,7 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
-                                        '用另一個帳號',
+                                        context.l10n.loginUseAnotherAccount,
                                         style: TextStyle(
                                           fontSize: 14.5,
                                           color: t.text2,
@@ -353,7 +354,7 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _DarkButton(
-                    label: '連結並開始',
+                    label: context.l10n.loginConnectAndStart,
                     onTap: email == null ? null : _start,
                   ),
                   const SizedBox(height: 8),
@@ -366,7 +367,7 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 5),
                       child: Text(
-                        '離線繼續，暫不同步',
+                        context.l10n.loginOfflineContinue,
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 13.5, color: t.text3),
                       ),
@@ -473,7 +474,7 @@ class _AddAccountRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '加 Google 帳號',
+                    context.l10n.loginAddGoogleAccount,
                     style: TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w600,
@@ -482,7 +483,7 @@ class _AddAccountRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 1),
                   Text(
-                    '未連結任何帳號',
+                    context.l10n.loginNoAccount,
                     style: TextStyle(fontSize: 12, color: t.text3),
                   ),
                 ],
@@ -525,7 +526,9 @@ class _AccountRow extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Text(
-              name.isEmpty ? '畫' : name.characters.first.toUpperCase(),
+              name.isEmpty
+                  ? context.l10n.meAvatarFallback
+                  : name.characters.first.toUpperCase(),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,

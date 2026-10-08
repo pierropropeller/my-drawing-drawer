@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import '../l10n/l10n.dart';
+
 class RemoteFile {
   const RemoteFile({required this.name, required this.modified, this.id});
   final String name;
@@ -8,7 +10,8 @@ class RemoteFile {
 }
 
 class SyncAuthException implements Exception {
-  const SyncAuthException([this.message = '登入已失效，請重新連結 Google 帳號']);
+  SyncAuthException([String? message])
+    : message = message ?? l10nStatic.syncAuthExpired;
   final String message;
   @override
   String toString() => message;

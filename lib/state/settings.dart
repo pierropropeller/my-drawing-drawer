@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/tokens.dart';
+import '../l10n/l10n.dart';
 
 /// 由 main() 在啟動時覆蓋；測試或尚未載入時為 null，設定只存記憶體。
 final sharedPrefsProvider = Provider<SharedPreferences?>((ref) => null);
@@ -84,13 +85,18 @@ class AppSettings {
 
 /// 介面語言選項。[available] 為 false 的尚未翻譯，選了也不會生效。
 enum AppLanguage {
-  system('跟隨系統', true),
-  zhTw('繁體中文', true),
-  en('English', false);
+  system(true),
+  zhTw(true),
+  en(false);
 
-  const AppLanguage(this.label, this.available);
-  final String label;
+  const AppLanguage(this.available);
   final bool available;
+
+  String labelOf(AppLocalizations l) => switch (this) {
+    system => l.settingsLanguageSystem,
+    zhTw => l.settingsLanguageZhTw,
+    en => l.settingsLanguageEn,
+  };
 
   static AppLanguage fromKey(String? key) => AppLanguage.values.firstWhere(
     (l) => l.name == key,

@@ -13,6 +13,7 @@ import '../login/sync_first_page.dart';
 import '../pits/pit_form.dart';
 import 'me_icons.dart';
 import 'me_widgets.dart';
+import '../../l10n/l10n.dart';
 
 /// 備份與同步（Backup）：Google Drive 帳號、自動同步、前台自動刷新間隔、
 /// 立即同步（主按鈕）、更換同步的 Google 帳號、取消連結。沒有導覽列。
@@ -33,16 +34,16 @@ class BackupPage extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('更換同步的 Google 帳號？'),
-        content: const Text('本機的資料會整個上傳到新帳號，原帳號的備份不會被刪除。'),
+        title: Text(ctx.l10n.meBackupChangeAccountTitle),
+        content: Text(ctx.l10n.meBackupChangeAccountBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
+            child: Text(ctx.l10n.commonCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('更換'),
+            child: Text(ctx.l10n.meBackupChange),
           ),
         ],
       ),
@@ -81,13 +82,13 @@ class BackupPage extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '取消連結 Google 帳號？',
+                  ctx.l10n.meBackupUnlinkTitle,
                   style: Theme.of(ctx).textTheme.headlineSmall
                       ?.copyWith(fontSize: 18),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '取消後將停止同步。本機資料會保留，Google Drive 上的資料不會刪除。',
+                  ctx.l10n.meBackupUnlinkBody,
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.65,
@@ -102,7 +103,7 @@ class BackupPage extends ConsumerWidget {
                       onPressed: () => Navigator.pop(ctx, false),
                       style: _dialogButton,
                       child: Text(
-                        '取消',
+                        ctx.l10n.commonCancel,
                         style: TextStyle(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w600,
@@ -115,7 +116,7 @@ class BackupPage extends ConsumerWidget {
                       onPressed: () => Navigator.pop(ctx, true),
                       style: _dialogButton,
                       child: Text(
-                        '確認取消連結',
+                        ctx.l10n.meBackupUnlinkConfirm,
                         style: TextStyle(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
@@ -154,11 +155,15 @@ class BackupPage extends ConsumerWidget {
     final outline = fieldBorderColor(context);
     final green = dark ? const Color(0xFF8DBB8D) : const Color(0xFF5C8A5C);
     final syncing = sync.isSyncing;
-    final lastBackup = syncing ? '同步中…' : meTimeLabel(sync.lastSyncAt);
+    final lastBackup = syncing
+        ? context.l10n.meBackupSyncing
+        : meTimeLabel(sync.lastSyncAt);
     // 較新版本建立的備份：同步丟出的訊息就是「此備份由較新版本建立，請先更新 App」。
     final error = sync.phase == SyncPhase.error
         ? (sync.message ??
-              (sync.needsAppUpdate ? '此備份由較新版本建立，請先更新 App' : '同步失敗'))
+              (sync.needsAppUpdate
+                  ? context.l10n.syncNeedsAppUpdate
+                  : context.l10n.syncFailedShort))
         : null;
 
     Widget sub(String text) => Padding(
@@ -171,7 +176,7 @@ class BackupPage extends ConsumerWidget {
         body: SafeArea(
           child: Column(
             children: [
-              const MeSubHeader('備份與同步'),
+              MeSubHeader(context.l10n.meBackupSync),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -203,7 +208,7 @@ class BackupPage extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   'Google Drive',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
@@ -212,7 +217,9 @@ class BackupPage extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  linked ? s.accountEmail! : '尚未連結 Google 帳號',
+                                  linked
+                                      ? s.accountEmail!
+                                      : context.l10n.meBackupNoAccount,
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: t.text2,
@@ -233,7 +240,7 @@ class BackupPage extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 5),
                                 Text(
-                                  '已連結',
+                                  context.l10n.meBackupLinked,
                                   style: TextStyle(
                                     color: green,
                                     fontSize: 12,
@@ -256,7 +263,7 @@ class BackupPage extends ConsumerWidget {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        child: const Text('連結 Google 帳號'),
+                        child: Text(context.l10n.meBackupLinkGoogle),
                       ),
                     ] else ...[
                       const SizedBox(height: 14),
@@ -281,18 +288,23 @@ class BackupPage extends ConsumerWidget {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          '自動同步',
+                                        Text(
+                                          context.l10n.meBackupAutoSync,
                                           style: TextStyle(fontSize: 14.5),
                                         ),
-                                        sub('上次備份　$lastBackup'),
+                                        sub(
+                                          context.l10n.meBackupLastBackup(
+                                            lastBackup,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
                                   AppSwitch(
                                     value: s.autoSync,
                                     onChanged: notifier.setAutoSync,
-                                    semanticLabel: '自動同步',
+                                    semanticLabel:
+                                        context.l10n.meBackupAutoSync,
                                   ),
                                 ],
                               ),
@@ -306,17 +318,24 @@ class BackupPage extends ConsumerWidget {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          '前台自動刷新',
+                                        Text(
+                                          context
+                                              .l10n
+                                              .meBackupForegroundRefresh,
                                           style: TextStyle(fontSize: 14.5),
                                         ),
-                                        sub('App 開啟時定期同步最新資料（跨設備）'),
+                                        sub(
+                                          context
+                                              .l10n
+                                              .meBackupForegroundRefreshDesc,
+                                        ),
                                       ],
                                     ),
                                   ),
                                   const SizedBox(width: 10),
                                   PopupMenuButton<int>(
-                                    tooltip: '刷新間隔',
+                                    tooltip:
+                                        context.l10n.meBackupRefreshInterval,
                                     initialValue: s.refreshMinutes,
                                     onSelected: notifier.setRefreshMinutes,
                                     color: t.surface,
@@ -328,7 +347,9 @@ class BackupPage extends ConsumerWidget {
                                         PopupMenuItem(
                                           value: m,
                                           child: Text(
-                                            '每 $m 分鐘',
+                                            context.l10n.meBackupEveryMinutes(
+                                              m,
+                                            ),
                                             style: const TextStyle(
                                               fontSize: 13,
                                             ),
@@ -351,7 +372,9 @@ class BackupPage extends ConsumerWidget {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
-                                            '每 ${s.refreshMinutes} 分鐘',
+                                            context.l10n.meBackupEveryMinutes(
+                                              s.refreshMinutes,
+                                            ),
                                             style: const TextStyle(
                                               fontSize: 13,
                                             ),
@@ -391,7 +414,7 @@ class BackupPage extends ConsumerWidget {
                                 if (!ran && context.mounted) {
                                   showSnack(
                                     context,
-                                    '目前離線，恢復網絡後將自動同步',
+                                    context.l10n.syncOffline,
                                     offline: true,
                                   );
                                 }
@@ -409,7 +432,7 @@ class BackupPage extends ConsumerWidget {
                           strokeWidth: 1.9,
                           color: Colors.white,
                         ),
-                        label: const Text('立即同步'),
+                        label: Text(context.l10n.meBackupSyncNow),
                       ),
                       const SizedBox(height: 10),
                       InkWell(
@@ -432,7 +455,7 @@ class BackupPage extends ConsumerWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                '更換同步的 Google 帳號',
+                                context.l10n.meBackupChangeAccount,
                                 style: TextStyle(
                                   color: t.text2,
                                   fontSize: 14.5,
@@ -447,7 +470,7 @@ class BackupPage extends ConsumerWidget {
                     if (linked) ...[
                       const SizedBox(height: 10),
                       Text(
-                        '上傳圖片時自動儲存至 Drive；離線時會在恢復網絡後立即補傳。',
+                        context.l10n.meBackupDriveNote,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 11.5,
@@ -464,7 +487,7 @@ class BackupPage extends ConsumerWidget {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Text(
-                              '取消連結',
+                              context.l10n.meBackupUnlink,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 14,

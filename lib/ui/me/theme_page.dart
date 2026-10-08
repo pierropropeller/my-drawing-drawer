@@ -5,6 +5,7 @@ import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../common/nav_bar_hidden.dart';
 import 'me_widgets.dart';
+import '../../l10n/l10n.dart';
 
 /// 主題色：四個主題色預設＋外觀（淺色／深色／跟隨系統）＋預覽。每台裝置各自設定，不同步。
 class ThemePage extends ConsumerWidget {
@@ -17,10 +18,10 @@ class ThemePage extends ConsumerWidget {
     final dark = brightness == Brightness.dark;
     final s = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
-    const modes = [
-      (ThemeMode.light, '淺色'),
-      (ThemeMode.dark, '深色'),
-      (ThemeMode.system, '跟隨系統'),
+    final modes = [
+      (ThemeMode.light, context.l10n.themeModeLight),
+      (ThemeMode.dark, context.l10n.themeModeDark),
+      (ThemeMode.system, context.l10n.themeModeSystem),
     ];
     const title = TextStyle(fontWeight: FontWeight.w700, fontSize: 14);
     return HideNavBar(
@@ -28,7 +29,7 @@ class ThemePage extends ConsumerWidget {
         body: SafeArea(
           child: Column(
             children: [
-              const MeSubHeader('主題色'),
+              MeSubHeader(context.l10n.meThemeColor),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -41,14 +42,14 @@ class ThemePage extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('主題色', style: title),
+                          Text(context.l10n.meThemeColor, style: title),
                           const SizedBox(height: 16),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               for (final p in AccentPreset.values)
                                 Semantics(
-                                  label: p.label,
+                                  label: p.labelOf(context.l10n),
                                   button: true,
                                   child: GestureDetector(
                                     onTap: () => notifier.setAccent(p),
@@ -78,7 +79,7 @@ class ThemePage extends ConsumerWidget {
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          p.label,
+                                          p.labelOf(context.l10n),
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: p == s.accent
@@ -104,7 +105,7 @@ class ThemePage extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('外觀', style: title),
+                          Text(context.l10n.meThemeAppearance, style: title),
                           const SizedBox(height: 14),
                           Row(
                             children: [
@@ -143,7 +144,7 @@ class ThemePage extends ConsumerWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '每個主題色都有深／淺兩個版本，「跟隨系統」會依照裝置設定自動切換。',
+                            context.l10n.meThemeNote,
                             style: TextStyle(
                               fontSize: 12,
                               color: t.text3,
@@ -160,7 +161,7 @@ class ThemePage extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '預覽',
+                            context.l10n.meThemePreview,
                             style: TextStyle(fontSize: 11, color: t.text3),
                           ),
                           const SizedBox(height: 10),
@@ -219,8 +220,8 @@ class ThemePage extends ConsumerWidget {
                                   color: t.accent,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Text(
-                                  '按鈕',
+                                child: Text(
+                                  context.l10n.meThemeButton,
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,

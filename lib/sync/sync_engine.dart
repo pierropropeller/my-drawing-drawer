@@ -6,6 +6,7 @@ import '../data/database.dart';
 import '../data/image_store.dart';
 import 'remote.dart';
 import 'sync_kinds.dart';
+import '../l10n/l10n.dart';
 
 /// 目前這版 App 寫出／能讀的同步格式版本。
 /// 之後若出現不相容的改動就把它加一；舊版 App 讀到較高的版本會停下來，不會弄壞資料。
@@ -14,7 +15,7 @@ const syncFormatVersion = 2;
 
 /// 遠端備份的格式比這版 App 新：必須先更新 App。
 class SyncFormatException extends SyncAuthException {
-  const SyncFormatException() : super('此備份由較新版本建立，請先更新 App');
+  SyncFormatException() : super(l10nStatic.syncNeedsAppUpdate);
 }
 
 /// 同步目前進行到哪個階段。
@@ -42,7 +43,8 @@ class SyncResult {
 
   bool get changed => pushed + pulled + imagesUp + imagesDown > 0;
   @override
-  String toString() => '上傳 $pushed／下載 $pulled（圖片 ↑$imagesUp ↓$imagesDown）';
+  String toString() =>
+      l10nStatic.syncResultSummary(pushed, pulled, imagesUp, imagesDown);
 }
 
 String _metaName(String kind, String id) => 'meta__${kind}__$id.json';
@@ -129,7 +131,7 @@ class SyncEngine {
 
   void _requireSupported(Object? version) {
     final v = version is int ? version : 1;
-    if (v > syncFormatVersion) throw const SyncFormatException();
+    if (v > syncFormatVersion) throw SyncFormatException();
   }
 
   Future<void> _record(

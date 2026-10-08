@@ -10,6 +10,7 @@ import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import 'me_icons.dart';
 import 'me_widgets.dart';
+import '../../l10n/l10n.dart';
 
 /// 真正的 App 版本與建置號（取不到時為 null，頁面就不顯示版本）。
 final appPackageInfoProvider = FutureProvider<PackageInfo?>((ref) async {
@@ -24,7 +25,9 @@ final appPackageInfoProvider = FutureProvider<PackageInfo?>((ref) async {
 String versionLabel(PackageInfo? info) {
   if (info == null || info.version.isEmpty) return '';
   final build = info.buildNumber;
-  return build.isEmpty ? '版本 ${info.version}' : '版本 ${info.version}（$build）';
+  return build.isEmpty
+      ? l10nStatic.meAboutVersion(info.version)
+      : l10nStatic.meAboutVersionBuild(info.version, build);
 }
 
 /// 關於 App（About）：圖示、名稱、版本、資料存放說明、開源授權。沒有導覽列。
@@ -44,7 +47,7 @@ class AboutPage extends ConsumerWidget {
         body: SafeArea(
           child: Column(
             children: [
-              const MeSubHeader('關於 App', bottom: 8),
+              MeSubHeader(context.l10n.meAbout, bottom: 8),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -109,8 +112,8 @@ class AboutPage extends ConsumerWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    '資料存放',
+                                  Text(
+                                    context.l10n.meAboutDataTitle,
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w500,
@@ -118,7 +121,7 @@ class AboutPage extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    '所有資料只存在你的裝置和你的 Google Drive，不會上傳到其他地方。',
+                                    context.l10n.meAboutDataBody,
                                     style: TextStyle(
                                       fontSize: 12.5,
                                       height: 1.55,
@@ -142,9 +145,9 @@ class AboutPage extends ConsumerWidget {
                                 ),
                                 child: Row(
                                   children: [
-                                    const Expanded(
+                                    Expanded(
                                       child: Text(
-                                        '開源授權',
+                                        context.l10n.meAboutLicenses,
                                         style: TextStyle(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w500,

@@ -8,6 +8,7 @@ import 'drive_remote.dart';
 import 'google_auth.dart';
 import 'remote.dart';
 import 'sync_engine.dart';
+import '../l10n/l10n.dart';
 
 enum SyncPhase { idle, syncing, error }
 
@@ -151,7 +152,7 @@ class SyncController extends Notifier<SyncState> {
       state = SyncState(
         phase: SyncPhase.error,
         lastSyncAt: state.lastSyncAt,
-        message: '同步失敗：$e',
+        message: l10nStatic.syncFailed('$e'),
         isFirstSync: first,
       );
       return true;

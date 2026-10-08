@@ -1,6 +1,7 @@
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'remote.dart';
+import '../l10n/l10n.dart';
 
 /// Drive 的「App 專用資料夾」scope（使用者在 Drive 裡看不到這些檔案）。
 const driveAppDataScope = 'https://www.googleapis.com/auth/drive.appdata';
@@ -53,11 +54,13 @@ class GoogleAccountService implements AccountService {
       return account.email;
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
-        throw const AuthFailure('已取消');
+        throw AuthFailure(l10nStatic.syncCancelled);
       }
-      throw AuthFailure('連結失敗：${e.description ?? e.code.name}');
+      throw AuthFailure(
+        l10nStatic.syncLinkFailed(e.description ?? e.code.name),
+      );
     } catch (e) {
-      throw AuthFailure('連結失敗：$e');
+      throw AuthFailure(l10nStatic.syncLinkFailed('$e'));
     }
   }
 
@@ -102,10 +105,12 @@ class GoogleAccountService implements AccountService {
       };
     } on GoogleSignInException catch (e) {
       throw SyncAuthException(
-        '登入已失效，請重新連結 Google 帳號（${e.code.name}：${e.description ?? ''}）',
+        l10nStatic.syncAuthExpiredDetail(
+          '${e.code.name}：${e.description ?? ''}',
+        ),
       );
     } catch (e) {
-      throw SyncAuthException('登入已失效，請重新連結 Google 帳號（$e）');
+      throw SyncAuthException(l10nStatic.syncAuthExpiredDetail('$e'));
     }
   }
 }

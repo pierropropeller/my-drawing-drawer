@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import 'remote.dart';
+import '../l10n/l10n.dart';
 
 /// Google Drive 的 App 專用資料夾（appDataFolder，使用者在 Drive 看不到，
 /// scope 只要 `drive.appdata`）。直接呼叫 Drive REST v3。
@@ -21,14 +22,14 @@ class DriveRemote implements SyncRemote {
 
   Future<http.Response> _check(http.Response r) async {
     if (r.statusCode == 401) {
-      throw const SyncAuthException();
+      throw SyncAuthException();
     }
     if (r.statusCode == 403) {
       // 403 多半是 Drive API 沒啟用或權限不足，不是登入過期；把原因帶出來方便排查。
-      throw SyncAuthException('Drive 拒絕存取（403）：${r.body}');
+      throw SyncAuthException(l10nStatic.syncDriveForbidden(r.body));
     }
     if (r.statusCode >= 400) {
-      throw Exception('Drive 錯誤 ${r.statusCode}：${r.body}');
+      throw Exception(l10nStatic.syncDriveError(r.statusCode, r.body));
     }
     return r;
   }

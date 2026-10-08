@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
+import '../../l10n/l10n.dart';
 
 /// 使用者頭像：有自訂圖片用圖片，否則顯示暱稱第一個字。
 class UserAvatar extends ConsumerWidget {
@@ -25,7 +26,9 @@ class UserAvatar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = context.tokens;
     final s = ref.watch(settingsProvider);
-    final initial = s.nickname.isEmpty ? '畫' : s.nickname.characters.first;
+    final initial = s.nickname.isEmpty
+        ? context.l10n.meAvatarFallback
+        : s.nickname.characters.first;
     return SizedBox(
       width: size,
       height: size,

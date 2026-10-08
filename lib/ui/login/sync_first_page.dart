@@ -8,6 +8,7 @@ import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import '../me/me_icons.dart';
 import '../pits/pit_form.dart';
+import '../../l10n/l10n.dart';
 
 /// 首次連結 Google 帳號後的同步中畫面（SyncFirst）：進度條＋「圖片 N / M」。
 /// 按「先開始使用」離開，同步由 [SyncController] 在背景繼續；同步完成也會自動離開。
@@ -76,9 +77,9 @@ class _SyncFirstPageState extends ConsumerState<SyncFirstPage> {
     if (sync.phase == SyncPhase.error && sync.message != null) {
       subtitle = sync.message!;
     } else if (!sync.isSyncing) {
-      subtitle = '目前離線，恢復網絡後將自動同步';
+      subtitle = context.l10n.syncOffline;
     } else {
-      subtitle = '正在下載你在 Google Drive 的資料';
+      subtitle = context.l10n.loginDownloading;
     }
     final isError = sync.phase == SyncPhase.error;
     return HideNavBar(
@@ -113,7 +114,7 @@ class _SyncFirstPageState extends ConsumerState<SyncFirstPage> {
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          '正在同步',
+                          context.l10n.loginSyncing,
                           style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(fontSize: 21),
                         ),
@@ -145,7 +146,10 @@ class _SyncFirstPageState extends ConsumerState<SyncFirstPage> {
                             children: [
                               Text(
                                 sync.hasImageProgress
-                                    ? '圖片 ${sync.imagesDone} / ${sync.imagesTotal}'
+                                    ? context.l10n.loginImagesProgress(
+                                        sync.imagesDone,
+                                        sync.imagesTotal,
+                                      )
                                     : '',
                                 style: TextStyle(
                                   fontSize: 12.5,
@@ -187,8 +191,8 @@ class _SyncFirstPageState extends ConsumerState<SyncFirstPage> {
                           ),
                           borderRadius: BorderRadius.circular(Radii.button),
                         ),
-                        child: const Text(
-                          '先開始使用',
+                        child: Text(
+                          context.l10n.loginStartNow,
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -198,7 +202,7 @@ class _SyncFirstPageState extends ConsumerState<SyncFirstPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '同步會在背景繼續',
+                      context.l10n.loginSyncContinues,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,

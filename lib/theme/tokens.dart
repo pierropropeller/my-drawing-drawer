@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
+
 /// 分類色（底色／前景）。
 class CategoryColor {
   const CategoryColor(this.bg, this.fg);
@@ -155,32 +157,37 @@ class AccentColors {
 enum AccentPreset {
   coral(
     'coral',
-    '珊瑚',
     AccentColors(Color(0xFFD9634E), Color(0xFFB84B38), Color(0xFFF6E3DC)),
     AccentColors(Color(0xFFE27560), Color(0xFFE8876F), Color(0xFF3D2A24)),
   ),
   slate(
     'slate',
-    '霧藍',
     AccentColors(Color(0xFF5B7A99), Color(0xFF46627E), Color(0xFFE3EAF1)),
     AccentColors(Color(0xFF7F9DBB), Color(0xFF93AECB), Color(0xFF26303A)),
   ),
   rose(
     'rose',
-    '玫瑰',
     AccentColors(Color(0xFFB76A7C), Color(0xFF9A5264), Color(0xFFF3E2E6)),
     AccentColors(Color(0xFFCF8A9B), Color(0xFFD99AAB), Color(0xFF3A2A2F)),
   ),
   matcha(
     'matcha',
-    '抹茶',
     AccentColors(Color(0xFF7A8B5B), Color(0xFF627248), Color(0xFFE6EBDC)),
     AccentColors(Color(0xFF9AAB79), Color(0xFFADBD8C), Color(0xFF2D3324)),
   );
 
-  const AccentPreset(this.key, this.label, this.light, this.dark);
+  const AccentPreset(this.key, this.light, this.dark);
   final String key;
-  final String label;
+
+  /// 顯示名稱（有 context 的地方用 [labelOf]）。
+  String labelOf(AppLocalizations l) => switch (this) {
+    coral => l.themeAccentCoral,
+    slate => l.themeAccentSlate,
+    rose => l.themeAccentRose,
+    matcha => l.themeAccentMatcha,
+  };
+
+  String get label => labelOf(l10nStatic);
   final AccentColors light;
   final AccentColors dark;
 

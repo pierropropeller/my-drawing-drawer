@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
+import '../../l10n/l10n.dart';
 
 /// 我的 → 子頁（主題色、備份與同步）的自訂標題列：返回箭頭＋襯線標題（設計稿 22/14/12）。
 class MeSubHeader extends StatelessWidget {
@@ -20,7 +21,7 @@ class MeSubHeader extends StatelessWidget {
       child: Row(
         children: [
           Tooltip(
-            message: '返回',
+            message: context.l10n.commonBack,
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () => Navigator.of(context).maybePop(),
@@ -73,14 +74,14 @@ class MePanel extends StatelessWidget {
 
 /// 「今天 10:32」「昨天 10:32」「3/14 10:32」。
 String meTimeLabel(DateTime? at, {DateTime? now}) {
-  if (at == null) return '尚未同步';
+  if (at == null) return l10nStatic.meNotSyncedYet;
   final n = now ?? DateTime.now();
   String two(int v) => v.toString().padLeft(2, '0');
   final hm = '${two(at.hour)}:${two(at.minute)}';
   final today = DateTime(n.year, n.month, n.day);
   final day = DateTime(at.year, at.month, at.day);
   final diff = today.difference(day).inDays;
-  if (diff == 0) return '今天 $hm';
-  if (diff == 1) return '昨天 $hm';
-  return '${at.month}/${at.day} $hm';
+  if (diff == 0) return l10nStatic.meTimeToday(hm);
+  if (diff == 1) return l10nStatic.meTimeYesterday(hm);
+  return l10nStatic.meTimeDate(at.month, at.day, hm);
 }
