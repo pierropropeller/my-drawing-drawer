@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/entity_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
@@ -58,7 +59,7 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
   Future<void> _delete() async {
     final ok = await confirmDelete(
       context,
-      title: '刪除 ${_selected.length} 個腦洞？',
+      title: context.l10n.ideaListDeleteSelected(_selected.length),
     );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteIdeas(_selected);
@@ -99,7 +100,9 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
         ? views
         : (ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? views);
     final unhatched = all.where((v) => v.status != IdeaStatus.hatched).length;
-    final title = pitName == null ? '我的腦洞' : '$pitName · 我的腦洞';
+    final title = pitName == null
+        ? context.l10n.pitsIdeas
+        : context.l10n.albumTitleWithPit(pitName, context.l10n.pitsIdeas);
     return PopScope(
       canPop: !_selecting,
       onPopInvokedWithResult: (didPop, _) {
@@ -108,7 +111,10 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
       child: Scaffold(
         floatingActionButton: _selecting || views.isEmpty
             ? null
-            : EntityFab(label: '新增腦洞', onPressed: _openNew),
+            : EntityFab(
+                label: context.l10n.ideaFormTitleNew,
+                onPressed: _openNew,
+              ),
         bottomNavigationBar: _selecting
             ? _SelectBar(enabled: _selected.isNotEmpty, onDelete: _delete)
             : null,
@@ -118,7 +124,9 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
             children: [
               if (_selecting)
                 SubPageHeader(
-                  title: '已選 ${_selected.length} 個',
+                  title: context.l10n.entityConnectSelectedIdea(
+                    _selected.length,
+                  ),
                   leadingIcon: AppIcons.closeX,
                   leadingSize: 22,
                   leadingStroke: 2,
@@ -143,9 +151,9 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                           vertical: 8,
                         ),
                       ),
-                      child: const Text(
-                        '全選',
-                        style: TextStyle(
+                      child: Text(
+                        context.l10n.commonSelectAll,
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -159,8 +167,11 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                   trailing: [
                     HeaderCount(
                       unhatched > 0
-                          ? '${all.length} 個 · $unhatched 未孵'
-                          : '${all.length} 個',
+                          ? context.l10n.ideaListCountUnhatched(
+                              all.length,
+                              unhatched,
+                            )
+                          : context.l10n.pitsCountIdeas(all.length),
                     ),
                     SearchIconButton(pitId: widget.pitId),
                   ],
@@ -170,15 +181,15 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                   pitId: widget.pitId,
                   kind: TaggedKind.idea,
                   tagId: widget.tagId!,
-                  countText: '${views.length} 個',
+                  countText: context.l10n.pitsCountIdeas(views.length),
                 ),
               Expanded(
                 child: views.isEmpty
                     ? EmptyState(
                         svg: AppIcons.pitIdea,
-                        text: '還沒有腦洞',
+                        text: context.l10n.ideaListEmpty,
                         color: t.idea,
-                        actionLabel: '記下第一個腦洞',
+                        actionLabel: context.l10n.ideaListEmptyAction,
                         onAction: _openNew,
                       )
                     : ContentWidth(
@@ -283,7 +294,10 @@ class _SelectBar extends StatelessWidget {
               children: [
                 SvgIcon(AppIcons.trash, size: 22, color: color),
                 const SizedBox(height: 4),
-                Text('刪除', style: TextStyle(color: color, fontSize: 11.5)),
+                Text(
+                  context.l10n.commonDelete,
+                  style: TextStyle(color: color, fontSize: 11.5),
+                ),
               ],
             ),
           ),

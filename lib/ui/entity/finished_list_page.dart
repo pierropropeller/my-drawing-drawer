@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../data/entity_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -88,7 +89,12 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
             Column(
               children: [
                 SubPageHeader(
-                  title: pit == null ? '成圖' : '${pit.name} · 成圖',
+                  title: pit == null
+                      ? context.l10n.searchCategoryPiece
+                      : context.l10n.albumTitleWithPit(
+                          pit.name,
+                          context.l10n.searchCategoryPiece,
+                        ),
                   titleSize: 19,
                   trailing: [
                     SearchIconButton(pitId: widget.pitId),
@@ -103,15 +109,15 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
                     pitId: widget.pitId,
                     kind: TaggedKind.piece,
                     tagId: widget.tagId!,
-                    countText: '${views.length} 張',
+                    countText: context.l10n.commonCountImages(views.length),
                   ),
                 Expanded(
                   child: views.isEmpty
                       ? EmptyState(
                           svg: AppIcons.pitPieceEmpty,
-                          text: '還沒有成圖',
+                          text: context.l10n.pieceListEmpty,
                           color: t.piece,
-                          actionLabel: '新增',
+                          actionLabel: context.l10n.commonAdd,
                           onAction: _add,
                         )
                       : switch (_mode) {
@@ -171,7 +177,10 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
               Positioned(
                 right: 18,
                 bottom: 14,
-                child: EntityFab(onPressed: _add, label: '新增成圖'),
+                child: EntityFab(
+                  onPressed: _add,
+                  label: context.l10n.pieceFormTitleNew,
+                ),
               ),
           ],
         ),
@@ -228,9 +237,14 @@ class _ModeToggle extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         spacing: 3,
         children: [
-          btn(_Mode.waterfall, '瀑布', AppIcons.waterfallView, 1.8),
-          btn(_Mode.grid, '田字', AppIcons.gridView, 1.8),
-          btn(_Mode.nine, '九宮格', AppIcons.grid3x3, 1.7),
+          btn(
+            _Mode.waterfall,
+            context.l10n.pieceViewWaterfall,
+            AppIcons.waterfallView,
+            1.8,
+          ),
+          btn(_Mode.grid, context.l10n.pieceViewGrid, AppIcons.gridView, 1.8),
+          btn(_Mode.nine, context.l10n.pieceViewNine, AppIcons.grid3x3, 1.7),
         ],
       ),
     );

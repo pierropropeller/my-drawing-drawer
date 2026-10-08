@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/entity_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
@@ -57,13 +58,13 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
         child: Column(
           children: [
             SubPageHeader(
-              title: '草稿詳情',
+              title: context.l10n.draftDetailTitle,
               titleSize: 20,
               gap: 6,
               trailing: [
                 HeaderIconButton(
                   icon: AppIcons.edit,
-                  label: '編輯',
+                  label: context.l10n.commonEdit,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) =>
@@ -73,10 +74,13 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
                 ),
                 HeaderIconButton(
                   icon: AppIcons.trash,
-                  label: '刪除',
+                  label: context.l10n.commonDelete,
                   color: t.danger,
                   onTap: () async {
-                    final ok = await confirmDelete(context, title: '刪除這份草稿？');
+                    final ok = await confirmDelete(
+                      context,
+                      title: context.l10n.draftDetailDeleteTitle,
+                    );
                     if (!ok || !context.mounted) return;
                     await ref.read(databaseProvider).deleteDrafts([draftId]);
                     if (context.mounted) Navigator.of(context).pop();
@@ -150,11 +154,14 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
                               ),
                             ],
                             if (mine.isNotEmpty) ...[
-                              const Padding(
-                                padding: EdgeInsets.only(top: 20, bottom: 10),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 20,
+                                  bottom: 10,
+                                ),
                                 child: Text(
-                                  '關聯的腦洞',
-                                  style: TextStyle(
+                                  context.l10n.ideaLinkedHeading,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -292,7 +299,7 @@ class _ImageStageState extends State<_ImageStage> {
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (_, i) => Semantics(
                 button: true,
-                label: '第 ${i + 1} 張',
+                label: context.l10n.draftDetailImageLabel(i + 1),
                 child: GestureDetector(
                   onTap: () => _controller.jumpToPage(i),
                   child: Container(
