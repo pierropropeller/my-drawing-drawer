@@ -11,6 +11,7 @@ import '../common/svg_icon.dart';
 import '../common/user_avatar.dart';
 import 'backup_page.dart';
 import 'me_widgets.dart';
+import 'language_page.dart';
 import 'theme_page.dart';
 
 /// 我的：頭像、暱稱、編輯個人資料、主題色／備份與同步／關於 App 入口。
@@ -187,6 +188,18 @@ class ProfilePage extends ConsumerWidget {
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (_) => const ThemePage(),
+                              ),
+                            ),
+                          ),
+                          row(
+                            icon: AppIcons.globe,
+                            tileBg: t.draft.bg,
+                            tileFg: t.draft.fg,
+                            title: '語言',
+                            value: s.language.label,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const LanguagePage(),
                               ),
                             ),
                           ),

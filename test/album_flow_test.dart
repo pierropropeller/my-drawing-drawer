@@ -143,6 +143,53 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));
   });
+  testWidgets('返回手勢只退一頁；長按選取列貼在底部；長按坑卡片可選封面', (tester) async {
+    await tester.runAsync(() async {
+      final groups = await db.watchGroups(pitId).first;
+      await db.addOfficial(pitId, groups.first.id, const [
+        NewImage(file: 'a.png', width: 10, height: 10),
+      ]);
+    });
+    Directory('${tmp.path}/images').createSync(recursive: true);
+    File('${tmp.path}/images/a.png').writeAsBytesSync(_png1x1);
+
+    await pumpApp(tester);
+    await settle(tester);
+
+    // 主頁長按坑卡片 → 選擇坑的封面。
+    await tester.longPress(find.text('測試坑'));
+    await settle(tester);
+    expect(find.text('選擇坑的封面'), findsOneWidget);
+    await tester.tap(find.byTooltip('返回'));
+    await settle(tester);
+
+    await tester.tap(find.text('測試坑'));
+    await settle(tester);
+    await tester.tap(find.text('官方圖冊'));
+    await settle(tester);
+
+    // 長按進入選取：下方操作列只佔底部一小條，不能把整頁撐滿。
+    await tester.longPress(find.byType(Image).first);
+    await settle(tester);
+    expect(find.text('已選 1 張'), findsOneWidget);
+    expect(find.text('下載'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('下載')).dy, greaterThan(650));
+    expect(find.byType(Image), findsWidgets); // 圖還在
+    await tester.tap(find.byTooltip('取消選擇'));
+    await settle(tester);
+
+    // 預覽頁按系統返回：只退回圖冊列表，不會連坑內頁一起退掉。
+    await tester.tap(find.byType(Image).first);
+    await settle(tester);
+    expect(find.text('設為封面'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await settle(tester);
+    expect(find.text('測試坑 · 官方圖冊'), findsOneWidget);
+    expect(find.text('目標'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 10));
+  });
 }
 
 const _png1x1 = <int>[

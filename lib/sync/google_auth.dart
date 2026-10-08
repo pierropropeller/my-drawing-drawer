@@ -84,18 +84,28 @@ class GoogleAccountService implements AccountService {
 
   @override
   Future<Map<String, String>> headers() async {
-    final a =
-        _account ??
-        await (() async {
-          await _init();
-          return GoogleSignIn.instance.attemptLightweightAuthentication();
-        })();
-    _account = a;
-    if (a == null) throw const SyncAuthException();
-    final h = await a.authorizationClient.authorizationHeaders([
-      driveAppDataScope,
-    ], promptIfNecessary: false);
-    if (h == null) throw const SyncAuthException();
-    return h;
+    try {
+      await _init();
+      // 沒有帳號物件時（例如 App 重啟後）先靜默還原；還原不到再退回「不指定帳號」的授權請求。
+      _account ??= await GoogleSignIn.instance
+          .attemptLightweightAuthentication();
+      final client =
+          _account?.authorizationClient ??
+          GoogleSignIn.instance.authorizationClient;
+      // 先靜默取；取不到（尚未授權或授權過期）就在前景補一次授權，不再直接判定失效。
+      final authz =
+          await client.authorizationForScopes([driveAppDataScope]) ??
+          await client.authorizeScopes([driveAppDataScope]);
+      return {
+        'Authorization': 'Bearer ${authz.accessToken}',
+        'X-Goog-AuthUser': '0',
+      };
+    } on GoogleSignInException catch (e) {
+      throw SyncAuthException(
+        '登入已失效，請重新連結 Google 帳號（${e.code.name}：${e.description ?? ''}）',
+      );
+    } catch (e) {
+      throw SyncAuthException('登入已失效，請重新連結 Google 帳號（$e）');
+    }
   }
 }

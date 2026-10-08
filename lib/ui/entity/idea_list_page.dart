@@ -223,6 +223,7 @@ class _SelectBar extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 52),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SvgIcon(AppIcons.trash, size: 22, color: color),

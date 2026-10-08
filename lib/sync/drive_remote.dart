@@ -20,8 +20,12 @@ class DriveRemote implements SyncRemote {
   static const _upload = 'https://www.googleapis.com/upload/drive/v3/files';
 
   Future<http.Response> _check(http.Response r) async {
-    if (r.statusCode == 401 || r.statusCode == 403) {
+    if (r.statusCode == 401) {
       throw const SyncAuthException();
+    }
+    if (r.statusCode == 403) {
+      // 403 多半是 Drive API 沒啟用或權限不足，不是登入過期；把原因帶出來方便排查。
+      throw SyncAuthException('Drive 拒絕存取（403）：${r.body}');
     }
     if (r.statusCode >= 400) {
       throw Exception('Drive 錯誤 ${r.statusCode}：${r.body}');

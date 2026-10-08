@@ -7,6 +7,7 @@ import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
+import '../album/cover_pick_page.dart';
 import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/responsive.dart';
@@ -448,6 +449,10 @@ class PitCard extends ConsumerWidget {
       onTap: () => Navigator.of(
         context,
       ).push(MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pit.id))),
+      // 長按坑卡片：選擇這個坑的封面（從坑內所有圖裡挑）。
+      onLongPress: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => CoverPickPage(pitId: pit.id)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

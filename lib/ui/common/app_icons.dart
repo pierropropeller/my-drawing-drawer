@@ -118,6 +118,10 @@ abstract final class AppIcons {
   static const palette =
       '<path d="M12 3a9 9 0 1 0 1 17.9c.9-.1 1.2-1 .8-1.7-.5-.9.1-2 1.2-2H17a4 4 0 0 0 4-4c0-4.4-4-7.2-9-7.2z"/><circle cx="8" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="10" r="1" fill="currentColor" stroke="none"/>';
 
+  /// 地球（我的：語言列）。
+  static const globe =
+      '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z"/>';
+
   /// 資訊（我的：關於 App 列）。Profile
   static const info =
       '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.8" r="1" fill="currentColor" stroke="none"/>';

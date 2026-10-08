@@ -5,6 +5,7 @@ import '../../data/entity_queries.dart';
 import '../album/album_actions.dart';
 import '../album/album_image.dart';
 import '../common/app_icons.dart';
+import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 
 /// 簡易全屏看圖（腦洞、草稿、成圖的圖片）：可左右滑、縮放、分享、下載。
@@ -21,7 +22,8 @@ class ImageGalleryPage extends ConsumerStatefulWidget {
   ConsumerState<ImageGalleryPage> createState() => _ImageGalleryPageState();
 }
 
-class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
+class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage>
+    with HidesNavBar<ImageGalleryPage> {
   late final _controller = PageController(initialPage: widget.initialIndex);
   late int _index = widget.initialIndex;
 

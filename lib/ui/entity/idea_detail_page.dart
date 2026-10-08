@@ -130,18 +130,14 @@ class IdeaDetailPage extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.only(right: 8),
                               child: GestureDetector(
-                                onTap: () =>
-                                    Navigator.of(
-                                      context,
-                                      rootNavigator: true,
-                                    ).push(
-                                      MaterialPageRoute<void>(
-                                        builder: (_) => ImageGalleryPage(
-                                          images: v.images,
-                                          initialIndex: i,
-                                        ),
-                                      ),
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => ImageGalleryPage(
+                                      images: v.images,
+                                      initialIndex: i,
                                     ),
+                                  ),
+                                ),
                                 child: SizedBox(
                                   width: 96,
                                   child: ClipRRect(

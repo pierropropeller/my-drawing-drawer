@@ -20,9 +20,13 @@ class AppSettings {
     this.onboarded = false,
     this.accountEmail,
     this.accent = AccentPreset.coral,
+    this.language = AppLanguage.system,
   });
 
   final ThemeMode themeMode;
+
+  /// App 介面語言（預留）：目前只有繁體中文，英文介面之後再補。
+  final AppLanguage language;
 
   /// 主題色預設（珊瑚／霧藍／玫瑰／抹茶），每台裝置各自設定。
   final AccentPreset accent;
@@ -46,9 +50,11 @@ class AppSettings {
     bool? onboarded,
     Object? accountEmail = _keep,
     AccentPreset? accent,
+    AppLanguage? language,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     accent: accent ?? this.accent,
+    language: language ?? this.language,
     refreshMinutes: refreshMinutes ?? this.refreshMinutes,
     autoSync: autoSync ?? this.autoSync,
     nickname: nickname ?? this.nickname,
@@ -59,6 +65,22 @@ class AppSettings {
     accountEmail: identical(accountEmail, _keep)
         ? this.accountEmail
         : accountEmail as String?,
+  );
+}
+
+/// 介面語言選項。[available] 為 false 的尚未翻譯，選了也不會生效。
+enum AppLanguage {
+  system('跟隨系統', true),
+  zhTw('繁體中文', true),
+  en('English', false);
+
+  const AppLanguage(this.label, this.available);
+  final String label;
+  final bool available;
+
+  static AppLanguage fromKey(String? key) => AppLanguage.values.firstWhere(
+    (l) => l.name == key,
+    orElse: () => AppLanguage.system,
   );
 }
 
@@ -79,6 +101,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
         orElse: () => ThemeMode.system,
       ),
       accent: AccentPreset.fromKey(p.getString('accent')),
+      language: AppLanguage.fromKey(p.getString('language')),
       refreshMinutes: p.getInt('refreshMinutes') ?? 5,
       autoSync: p.getBool('autoSync') ?? true,
       nickname: p.getString('nickname') ?? '',
@@ -96,6 +119,11 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void setAccent(AccentPreset a) {
     state = state.copyWith(accent: a);
     _p?.setString('accent', a.key);
+  }
+
+  void setLanguage(AppLanguage l) {
+    state = state.copyWith(language: l);
+    _p?.setString('language', l.name);
   }
 
   void setRefreshMinutes(int v) {

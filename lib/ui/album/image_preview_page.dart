@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/album_queries.dart';
 import '../../state/providers.dart';
 import '../common/app_icons.dart';
+import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
@@ -27,7 +28,8 @@ class ImagePreviewPage extends ConsumerStatefulWidget {
   ConsumerState<ImagePreviewPage> createState() => _ImagePreviewPageState();
 }
 
-class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage> {
+class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
+    with HidesNavBar<ImagePreviewPage> {
   late final _items = [...widget.images];
   late final _controller = PageController(initialPage: widget.initialIndex);
   late int _index = widget.initialIndex;

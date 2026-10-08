@@ -90,7 +90,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage> {
                 child: CustomScrollView(
                   slivers: [
                     SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
                       sliver: SliverFillRemaining(
                         hasScrollBody: false,
                         child: Column(
@@ -257,7 +257,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 10),
                             Text(
                               '刪除後坑內所有圖片、腦洞、草稿及成圖將一併移除',
                               textAlign: TextAlign.center,

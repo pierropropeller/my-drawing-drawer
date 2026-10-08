@@ -127,15 +127,14 @@ class PieceDetailPage extends ConsumerWidget {
                     Padding(
                       padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
                       child: GestureDetector(
-                        onTap: () =>
-                            Navigator.of(context, rootNavigator: true).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => ImageGalleryPage(
-                                  images: v.images,
-                                  initialIndex: i,
-                                ),
-                              ),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => ImageGalleryPage(
+                              images: v.images,
+                              initialIndex: i,
                             ),
+                          ),
+                        ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(18),
                           child: AspectRatio(

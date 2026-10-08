@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/tokens.dart';
 import '../state/settings.dart';
 import '../sync/sync_driver.dart';
+import 'common/nav_bar_hidden.dart';
 import 'goals/goals_page.dart';
 import 'login/welcome_page.dart';
 import 'me/profile_page.dart';
@@ -106,29 +107,34 @@ class _AppShellState extends ConsumerState<AppShell> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: t.nav,
-          border: Border(top: BorderSide(color: t.border)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 64,
-            child: Row(
-              children: [
-                for (var i = 0; i < _tabs.length; i++)
-                  Expanded(
-                    child: _NavItem(
-                      tab: _tabs[i],
-                      selected: i == _index,
-                      onTap: () => setState(() => _index = i),
+      bottomNavigationBar: ValueListenableBuilder<int>(
+        valueListenable: navBarHiddenCount,
+        builder: (_, hidden, _) => hidden > 0
+            ? const SizedBox.shrink()
+            : Container(
+                decoration: BoxDecoration(
+                  color: t.nav,
+                  border: Border(top: BorderSide(color: t.border)),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: SizedBox(
+                    height: 64,
+                    child: Row(
+                      children: [
+                        for (var i = 0; i < _tabs.length; i++)
+                          Expanded(
+                            child: _NavItem(
+                              tab: _tabs[i],
+                              selected: i == _index,
+                              onTap: () => setState(() => _index = i),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-              ],
-            ),
-          ),
-        ),
+                ),
+              ),
       ),
     );
   }

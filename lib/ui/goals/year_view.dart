@@ -130,21 +130,6 @@ class _MonthCell extends StatelessWidget {
   final bool allEmpty;
   final VoidCallback onTap;
 
-  static const _abbr = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
@@ -187,9 +172,9 @@ class _MonthCell extends StatelessWidget {
         child: Align(
           alignment: Alignment.bottomLeft,
           child: Padding(
-            padding: const EdgeInsets.all(5),
+            padding: const EdgeInsets.fromLTRB(9, 0, 0, 8),
             child: Text(
-              _abbr[month - 1],
+              '$month月',
               style: const TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
@@ -215,8 +200,8 @@ class _MonthCell extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: 5,
-              bottom: 5,
+              left: 9,
+              bottom: 8,
               child: Text(
                 '$month月',
                 style: TextStyle(

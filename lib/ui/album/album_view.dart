@@ -263,8 +263,9 @@ class _AlbumViewState extends ConsumerState<AlbumView> {
                           _toggle(im);
                           return;
                         }
-                        // 用最上層的 Navigator 開啟，預覽頁蓋住底部導覽列。
-                        Navigator.of(context, rootNavigator: true).push(
+                        // 預覽頁自己會隱藏底部導覽列（HidesNavBar），走分頁的 Navigator，
+                        // 這樣 Android 返回手勢只會退一頁。
+                        Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => ImagePreviewPage(
                               pitId: widget.pitId,
@@ -305,6 +306,8 @@ class _BarAction extends StatelessWidget {
     child: ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 52),
       child: Column(
+        // 放在 bottomNavigationBar 時高度不受限，要縮到內容大小，否則整頁會被撐滿。
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SvgIcon(svg, size: iconSize, color: color, strokeWidth: strokeWidth),

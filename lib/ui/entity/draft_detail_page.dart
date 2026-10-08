@@ -85,15 +85,14 @@ class DraftDetailPage extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: GestureDetector(
-                        onTap: () =>
-                            Navigator.of(context, rootNavigator: true).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => ImageGalleryPage(
-                                  images: v.images,
-                                  initialIndex: i,
-                                ),
-                              ),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => ImageGalleryPage(
+                              images: v.images,
+                              initialIndex: i,
                             ),
+                          ),
+                        ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(Radii.image),
                           child: AspectRatio(
