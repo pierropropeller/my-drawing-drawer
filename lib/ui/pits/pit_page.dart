@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -62,7 +63,7 @@ class PitPage extends ConsumerWidget {
                     Row(
                       children: [
                         _HeaderButton(
-                          tooltip: '返回',
+                          tooltip: context.l10n.commonBack,
                           svg: AppIcons.back,
                           size: 24,
                           strokeWidth: 1.9,
@@ -83,7 +84,7 @@ class PitPage extends ConsumerWidget {
                           ),
                         ),
                         _HeaderButton(
-                          tooltip: '編輯',
+                          tooltip: context.l10n.commonEdit,
                           svg: AppIcons.edit,
                           size: 21,
                           strokeWidth: 1.8,
@@ -120,10 +121,10 @@ class PitPage extends ConsumerWidget {
                           children: [
                             Expanded(
                               child: _Cell(
-                                '官方圖冊',
+                                context.l10n.pitsOfficial,
                                 AppIcons.pitOfficial,
                                 t.official,
-                                '${stats.official} 張',
+                                context.l10n.commonCountImages(stats.official),
                                 side: side,
                                 file: covers.official,
                                 onTap: () => _open(
@@ -139,10 +140,10 @@ class PitPage extends ConsumerWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _Cell(
-                                '好看同人圖',
+                                context.l10n.pitsFanArt,
                                 AppIcons.pitFanArt,
                                 t.fanArt,
-                                '${stats.fanArts} 張',
+                                context.l10n.commonCountImages(stats.fanArts),
                                 side: side,
                                 file: covers.fanArt,
                                 onTap: () => _open(
@@ -160,10 +161,10 @@ class PitPage extends ConsumerWidget {
                           children: [
                             Expanded(
                               child: _Cell(
-                                '我的草稿',
+                                context.l10n.pitsDrafts,
                                 AppIcons.edit,
                                 t.draft,
-                                '${stats.drafts} 份',
+                                context.l10n.pitsCountDrafts(stats.drafts),
                                 side: side,
                                 file: covers.draft,
                                 onTap: () =>
@@ -174,10 +175,10 @@ class PitPage extends ConsumerWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _Cell(
-                                '我的腦洞',
+                                context.l10n.pitsIdeas,
                                 AppIcons.pitIdea,
                                 t.idea,
-                                '${stats.ideas} 個',
+                                context.l10n.pitsCountIdeas(stats.ideas),
                                 side: side,
                                 file: covers.idea,
                                 onTap: () =>
@@ -239,7 +240,7 @@ class _JunkEntry extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                '雜物',
+                context.l10n.junkTitle,
                 style: TextStyle(
                   color: t.text2,
                   fontSize: 14.5,
@@ -247,7 +248,10 @@ class _JunkEntry extends StatelessWidget {
                 ),
               ),
             ),
-            Text('$count 張', style: TextStyle(color: t.text4, fontSize: 12.5)),
+            Text(
+              context.l10n.commonCountImages(count),
+              style: TextStyle(color: t.text4, fontSize: 12.5),
+            ),
             const SizedBox(width: 12),
             SvgIcon(
               AppIcons.chevronRight,
@@ -433,7 +437,7 @@ class _PieceBlock extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                '我的成圖',
+                context.l10n.pitsPieces,
                 style: TextStyle(
                   color: t.ink,
                   fontWeight: FontWeight.w700,
@@ -442,7 +446,7 @@ class _PieceBlock extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                '還沒有成圖・開始你的第一張',
+                context.l10n.pitsPiecesEmpty,
                 style: TextStyle(
                   color: dark
                       ? const Color(0xFFE0A28C)
@@ -513,7 +517,10 @@ class _PieceBlock extends StatelessWidget {
               ],
             ),
           ),
-          _Caption('我的成圖', '$count 張'),
+          _Caption(
+            context.l10n.pitsPieces,
+            context.l10n.commonCountImages(count),
+          ),
         ],
       ),
     );

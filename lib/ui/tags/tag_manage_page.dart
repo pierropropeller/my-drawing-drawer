@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
@@ -65,7 +66,11 @@ class _TagManagePageState extends ConsumerState<TagManagePage>
         bottom: false,
         child: Column(
           children: [
-            const SubPageHeader(title: '管理 tag', titleSize: 20, gap: 6),
+            SubPageHeader(
+              title: context.l10n.commonManageTags,
+              titleSize: 20,
+              gap: 6,
+            ),
             Expanded(
               child: ContentWidth(
                 child: ListView(
@@ -118,7 +123,7 @@ class _TagManagePageState extends ConsumerState<TagManagePage>
                           if (pitName != null) const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'tag 按坑獨立，不同坑之間不共用',
+                              context.l10n.tagsScopeNote,
                               style: TextStyle(color: t.text3, fontSize: 12.5),
                             ),
                           ),
@@ -156,7 +161,7 @@ class _TagManagePageState extends ConsumerState<TagManagePage>
                                   Padding(
                                     padding: const EdgeInsets.only(right: 2),
                                     child: Text(
-                                      '${u.count} 項',
+                                      context.l10n.tagsUsedCount(u.count),
                                       style: TextStyle(
                                         color: t.text4,
                                         fontSize: 12.5,
@@ -166,12 +171,12 @@ class _TagManagePageState extends ConsumerState<TagManagePage>
                                   const SizedBox(width: 10),
                                   _RowButton(
                                     icon: AppIcons.edit,
-                                    label: '重新命名 #${u.tag.name}',
+                                    label: context.l10n.tagsRename(u.tag.name),
                                     color: t.text2,
                                     onTap: () async {
                                       final name = await promptText(
                                         context,
-                                        title: 'Tag 名稱',
+                                        title: context.l10n.tagsRenamePrompt,
                                         initial: u.tag.name,
                                       );
                                       if (name != null) {
@@ -182,14 +187,16 @@ class _TagManagePageState extends ConsumerState<TagManagePage>
                                   const SizedBox(width: 10),
                                   _RowButton(
                                     icon: AppIcons.trash,
-                                    label: '刪除 #${u.tag.name}',
+                                    label: context.l10n.tagsDelete(u.tag.name),
                                     color: t.danger,
                                     onTap: () async {
                                       final ok = await confirmDelete(
                                         context,
-                                        title: '刪除 tag「${u.tag.name}」？',
+                                        title: context.l10n.tagsDeleteTitle(
+                                          u.tag.name,
+                                        ),
                                         message: u.count > 0
-                                            ? '已使用的內容會一併移除這個 tag。'
+                                            ? context.l10n.tagsDeleteBody
                                             : null,
                                       );
                                       if (ok) await db.deleteTag(u.tag.id);
@@ -222,7 +229,7 @@ class _TagManagePageState extends ConsumerState<TagManagePage>
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      '新增 tag',
+                                      context.l10n.tagsAdd,
                                       style: TextStyle(
                                         color: t.dashedText,
                                         fontSize: 14.5,
@@ -303,7 +310,10 @@ class _AddRow extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-              child: Text('取消', style: TextStyle(color: t.text3, fontSize: 14)),
+              child: Text(
+                context.l10n.commonCancel,
+                style: TextStyle(color: t.text3, fontSize: 14),
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -315,8 +325,8 @@ class _AddRow extends StatelessWidget {
                 color: t.accent,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text(
-                '新增',
+              child: Text(
+                context.l10n.commonAdd,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 14,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/junk_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../album/album_actions.dart';
 import '../album/album_icons.dart';
@@ -53,7 +54,11 @@ class _JunkPreviewPageState extends ConsumerState<JunkPreviewPage>
 
   Future<void> _download() async {
     final n = await downloadImages(ref, [_current]);
-    if (mounted) showSnack(context, n > 0 ? '已儲存到相簿' : '儲存失敗');
+    if (mounted)
+      showSnack(
+        context,
+        n > 0 ? context.l10n.albumSavedToGallery : context.l10n.albumSaveFailed,
+      );
   }
 
   Future<void> _move() async {
@@ -73,12 +78,22 @@ class _JunkPreviewPageState extends ConsumerState<JunkPreviewPage>
           groupId: target.groupId,
         );
     if (!mounted) return;
-    showSnack(context, '已移動 1 張到${albumCellLabel(target.cell)}', success: true);
+    showSnack(
+      context,
+      context.l10n.albumMovedCount(
+        1,
+        albumCellLabel(context.l10n, target.cell),
+      ),
+      success: true,
+    );
     _removeCurrent();
   }
 
   Future<void> _delete() async {
-    final ok = await confirmDelete(context, title: '刪除這張圖？');
+    final ok = await confirmDelete(
+      context,
+      title: context.l10n.albumDeleteImageTitle,
+    );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteJunk([_current.id]);
     if (mounted) _removeCurrent();
@@ -92,7 +107,9 @@ class _JunkPreviewPageState extends ConsumerState<JunkPreviewPage>
     final pitName = ref.watch(pitProvider(widget.pitId)).value?.name;
     final date = _current.createdAt;
     return PreviewShell(
-      title: pitName == null ? '雜物' : '$pitName · 雜物',
+      title: pitName == null
+          ? context.l10n.junkTitle
+          : context.l10n.albumTitleWithPit(pitName, context.l10n.junkTitle),
       counter: '${_index + 1} / ${_items.length}',
       controller: _controller,
       files: [for (final i in _items) i.file],
@@ -114,12 +131,20 @@ class _JunkPreviewPageState extends ConsumerState<JunkPreviewPage>
         ),
       ),
       actions: [
-        PreviewAction(AppIcons.share, '分享', () => shareImage(ref, _current)),
-        PreviewAction(AppIcons.download, '下載', _download),
-        PreviewAction(AlbumIcons.moveFolder, '移動', _move),
+        PreviewAction(
+          AppIcons.share,
+          context.l10n.commonShare,
+          () => shareImage(ref, _current),
+        ),
+        PreviewAction(
+          AppIcons.download,
+          context.l10n.commonDownload,
+          _download,
+        ),
+        PreviewAction(AlbumIcons.moveFolder, context.l10n.commonMove, _move),
         PreviewAction(
           AppIcons.trash,
-          '刪除',
+          context.l10n.commonDelete,
           _delete,
           color: PreviewPalette.danger,
         ),

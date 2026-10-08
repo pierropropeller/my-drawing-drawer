@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/junk_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
@@ -14,10 +15,10 @@ class MoveTarget {
   final String? groupId;
 }
 
-String albumCellLabel(AlbumCell c) => switch (c) {
-  AlbumCell.official => '官方圖冊',
-  AlbumCell.fan => '好看同人圖',
-  AlbumCell.junk => '雜物',
+String albumCellLabel(AppLocalizations l, AlbumCell c) => switch (c) {
+  AlbumCell.official => l.pitsOfficial,
+  AlbumCell.fan => l.pitsFanArt,
+  AlbumCell.junk => l.junkTitle,
 };
 
 /// 多選「移動」的 bottom sheet「移動到」（MoveSheet，D-044）。
@@ -120,12 +121,12 @@ class _MoveSheetState extends ConsumerState<MoveSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '移動到',
+                    context.l10n.albumMoveTo,
                     style: Theme.of(context).textTheme.titleLarge
                         ?.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                   Text(
-                    '${widget.count} 張',
+                    context.l10n.commonCountImages(widget.count),
                     style: TextStyle(fontSize: 12.5, color: t.text3),
                   ),
                 ],
@@ -168,8 +169,8 @@ class _MoveSheetState extends ConsumerState<MoveSheet> {
                   color: canDone ? t.accent : t.accent.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(Radii.button),
                 ),
-                child: const Text(
-                  '完成',
+                child: Text(
+                  context.l10n.commonDone,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -241,7 +242,7 @@ class _CellRow extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      albumCellLabel(cell),
+                      albumCellLabel(context.l10n, cell),
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,

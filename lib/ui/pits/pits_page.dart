@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../sync/sync_controller.dart';
@@ -58,7 +59,7 @@ class _PitsPageState extends ConsumerState<PitsPage> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      nickname.isEmpty ? '我的坑' : nickname,
+                      nickname.isEmpty ? context.l10n.pitsMyPits : nickname,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.headlineMedium
@@ -79,13 +80,13 @@ class _PitsPageState extends ConsumerState<PitsPage> {
                 child: Row(
                   children: [
                     _FilterChip(
-                      label: '現坑',
+                      label: context.l10n.pitsActive,
                       selected: !_archived,
                       onTap: () => setState(() => _archived = false),
                     ),
                     const SizedBox(width: 8),
                     _FilterChip(
-                      label: '封存坑',
+                      label: context.l10n.pitsArchived,
                       selected: _archived,
                       onTap: () => setState(() => _archived = true),
                     ),
@@ -100,7 +101,8 @@ class _PitsPageState extends ConsumerState<PitsPage> {
             Expanded(
               child: pits.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('載入失敗：$e')),
+                error: (e, _) =>
+                    Center(child: Text(context.l10n.pitsLoadFailed('$e'))),
                 data: (list) => list.isEmpty
                     ? _Empty(archived: _archived)
                     : _PitList(pits: list, grid: _grid, archived: _archived),
@@ -159,9 +161,9 @@ class _ViewToggle extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          button(true, '田字檢視', AppIcons.gridView),
+          button(true, context.l10n.pitsViewGrid, AppIcons.gridView),
           const SizedBox(width: 3),
-          button(false, '瀑布檢視', AppIcons.waterfallView),
+          button(false, context.l10n.pitsViewWaterfall, AppIcons.waterfallView),
         ],
       ),
     );
@@ -196,8 +198,11 @@ class _SyncBanner extends ConsumerWidget {
           Expanded(
             child: Text(
               sync.hasImageProgress
-                  ? '同步中・圖片 ${sync.imagesDone} / ${sync.imagesTotal}'
-                  : '同步中',
+                  ? context.l10n.pitsSyncingImages(
+                      sync.imagesDone,
+                      sync.imagesTotal,
+                    )
+                  : context.l10n.pitsSyncing,
               style: TextStyle(color: fg, fontSize: 12),
             ),
           ),
@@ -243,7 +248,10 @@ class _OfflineBanner extends StatelessWidget {
         children: [
           SvgIcon(AppIcons.cloudOff, size: 16, color: t.dashedText),
           const SizedBox(width: 8),
-          Text('離線中・恢復網絡後將自動上傳', style: TextStyle(color: fg, fontSize: 12)),
+          Text(
+            context.l10n.pitsOffline,
+            style: TextStyle(color: fg, fontSize: 12),
+          ),
         ],
       ),
     );
@@ -318,7 +326,9 @@ class _Empty extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              archived ? '沒有封存的坑' : '還沒有坑',
+              archived
+                  ? context.l10n.pitsEmptyArchived
+                  : context.l10n.pitsEmpty,
               style: Theme.of(context).textTheme.titleLarge
                   ?.copyWith(fontSize: 19, fontWeight: FontWeight.w700),
             ),
@@ -335,7 +345,7 @@ class _Empty extends StatelessWidget {
                     color: t.accent,
                     borderRadius: BorderRadius.circular(Radii.button),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SvgIcon(
@@ -346,7 +356,7 @@ class _Empty extends StatelessWidget {
                       ),
                       SizedBox(width: 6),
                       Text(
-                        '開新坑',
+                        context.l10n.pitsNewTitle,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -440,7 +450,7 @@ class _NewPitTile extends StatelessWidget {
               SvgIcon(AppIcons.plus, size: 24, color: t.text4),
               const SizedBox(height: 6),
               Text(
-                '開新坑',
+                context.l10n.pitsNewTitle,
                 style: TextStyle(
                   color: t.text4,
                   fontSize: 13,
@@ -508,7 +518,7 @@ class PitCard extends ConsumerWidget {
                   ),
                   if (missing)
                     Semantics(
-                      label: '尚未下載',
+                      label: context.l10n.pitsNotDownloaded,
                       child: _DownloadOverlay(dark: dark),
                     ),
                 ],
@@ -557,7 +567,7 @@ class PitCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${stats.pieces} 成圖 · ${stats.openIdeas} 腦洞未孵',
+                  context.l10n.pitsStatsLine(stats.pieces, stats.openIdeas),
                   style: TextStyle(color: t.text2, fontSize: 12),
                 ),
               ],

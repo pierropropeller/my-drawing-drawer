@@ -1,0 +1,234 @@
+{
+  "pitsDeleteTitle": "刪除這個坑？",
+  "pitsDeleteBody": "坑內的內容也會一併刪除。",
+  "pitsSelectCover": "選擇封面",
+  "pitsChangeCover": "更換封面",
+  "pitsFieldCover": "封面",
+  "pitsEditTitle": "編輯坑",
+  "pitsFieldName": "坑名",
+  "pitsNameRequired": "請輸入坑名",
+  "pitsFieldDesc": "描述",
+  "pitsArchive": "封存",
+  "pitsDeleteThis": "刪除這個坑",
+  "pitsDeleteHint": "刪除後坑內所有圖片、腦洞、草稿及成圖將一併移除",
+  "pitsNewTitle": "開新坑",
+  "pitsCreate": "建立",
+  "pitsOfficial": "官方圖冊",
+  "pitsFanArt": "好看同人圖",
+  "pitsDrafts": "我的草稿",
+  "pitsIdeas": "我的腦洞",
+  "pitsPieces": "我的成圖",
+  "pitsCountDrafts": "{count} 份",
+  "@pitsCountDrafts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pitsCountIdeas": "{count} 個",
+  "@pitsCountIdeas": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pitsPiecesEmpty": "還沒有成圖・開始你的第一張",
+  "pitsMyPits": "我的坑",
+  "pitsActive": "現坑",
+  "pitsArchived": "封存坑",
+  "pitsLoadFailed": "載入失敗：{error}",
+  "@pitsLoadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pitsViewGrid": "田字檢視",
+  "pitsViewWaterfall": "瀑布檢視",
+  "pitsSyncingImages": "同步中・圖片 {done} / {total}",
+  "@pitsSyncingImages": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "pitsSyncing": "同步中",
+  "pitsOffline": "離線中・恢復網絡後將自動上傳",
+  "pitsEmptyArchived": "沒有封存的坑",
+  "pitsEmpty": "還沒有坑",
+  "pitsNotDownloaded": "尚未下載",
+  "pitsStatsLine": "{pieces} 成圖 · {ideas} 腦洞未孵",
+  "@pitsStatsLine": {
+    "placeholders": {
+      "pieces": {
+        "type": "int"
+      },
+      "ideas": {
+        "type": "int"
+      }
+    }
+  },
+  "junkTitle": "雜物",
+  "junkEmpty": "還沒有雜物",
+  "tagsScopeNote": "tag 按坑獨立，不同坑之間不共用",
+  "tagsUsedCount": "{count} 項",
+  "@tagsUsedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tagsRename": "重新命名 #{name}",
+  "@tagsRename": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "tagsRenamePrompt": "Tag 名稱",
+  "tagsDelete": "刪除 #{name}",
+  "@tagsDelete": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "tagsDeleteTitle": "刪除 tag「{name}」？",
+  "@tagsDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "tagsDeleteBody": "已使用的內容會一併移除這個 tag。",
+  "tagsAdd": "新增 tag",
+  "albumConfirm": "確定",
+  "albumAddImage": "加圖",
+  "albumSavedToGallery": "已儲存到相簿",
+  "albumSavedCountToGallery": "已儲存 {count} 張到相簿",
+  "@albumSavedCountToGallery": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumSaveFailed": "儲存失敗",
+  "albumMovedCount": "已移動 {count} 張到{target}",
+  "@albumMovedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "albumDeleteImageTitle": "刪除這張圖？",
+  "albumDeleteImagesTitle": "刪除 {count} 張圖？",
+  "@albumDeleteImagesTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumCancelSelect": "取消選擇",
+  "albumTitleWithPit": "{pit} · {title}",
+  "@albumTitleWithPit": {
+    "placeholders": {
+      "pit": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "albumManageGroups": "管理分組",
+  "albumCoverSet": "已設為坑的封面",
+  "albumCoverPickTitle": "選擇坑的封面",
+  "albumCoverHolding": "長按中：{label} 封面",
+  "@albumCoverHolding": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "albumCoverPickHeading": "選擇封面圖",
+  "albumCoverNone": "沒有可選的圖",
+  "albumSetCover": "設為封面",
+  "albumFanEditTitle": "編輯同人圖",
+  "albumFieldImage": "圖片",
+  "albumFieldAuthor": "作者",
+  "albumFieldSource": "出處",
+  "albumFanNewTitle": "新增同人圖",
+  "albumPickImageFirst": "請先選擇圖片",
+  "albumFanAdd": "加入好看同人圖",
+  "albumGroupDeleteTitle": "刪除分組「{name}」？",
+  "@albumGroupDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "albumGroupDeleteBody": "組內的圖會移到其他分組。",
+  "albumGroupKeepOne": "至少要保留一個分組",
+  "albumGroupNameTitle": "分組名稱",
+  "albumGroupHintFan": "分組只用於好看同人圖，拖曳可調整次序",
+  "albumGroupHintOfficial": "分組只用於官方圖冊，拖曳可調整次序",
+  "albumGroupRename": "重新命名 {name}",
+  "@albumGroupRename": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "albumGroupDelete": "刪除 {name}",
+  "@albumGroupDelete": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "albumGroupAdd": "新增分組",
+  "albumGroupLabel": "分組",
+  "albumRemoveImage": "移除圖片",
+  "albumChangeGroup": "更換分組",
+  "albumGroupChanged": "已更換分組",
+  "albumCoverSetOfficial": "已設為官方圖冊封面",
+  "albumMoveTo": "移動到",
+  "albumOfficialEmpty": "還沒有官方圖",
+  "albumOfficialNewTitle": "新增官方圖",
+  "albumOfficialAdd": "加入官方圖冊",
+  "albumPreviewDateAdded": "{year} / {month} / {day} 加入",
+  "@albumPreviewDateAdded": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      }
+    }
+  }
+}

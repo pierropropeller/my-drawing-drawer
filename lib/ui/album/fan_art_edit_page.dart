@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/nav_bar_hidden.dart';
 import '../pits/pit_form.dart';
@@ -77,7 +78,10 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
 
   /// 圖片上的「×」＝刪除這張同人圖（編輯單張沒有別的圖可以換），要確認。
   Future<void> _removeImage() async {
-    final ok = await confirmDelete(context, title: '刪除這張圖？');
+    final ok = await confirmDelete(
+      context,
+      title: context.l10n.albumDeleteImageTitle,
+    );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteFanArts([widget.imageId]);
     if (!mounted) return;
@@ -88,28 +92,28 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
   @override
   Widget build(BuildContext context) {
     if (!_loaded) {
-      return const AlbumFormScaffold(
-        title: '編輯同人圖',
+      return AlbumFormScaffold(
+        title: context.l10n.albumFanEditTitle,
         children: [Center(child: CircularProgressIndicator())],
       );
     }
     return AlbumFormScaffold(
-      title: '編輯同人圖',
+      title: context.l10n.albumFanEditTitle,
       children: [
-        const AlbumFieldLabel('圖片'),
+        AlbumFieldLabel(context.l10n.albumFieldImage),
         ImagePickerField(
           items: [ImageItem.stored(_image!)],
           onAdd: null,
           onRemove: (_) => _removeImage(),
         ),
         const SizedBox(height: 18),
-        const AlbumFieldLabel('作者'),
+        AlbumFieldLabel(context.l10n.albumFieldAuthor),
         TextField(controller: _author, decoration: pitInputDecoration(context)),
         const SizedBox(height: 18),
         GroupPicker(
           pitId: widget.pitId,
           kind: 'fan',
-          label: '出處',
+          label: context.l10n.albumFieldSource,
           selected: _groupId,
           allowClear: true,
           onSelected: (v) => setState(() => _groupId = v),
@@ -121,7 +125,7 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
           onChanged: (v) => setState(() => _tagIds = v),
         ),
         const SizedBox(height: 26),
-        AlbumSubmitButton(label: '儲存', onTap: _save),
+        AlbumSubmitButton(label: context.l10n.commonSave, onTap: _save),
       ],
     );
   }

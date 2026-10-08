@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import 'album_view.dart';
@@ -15,7 +16,7 @@ class GroupPicker extends ConsumerWidget {
     required this.kind,
     required this.selected,
     required this.onSelected,
-    this.label = '分組',
+    this.label,
     this.allowClear = false,
   });
 
@@ -23,7 +24,7 @@ class GroupPicker extends ConsumerWidget {
   final String kind;
   final String? selected;
   final ValueChanged<String?> onSelected;
-  final String label;
+  final String? label;
 
   /// 同人圖的分組可留空：再點一次已選的分組即取消。
   final bool allowClear;
@@ -42,7 +43,7 @@ class GroupPicker extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  label,
+                  label ?? context.l10n.albumGroupLabel,
                   style: TextStyle(
                     color: context.tokens.text2,
                     fontSize: 13,
@@ -58,7 +59,7 @@ class GroupPicker extends ConsumerWidget {
                   ),
                 ),
                 child: Text(
-                  '管理',
+                  context.l10n.commonManage,
                   style: TextStyle(
                     color: context.tokens.piece.fg,
                     fontSize: 12.5,
@@ -73,7 +74,7 @@ class GroupPicker extends ConsumerWidget {
           padding: EdgeInsets.zero,
           accentSelected: true,
           wrap: true,
-          allLabel: null,
+          showAll: false,
           options: [for (final g in groups) (g.id, g.name)],
           selected: selected,
           onSelected: (v) => onSelected(allowClear && v == selected ? null : v),

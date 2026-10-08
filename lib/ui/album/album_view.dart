@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/junk_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
@@ -29,7 +30,7 @@ class AlbumView extends ConsumerStatefulWidget {
     required this.onDelete,
     this.emptySvg,
     this.emptyIcon,
-    this.emptyAction = '加圖',
+    this.emptyAction,
     this.total,
     this.filter,
     this.appBarActions = const [],
@@ -59,7 +60,7 @@ class AlbumView extends ConsumerStatefulWidget {
   /// 空白頁 icon：優先用設計稿 SVG 圖形。
   final String? emptySvg;
   final IconData? emptyIcon;
-  final String emptyAction;
+  final String? emptyAction;
   final CategoryColor emptyColor;
   final VoidCallback onAdd;
   final Future<void> Function(List<AlbumImage> images) onDelete;
@@ -117,7 +118,12 @@ class _AlbumViewState extends ConsumerState<AlbumView>
   Future<void> _download() async {
     final n = await downloadImages(ref, _picked);
     if (!mounted) return;
-    showSnack(context, n > 0 ? '已儲存 $n 張到相簿' : '儲存失敗');
+    showSnack(
+      context,
+      n > 0
+          ? context.l10n.albumSavedCountToGallery(n)
+          : context.l10n.albumSaveFailed,
+    );
     _exit();
   }
 
@@ -148,7 +154,10 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     if (!mounted) return;
     showSnack(
       context,
-      '已移動 ${picked.length} 張到${albumCellLabel(target.cell)}',
+      context.l10n.albumMovedCount(
+        picked.length,
+        albumCellLabel(context.l10n, target.cell),
+      ),
       success: true,
     );
     _exit();
@@ -156,7 +165,10 @@ class _AlbumViewState extends ConsumerState<AlbumView>
 
   Future<void> _delete() async {
     final picked = _picked;
-    final ok = await confirmDelete(context, title: '刪除 ${picked.length} 張圖？');
+    final ok = await confirmDelete(
+      context,
+      title: context.l10n.albumDeleteImagesTitle(picked.length),
+    );
     if (!ok || !mounted) return;
     await widget.onDelete(picked);
     if (mounted) _exit();
@@ -225,7 +237,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
             padding: const EdgeInsets.only(left: 14),
             child: _selecting
                 ? IconButton(
-                    tooltip: '取消選擇',
+                    tooltip: context.l10n.albumCancelSelect,
                     padding: EdgeInsets.zero,
                     icon: SvgIcon(
                       AppIcons.closeX,
@@ -236,7 +248,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                     onPressed: _exit,
                   )
                 : IconButton(
-                    tooltip: '返回',
+                    tooltip: context.l10n.commonBack,
                     padding: EdgeInsets.zero,
                     icon: SvgIcon(
                       AppIcons.back,
@@ -248,10 +260,10 @@ class _AlbumViewState extends ConsumerState<AlbumView>
           ),
           title: Text(
             _selecting
-                ? '已選 ${_selected.length} 張'
+                ? context.l10n.commonSelectedCount(_selected.length)
                 : (pitName == null
                       ? widget.title
-                      : '$pitName · ${widget.title}'),
+                      : context.l10n.albumTitleWithPit(pitName, widget.title)),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: serif,
@@ -268,7 +280,11 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    child: Text(_allSelected ? '取消全選' : '全選'),
+                    child: Text(
+                      _allSelected
+                          ? context.l10n.commonDeselectAll
+                          : context.l10n.commonSelectAll,
+                    ),
                   ),
                   const SizedBox(width: 8),
                 ]
@@ -277,7 +293,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                   Padding(
                     padding: const EdgeInsets.only(right: 22),
                     child: Text(
-                      '$total 張',
+                      context.l10n.commonCountImages(total),
                       style: TextStyle(color: t.text3, fontSize: 12),
                     ),
                   ),
@@ -320,7 +336,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                       if (widget.shareInSelect)
                         Expanded(
                           child: _BarAction(
-                            '分享',
+                            context.l10n.commonShare,
                             AppIcons.share,
                             t.ink,
                             iconSize: 22,
@@ -330,7 +346,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                         ),
                       Expanded(
                         child: _BarAction(
-                          '下載',
+                          context.l10n.commonDownload,
                           AppIcons.download,
                           t.ink,
                           iconSize: 22,
@@ -341,7 +357,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                       if (widget.cell != null)
                         Expanded(
                           child: _BarAction(
-                            '移動',
+                            context.l10n.commonMove,
                             AlbumIcons.moveFolder,
                             t.ink,
                             iconSize: 22,
@@ -351,7 +367,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                         ),
                       Expanded(
                         child: _BarAction(
-                          '刪除',
+                          context.l10n.commonDelete,
                           AppIcons.trash,
                           t.danger,
                           iconSize: 20,
@@ -376,7 +392,8 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                           (widget.emptyIcon == null ? AppIcons.image : null),
                       text: widget.emptyLabel,
                       color: widget.emptyColor,
-                      actionLabel: widget.emptyAction,
+                      actionLabel:
+                          widget.emptyAction ?? context.l10n.albumAddImage,
                       onAction: widget.onAdd,
                     )
                   : _grid(),
@@ -434,7 +451,7 @@ class ChipRowManageButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 0, 8, 0),
       child: Tooltip(
-        message: '管理分組',
+        message: context.l10n.albumManageGroups,
         child: InkWell(
           onTap: onTap,
           child: Container(
@@ -461,7 +478,7 @@ class ChipRow extends StatelessWidget {
     required this.options,
     required this.selected,
     required this.onSelected,
-    this.allLabel = '全部',
+    this.showAll = true,
     this.trailing,
     this.accentSelected = false,
     this.wrap = false,
@@ -471,7 +488,9 @@ class ChipRow extends StatelessWidget {
   final List<(String, String)> options; // (id, label)
   final String? selected;
   final ValueChanged<String?> onSelected;
-  final String? allLabel;
+
+  /// 是否顯示最前面的「全部」chip；表單裡的分組選擇不顯示。
+  final bool showAll;
   final Widget? trailing;
   final bool accentSelected;
 
@@ -482,9 +501,9 @@ class ChipRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chips = [
-      if (allLabel != null)
+      if (showAll)
         _Chip(
-          allLabel!,
+          context.l10n.commonAll,
           selected == null,
           () => onSelected(null),
           accentSelected,

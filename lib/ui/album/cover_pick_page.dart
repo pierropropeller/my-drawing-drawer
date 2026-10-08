@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
@@ -27,19 +28,20 @@ class _CoverPickPageState extends ConsumerState<CoverPickPage>
     with HidesNavBar<CoverPickPage> {
   String? _group; // null＝全部
 
-  static const _kindLabels = {
-    'official': '官方圖冊',
-    'fan': '好看同人圖',
-    'draft': '我的草稿',
-    'idea': '我的腦洞',
-    'piece': '我的成圖',
+  static String? _kindLabel(AppLocalizations l, String? kind) => switch (kind) {
+    'official' => l.pitsOfficial,
+    'fan' => l.pitsFanArt,
+    'draft' => l.pitsDrafts,
+    'idea' => l.pitsIdeas,
+    'piece' => l.pitsPieces,
+    _ => null,
   };
 
   Future<void> _pick(CoverCandidate c) async {
     await ref.read(databaseProvider).setCover(widget.pitId, c.id);
     if (!mounted) return;
     Navigator.of(context).pop();
-    showSnack(context, '已設為坑的封面', success: true);
+    showSnack(context, context.l10n.albumCoverSet, success: true);
   }
 
   @override
@@ -59,7 +61,7 @@ class _CoverPickPageState extends ConsumerState<CoverPickPage>
             for (final c in all)
               if (c.groupId == _group) c,
           ];
-    final label = _kindLabels[kind];
+    final label = _kindLabel(context.l10n, kind);
     return Scaffold(
       backgroundColor: const Color(0xFF2B2622),
       body: Column(
@@ -73,7 +75,7 @@ class _CoverPickPageState extends ConsumerState<CoverPickPage>
                   child: Padding(
                     padding: const EdgeInsets.only(left: 14, top: 4),
                     child: IconButton(
-                      tooltip: '返回',
+                      tooltip: context.l10n.commonBack,
                       onPressed: () => Navigator.of(context).maybePop(),
                       icon: SvgIcon(
                         AppIcons.back,
@@ -85,7 +87,9 @@ class _CoverPickPageState extends ConsumerState<CoverPickPage>
                 ),
                 Center(
                   child: Text(
-                    label == null ? '選擇坑的封面' : '長按中：$label 封面',
+                    label == null
+                        ? context.l10n.albumCoverPickTitle
+                        : context.l10n.albumCoverHolding(label),
                     style: TextStyle(
                       fontSize: 12.5,
                       color: Colors.white.withValues(alpha: .5),
@@ -110,7 +114,7 @@ class _CoverPickPageState extends ConsumerState<CoverPickPage>
                 children: [
                   const SizedBox(height: 6),
                   Text(
-                    '選擇封面圖',
+                    context.l10n.albumCoverPickHeading,
                     style: Theme.of(context).textTheme.titleLarge
                         ?.copyWith(fontSize: 19, fontWeight: FontWeight.w700),
                   ),
@@ -123,7 +127,7 @@ class _CoverPickPageState extends ConsumerState<CoverPickPage>
                           scrollDirection: Axis.horizontal,
                           children: [
                             _FilterChip(
-                              label: '全部',
+                              label: context.l10n.commonAll,
                               selected: _group == null,
                               onTap: () => setState(() => _group = null),
                             ),
@@ -144,7 +148,7 @@ class _CoverPickPageState extends ConsumerState<CoverPickPage>
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 40),
                               child: Text(
-                                '沒有可選的圖',
+                                context.l10n.albumCoverNone,
                                 style: TextStyle(color: t.text3, fontSize: 15),
                               ),
                             ),
@@ -160,7 +164,7 @@ class _CoverPickPageState extends ConsumerState<CoverPickPage>
                             itemCount: shown.length,
                             itemBuilder: (_, i) => Semantics(
                               button: true,
-                              label: '設為封面',
+                              label: context.l10n.albumSetCover,
                               child: GestureDetector(
                                 onTap: () => _pick(shown[i]),
                                 child: ClipRRect(
