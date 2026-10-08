@@ -12,6 +12,7 @@ import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/main.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/ui/common/app_switch.dart';
+import 'package:huakeng/ui/junk/junk_list_page.dart';
 import 'package:huakeng/state/settings.dart';
 import 'package:huakeng/sync/sync_controller.dart';
 
@@ -161,8 +162,8 @@ void main() {
     await tester.ensureVisible(find.text('雜物'));
     await tester.tap(find.text('雜物'));
     await settle(tester);
-    // 佔位頁：只有「雜物」，坑內頁被蓋住。
-    expect(find.text('雜物'), findsOneWidget);
+    // 進入雜物列表頁（坑內頁被蓋住，五格不再可見）。
+    expect(find.byType(JunkListPage), findsOneWidget);
     expect(find.text('官方圖冊'), findsNothing);
     await unmount(tester);
   });
