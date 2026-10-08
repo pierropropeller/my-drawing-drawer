@@ -66,7 +66,9 @@ class _DayAddSheetState extends State<_DayAddSheet> {
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: Text(
-                choosingPit ? context.l10n.goalsPickPit : context.l10n.commonAdd,
+                choosingPit
+                    ? context.l10n.goalsPickPit
+                    : context.l10n.commonAdd,
                 style: Theme.of(context).textTheme.titleLarge
                     ?.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
               ),

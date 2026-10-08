@@ -62,9 +62,9 @@ class _DayPageState extends ConsumerState<DayPage> {
   Future<void> _add() async {
     final pits = ref.read(pitsProvider(false)).value ?? const [];
     if (pits.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.goalsCreatePitFirst)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.goalsCreatePitFirst)));
       return;
     }
     final picked = await showDayAddSheet(context, pits: pits);
@@ -255,7 +255,9 @@ class _TimelineRow extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        item.title.isEmpty ? context.l10n.goalsUntitled : item.title,
+                        item.title.isEmpty
+                            ? context.l10n.goalsUntitled
+                            : item.title,
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 15,

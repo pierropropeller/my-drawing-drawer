@@ -384,7 +384,9 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                           Padding(
                             padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
                             child: Text(
-                              _pitId == null ? l.goalsTagHintNoPit : l.goalsTagHintPit,
+                              _pitId == null
+                                  ? l.goalsTagHintNoPit
+                                  : l.goalsTagHintPit,
                               style: TextStyle(fontSize: 11.5, color: t.text4),
                             ),
                           ),
@@ -520,7 +522,9 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                             const SizedBox(height: 16),
                           ],
                           FormSubmitButton(
-                            label: widget.goalId == null ? l.goalsCreateGoal : l.commonSave,
+                            label: widget.goalId == null
+                                ? l.goalsCreateGoal
+                                : l.commonSave,
                             onPressed: _loaded ? _save : null,
                           ),
                         ],

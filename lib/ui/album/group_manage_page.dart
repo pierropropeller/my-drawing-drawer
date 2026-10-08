@@ -35,8 +35,9 @@ class GroupManagePage extends ConsumerWidget {
     );
     if (!ok) return;
     final done = await ref.read(databaseProvider).deleteGroup(g.id);
-    if (!done && context.mounted)
+    if (!done && context.mounted) {
       showSnack(context, context.l10n.albumGroupKeepOne);
+    }
   }
 
   Future<void> _rename(

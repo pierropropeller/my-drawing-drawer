@@ -54,11 +54,12 @@ class _JunkPreviewPageState extends ConsumerState<JunkPreviewPage>
 
   Future<void> _download() async {
     final n = await downloadImages(ref, [_current]);
-    if (mounted)
+    if (mounted) {
       showSnack(
         context,
         n > 0 ? context.l10n.albumSavedToGallery : context.l10n.albumSaveFailed,
       );
+    }
   }
 
   Future<void> _move() async {

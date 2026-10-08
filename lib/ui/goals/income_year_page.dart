@@ -87,9 +87,8 @@ class _Body extends StatelessWidget {
           _OwingBanner(
             text: context.l10n.goalsIncomeUnpaidCount(unpaidCount),
             amount: context.l10n.goalsIncomeOwing(
-              [
-                for (final c in owing) formatMoney(c.currency, c.outstanding),
-              ].join('　'),
+              [for (final c in owing) formatMoney(c.currency, c.outstanding)]
+                  .join('　'),
             ),
           ),
         for (final m in income.months) ...[

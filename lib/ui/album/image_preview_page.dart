@@ -45,11 +45,12 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
 
   Future<void> _download() async {
     final n = await downloadImages(ref, [_current]);
-    if (mounted)
+    if (mounted) {
       showSnack(
         context,
         n > 0 ? context.l10n.albumSavedToGallery : context.l10n.albumSaveFailed,
       );
+    }
   }
 
   Future<void> _setCover() async {
