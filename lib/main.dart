@@ -1,4 +1,5 @@
 import 'app_name.dart';
+import 'l10n/l10n.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +20,8 @@ Future<void> main() async {
   );
 }
 
+const appLocale = Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
+
 class HuaKengApp extends ConsumerWidget {
   const HuaKengApp({super.key, this.useGoogleFonts = true});
 
@@ -29,6 +32,10 @@ class HuaKengApp extends ConsumerWidget {
     final accent = ref.watch(settingsProvider.select((s) => s.accent));
     return MaterialApp(
       onGenerateTitle: (_) => appName,
+      // 目前只有繁體中文；English 之後補 app_en.arb 再開放（D-040）。
+      locale: appLocale,
+      supportedLocales: const [appLocale],
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(
         Brightness.light,
