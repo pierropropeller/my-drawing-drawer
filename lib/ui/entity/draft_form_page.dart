@@ -7,12 +7,14 @@ import '../../data/entity_queries.dart';
 import '../../state/providers.dart';
 import '../album/album_actions.dart';
 import '../album/image_picker_field.dart';
+import '../common/nav_bar_hidden.dart';
+import '../common/responsive.dart';
 import '../tags/tag_picker.dart';
 import 'connect_field.dart';
 import 'entity_widgets.dart';
 
-/// 新增草稿（亦作編輯頁）：圖片置頂（至少一張），標題、內文、tag 可空，可連接多個腦洞。
-/// 時間＝建立時間，表單不讓使用者改。
+/// 新增草稿（亦作編輯頁）：圖片置頂（至少一張），標題、內文、tag 可空，可關聯多個腦洞。
+/// 時間＝建立時間，表單不讓使用者改。沒有導覽列。
 class DraftFormPage extends ConsumerStatefulWidget {
   const DraftFormPage({
     super.key,
@@ -34,7 +36,8 @@ class DraftFormPage extends ConsumerStatefulWidget {
   ConsumerState<DraftFormPage> createState() => _DraftFormPageState();
 }
 
-class _DraftFormPageState extends ConsumerState<DraftFormPage> {
+class _DraftFormPageState extends ConsumerState<DraftFormPage>
+    with HidesNavBar<DraftFormPage> {
   final _title = TextEditingController();
   final _body = TextEditingController();
   final List<ImageItem> _images = [];
@@ -80,7 +83,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage> {
 
   Future<void> _save() async {
     if (_images.isEmpty) {
-      showSnack(context, '請至少選擇一張圖片');
+      showSnack(context, '請至少新增一張圖片');
       return;
     }
     setState(() => _saving = true);
@@ -126,63 +129,71 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage> {
             Expanded(
               child: !_loaded
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                      children: [
-                        const FormLabel('草稿圖'),
-                        FormImageGrid(
-                          items: _images,
-                          size: 84,
-                          onAdd: _addImages,
-                          onRemove: (i) => setState(() => _images.removeAt(i)),
-                        ),
-                        const SizedBox(height: 16),
-                        const FormLabel('標題'),
-                        TextField(
-                          controller: _title,
-                          style: const TextStyle(fontSize: 15),
-                          decoration: entityFieldDecoration(context, '為這張草稿命名'),
-                        ),
-                        const SizedBox(height: 16),
-                        const FormLabel('內文'),
-                        TextField(
-                          controller: _body,
-                          minLines: 3,
-                          maxLines: 10,
-                          style: const TextStyle(fontSize: 15, height: 1.55),
-                          decoration: entityFieldDecoration(
-                            context,
-                            '正在畫什麼、嘗試什麼構圖…',
+                  : ContentWidth(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                        children: [
+                          const FormLabel('草稿圖'),
+                          FormImageGrid(
+                            items: _images,
+                            size: 84,
+                            onAdd: _addImages,
+                            onRemove: (i) =>
+                                setState(() => _images.removeAt(i)),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        TagPicker(
-                          pitId: widget.pitId,
-                          selected: _tagIds,
-                          onChanged: (v) => setState(() => _tagIds = v),
-                        ),
-                        const SizedBox(height: 16),
-                        ConnectField(
-                          label: '連接腦洞',
-                          options: [
-                            for (final i in ideas)
-                              ConnectOption(
-                                id: i.idea.id,
-                                title: i.idea.title,
-                                file: i.images.isEmpty
-                                    ? null
-                                    : i.images.first.file,
-                              ),
-                          ],
-                          selected: _ideaIds,
-                          onChanged: (v) => setState(() => _ideaIds = v),
-                        ),
-                        const SizedBox(height: 22),
-                        FormSubmitButton(
-                          label: isNew ? '建立草稿' : '儲存',
-                          onPressed: _saving ? null : _save,
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          const FormLabel('標題'),
+                          TextField(
+                            controller: _title,
+                            style: const TextStyle(fontSize: 15),
+                            decoration: entityFieldDecoration(
+                              context,
+                              '為這張草稿命名',
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const FormLabel('內文'),
+                          TextField(
+                            controller: _body,
+                            minLines: 3,
+                            maxLines: 10,
+                            style: const TextStyle(fontSize: 15, height: 1.55),
+                            decoration: entityFieldDecoration(
+                              context,
+                              '正在畫什麼、嘗試什麼構圖…',
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TagPicker(
+                            pitId: widget.pitId,
+                            selected: _tagIds,
+                            onChanged: (v) => setState(() => _tagIds = v),
+                          ),
+                          const SizedBox(height: 16),
+                          ConnectField(
+                            label: '關聯腦洞',
+                            options: [
+                              for (final i in ideas)
+                                ConnectOption(
+                                  id: i.idea.id,
+                                  title: i.idea.title,
+                                  file: i.images.isEmpty
+                                      ? null
+                                      : i.images.first.file,
+                                  imageCount: i.images.length,
+                                  date: i.idea.createdAt,
+                                ),
+                            ],
+                            selected: _ideaIds,
+                            onChanged: (v) => setState(() => _ideaIds = v),
+                          ),
+                          const SizedBox(height: 22),
+                          FormSubmitButton(
+                            label: isNew ? '建立草稿' : '儲存',
+                            onPressed: _saving ? null : _save,
+                          ),
+                        ],
+                      ),
                     ),
             ),
           ],

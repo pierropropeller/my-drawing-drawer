@@ -240,10 +240,12 @@ class EntityCard extends StatelessWidget {
 }
 
 /// 每個 tag 一顆灰色 pill（列表 11px；詳情頁傳 [large]）。
+/// 傳 [onTagTap] 時 tag 可點（D-043：任何地方的 tag 都可以點，導覽由搜尋接）。
 class TagPills extends StatelessWidget {
-  const TagPills(this.tags, {super.key, this.large = false});
+  const TagPills(this.tags, {super.key, this.large = false, this.onTagTap});
   final List<Tag> tags;
   final bool large;
+  final void Function(String tagId)? onTagTap;
 
   @override
   Widget build(BuildContext context) {
@@ -254,18 +256,22 @@ class TagPills extends StatelessWidget {
       runSpacing: 6,
       children: [
         for (final tag in tags)
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: large ? 10 : 9,
-              vertical: large ? 4 : 3,
-            ),
-            decoration: BoxDecoration(
-              color: t.chipBg,
-              borderRadius: BorderRadius.circular(Radii.chip),
-            ),
-            child: Text(
-              '#${tag.name}',
-              style: TextStyle(color: t.text2, fontSize: large ? 11.5 : 11),
+          GestureDetector(
+            onTap: onTagTap == null ? null : () => onTagTap!(tag.id),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: large ? 10 : 9,
+                vertical: large ? 4 : 3,
+              ),
+              decoration: BoxDecoration(
+                color: t.chipBg,
+                borderRadius: BorderRadius.circular(Radii.chip),
+              ),
+              child: Text(
+                '#${tag.name}',
+                style: TextStyle(color: t.text2, fontSize: large ? 11.5 : 11),
+              ),
             ),
           ),
       ],
@@ -548,7 +554,7 @@ class FormSubmitButton extends StatelessWidget {
   }
 }
 
-/// 虛線小膠囊「＋ 新增」（tag、連接欄尾端）。
+/// 虛線小膠囊「＋ 新增」（tag）／「＋ 選擇」（關聯欄尾端，傳 [label]）。
 class DashedAddChip extends StatelessWidget {
   const DashedAddChip({
     super.key,
@@ -599,7 +605,7 @@ class DashedAddChip extends StatelessWidget {
   }
 }
 
-/// 虛線方塊「＋」（詳情頁連接、表單加圖）。
+/// 虛線方塊「＋」（表單加圖）。
 class DashedAddTile extends StatelessWidget {
   const DashedAddTile({
     super.key,
@@ -669,6 +675,7 @@ class FormImageGrid extends ConsumerWidget {
             width: size,
             height: size,
             child: Stack(
+              clipBehavior: Clip.none,
               fit: StackFit.expand,
               children: [
                 ClipRRect(
@@ -681,24 +688,33 @@ class FormImageGrid extends ConsumerWidget {
                         )
                       : StoredImage(items[i].stored!.file, cacheWidth: 300),
                 ),
+                // D-018：22px 深色圓、2px 底色描邊，凸出縮圖右上角 6px。
                 Positioned(
-                  top: 4,
-                  right: 4,
-                  child: GestureDetector(
-                    onTap: () => onRemove(i),
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: const BoxDecoration(
-                        color: Colors.black54,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: SvgIcon(
-                          AppIcons.closeX,
-                          size: 12,
-                          strokeWidth: 2,
-                          color: Colors.white,
+                  top: -6,
+                  right: -6,
+                  child: Semantics(
+                    button: true,
+                    label: '移除圖片',
+                    child: GestureDetector(
+                      onTap: () => onRemove(i),
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: context.tokens.ink,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: context.tokens.ground,
+                            width: 2,
+                          ),
+                        ),
+                        child: Center(
+                          child: SvgIcon(
+                            AppIcons.closeX,
+                            size: 11,
+                            strokeWidth: 3,
+                            color: context.tokens.ground,
+                          ),
                         ),
                       ),
                     ),
