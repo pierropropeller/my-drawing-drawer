@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../data/goal_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
+import 'goal_name.dart';
 import 'pit_pill.dart';
 
 String kindLabel(String kind) => kind;
@@ -18,7 +20,7 @@ class GoalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GoalCardBody(
-      label: view.displayName,
+      label: goalDisplayName(context.l10n, view.goal),
       progress: view.progress,
       target: view.target,
       onTap: onTap,
@@ -173,9 +175,9 @@ class GoalSectionRow extends StatelessWidget {
 
 /// 「＋ 新增」文字連結（主色 13/600，加號 17）。
 class AddLink extends StatelessWidget {
-  const AddLink({super.key, required this.onTap, this.label = '新增'});
+  const AddLink({super.key, required this.onTap, this.label});
   final VoidCallback onTap;
-  final String label;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +191,7 @@ class AddLink extends StatelessWidget {
         children: [
           SvgIcon(AppIcons.plus, size: 17, strokeWidth: 2.2, color: c),
           Text(
-            label,
+            label ?? context.l10n.commonAdd,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -209,14 +211,14 @@ class PeriodNav extends StatelessWidget {
     required this.label,
     required this.onPrev,
     required this.onNext,
-    this.prevTooltip = '上一個',
-    this.nextTooltip = '下一個',
+    this.prevTooltip,
+    this.nextTooltip,
   });
   final String label;
   final VoidCallback onPrev;
   final VoidCallback onNext;
-  final String prevTooltip;
-  final String nextTooltip;
+  final String? prevTooltip;
+  final String? nextTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -238,7 +240,7 @@ class PeriodNav extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          btn(AppIcons.back, prevTooltip, onPrev),
+          btn(AppIcons.back, prevTooltip ?? context.l10n.goalsPrevItem, onPrev),
           const SizedBox(width: 18),
           Text(
             label,
@@ -246,7 +248,11 @@ class PeriodNav extends StatelessWidget {
                 ?.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(width: 18),
-          btn(AppIcons.chevronRight, nextTooltip, onNext),
+          btn(
+            AppIcons.chevronRight,
+            nextTooltip ?? context.l10n.goalsNextItem,
+            onNext,
+          ),
         ],
       ),
     );

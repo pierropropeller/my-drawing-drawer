@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
@@ -67,7 +68,7 @@ class PitPill extends StatelessWidget {
               behavior: HitTestBehavior.opaque,
               child: Semantics(
                 button: true,
-                label: '移除',
+                label: context.l10n.goalsRemove,
                 child: SvgIcon(
                   AppIcons.closeX,
                   size: 13,

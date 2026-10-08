@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
 import '../../data/goal_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
@@ -12,6 +13,7 @@ import '../common/app_icons.dart';
 import '../common/app_switch.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
+import 'goal_name.dart';
 import 'goal_widgets.dart';
 import 'pit_pill.dart';
 
@@ -82,7 +84,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
     if (_kind == GoalKind.piece && _requireLikes) {
       likes = int.tryParse(_likes.text.trim());
       if (likes == null) {
-        showSnack(context, '請輸入需要達成的互動量');
+        showSnack(context, context.l10n.goalsEnterLikes);
         return;
       }
     }
@@ -114,14 +116,12 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
     final n = _name.text.trim();
     if (n.isNotEmpty) return n;
     final likes = int.tryParse(_likes.text.trim());
-    return switch (_kind) {
-      GoalKind.idea => '生產 $_count 個腦洞',
-      GoalKind.draft => '畫 $_count 份草稿',
-      GoalKind.piece =>
-        (_requireLikes && likes != null)
-            ? '互動量過 $likes 的成圖 $_count 張'
-            : '完成 $_count 張成圖',
-    };
+    return goalAutoNameText(
+      context.l10n,
+      _kind,
+      _count,
+      (_requireLikes && likes != null) ? likes : null,
+    );
   }
 
   Future<void> _pickPit(List<Pit> pits) async {
@@ -205,11 +205,13 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
     final pitTags = _pitId == null
         ? const <Tag>[]
         : (ref.watch(tagsProvider(_pitId!)).value ?? const <Tag>[]);
-    final scope = switch (widget.period) {
-      GoalPeriod.year => '年度',
-      GoalPeriod.month => '月度',
+    final l = context.l10n;
+    final title = switch ((widget.goalId == null, widget.period)) {
+      (true, GoalPeriod.year) => l.goalsNewYearGoal,
+      (true, GoalPeriod.month) => l.goalsNewMonthGoal,
+      (false, GoalPeriod.year) => l.goalsEditYearGoal,
+      (false, GoalPeriod.month) => l.goalsEditMonthGoal,
     };
-    final title = widget.goalId == null ? '新增$scope目標' : '編輯$scope目標';
     final fieldStyle = const TextStyle(fontSize: 15);
     return Scaffold(
       body: SafeArea(
@@ -224,13 +226,13 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                 trailing: [
                   if (widget.goalId != null)
                     HeaderIconButton(
-                      label: '刪除',
+                      label: l.commonDelete,
                       icon: AppIcons.trash,
                       color: t.danger,
                       onTap: () async {
                         final ok = await confirmDelete(
                           context,
-                          title: '刪除這個目標？',
+                          title: l.goalsDeleteConfirm,
                         );
                         if (!ok || !context.mounted) return;
                         await ref
@@ -250,7 +252,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                           Padding(
                             padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
                             child: Text(
-                              '預覽',
+                              l.goalsPreview,
                               style: TextStyle(fontSize: 11, color: t.text3),
                             ),
                           ),
@@ -265,25 +267,25 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                             ],
                           ),
                           const SizedBox(height: 20),
-                          const FormLabel('目標名稱'),
+                          FormLabel(l.goalsFieldName),
                           TextField(
                             controller: _name,
                             style: fieldStyle,
                             onChanged: (_) => setState(() {}),
                             decoration: entityFieldDecoration(
                               context,
-                              '留空將自動命名',
+                              l.goalsNameHint,
                             ),
                           ),
                           const SizedBox(height: 16),
-                          _requiredLabel(context, '目標種類'),
+                          _requiredLabel(context, l.goalsFieldKind),
                           Row(
                             spacing: 8,
                             children: [
                               for (final (k, label) in [
-                                (GoalKind.idea, '腦洞'),
-                                (GoalKind.draft, '草稿'),
-                                (GoalKind.piece, '成圖'),
+                                (GoalKind.idea, l.goalsKindIdea),
+                                (GoalKind.draft, l.goalsKindDraft),
+                                (GoalKind.piece, l.goalsKindPiece),
                               ])
                                 Expanded(
                                   child: GestureDetector(
@@ -320,7 +322,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          _requiredLabel(context, '目標數量'),
+                          _requiredLabel(context, l.goalsFieldCount),
                           Row(
                             spacing: 10,
                             children: [
@@ -355,7 +357,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          const FormLabel('目標坑'),
+                          FormLabel(l.goalsFieldPit),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -371,18 +373,18 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                                   }),
                                 ),
                               DashedAddChip(
-                                semanticLabel: '選擇坑',
-                                label: '選擇',
+                                semanticLabel: l.goalsPickPit,
+                                label: l.commonSelect,
                                 onTap: () => _pickPit(allPits),
                               ),
                             ],
                           ),
                           const SizedBox(height: 16),
-                          const FormLabel('目標 tag'),
+                          FormLabel(l.goalsFieldTag),
                           Padding(
                             padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
                             child: Text(
-                              _pitId == null ? '選擇坑之後才能選 tag' : '只顯示所選坑內的 tag',
+                              _pitId == null ? l.goalsTagHintNoPit : l.goalsTagHintPit,
                               style: TextStyle(fontSize: 11.5, color: t.text4),
                             ),
                           ),
@@ -406,11 +408,11 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                                     ),
                                   ),
                                 DashedAddChip(
-                                  semanticLabel: '新增 tag',
+                                  semanticLabel: l.goalsAddTag,
                                   onTap: () async {
                                     final name = await promptText(
                                       context,
-                                      title: '新增 tag',
+                                      title: l.goalsAddTag,
                                     );
                                     if (name == null) return;
                                     final id = await ref
@@ -447,16 +449,16 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        const Text(
-                                          '需要達成互動量',
-                                          style: TextStyle(
+                                        Text(
+                                          l.goalsRequireLikes,
+                                          style: const TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                         AppSwitch(
                                           value: _requireLikes,
-                                          semanticLabel: '需要達成互動量',
+                                          semanticLabel: l.goalsRequireLikes,
                                           onChanged: (v) => setState(() {
                                             _requireLikes = v;
                                             // 開啟時門檻預設 100（GoalNewHot）。
@@ -481,7 +483,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                                         spacing: 10,
                                         children: [
                                           Text(
-                                            '互動量 ≥',
+                                            l.goalsLikesAtLeast,
                                             style: TextStyle(
                                               fontSize: 14,
                                               color: t.text2,
@@ -503,7 +505,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                                             ),
                                           ),
                                           Text(
-                                            '紅心',
+                                            l.goalsHearts,
                                             style: TextStyle(
                                               fontSize: 13,
                                               color: t.text3,
@@ -518,7 +520,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                             const SizedBox(height: 16),
                           ],
                           FormSubmitButton(
-                            label: widget.goalId == null ? '建立目標' : '儲存',
+                            label: widget.goalId == null ? l.goalsCreateGoal : l.commonSave,
                             onPressed: _loaded ? _save : null,
                           ),
                         ],

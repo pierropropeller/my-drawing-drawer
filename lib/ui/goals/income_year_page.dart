@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/income_queries.dart';
 import '../../data/payment.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -35,7 +36,11 @@ class _IncomeYearPageState extends ConsumerState<IncomeYearPage>
         bottom: false,
         child: Column(
           children: [
-            SubPageHeader(title: '${widget.year} 商稿收入', titleSize: 20, gap: 6),
+            SubPageHeader(
+              title: context.l10n.goalsIncomeYearTitle(widget.year),
+              titleSize: 20,
+              gap: 6,
+            ),
             Expanded(
               child: income == null
                   ? const SizedBox.shrink()
@@ -80,9 +85,12 @@ class _Body extends StatelessWidget {
         ),
         if (owing.isNotEmpty)
           _OwingBanner(
-            text: '未收齊 $unpaidCount 張',
-            amount:
-                '尚欠 ${[for (final c in owing) formatMoney(c.currency, c.outstanding)].join('　')}',
+            text: context.l10n.goalsIncomeUnpaidCount(unpaidCount),
+            amount: context.l10n.goalsIncomeOwing(
+              [
+                for (final c in owing) formatMoney(c.currency, c.outstanding),
+              ].join('　'),
+            ),
           ),
         for (final m in income.months) ...[
           // 月份小計與卡片內容同一條線：卡片 padding 14 ＋ 邊框 1 ＝ 15（D-049）。
@@ -93,7 +101,7 @@ class _Body extends StatelessWidget {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  '${m.month}月',
+                  context.l10n.goalsMonthNum(m.month),
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -135,7 +143,7 @@ class _CurrencyCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            currencyName(cur.currency),
+            currencyName(context.l10n, cur.currency),
             style: TextStyle(fontSize: 12, color: t.text3),
           ),
           const SizedBox(height: 4),
@@ -146,7 +154,10 @@ class _CurrencyCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '已收 ${formatMoney(cur.currency, cur.received)} · ${cur.count} 張',
+            context.l10n.goalsIncomeReceivedCount(
+              formatMoney(cur.currency, cur.received),
+              cur.count,
+            ),
             style: TextStyle(fontSize: 12, color: t.text3),
           ),
         ],
@@ -264,7 +275,7 @@ class _EntryRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    p.title.isEmpty ? '（無標題）' : p.title,
+                    p.title.isEmpty ? context.l10n.goalsUntitled : p.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -320,17 +331,19 @@ class _StatusPill extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final (String label, Color fg, Color bg) = switch (entry.payment.status) {
       PaymentStatus.partial => (
-        '已收 ${formatMoney(entry.currency, entry.payment.received)}',
+        context.l10n.goalsIncomeReceived(
+          formatMoney(entry.currency, entry.payment.received),
+        ),
         t.draft.fg,
         t.draft.bg,
       ),
       PaymentStatus.unpaid => (
-        '未收',
+        context.l10n.goalsIncomeUnpaid,
         dark ? const Color(0xFFF08A76) : t.danger,
         dark ? t.danger.withValues(alpha: .18) : const Color(0xFFF9E1DC),
       ),
       PaymentStatus.paid => (
-        '已收齊',
+        context.l10n.goalsIncomePaid,
         dark ? const Color(0xFFADBD8C) : const Color(0xFF5C7A44),
         dark ? const Color(0xFF2D3324) : const Color(0xFFE6EBDC),
       ),

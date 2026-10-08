@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -42,14 +43,23 @@ class _MonthViewState extends ConsumerState<MonthView> {
     final days = DateTime(_year, _month + 1, 0).day;
     final lead = first.weekday % 7; // 週日開頭
     final today = DateTime.now();
-    const wk = ['日', '一', '二', '三', '四', '五', '六'];
+    final l = context.l10n;
+    final wk = [
+      l.goalsWeekSun,
+      l.goalsWeekMon,
+      l.goalsWeekTue,
+      l.goalsWeekWed,
+      l.goalsWeekThu,
+      l.goalsWeekFri,
+      l.goalsWeekSat,
+    ];
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 6, 20, 32),
       children: [
         PeriodNav(
-          label: '$_month 月',
-          prevTooltip: '上個月',
-          nextTooltip: '下個月',
+          label: l.goalsMonthTitle(_month),
+          prevTooltip: l.goalsPrevMonth,
+          nextTooltip: l.goalsNextMonth,
           onPrev: () => _shift(-1),
           onNext: () => _shift(1),
         ),

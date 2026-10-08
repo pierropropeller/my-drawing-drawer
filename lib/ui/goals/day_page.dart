@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
 import '../../data/goal_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -50,7 +51,7 @@ class DayPage extends ConsumerStatefulWidget {
 class _DayPageState extends ConsumerState<DayPage> {
   late DateTime _day = widget.day;
 
-  String get _title => '${_day.month} 月 ${_day.day} 日';
+  String get _title => context.l10n.goalsDayTitle(_day.month, _day.day);
 
   void _shift(int days) {
     final old = _day.year;
@@ -61,8 +62,9 @@ class _DayPageState extends ConsumerState<DayPage> {
   Future<void> _add() async {
     final pits = ref.read(pitsProvider(false)).value ?? const [];
     if (pits.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('請先建立一個坑')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.goalsCreatePitFirst)),
+      );
       return;
     }
     final picked = await showDayAddSheet(context, pits: pits);
@@ -102,8 +104,8 @@ class _DayPageState extends ConsumerState<DayPage> {
           padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
           child: PeriodNav(
             label: _title,
-            prevTooltip: '前一天',
-            nextTooltip: '後一天',
+            prevTooltip: context.l10n.goalsPrevDay,
+            nextTooltip: context.l10n.goalsNextDay,
             onPrev: () => _shift(-1),
             onNext: () => _shift(1),
           ),
@@ -111,7 +113,10 @@ class _DayPageState extends ConsumerState<DayPage> {
         Expanded(
           child: items.isEmpty
               ? Center(
-                  child: Text('這天沒有紀錄', style: TextStyle(color: t.text3)),
+                  child: Text(
+                    context.l10n.goalsDayEmpty,
+                    style: TextStyle(color: t.text3),
+                  ),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(20, 2, 20, 96),
@@ -127,7 +132,7 @@ class _DayPageState extends ConsumerState<DayPage> {
     final fab = Positioned(
       right: 18,
       bottom: 14,
-      child: EntityFab(onPressed: _add, label: '新增'),
+      child: EntityFab(onPressed: _add, label: context.l10n.commonAdd),
     );
     if (widget.embedded) {
       return Stack(children: [body, fab]);
@@ -139,7 +144,7 @@ class _DayPageState extends ConsumerState<DayPage> {
           children: [
             Column(
               children: [
-                const SubPageHeader(title: '時間軸'),
+                SubPageHeader(title: context.l10n.goalsTimeline),
                 Expanded(child: body),
               ],
             ),
@@ -176,9 +181,9 @@ class _TimelineRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final (label, color) = switch (item.kind) {
-      GoalKind.idea => ('腦洞', t.idea),
-      GoalKind.draft => ('草稿', t.draft),
-      GoalKind.piece => ('成圖', t.piece),
+      GoalKind.idea => (context.l10n.goalsKindIdea, t.idea),
+      GoalKind.draft => (context.l10n.goalsKindDraft, t.draft),
+      GoalKind.piece => (context.l10n.goalsKindPiece, t.piece),
     };
     final tm = item.time;
     final when =
@@ -250,7 +255,7 @@ class _TimelineRow extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        item.title.isEmpty ? '（無標題）' : item.title,
+                        item.title.isEmpty ? context.l10n.goalsUntitled : item.title,
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 15,

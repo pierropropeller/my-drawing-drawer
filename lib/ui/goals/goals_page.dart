@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
 import '../../data/goal_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
@@ -52,7 +53,7 @@ class _GoalsPageState extends State<GoalsPage> {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          '目標',
+                          context.l10n.goalsTitle,
                           style: Theme.of(context).textTheme.headlineMedium
                               ?.copyWith(
                                 fontSize: 24,
@@ -73,12 +74,12 @@ class _GoalsPageState extends State<GoalsPage> {
                         if (_mode == 0) ...[
                           _YearStep(
                             icon: AppIcons.back,
-                            tooltip: '上一年',
+                            tooltip: context.l10n.goalsPrevYear,
                             onTap: () => setState(() => _year--),
                           ),
                           _YearStep(
                             icon: AppIcons.chevronRight,
-                            tooltip: '下一年',
+                            tooltip: context.l10n.goalsNextYear,
                             onTap: () => setState(() => _year++),
                           ),
                         ],
@@ -86,7 +87,11 @@ class _GoalsPageState extends State<GoalsPage> {
                     ),
                     const SizedBox(height: 14),
                     _Segmented(
-                      labels: const ['年', '月', '日'],
+                      labels: [
+                        context.l10n.goalsModeYear,
+                        context.l10n.goalsModeMonth,
+                        context.l10n.goalsModeDay,
+                      ],
                       selected: _mode,
                       onChanged: (i) => setState(() => _mode = i),
                     ),
@@ -239,7 +244,9 @@ class GoalList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final views =
         ref.watch(goalViewsProvider((period, year, month))).value ?? const [];
-    final title = period == GoalPeriod.year ? '年度目標' : '月度小目標';
+    final title = period == GoalPeriod.year
+        ? context.l10n.goalsSectionYear
+        : context.l10n.goalsSectionMonth;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -253,7 +260,9 @@ class GoalList extends ConsumerWidget {
         ),
         if (views.isEmpty)
           DashedGoalEmpty(
-            text: period == GoalPeriod.year ? '還沒有年度目標' : '還沒有月度目標',
+            text: period == GoalPeriod.year
+                ? context.l10n.goalsEmptyYear
+                : context.l10n.goalsEmptyMonth,
             onAdd: () => _new(context),
           )
         else
@@ -308,7 +317,7 @@ class DashedGoalEmpty extends StatelessWidget {
                     color: t.accent,
                     borderRadius: BorderRadius.circular(Radii.button),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     spacing: 6,
                     children: [
@@ -319,8 +328,8 @@ class DashedGoalEmpty extends StatelessWidget {
                         color: Colors.white,
                       ),
                       Text(
-                        '新增目標',
-                        style: TextStyle(
+                        context.l10n.goalsNewGoal,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,

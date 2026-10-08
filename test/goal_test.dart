@@ -4,6 +4,8 @@ import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/goal_queries.dart';
+import 'package:huakeng/l10n/l10n.dart';
+import 'package:huakeng/ui/goals/goal_name.dart';
 
 void main() {
   late AppDatabase db;
@@ -54,11 +56,11 @@ void main() {
       requireLikes: likes,
       name: name,
     );
-    expect(goalAutoName(g(GoalKind.idea)), '生產 12 個腦洞');
-    expect(goalAutoName(g(GoalKind.draft)), '畫 12 份草稿');
-    expect(goalAutoName(g(GoalKind.piece)), '完成 12 張成圖');
-    expect(goalAutoName(g(GoalKind.piece, likes: 500)), '互動量過 500 的成圖 12 張');
-    expect(goalAutoName(g(GoalKind.piece, name: '夏日企劃')), '夏日企劃');
+    expect(goalDisplayName(l10nStatic, g(GoalKind.idea)), '生產 12 個腦洞');
+    expect(goalDisplayName(l10nStatic, g(GoalKind.draft)), '畫 12 份草稿');
+    expect(goalDisplayName(l10nStatic, g(GoalKind.piece)), '完成 12 張成圖');
+    expect(goalDisplayName(l10nStatic, g(GoalKind.piece, likes: 500)), '互動量過 500 的成圖 12 張');
+    expect(goalDisplayName(l10nStatic, g(GoalKind.piece, name: '夏日企劃')), '夏日企劃');
   });
 
   test('年度目標進度：期間、坑、互動量', () async {
@@ -182,7 +184,7 @@ void main() {
     final views = await db
         .watchGoalViews(GoalPeriod.month, 2026, month: 5)
         .first;
-    expect(views.map((v) => v.displayName), ['五成', '兩成', '已達成', '超額']);
-    expect(sortGoalsByProgress(views.reversed).first.displayName, '五成');
+    expect(views.map((v) => goalDisplayName(l10nStatic, v.goal)), ['五成', '兩成', '已達成', '超額']);
+    expect(goalDisplayName(l10nStatic, sortGoalsByProgress(views.reversed).first.goal), '五成');
   });
 }

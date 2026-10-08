@@ -1,3 +1,5 @@
+import '../../l10n/l10n.dart';
+
 /// 商稿金額的顯示：符號＋空格＋千分位（「¥ 12,800」「HK$ 3,600」），不做匯率換算。
 const _symbols = {
   'CNY': '¥',
@@ -11,23 +13,25 @@ const _symbols = {
   'SGD': 'S\$',
 };
 
-const _names = {
-  'CNY': '人民幣',
-  'HKD': '港幣',
-  'TWD': '新台幣',
-  'USD': '美元',
-  'JPY': '日圓',
-  'EUR': '歐元',
-  'GBP': '英鎊',
-  'KRW': '韓元',
-  'SGD': '新加坡幣',
+/// 有中文名的幣種代碼（名稱在 ARB：goalsCurrencyName）。
+const _namedCodes = {
+  'CNY',
+  'HKD',
+  'TWD',
+  'USD',
+  'JPY',
+  'EUR',
+  'GBP',
+  'KRW',
+  'SGD',
 };
 
 /// 幣種符號；沒有對應符號的直接用代碼。
 String currencySymbol(String code) => _symbols[code] ?? code;
 
 /// 幣種中文名（IncomeYear 卡片上方小字）；沒有對應時用代碼。
-String currencyName(String code) => _names[code] ?? code;
+String currencyName(AppLocalizations l, String code) =>
+    _namedCodes.contains(code) ? l.goalsCurrencyName(code) : code;
 
 /// 千分位數字；有小數才顯示（最多兩位）。
 String groupedNumber(double v) {

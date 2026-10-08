@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
@@ -65,28 +66,28 @@ class _DayAddSheetState extends State<_DayAddSheet> {
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: Text(
-                choosingPit ? '選擇坑' : '新增',
+                choosingPit ? context.l10n.goalsPickPit : context.l10n.commonAdd,
                 style: Theme.of(context).textTheme.titleLarge
                     ?.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
               ),
             ),
             if (!choosingPit) ...[
               _OptionRow(
-                label: '腦洞',
+                label: context.l10n.goalsKindIdea,
                 icon: GoalsIcons.sheetIdea,
                 color: t.idea,
                 onTap: () => _pickKind(GoalKind.idea),
               ),
               const SizedBox(height: 8),
               _OptionRow(
-                label: '草稿',
+                label: context.l10n.goalsKindDraft,
                 icon: GoalsIcons.sheetDraft,
                 color: t.draft,
                 onTap: () => _pickKind(GoalKind.draft),
               ),
               const SizedBox(height: 8),
               _OptionRow(
-                label: '成圖',
+                label: context.l10n.goalsKindPiece,
                 icon: GoalsIcons.sheetPiece,
                 color: t.piece,
                 onTap: () => _pickKind(GoalKind.piece),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../album/album_image.dart';
 import '../../theme/tokens.dart';
 
@@ -13,6 +14,7 @@ const reviewColumnOptions = [
   (2, '6 × 2'),
 ];
 const reviewRatioOptions = ['1:1', '4:3', '3:4', '9:16', '16:9', '2:1', '1:2'];
+// 月份格式的識別值（會存進資料庫，不可翻譯）；畫面上的選項文字見 [monthFormatOptionLabel]。
 const reviewMonthFormats = ['Jan', 'January', '一月', '1月', '01'];
 
 double ratioValue(String r) {
@@ -20,7 +22,15 @@ double ratioValue(String r) {
   return double.parse(p[0]) / double.parse(p[1]);
 }
 
-String monthLabel(int m, String format) {
+/// 月份格式選項在畫面上的文字（識別值不變，中文選項走 ARB）。
+String monthFormatOptionLabel(AppLocalizations l, String format) =>
+    switch (format) {
+      '一月' => l.goalsMonthFormatCn,
+      '1月' => l.goalsMonthFormatNum,
+      _ => format,
+    };
+
+String monthLabel(int m, String format, AppLocalizations l) {
   const short = [
     'Jan',
     'Feb',
@@ -49,24 +59,10 @@ String monthLabel(int m, String format) {
     'November',
     'December',
   ];
-  const zh = [
-    '一月',
-    '二月',
-    '三月',
-    '四月',
-    '五月',
-    '六月',
-    '七月',
-    '八月',
-    '九月',
-    '十月',
-    '十一月',
-    '十二月',
-  ];
   return switch (format) {
     'January' => long[m - 1],
-    '一月' => zh[m - 1],
-    '1月' => '$m月',
+    '一月' => l.goalsMonthCn(m.toString()),
+    '1月' => l.goalsMonthNum(m),
     '01' => m.toString().padLeft(2, '0'),
     _ => short[m - 1],
   };
@@ -134,7 +130,11 @@ class ReviewCanvas extends StatelessWidget {
                           height: cellH,
                           month: r * columns + col + 1,
                           file: files[r * columns + col + 1],
-                          label: monthLabel(r * columns + col + 1, monthFormat),
+                          label: monthLabel(
+                            r * columns + col + 1,
+                            monthFormat,
+                            context.l10n,
+                          ),
                           align: monthAlign,
                           onImage: monthOnImage,
                           placeholder: t.chipBg,
