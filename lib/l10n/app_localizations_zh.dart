@@ -1264,4 +1264,128 @@ class AppLocalizationsZh extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get searchCategoryPiece => '成圖';
+
+  @override
+  String get searchCategoryFan => '同人圖';
+
+  @override
+  String get searchCategoryDraft => '草稿';
+
+  @override
+  String get searchCategoryIdea => '腦洞';
+
+  @override
+  String searchHint(String name) {
+    return '搜尋$name';
+  }
+
+  @override
+  String get searchFrequentTags => '常用 tag';
+
+  @override
+  String get searchRemoveFilter => '移除篩選';
+
+  @override
+  String get searchNoResults => '沒有找到符合的內容';
+
+  @override
+  String ideaListDeleteSelected(int count) {
+    return '刪除 $count 個腦洞？';
+  }
+
+  @override
+  String ideaListCountUnhatched(int count, int unhatched) {
+    return '$count 個 · $unhatched 未孵';
+  }
+
+  @override
+  String get ideaListEmpty => '還沒有腦洞';
+
+  @override
+  String get ideaListEmptyAction => '記下第一個腦洞';
+
+  @override
+  String get ideaDetailTitle => '腦洞詳情';
+
+  @override
+  String get ideaDetailDeleteTitle => '刪除這個腦洞？';
+
+  @override
+  String ideaDetailCreatedAt(String date) {
+    return '建立於 $date';
+  }
+
+  @override
+  String ideaDetailDraftLabel(int count) {
+    return '草稿（$count 張）';
+  }
+
+  @override
+  String get ideaLinkedHeading => '關聯的腦洞';
+
+  @override
+  String get draftLinkedHeading => '關聯的草稿';
+
+  @override
+  String get pieceLinkedHeading => '關聯的成圖';
+
+  @override
+  String get draftListEmpty => '還沒有草稿';
+
+  @override
+  String get draftViewList => '列表';
+
+  @override
+  String get draftDetailTitle => '草稿詳情';
+
+  @override
+  String get draftDetailDeleteTitle => '刪除這份草稿？';
+
+  @override
+  String draftDetailImageLabel(int n) {
+    return '第 $n 張';
+  }
+
+  @override
+  String get pieceListEmpty => '還沒有成圖';
+
+  @override
+  String get pieceViewWaterfall => '瀑布';
+
+  @override
+  String get pieceViewGrid => '田字';
+
+  @override
+  String get pieceViewNine => '九宮格';
+
+  @override
+  String get pieceDetailUpdateLikes => '更新實際互動量';
+
+  @override
+  String get pieceDetailDeleteTitle => '刪除這張成圖？';
+
+  @override
+  String get pieceDetailReached => '已達標 ✦';
+
+  @override
+  String pieceDetailActualLikes(int count) {
+    return '實際互動量 $count';
+  }
+
+  @override
+  String pieceDetailTarget(int count) {
+    return '目標 $count';
+  }
+
+  @override
+  String get pieceDetailPayment => '收款';
+
+  @override
+  String get albumFanEmpty => '還沒有同人圖';
+
+  @override
+  String get albumFanCoverSet => '已設為好看同人圖封面';
 }

@@ -2318,6 +2318,222 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'{code, select, CNY{人民幣} HKD{港幣} TWD{新台幣} USD{美元} JPY{日圓} EUR{歐元} GBP{英鎊} KRW{韓元} SGD{新加坡幣} other{{code}}}'**
   String goalsCurrencyName(String code);
+
+  /// No description provided for @searchCategoryPiece.
+  ///
+  /// In zh, this message translates to:
+  /// **'成圖'**
+  String get searchCategoryPiece;
+
+  /// No description provided for @searchCategoryFan.
+  ///
+  /// In zh, this message translates to:
+  /// **'同人圖'**
+  String get searchCategoryFan;
+
+  /// No description provided for @searchCategoryDraft.
+  ///
+  /// In zh, this message translates to:
+  /// **'草稿'**
+  String get searchCategoryDraft;
+
+  /// No description provided for @searchCategoryIdea.
+  ///
+  /// In zh, this message translates to:
+  /// **'腦洞'**
+  String get searchCategoryIdea;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜尋{name}'**
+  String searchHint(String name);
+
+  /// No description provided for @searchFrequentTags.
+  ///
+  /// In zh, this message translates to:
+  /// **'常用 tag'**
+  String get searchFrequentTags;
+
+  /// No description provided for @searchRemoveFilter.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除篩選'**
+  String get searchRemoveFilter;
+
+  /// No description provided for @searchNoResults.
+  ///
+  /// In zh, this message translates to:
+  /// **'沒有找到符合的內容'**
+  String get searchNoResults;
+
+  /// No description provided for @ideaListDeleteSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除 {count} 個腦洞？'**
+  String ideaListDeleteSelected(int count);
+
+  /// No description provided for @ideaListCountUnhatched.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 個 · {unhatched} 未孵'**
+  String ideaListCountUnhatched(int count, int unhatched);
+
+  /// No description provided for @ideaListEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有腦洞'**
+  String get ideaListEmpty;
+
+  /// No description provided for @ideaListEmptyAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'記下第一個腦洞'**
+  String get ideaListEmptyAction;
+
+  /// No description provided for @ideaDetailTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'腦洞詳情'**
+  String get ideaDetailTitle;
+
+  /// No description provided for @ideaDetailDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除這個腦洞？'**
+  String get ideaDetailDeleteTitle;
+
+  /// No description provided for @ideaDetailCreatedAt.
+  ///
+  /// In zh, this message translates to:
+  /// **'建立於 {date}'**
+  String ideaDetailCreatedAt(String date);
+
+  /// No description provided for @ideaDetailDraftLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'草稿（{count} 張）'**
+  String ideaDetailDraftLabel(int count);
+
+  /// No description provided for @ideaLinkedHeading.
+  ///
+  /// In zh, this message translates to:
+  /// **'關聯的腦洞'**
+  String get ideaLinkedHeading;
+
+  /// No description provided for @draftLinkedHeading.
+  ///
+  /// In zh, this message translates to:
+  /// **'關聯的草稿'**
+  String get draftLinkedHeading;
+
+  /// No description provided for @pieceLinkedHeading.
+  ///
+  /// In zh, this message translates to:
+  /// **'關聯的成圖'**
+  String get pieceLinkedHeading;
+
+  /// No description provided for @draftListEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有草稿'**
+  String get draftListEmpty;
+
+  /// No description provided for @draftViewList.
+  ///
+  /// In zh, this message translates to:
+  /// **'列表'**
+  String get draftViewList;
+
+  /// No description provided for @draftDetailTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'草稿詳情'**
+  String get draftDetailTitle;
+
+  /// No description provided for @draftDetailDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除這份草稿？'**
+  String get draftDetailDeleteTitle;
+
+  /// No description provided for @draftDetailImageLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'第 {n} 張'**
+  String draftDetailImageLabel(int n);
+
+  /// No description provided for @pieceListEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有成圖'**
+  String get pieceListEmpty;
+
+  /// No description provided for @pieceViewWaterfall.
+  ///
+  /// In zh, this message translates to:
+  /// **'瀑布'**
+  String get pieceViewWaterfall;
+
+  /// No description provided for @pieceViewGrid.
+  ///
+  /// In zh, this message translates to:
+  /// **'田字'**
+  String get pieceViewGrid;
+
+  /// No description provided for @pieceViewNine.
+  ///
+  /// In zh, this message translates to:
+  /// **'九宮格'**
+  String get pieceViewNine;
+
+  /// No description provided for @pieceDetailUpdateLikes.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新實際互動量'**
+  String get pieceDetailUpdateLikes;
+
+  /// No description provided for @pieceDetailDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除這張成圖？'**
+  String get pieceDetailDeleteTitle;
+
+  /// No description provided for @pieceDetailReached.
+  ///
+  /// In zh, this message translates to:
+  /// **'已達標 ✦'**
+  String get pieceDetailReached;
+
+  /// No description provided for @pieceDetailActualLikes.
+  ///
+  /// In zh, this message translates to:
+  /// **'實際互動量 {count}'**
+  String pieceDetailActualLikes(int count);
+
+  /// No description provided for @pieceDetailTarget.
+  ///
+  /// In zh, this message translates to:
+  /// **'目標 {count}'**
+  String pieceDetailTarget(int count);
+
+  /// No description provided for @pieceDetailPayment.
+  ///
+  /// In zh, this message translates to:
+  /// **'收款'**
+  String get pieceDetailPayment;
+
+  /// No description provided for @albumFanEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有同人圖'**
+  String get albumFanEmpty;
+
+  /// No description provided for @albumFanCoverSet.
+  ///
+  /// In zh, this message translates to:
+  /// **'已設為好看同人圖封面'**
+  String get albumFanCoverSet;
 }
 
 class _AppLocalizationsDelegate
