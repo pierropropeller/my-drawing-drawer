@@ -15,10 +15,14 @@ import 'piece_form_page.dart';
 
 enum _Mode { waterfall, grid, nine }
 
-/// 成圖列表（Finished）：瀑布／田字／九宮格切換；tag chips 篩選；顯示互動量。
+/// 成圖列表（Finished）：瀑布／田字／九宮格切換；顯示互動量；有導覽列。
+/// D-043：頂部不放 tag chips，卡片不顯示 tag；[tagId] 只篩選內容（篩選列另有人接）。
 class FinishedListPage extends ConsumerStatefulWidget {
-  const FinishedListPage({super.key, required this.pitId});
+  const FinishedListPage({super.key, required this.pitId, this.tagId});
   final String pitId;
+
+  /// 只列出有這個 tag 的成圖。
+  final String? tagId;
 
   @override
   ConsumerState<FinishedListPage> createState() => _FinishedListPageState();
@@ -26,7 +30,6 @@ class FinishedListPage extends ConsumerStatefulWidget {
 
 class _FinishedListPageState extends ConsumerState<FinishedListPage> {
   _Mode _mode = _Mode.waterfall;
-  String? _tagId;
 
   /// 新增：先打開相簿選圖，選好再進入新增頁。
   Future<void> _add() async {
@@ -50,11 +53,10 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final pit = ref.watch(pitProvider(widget.pitId)).value;
-    final tags = ref.watch(tagsProvider(widget.pitId)).value ?? const [];
-    final tagId = tags.any((e) => e.id == _tagId) ? _tagId : null;
     final views =
-        ref.watch(pieceViewsProvider((widget.pitId, tagId))).value ?? const [];
-    const pad = EdgeInsets.fromLTRB(20, 2, 20, 96);
+        ref.watch(pieceViewsProvider((widget.pitId, widget.tagId))).value ??
+        const [];
+    const pad = EdgeInsets.fromLTRB(20, 10, 20, 96);
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -72,12 +74,6 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
                     ),
                   ],
                 ),
-                if (tags.isNotEmpty)
-                  _TagChips(
-                    tags: [for (final e in tags) (e.id, '#${e.name}')],
-                    selected: tagId,
-                    onSelected: (v) => setState(() => _tagId = v),
-                  ),
                 Expanded(
                   child: views.isEmpty
                       ? EmptyState(
@@ -210,54 +206,6 @@ class _ModeToggle extends StatelessWidget {
   }
 }
 
-/// tag chips（全部＋各 tag）：1px 邊、13/500，選中＝墨色底白字。
-class _TagChips extends StatelessWidget {
-  const _TagChips({
-    required this.tags,
-    required this.selected,
-    required this.onSelected,
-  });
-  final List<(String, String)> tags;
-  final String? selected;
-  final ValueChanged<String?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    Widget chip(String label, bool on, VoidCallback tap) => GestureDetector(
-      onTap: tap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: on ? t.ink : t.surface,
-          border: Border.all(color: t.border),
-          borderRadius: BorderRadius.circular(Radii.chip),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: on ? t.ground : t.text2,
-          ),
-        ),
-      ),
-    );
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
-      child: Row(
-        spacing: 8,
-        children: [
-          chip('全部', selected == null, () => onSelected(null)),
-          for (final o in tags)
-            chip(o.$2, selected == o.$1, () => onSelected(o.$1)),
-        ],
-      ),
-    );
-  }
-}
-
 /// 圖片或圖片佔位（分類底色＋圖片 glyph）。
 Widget _pieceImage(BuildContext context, PieceView v, {double glyph = 26}) {
   final t = context.tokens;
@@ -316,33 +264,35 @@ class _PieceTile extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(2, 4, 2, 0),
-            child: Row(
-              children: [
-                SvgIcon(
-                  AppIcons.heart,
-                  size: 15,
-                  strokeWidth: reached ? 0 : 1.8,
-                  color: t.accent,
-                  fill: reached ? _hex(t.accent) : 'none',
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${p.actualLikes}',
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
+          // 沒公開發佈的成圖沒有互動量，不顯示愛心列。
+          if (p.isPublished)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(2, 4, 2, 0),
+              child: Row(
+                children: [
+                  SvgIcon(
+                    AppIcons.heart,
+                    size: 15,
+                    strokeWidth: reached ? 0 : 1.8,
+                    color: t.accent,
+                    fill: reached ? _hex(t.accent) : 'none',
                   ),
-                ),
-                if (p.targetLikes > 0)
+                  const SizedBox(width: 4),
                   Text(
-                    ' / ${p.targetLikes}',
-                    style: TextStyle(fontSize: 11.5, color: t.text2),
+                    '${p.actualLikes}',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-              ],
+                  if (p.targetLikes > 0)
+                    Text(
+                      ' / ${p.targetLikes}',
+                      style: TextStyle(fontSize: 11.5, color: t.text2),
+                    ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -371,41 +321,42 @@ class _NineTile extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               _pieceImage(context, view, glyph: 22),
-              Positioned(
-                left: 5,
-                bottom: 5,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 1,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: .82),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    spacing: 2,
-                    children: [
-                      SvgIcon(
-                        AppIcons.heart,
-                        size: 10,
-                        color: t.accent,
-                        fill: _hex(t.accent),
-                        strokeWidth: 0,
-                      ),
-                      Text(
-                        '${view.piece.actualLikes}',
-                        style: const TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF2B2622),
+              if (view.piece.isPublished)
+                Positioned(
+                  left: 5,
+                  bottom: 5,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .82),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      spacing: 2,
+                      children: [
+                        SvgIcon(
+                          AppIcons.heart,
+                          size: 10,
+                          color: t.accent,
+                          fill: _hex(t.accent),
+                          strokeWidth: 0,
                         ),
-                      ),
-                    ],
+                        Text(
+                          '${view.piece.actualLikes}',
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF2B2622),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
