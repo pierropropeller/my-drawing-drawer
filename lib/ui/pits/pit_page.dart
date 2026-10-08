@@ -17,6 +17,8 @@ import '../common/dashed_box.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import 'pit_edit_page.dart';
+import 'pit_junk_entry.dart';
+import 'pits_icons.dart';
 
 /// 坑內頁（Pit／PitFilled／PitDark）：2×2 正方形格（官方圖冊、好看同人圖、我的草稿、我的腦洞），
 /// 文字（名稱＋數量）在格子下方；最後是寬格「我的成圖」，高度與上方一格正方形相同。
@@ -194,6 +196,12 @@ class PitPage extends ConsumerWidget {
                               _open(context, FinishedListPage(pitId: pitId)),
                           onLongPress: longPress(stats.pieces, 'piece'),
                         ),
+                        // 開啟「雜物」才出現，放在最底（PitJunk）。
+                        if (pit.junkEnabled)
+                          _JunkEntry(
+                            count: stats.junk,
+                            onTap: () => openJunk(context, pitId),
+                          ),
                       ],
                     );
                   },
@@ -201,6 +209,53 @@ class PitPage extends ConsumerWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 坑內頁最底的「雜物」入口：上緣細線、icon、名稱、數量、箭頭。
+class _JunkEntry extends StatelessWidget {
+  const _JunkEntry({required this.count, required this.onTap});
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(top: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: t.border)),
+        ),
+        child: Row(
+          children: [
+            SvgIcon(PitsIcons.junk, size: 20, strokeWidth: 1.7, color: t.text4),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '雜物',
+                style: TextStyle(
+                  color: t.text2,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Text('$count 張', style: TextStyle(color: t.text4, fontSize: 12.5)),
+            const SizedBox(width: 12),
+            SvgIcon(
+              AppIcons.chevronRight,
+              size: 18,
+              strokeWidth: 2,
+              color: t.text4,
+            ),
+          ],
         ),
       ),
     );

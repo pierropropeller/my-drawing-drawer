@@ -8,10 +8,14 @@ import '../album/album_image.dart';
 import '../album/cover_pick_page.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
-import 'pit_form.dart';
 import '../common/app_switch.dart';
+import '../common/dashed_box.dart';
+import '../common/nav_bar_hidden.dart';
+import 'pit_form.dart';
 
-/// 編輯坑：封存、坑名、描述、刪除。坑內有圖才顯示「更換封面」。
+/// 編輯坑：封面、坑名、描述、雜物開關、封存、刪除。
+/// 封面區三種狀態：坑內沒有圖＝不顯示（PitEdit-ntnf）；有圖沒封面＝虛線＋號（PitEditNoCover）；
+/// 有封面＝縮圖＋「更換封面」（PitEdit）。
 class PitEditPage extends ConsumerStatefulWidget {
   const PitEditPage({super.key, required this.pit});
   final Pit pit;
@@ -20,11 +24,13 @@ class PitEditPage extends ConsumerStatefulWidget {
   ConsumerState<PitEditPage> createState() => _PitEditPageState();
 }
 
-class _PitEditPageState extends ConsumerState<PitEditPage> {
+class _PitEditPageState extends ConsumerState<PitEditPage>
+    with HidesNavBar<PitEditPage> {
   final _form = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.pit.name);
   late final _desc = TextEditingController(text: widget.pit.description ?? '');
   late bool _archived = widget.pit.archived;
+  late bool _junk = widget.pit.junkEnabled;
 
   @override
   void dispose() {
@@ -43,6 +49,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage> {
           name: _name.text.trim(),
           description: desc.isEmpty ? null : desc,
           archived: _archived,
+          junkEnabled: _junk,
         );
     if (mounted) Navigator.of(context).pop();
   }
@@ -72,6 +79,83 @@ class _PitEditPageState extends ConsumerState<PitEditPage> {
     Navigator.of(context).popUntil((r) => r.isFirst);
   }
 
+  void _pickCover() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => CoverPickPage(pitId: widget.pit.id),
+    ),
+  );
+
+  Widget _coverSection(String? coverFile) {
+    final t = context.tokens;
+    final Widget tile;
+    if (coverFile == null) {
+      // 有圖但還沒設封面：虛線正方框＋號，點了進選擇封面。
+      tile = Semantics(
+        button: true,
+        label: '選擇封面',
+        child: GestureDetector(
+          onTap: _pickCover,
+          child: SizedBox(
+            width: 110,
+            height: 110,
+            child: DashedBox(
+              color: t.dashed,
+              radius: Radii.card,
+              child: Center(
+                child: SvgIcon(
+                  AppIcons.plus,
+                  size: 26,
+                  strokeWidth: 2,
+                  color: t.dashedText,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    } else {
+      tile = Row(
+        children: [
+          SizedBox(
+            width: 110,
+            height: 110,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(Radii.card),
+              child: StoredImage(coverFile, cacheWidth: 330),
+            ),
+          ),
+          const SizedBox(width: 14),
+          GestureDetector(
+            onTap: _pickCover,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: t.surface,
+                border: Border.all(color: t.border),
+                borderRadius: BorderRadius.circular(Radii.chip),
+              ),
+              child: Text(
+                '更換封面',
+                style: TextStyle(
+                  color: t.text2,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const PitFieldLabel('封面'),
+        Padding(padding: const EdgeInsets.only(bottom: 18), child: tile),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
@@ -96,80 +180,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // 坑內有圖才顯示封面預覽與「更換封面」。
-                            if (hasImages) ...[
-                              const PitFieldLabel('封面'),
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 18),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 110,
-                                      height: 110,
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(
-                                          Radii.card,
-                                        ),
-                                        child: coverFile != null
-                                            ? StoredImage(
-                                                coverFile,
-                                                cacheWidth: 330,
-                                              )
-                                            : ColoredBox(
-                                                color: t.official.bg,
-                                                child: Center(
-                                                  child: SvgIcon(
-                                                    AppIcons.image,
-                                                    size: 30,
-                                                    strokeWidth: 1.5,
-                                                    color: dark
-                                                        ? Colors.white
-                                                              .withValues(
-                                                                alpha: .22,
-                                                              )
-                                                        : t.ink.withValues(
-                                                            alpha: .24,
-                                                          ),
-                                                  ),
-                                                ),
-                                              ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    GestureDetector(
-                                      onTap: () => Navigator.of(context).push(
-                                        MaterialPageRoute<void>(
-                                          builder: (_) => CoverPickPage(
-                                            pitId: widget.pit.id,
-                                          ),
-                                        ),
-                                      ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 7,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: t.surface,
-                                          border: Border.all(color: t.border),
-                                          borderRadius: BorderRadius.circular(
-                                            Radii.chip,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '更換封面',
-                                          style: TextStyle(
-                                            color: t.text2,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                            if (hasImages) _coverSection(coverFile),
                             const PitFieldLabel('坑名'),
                             TextFormField(
                               controller: _name,
@@ -191,31 +202,20 @@ class _PitEditPageState extends ConsumerState<PitEditPage> {
                               ),
                               decoration: pitInputDecoration(context),
                             ),
-                            // 設計稿沒有封存欄位；封存功能保留，放在描述下方。
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      '封存',
-                                      style: TextStyle(
-                                        color: t.text2,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  AppSwitch(
-                                    semanticLabel: '封存',
-                                    value: _archived,
-                                    onChanged: (v) =>
-                                        setState(() => _archived = v),
-                                  ),
-                                ],
-                              ),
+                            const SizedBox(height: 16),
+                            _SwitchCard(
+                              label: '雜物',
+                              value: _junk,
+                              onChanged: (v) => setState(() => _junk = v),
                             ),
+                            // 設計稿沒有封存欄位；封存功能保留，樣式比照雜物開關。
                             const SizedBox(height: 10),
+                            _SwitchCard(
+                              label: '封存',
+                              value: _archived,
+                              onChanged: (v) => setState(() => _archived = v),
+                            ),
+                            const SizedBox(height: 22),
                             PitPrimaryButton(label: '儲存', onPressed: _save),
                             const SizedBox(height: 28),
                             const Spacer(),
@@ -273,6 +273,42 @@ class _PitEditPageState extends ConsumerState<PitEditPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 白底圓角卡片＋右側開關（PitEdit 的「雜物」）。
+class _SwitchCard extends StatelessWidget {
+  const _SwitchCard({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: t.surface,
+        border: Border.all(color: t.border),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            ),
+          ),
+          AppSwitch(semanticLabel: label, value: value, onChanged: onChanged),
+        ],
       ),
     );
   }

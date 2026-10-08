@@ -118,6 +118,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                 ),
                 child: SafeArea(
                   top: false,
+                  // 設計稿導覽列高 74（64＋底部 10）。
+                  minimum: const EdgeInsets.only(bottom: 10),
                   child: SizedBox(
                     height: 64,
                     child: Row(
