@@ -923,5 +923,11 @@
   },
   "pieceDetailPayment": "收款",
   "albumFanEmpty": "還沒有同人圖",
-  "albumFanCoverSet": "已設為好看同人圖封面"
+  "albumFanCoverSet": "已設為好看同人圖封面",
+  "shareTitle": "加入到",
+  "shareFieldPit": "坑",
+  "shareFieldPosition": "位置",
+  "shareAdd": "加入",
+  "shareNext": "下一步",
+  "shareAdded": "已加入"
 }

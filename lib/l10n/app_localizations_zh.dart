@@ -1388,4 +1388,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get albumFanCoverSet => '已設為好看同人圖封面';
+
+  @override
+  String get shareTitle => '加入到';
+
+  @override
+  String get shareFieldPit => '坑';
+
+  @override
+  String get shareFieldPosition => '位置';
+
+  @override
+  String get shareAdd => '加入';
+
+  @override
+  String get shareNext => '下一步';
+
+  @override
+  String get shareAdded => '已加入';
 }

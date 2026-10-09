@@ -2534,6 +2534,42 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已設為好看同人圖封面'**
   String get albumFanCoverSet;
+
+  /// No description provided for @shareTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'加入到'**
+  String get shareTitle;
+
+  /// No description provided for @shareFieldPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'坑'**
+  String get shareFieldPit;
+
+  /// No description provided for @shareFieldPosition.
+  ///
+  /// In zh, this message translates to:
+  /// **'位置'**
+  String get shareFieldPosition;
+
+  /// No description provided for @shareAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'加入'**
+  String get shareAdd;
+
+  /// No description provided for @shareNext.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一步'**
+  String get shareNext;
+
+  /// No description provided for @shareAdded.
+  ///
+  /// In zh, this message translates to:
+  /// **'已加入'**
+  String get shareAdded;
 }
 
 class _AppLocalizationsDelegate
