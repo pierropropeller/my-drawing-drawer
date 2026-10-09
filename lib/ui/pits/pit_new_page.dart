@@ -30,13 +30,14 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     final desc = _desc.text.trim();
-    await ref
+    final id = await ref
         .read(databaseProvider)
         .createPit(
           name: _name.text.trim(),
           description: desc.isEmpty ? null : desc,
         );
-    if (mounted) Navigator.of(context).pop();
+    // 回傳新坑的 id（分享進來的「開新坑」要接著選它，D-053）。
+    if (mounted) Navigator.of(context).pop(id);
   }
 
   @override

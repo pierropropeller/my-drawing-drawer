@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/entity_queries.dart';
@@ -20,12 +21,16 @@ class IdeaFormPage extends ConsumerStatefulWidget {
     required this.pitId,
     this.ideaId,
     this.initialTime,
+    this.initialImages = const [],
   });
   final String pitId;
   final String? ideaId;
 
   /// 新增時使用的建立時間（時間軸上以「此時此刻」新增、可改時間）。
   final DateTime? initialTime;
+
+  /// 預先放好的配圖（例如從其他 App 分享進來，D-053）。
+  final List<XFile> initialImages;
 
   @override
   ConsumerState<IdeaFormPage> createState() => _IdeaFormPageState();
@@ -46,6 +51,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
   @override
   void initState() {
     super.initState();
+    _images.addAll(widget.initialImages.map(ImageItem.picked));
     _load();
   }
 
