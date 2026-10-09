@@ -429,6 +429,8 @@ class _LayoutOption extends StatelessWidget {
                     Expanded(
                       child: Row(
                         spacing: 1.5,
+                        // 沒有子元素的 ColoredBox 在寬鬆高度約束下會縮成 0 高，要讓每格在垂直方向撐滿。
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           for (var i = 0; i < columns; i++)
                             Expanded(child: ColoredBox(color: dot)),

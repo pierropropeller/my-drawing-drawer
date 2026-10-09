@@ -61,6 +61,7 @@ class PitPage extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _HeaderButton(
                           tooltip: context.l10n.commonBack,
@@ -71,16 +72,41 @@ class PitPage extends ConsumerWidget {
                           onTap: () => Navigator.of(context).maybePop(),
                         ),
                         const SizedBox(width: 6),
+                        // 標題與描述放在同一欄，左邊緣由結構保證一致（不靠各自的 padding 數字）。
                         Expanded(
-                          child: Text(
-                            pit.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                height: 40,
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    pit.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
                                 ),
+                              ),
+                              if (desc != null && desc.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    desc,
+                                    style: TextStyle(
+                                      color: t.text2,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                         _HeaderButton(
@@ -97,14 +123,6 @@ class PitPage extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    if (desc != null && desc.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 46, top: 2),
-                        child: Text(
-                          desc,
-                          style: TextStyle(color: t.text2, fontSize: 12),
-                        ),
-                      ),
                   ],
                 ),
               ),

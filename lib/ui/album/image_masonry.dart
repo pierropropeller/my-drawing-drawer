@@ -233,7 +233,9 @@ class _Caption extends StatelessWidget {
             ),
           if (author.isNotEmpty && group.isNotEmpty) const SizedBox(width: 6),
           if (group.isNotEmpty)
-            Flexible(
+            // 標籤不搶彈性空間（作者佔滿剩餘寬度，標籤才會貼右）；太長時限制最大寬度並省略。
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 110),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(

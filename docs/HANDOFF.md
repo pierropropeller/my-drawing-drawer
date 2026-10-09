@@ -220,7 +220,8 @@ Drive/App 專用資料夾/
 | `OfficialList` | 官方圖冊 | 瀑布流；分組 chips，最右固定「管理分組」icon |
 | `ImagePreview` | 圖片預覽 | 深色全屏、圖片滿版；分享、下載、設為封面、編輯、刪除 |
 | `OfficialSelect` | 多選 | **長按**進入；下載、移動、刪除 |
-| `MoveSheet` | 移動到 | 官方圖冊／好看同人圖／雜物；選官方圖冊時展開分組。獨有欄位移動時保留但隱藏 |
+| `MoveSheet` | 移動到 | 可選坑（跨坑，D-054）＋官方圖冊／好看同人圖／雜物；選官方圖冊時展開分組。獨有欄位移動時保留但隱藏 |
+| `ShareImport` | 從其他 App 分享 · 加入到 | 選坑＋六個位置；官／同人／雜物直接加入，草稿／腦洞／成圖進新增頁（D-053） |
 | `OfficialNew` | 新增官方圖 | 多張圖＋分組，沒有 tag |
 | `GroupManage` | 管理分組 | 拖曳排序、改名、刪除、新增 |
 | `FanArtList` | 好看同人圖 | 瀑布流；出處 chips 篩選；右上搜尋 |
@@ -286,7 +287,9 @@ Drive/App 專用資料夾/
 | `States` | 回饋狀態 | snackbar 等元件參考 |
 | `ColorSystem` | 主題色系統 | 四色 × 淺／深 |
 | `SyncFirst` | 首次同步中 | 連結後先進這頁；可「先開始使用」，同步在背景繼續 |
-| `MainSyncing` | 主頁 · 同步中 | 頂部藍色同步橫條＋未下載完的封面蓋下載 icon |
+| `MainSyncing` | 主頁 · 同步中 | 不用橫條；頭像外圈進度環，傳輸中可點開同步進度；未下載完的圖右下角進度環角標（D-052） |
+| `SyncSheet` | 同步進度 | 總進度＋逐張上傳／下載進度（D-052） |
+| `ReviewPick` | 年度回顧 · 選擇月份圖片 | 長按多於一張成圖的月份，選代表圖（D-056） |
 | `MainEmpty` / `OfficialEmpty` / `IdeaEmpty` / `GoalEmpty` | 空白狀態 | 同人圖、草稿、成圖的空白頁沿用 `OfficialEmpty` 模板，只換顏色、icon、文字 |
 | `MainDark` / `PitDark` / `IdeaListDark` | 深色模式示範 | 其他畫面依第 7 節對照表轉換 |
 
