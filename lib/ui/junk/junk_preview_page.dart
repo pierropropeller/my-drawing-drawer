@@ -77,14 +77,19 @@ class _JunkPreviewPageState extends ConsumerState<JunkPreviewPage>
           ids: [_current.id],
           to: target.cell,
           groupId: target.groupId,
+          targetPitId: target.pitId,
         );
     if (!mounted) return;
+    final cellLabel = albumCellLabel(context.l10n, target.cell);
     showSnack(
       context,
-      context.l10n.albumMovedCount(
-        1,
-        albumCellLabel(context.l10n, target.cell),
-      ),
+      target.crossPit
+          ? context.l10n.moveReviewMovedToPit(
+              1,
+              target.pitName ?? '',
+              cellLabel,
+            )
+          : context.l10n.albumMovedCount(1, cellLabel),
       success: true,
     );
     _removeCurrent();
