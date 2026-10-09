@@ -154,14 +154,19 @@ class _AlbumViewState extends ConsumerState<AlbumView>
           ids: [for (final p in picked) p.id],
           to: target.cell,
           groupId: target.groupId,
+          targetPitId: target.pitId,
         );
     if (!mounted) return;
+    final cellLabel = albumCellLabel(context.l10n, target.cell);
     showSnack(
       context,
-      context.l10n.albumMovedCount(
-        picked.length,
-        albumCellLabel(context.l10n, target.cell),
-      ),
+      target.crossPit
+          ? context.l10n.moveReviewMovedToPit(
+              picked.length,
+              target.pitName ?? '',
+              cellLabel,
+            )
+          : context.l10n.albumMovedCount(picked.length, cellLabel),
       success: true,
     );
     _exit();

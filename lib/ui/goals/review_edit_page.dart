@@ -51,7 +51,8 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
 
   Map<int, String?> _files(Map<int, String?> chosen) => {
     for (var m = 1; m <= 12; m++)
-      m: chosen.containsKey(m) ? chosen[m] : (_byMonth[m]?.first),
+      // reviewMonthsProvider 已解析好（手動挑的／預設互動量最高的）；沒有候選＝沒有 key。
+      m: chosen[m],
   };
 
   Future<void> _pickMonth(int month, Map<int, String?> chosen) async {
@@ -190,9 +191,9 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          for (final o in reviewColumnOptions)
+                          for (final (i, o) in reviewColumnOptions.indexed)
                             _LayoutOption(
-                              width: ((c.maxWidth - 16) / 3).floorToDouble(),
+                              width: _layoutWidth(c.maxWidth, i),
                               columns: o.$1,
                               label: o.$2,
                               selected: columns == o.$1,
@@ -362,6 +363,14 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
       ),
     );
   }
+}
+
+/// 排版選項寬度：一列最多 3 個、間距 8，最後一列的選項平分整列（設計稿 flex:1 1 28%）。
+double _layoutWidth(double maxWidth, int index) {
+  const perRow = 3;
+  final start = index ~/ perRow * perRow;
+  final n = (reviewColumnOptions.length - start).clamp(1, perRow);
+  return ((maxWidth - 8 * (n - 1)) / n).floorToDouble();
 }
 
 /// 區塊標題 14/700。

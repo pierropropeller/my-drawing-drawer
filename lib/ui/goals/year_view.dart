@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
-import '../../data/goal_queries.dart';
 import '../../data/income_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
@@ -17,6 +16,7 @@ import 'goals_page.dart';
 import 'income_year_page.dart';
 import 'money_format.dart';
 import 'review_edit_page.dart';
+import 'review_pick_sheet.dart';
 
 /// 年度（GoalYear／GoalEmpty）：年度回顧 4×3 預覽（已選 N / 12、排版）＋年度目標列表。
 class YearView extends ConsumerStatefulWidget {
@@ -28,36 +28,12 @@ class YearView extends ConsumerStatefulWidget {
 }
 
 class _YearViewState extends ConsumerState<YearView> {
-  Map<int, List<String>> _byMonth = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadMonths();
-  }
-
-  @override
-  void didUpdateWidget(YearView old) {
-    super.didUpdateWidget(old);
-    if (old.year != widget.year) {
-      _byMonth = {};
-      _loadMonths();
-    }
-  }
-
-  Future<void> _loadMonths() async {
-    final year = widget.year;
-    final m = await ref.read(databaseProvider).pieceImagesByMonth(year);
-    if (mounted && year == widget.year) setState(() => _byMonth = m);
-  }
-
   Future<void> _editLayout() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ReviewEditPage(year: widget.year),
       ),
     );
-    _loadMonths();
   }
 
   @override
@@ -65,10 +41,10 @@ class _YearViewState extends ConsumerState<YearView> {
     final t = context.tokens;
     final chosen =
         ref.watch(reviewMonthsProvider(widget.year)).value ?? const {};
-    final files = <int, String?>{
-      for (var m = 1; m <= 12; m++)
-        m: chosen.containsKey(m) ? chosen[m] : _byMonth[m]?.first,
-    };
+    // reviewMonthsProvider 已解析（手動挑的／預設互動量最高的）；沒有候選＝沒有 key。
+    final files = <int, String?>{for (var m = 1; m <= 12; m++) m: chosen[m]};
+    final summaries =
+        ref.watch(reviewMonthSummariesProvider(widget.year)).value ?? const {};
     final income = ref.watch(incomeProvider(widget.year)).value;
     final selected = files.values.where((f) => f != null).length;
     return ListView(
@@ -113,6 +89,16 @@ class _YearViewState extends ConsumerState<YearView> {
                 file: files[m],
                 allEmpty: selected == 0,
                 onTap: _editLayout,
+                // 多於一張成圖才能長按換圖（D-056）；只有一張或沒有＝長按沒反應
+                // （仍要註冊空的長按，否則長按放開會被當成點擊而打開排版）。
+                onLongPress: summaries[m]?.canPick == true
+                    ? () => showReviewPickSheet(
+                        context,
+                        year: widget.year,
+                        month: m,
+                        current: files[m],
+                      )
+                    : () {},
               ),
           ],
         ),
@@ -222,11 +208,13 @@ class _MonthCell extends StatelessWidget {
     required this.file,
     required this.allEmpty,
     required this.onTap,
+    this.onLongPress,
   });
   final int month;
   final String? file;
   final bool allEmpty;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -313,6 +301,10 @@ class _MonthCell extends StatelessWidget {
         ),
       );
     }
-    return GestureDetector(onTap: onTap, child: inner);
+    return GestureDetector(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: inner,
+    );
   }
 }

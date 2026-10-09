@@ -45,19 +45,20 @@ String monthLabel(int m, String format, AppLocalizations l) {
     'Nov',
     'Dec',
   ];
+  // 設計稿：「January」選項顯示英文縮寫加句點（5 月不加）。
   const long = [
-    'January',
-    'February',
-    'March',
-    'April',
+    'Jan.',
+    'Feb.',
+    'Mar.',
+    'Apr.',
     'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+    'Jun.',
+    'Jul.',
+    'Aug.',
+    'Sep.',
+    'Oct.',
+    'Nov.',
+    'Dec.',
   ];
   return switch (format) {
     'January' => long[m - 1],

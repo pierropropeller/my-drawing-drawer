@@ -1,0 +1,24 @@
+{
+  "moveReviewPitLabel": "坑",
+  "moveReviewPositionLabel": "位置",
+  "moveReviewMovedToPit": "已移動 {count} 張到「{pit}」的{target}",
+  "@moveReviewMovedToPit": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "pit": { "type": "String" },
+      "target": { "type": "String" }
+    }
+  },
+  "moveReviewPickTitle": "選擇 {month} 月的圖片",
+  "@moveReviewPickTitle": {
+    "placeholders": {
+      "month": { "type": "int" }
+    }
+  },
+  "moveReviewPieceCount": "{count} 張成圖",
+  "@moveReviewPieceCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  }
+}
