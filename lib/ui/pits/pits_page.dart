@@ -6,7 +6,6 @@ import '../../data/database.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../state/settings.dart';
-import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../album/cover_pick_page.dart';
@@ -14,10 +13,9 @@ import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
-import '../common/user_avatar.dart';
+import '../sync/sync_avatar.dart';
 import 'pit_new_page.dart';
 import 'pit_page.dart';
-import 'pits_icons.dart';
 
 /// 主頁：現坑／封存坑、田字／瀑布切換、坑卡片、開新坑（最後一格的虛線格）。
 class PitsPage extends ConsumerStatefulWidget {
@@ -55,7 +53,8 @@ class _PitsPageState extends ConsumerState<PitsPage> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
                 children: [
-                  const UserAvatar(size: 40),
+                  // 同步狀態收在頭像外圈（D-052）；外圈不佔位，同步開始或結束頁面不會動。
+                  const SyncAvatar(size: 40),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -93,10 +92,8 @@ class _PitsPageState extends ConsumerState<PitsPage> {
                   ],
                 ),
               ),
-            // 背景同步中顯示藍色橫條（MainSyncing）；離線時顯示離線橫條，不用彈窗。
-            if (ref.watch(syncControllerProvider.select((s) => s.isSyncing)))
-              const _SyncBanner()
-            else if (ref.watch(onlineProvider).value == false)
+            // 離線時顯示離線橫條，不用彈窗。同步狀態在頭像外圈，不佔版面（D-052）。
+            if (ref.watch(onlineProvider).value == false)
               const _OfflineBanner(),
             Expanded(
               child: pits.when(
@@ -164,62 +161,6 @@ class _ViewToggle extends StatelessWidget {
           button(true, context.l10n.pitsViewGrid, AppIcons.gridView),
           const SizedBox(width: 3),
           button(false, context.l10n.pitsViewWaterfall, AppIcons.waterfallView),
-        ],
-      ),
-    );
-  }
-}
-
-/// 同步中橫條：「同步中・圖片 N / M」＋細進度條。尚不知道圖片數量時只顯示「同步中」。
-class _SyncBanner extends ConsumerWidget {
-  const _SyncBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final sync = ref.watch(syncControllerProvider);
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    // 設計稿的同步橫條藍（沒有對應 token）；深色版沿用封面藍的深色配色。
-    final bg = dark ? const Color(0xFF242B33) : const Color(0xFFEAF0F5);
-    final fg = dark ? const Color(0xFFA9BED4) : const Color(0xFF46627E);
-    final accent = dark ? const Color(0xFF93AECB) : const Color(0xFF5B7A99);
-    final track = dark ? const Color(0xFF36404B) : const Color(0xFFD6E0EA);
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(20, 2, 20, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          SvgIcon(PitsIcons.syncCloud, size: 16, color: accent),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              sync.hasImageProgress
-                  ? context.l10n.pitsSyncingImages(
-                      sync.imagesDone,
-                      sync.imagesTotal,
-                    )
-                  : context.l10n.pitsSyncing,
-              style: TextStyle(color: fg, fontSize: 12),
-            ),
-          ),
-          if (sync.hasImageProgress)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: SizedBox(
-                width: 64,
-                height: 5,
-                child: LinearProgressIndicator(
-                  value: sync.imageFraction,
-                  minHeight: 5,
-                  backgroundColor: track,
-                  valueColor: AlwaysStoppedAnimation(accent),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -486,10 +427,6 @@ class PitCard extends ConsumerWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final stats = ref.watch(pitStatsProvider(pit.id)).value ?? PitStats.empty;
     final coverFile = ref.watch(coverFileProvider(pit.id)).value;
-    // 封面檔案還沒下載（同步中）：先顯示佔位底色，蓋淡色＋下載 icon（D-028）。
-    final missing =
-        coverFile != null &&
-        ref.watch(imageExistsProvider(coverFile)).value == false;
     // 佔位底色依序為官方／同人／草稿色與設計稿的淡綠（沒有對應 token）。
     final tints = [
       t.official.bg,
@@ -497,31 +434,27 @@ class PitCard extends ConsumerWidget {
       t.draft.bg,
       dark ? const Color(0xFF2C3529) : const Color(0xFFE7EFE4),
     ];
+    final placeholder = tints[index % tints.length];
+    // 還沒下載完的封面由 StoredImage 自己畫佔位底色＋淡色＋下載角標（D-052）。
     final cover = ClipRRect(
       borderRadius: BorderRadius.circular(Radii.card),
-      child: coverFile != null && !missing
-          ? StoredImage(coverFile, cacheWidth: 600)
+      child: coverFile != null
+          ? StoredImage(
+              coverFile,
+              cacheWidth: 600,
+              placeholderColor: placeholder,
+            )
           : ColoredBox(
-              color: tints[index % tints.length],
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Center(
-                    child: SvgIcon(
-                      AppIcons.image,
-                      size: 30,
-                      strokeWidth: 1.6,
-                      color: dark
-                          ? Colors.white.withValues(alpha: .22)
-                          : t.ink.withValues(alpha: .26),
-                    ),
-                  ),
-                  if (missing)
-                    Semantics(
-                      label: context.l10n.pitsNotDownloaded,
-                      child: _DownloadOverlay(dark: dark),
-                    ),
-                ],
+              color: placeholder,
+              child: Center(
+                child: SvgIcon(
+                  AppIcons.image,
+                  size: 30,
+                  strokeWidth: 1.6,
+                  color: dark
+                      ? Colors.white.withValues(alpha: .22)
+                      : t.ink.withValues(alpha: .26),
+                ),
               ),
             ),
     );
@@ -574,46 +507,6 @@ class PitCard extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 還沒下載的封面：淡色遮罩＋白圓底的下載 icon（MainSyncing）。
-class _DownloadOverlay extends StatelessWidget {
-  const _DownloadOverlay({required this.dark});
-  final bool dark;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    return ColoredBox(
-      color: (dark ? const Color(0xFF1B1816) : const Color(0xFFFAF7F2))
-          .withValues(alpha: .55),
-      child: Center(
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: t.surface.withValues(alpha: .9),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x1A000000),
-                blurRadius: 3,
-                offset: Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Center(
-            child: SvgIcon(
-              PitsIcons.download,
-              size: 20,
-              strokeWidth: 1.9,
-              color: dark ? const Color(0xFF93AECB) : const Color(0xFF5B7A99),
-            ),
-          ),
-        ),
       ),
     );
   }

@@ -14,16 +14,6 @@ import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/ui/common/app_switch.dart';
 import 'package:huakeng/ui/junk/junk_list_page.dart';
 import 'package:huakeng/state/settings.dart';
-import 'package:huakeng/sync/sync_controller.dart';
-
-class _FakeSync extends SyncController {
-  @override
-  SyncState build() => const SyncState(
-    phase: SyncPhase.syncing,
-    imagesDone: 128,
-    imagesTotal: 342,
-  );
-}
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -165,19 +155,6 @@ void main() {
     // 進入雜物列表頁（坑內頁被蓋住，五格不再可見）。
     expect(find.byType(JunkListPage), findsOneWidget);
     expect(find.text('官方圖冊'), findsNothing);
-    await unmount(tester);
-  });
-
-  testWidgets('同步中橫條顯示圖片進度，取代離線橫條', (tester) async {
-    await pumpApp(
-      tester,
-      online: false,
-      overrides: [syncControllerProvider.overrideWith(_FakeSync.new)],
-    );
-    await settle(tester);
-    expect(find.text('同步中・圖片 128 / 342'), findsOneWidget);
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
-    expect(find.text('離線中・恢復網絡後將自動上傳'), findsNothing);
     await unmount(tester);
   });
 
