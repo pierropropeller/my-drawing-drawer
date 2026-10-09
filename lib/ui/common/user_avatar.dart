@@ -34,7 +34,11 @@ class UserAvatar extends ConsumerWidget {
       height: size,
       child: ClipOval(
         child: s.avatarFile != null
-            ? StoredImage(s.avatarFile!, cacheWidth: (size * 3).round())
+            ? StoredImage(
+                s.avatarFile!,
+                cacheWidth: (size * 3).round(),
+                showDownloadBadge: false,
+              )
             : ColoredBox(
                 color: background ?? t.piece.bg,
                 child: Center(

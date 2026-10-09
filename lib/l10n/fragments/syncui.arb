@@ -1,0 +1,22 @@
+{
+  "syncuiSheetLabel": "同步進度",
+  "syncuiRingChecking": "同步中，正在檢查",
+  "syncuiRingTransferring": "同步中，查看進度",
+  "syncuiProgress": "{done} / {total}",
+  "@syncuiProgress": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
+  "syncuiUploadCount": "上傳 {count} 張",
+  "@syncuiUploadCount": {"placeholders": {"count": {"type": "int"}}},
+  "syncuiDownloadCount": "下載 {count} 張",
+  "@syncuiDownloadCount": {"placeholders": {"count": {"type": "int"}}},
+  "syncuiUpload": "上傳",
+  "syncuiDownload": "下載",
+  "syncuiLocation": "{pit} · {cell}",
+  "@syncuiLocation": {"placeholders": {"pit": {"type": "String"}, "cell": {"type": "String"}}},
+  "syncuiPercent": "{percent}%",
+  "@syncuiPercent": {"placeholders": {"percent": {"type": "int"}}},
+  "syncuiWaiting": "等待中",
+  "syncuiMoreWaiting": "還有 {count} 張等待中",
+  "@syncuiMoreWaiting": {"placeholders": {"count": {"type": "int"}}},
+  "syncuiBadgeDownloading": "下載中 {percent}%",
+  "@syncuiBadgeDownloading": {"placeholders": {"percent": {"type": "int"}}}
+}
