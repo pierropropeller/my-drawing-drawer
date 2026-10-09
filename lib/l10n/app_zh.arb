@@ -697,7 +697,7 @@
   "goalsLayout": "排版",
   "goalsIncome": "商稿收入",
   "goalsReviewLayoutTitle": "年度回顧排版",
-  "goalsRatio": "正方格比例",
+  "goalsRatio": "圖片比例",
   "goalsMonthFormat": "月份格式",
   "goalsMonthPosition": "月份位置",
   "goalsOnImage": "圖上",
@@ -826,6 +826,38 @@
     "placeholders": {
       "code": {
         "type": "String"
+      }
+    }
+  },
+  "moveReviewPitLabel": "坑",
+  "moveReviewPositionLabel": "位置",
+  "moveReviewMovedToPit": "已移動 {count} 張到「{pit}」的{target}",
+  "@moveReviewMovedToPit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "pit": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "moveReviewPickTitle": "選擇 {month} 月的圖片",
+  "@moveReviewPickTitle": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "moveReviewPieceCount": "{count} 張成圖",
+  "@moveReviewPieceCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   },

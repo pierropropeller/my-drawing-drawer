@@ -2046,7 +2046,7 @@ abstract class AppLocalizations {
   /// No description provided for @goalsRatio.
   ///
   /// In zh, this message translates to:
-  /// **'正方格比例'**
+  /// **'圖片比例'**
   String get goalsRatio;
 
   /// No description provided for @goalsMonthFormat.
@@ -2318,6 +2318,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'{code, select, CNY{人民幣} HKD{港幣} TWD{新台幣} USD{美元} JPY{日圓} EUR{歐元} GBP{英鎊} KRW{韓元} SGD{新加坡幣} other{{code}}}'**
   String goalsCurrencyName(String code);
+
+  /// No description provided for @moveReviewPitLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'坑'**
+  String get moveReviewPitLabel;
+
+  /// No description provided for @moveReviewPositionLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'位置'**
+  String get moveReviewPositionLabel;
+
+  /// No description provided for @moveReviewMovedToPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'已移動 {count} 張到「{pit}」的{target}'**
+  String moveReviewMovedToPit(int count, String pit, String target);
+
+  /// No description provided for @moveReviewPickTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇 {month} 月的圖片'**
+  String moveReviewPickTitle(int month);
+
+  /// No description provided for @moveReviewPieceCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張成圖'**
+  String moveReviewPieceCount(int count);
 
   /// No description provided for @searchCategoryPiece.
   ///

@@ -1094,7 +1094,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get goalsReviewLayoutTitle => '年度回顧排版';
 
   @override
-  String get goalsRatio => '正方格比例';
+  String get goalsRatio => '圖片比例';
 
   @override
   String get goalsMonthFormat => '月份格式';
@@ -1263,6 +1263,27 @@ class AppLocalizationsZh extends AppLocalizations {
       'other': '$code',
     });
     return '$_temp0';
+  }
+
+  @override
+  String get moveReviewPitLabel => '坑';
+
+  @override
+  String get moveReviewPositionLabel => '位置';
+
+  @override
+  String moveReviewMovedToPit(int count, String pit, String target) {
+    return '已移動 $count 張到「$pit」的$target';
+  }
+
+  @override
+  String moveReviewPickTitle(int month) {
+    return '選擇 $month 月的圖片';
+  }
+
+  @override
+  String moveReviewPieceCount(int count) {
+    return '$count 張成圖';
   }
 
   @override
