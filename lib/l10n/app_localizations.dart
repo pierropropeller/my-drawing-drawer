@@ -2600,6 +2600,84 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已加入'**
   String get shareAdded;
+
+  /// No description provided for @syncuiSheetLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步進度'**
+  String get syncuiSheetLabel;
+
+  /// No description provided for @syncuiRingChecking.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步中，正在檢查'**
+  String get syncuiRingChecking;
+
+  /// No description provided for @syncuiRingTransferring.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步中，查看進度'**
+  String get syncuiRingTransferring;
+
+  /// No description provided for @syncuiProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'{done} / {total}'**
+  String syncuiProgress(int done, int total);
+
+  /// No description provided for @syncuiUploadCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'上傳 {count} 張'**
+  String syncuiUploadCount(int count);
+
+  /// No description provided for @syncuiDownloadCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'下載 {count} 張'**
+  String syncuiDownloadCount(int count);
+
+  /// No description provided for @syncuiUpload.
+  ///
+  /// In zh, this message translates to:
+  /// **'上傳'**
+  String get syncuiUpload;
+
+  /// No description provided for @syncuiDownload.
+  ///
+  /// In zh, this message translates to:
+  /// **'下載'**
+  String get syncuiDownload;
+
+  /// No description provided for @syncuiLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'{pit} · {cell}'**
+  String syncuiLocation(String pit, String cell);
+
+  /// No description provided for @syncuiPercent.
+  ///
+  /// In zh, this message translates to:
+  /// **'{percent}%'**
+  String syncuiPercent(int percent);
+
+  /// No description provided for @syncuiWaiting.
+  ///
+  /// In zh, this message translates to:
+  /// **'等待中'**
+  String get syncuiWaiting;
+
+  /// No description provided for @syncuiMoreWaiting.
+  ///
+  /// In zh, this message translates to:
+  /// **'還有 {count} 張等待中'**
+  String syncuiMoreWaiting(int count);
+
+  /// No description provided for @syncuiBadgeDownloading.
+  ///
+  /// In zh, this message translates to:
+  /// **'下載中 {percent}%'**
+  String syncuiBadgeDownloading(int percent);
 }
 
 class _AppLocalizationsDelegate

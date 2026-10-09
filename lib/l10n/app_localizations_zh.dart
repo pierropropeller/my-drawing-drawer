@@ -1427,4 +1427,57 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get shareAdded => '已加入';
+
+  @override
+  String get syncuiSheetLabel => '同步進度';
+
+  @override
+  String get syncuiRingChecking => '同步中，正在檢查';
+
+  @override
+  String get syncuiRingTransferring => '同步中，查看進度';
+
+  @override
+  String syncuiProgress(int done, int total) {
+    return '$done / $total';
+  }
+
+  @override
+  String syncuiUploadCount(int count) {
+    return '上傳 $count 張';
+  }
+
+  @override
+  String syncuiDownloadCount(int count) {
+    return '下載 $count 張';
+  }
+
+  @override
+  String get syncuiUpload => '上傳';
+
+  @override
+  String get syncuiDownload => '下載';
+
+  @override
+  String syncuiLocation(String pit, String cell) {
+    return '$pit · $cell';
+  }
+
+  @override
+  String syncuiPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String get syncuiWaiting => '等待中';
+
+  @override
+  String syncuiMoreWaiting(int count) {
+    return '還有 $count 張等待中';
+  }
+
+  @override
+  String syncuiBadgeDownloading(int percent) {
+    return '下載中 $percent%';
+  }
 }
