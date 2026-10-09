@@ -490,10 +490,126 @@ extension GoalQueries on AppDatabase {
     return out;
   }
 
+  /// 該年每月的回顧圖（key＝月 1~12，只含有成圖圖片的月份，或被手動設為空白的月份）。
+  ///
+  /// 解析順序（D-056）：
+  /// 1. 手動挑過的圖（`YearReviewMonths.imageFile` 非空）→ 就是它；
+  /// 2. 手動設為空白（`setReviewMonth(..., null)`，資料列存在且 imageFile 為 null）→ 值為 null；
+  /// 3. 其餘（沒有資料列、或被 [setReviewMonthImage] 清回預設）→ 預設代表圖：
+  ///    該月**互動量 `actualLikes` 最高**的成圖的第一張圖，一樣高就取 `finishedAt` 最新的。
+  ///    該月沒有任何有圖的成圖 → 這個月不在結果裡。
+  ///
+  /// 候選成圖包含私稿與商稿（回顧是自己看的年度總結，不分公開與否），已刪除的不算。
   Stream<Map<int, String?>> watchReviewMonths(int year) {
-    return (select(yearReviewMonths)..where((m) => m.year.equals(year)))
-        .watch()
-        .map((rows) => {for (final r in rows) r.month: r.imageFile});
+    return watchAssembled(
+      this,
+      {pieces, entityImages, yearReviewMonths},
+      () async {
+        final out = <int, String?>{};
+        final byMonth = await _reviewCandidates(year);
+        for (final e in byMonth.entries) {
+          out[e.key] = defaultReviewPiece(e.value)?.file;
+        }
+        for (final r in await (select(
+          yearReviewMonths,
+        )..where((m) => m.year.equals(year))).get()) {
+          if (r.imageFile == null) {
+            out[r.month] = null; // 手動空白
+          } else if (r.imageFile!.isNotEmpty) {
+            out[r.month] = r.imageFile;
+          }
+        }
+        return out;
+      },
+    );
+  }
+
+  /// 某月所有「完成日期落在該月、至少有一張圖」的成圖，供「選擇 N 月的圖片」sheet。
+  /// 排序：`finishedAt` 新到舊。包含私稿與商稿。
+  Stream<List<ReviewMonthPiece>> watchReviewMonthPieces(int year, int month) {
+    return watchAssembled(this, {
+      pieces,
+      entityImages,
+    }, () async => (await _reviewCandidates(year))[month] ?? const []);
+  }
+
+  /// 每月的候選數與目前使用的圖（供年度回顧格決定長按是否有反應：[ReviewMonthSummary.canPick]）。
+  /// 只含有候選成圖的月份。
+  Stream<Map<int, ReviewMonthSummary>> watchReviewMonthSummaries(int year) {
+    return watchAssembled(
+      this,
+      {pieces, entityImages, yearReviewMonths},
+      () async {
+        final byMonth = await _reviewCandidates(year);
+        final rows = {
+          for (final r in await (select(
+            yearReviewMonths,
+          )..where((m) => m.year.equals(year))).get())
+            r.month: r,
+        };
+        return {
+          for (final e in byMonth.entries)
+            e.key: () {
+              final r = rows[e.key];
+              final manual = r != null && (r.imageFile?.isNotEmpty ?? true);
+              return ReviewMonthSummary(
+                pieceCount: e.value.length,
+                file: manual ? r.imageFile : defaultReviewPiece(e.value)?.file,
+                isManual: manual,
+              );
+            }(),
+        };
+      },
+    );
+  }
+
+  /// 該年每月候選成圖（有圖、未刪除），月內 `finishedAt` 新到舊。
+  Future<Map<int, List<ReviewMonthPiece>>> _reviewCandidates(int year) async {
+    final rows =
+        await (select(pieces)
+              ..where(
+                (p) =>
+                    p.deletedAt.isNull() &
+                    p.finishedAt.isBiggerOrEqualValue(DateTime(year)) &
+                    p.finishedAt.isSmallerThanValue(DateTime(year + 1)),
+              )
+              ..orderBy([(p) => OrderingTerm.desc(p.finishedAt)]))
+            .get();
+    final out = <int, List<ReviewMonthPiece>>{};
+    for (final p in rows) {
+      final first =
+          await (select(entityImages)
+                ..where(
+                  (e) =>
+                      e.ownerType.equalsValue(OwnerType.piece) &
+                      e.ownerId.equals(p.id) &
+                      e.deletedAt.isNull(),
+                )
+                ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)])
+                ..limit(1))
+              .getSingleOrNull();
+      if (first == null) continue;
+      out
+          .putIfAbsent(p.finishedAt.month, () => [])
+          .add(
+            ReviewMonthPiece(
+              pieceId: p.id,
+              title: p.title,
+              file: first.imageFile,
+              width: first.width,
+              height: first.height,
+              actualLikes: p.actualLikes,
+              finishedAt: p.finishedAt,
+            ),
+          );
+    }
+    return out;
+  }
+
+  /// 手動指定某月的回顧圖（[file] 是圖片檔名，通常是 [ReviewMonthPiece.file]）。
+  /// [file] 為 null＝**清回預設**（互動量最高）。要「刻意留空」請用 [setReviewMonth] 傳 null。
+  Future<void> setReviewMonthImage(int year, int month, String? file) {
+    return setReviewMonth(year, month, file ?? '');
   }
 
   Future<void> setReviewMonth(int year, int month, String? file) {
@@ -528,4 +644,66 @@ extension GoalQueries on AppDatabase {
     return into(reviewSettings)
         .insertOnConflictUpdate(s.copyWith(updatedAt: Value(DateTime.now())));
   }
+}
+
+/// 回顧某月的一張候選成圖。
+class ReviewMonthPiece {
+  const ReviewMonthPiece({
+    required this.pieceId,
+    required this.title,
+    required this.file,
+    required this.width,
+    required this.height,
+    required this.actualLikes,
+    required this.finishedAt,
+  });
+  final String pieceId;
+  final String title;
+
+  /// 成圖的第一張圖。
+  final String file;
+  final int width;
+  final int height;
+  final int actualLikes;
+  final DateTime finishedAt;
+}
+
+/// 預設代表圖：互動量最高，一樣高取 `finishedAt` 最新（再一樣取 id 較大者，結果才穩定）。
+ReviewMonthPiece? defaultReviewPiece(Iterable<ReviewMonthPiece> candidates) {
+  ReviewMonthPiece? best;
+  for (final c in candidates) {
+    if (best == null) {
+      best = c;
+      continue;
+    }
+    final byLikes = c.actualLikes.compareTo(best.actualLikes);
+    final byTime = c.finishedAt.compareTo(best.finishedAt);
+    if (byLikes > 0 ||
+        (byLikes == 0 &&
+            (byTime > 0 ||
+                (byTime == 0 && c.pieceId.compareTo(best.pieceId) > 0)))) {
+      best = c;
+    }
+  }
+  return best;
+}
+
+class ReviewMonthSummary {
+  const ReviewMonthSummary({
+    required this.pieceCount,
+    required this.file,
+    required this.isManual,
+  });
+
+  /// 該月有圖的成圖數。
+  final int pieceCount;
+
+  /// 目前使用的圖（手動空白時為 null）。
+  final String? file;
+
+  /// 是否為手動挑的（含手動空白）。
+  final bool isManual;
+
+  /// 多於一張才能挑（D-056：只有一張時長按沒有反應）。
+  bool get canPick => pieceCount > 1;
 }

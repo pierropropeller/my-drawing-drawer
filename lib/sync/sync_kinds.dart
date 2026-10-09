@@ -442,7 +442,8 @@ class ReviewMonthsKind extends SyncKind {
       .insertOnConflictUpdate(YearReviewMonth.fromJson(data));
   @override
   Set<String> imageFiles(Map<String, dynamic> data) => {
-    if (data['imageFile'] != null) data['imageFile'] as String,
+    if (data['imageFile'] != null && data['imageFile'] != '')
+      data['imageFile'] as String,
   };
 }
 

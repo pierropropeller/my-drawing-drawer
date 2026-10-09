@@ -9,6 +9,7 @@ import '../data/album_queries.dart';
 import '../data/database.dart';
 import '../data/entity_queries.dart';
 import '../data/goal_queries.dart';
+import '../data/image_location.dart';
 import '../data/image_store.dart';
 import '../data/income_queries.dart';
 import '../data/junk_queries.dart';
@@ -129,6 +130,20 @@ final reviewMonthsProvider = StreamProvider.family<Map<int, String?>, int>(
   (ref, year) => ref.watch(databaseProvider).watchReviewMonths(year),
 );
 
+/// 某月所有候選成圖（選擇 N 月的圖片 sheet）。key＝(年, 月)。
+final reviewMonthPiecesProvider =
+    StreamProvider.family<List<ReviewMonthPiece>, (int, int)>(
+      (ref, k) =>
+          ref.watch(databaseProvider).watchReviewMonthPieces(k.$1, k.$2),
+    );
+
+/// 每月候選數與目前的圖（`canPick`＝多於一張，長按才有反應）。
+final reviewMonthSummariesProvider =
+    StreamProvider.family<Map<int, ReviewMonthSummary>, int>(
+      (ref, year) =>
+          ref.watch(databaseProvider).watchReviewMonthSummaries(year),
+    );
+
 final reviewSettingsProvider = StreamProvider.family<ReviewSetting, int>(
   (ref, year) => ref.watch(databaseProvider).watchReviewSettings(year),
 );
@@ -194,3 +209,8 @@ final imageExistsProvider = StreamProvider.family<bool, String>((
   final store = await ref.watch(imageStoreProvider.future);
   yield* store.watchExists(file);
 });
+
+/// 圖片所在的坑與格（同步進度 sheet 顯示「坑 · 格」）；找不到為 null。
+final imageLocationProvider = FutureProvider.family<ImageLocation?, String>(
+  (ref, file) => ref.watch(databaseProvider).imageLocationOf(file),
+);

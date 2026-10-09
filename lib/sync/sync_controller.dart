@@ -8,7 +8,10 @@ import 'drive_remote.dart';
 import 'google_auth.dart';
 import 'remote.dart';
 import 'sync_engine.dart';
+import 'sync_transfer.dart';
 import '../l10n/l10n.dart';
+
+export 'sync_transfer.dart';
 
 enum SyncPhase { idle, syncing, error }
 
@@ -23,6 +26,8 @@ class SyncState {
     this.imagesTotal = 0,
     this.isFirstSync = false,
     this.needsAppUpdate = false,
+    this.transfers = const [],
+    this.transfersPlanned = false,
   });
   final SyncPhase phase;
   final DateTime? lastSyncAt;
@@ -42,7 +47,43 @@ class SyncState {
   /// 遠端備份由較新版本的 App 建立（錯誤訊息在 [message]）。
   final bool needsAppUpdate;
 
+  /// 這次同步要傳的所有圖片（先下載後上傳）與各自進度；同步結束（含失敗）就清空。
+  final List<SyncTransfer> transfers;
+
+  /// 傳輸清單是否已確定（拉取、比對完遠端之後）。
+  final bool transfersPlanned;
+
   bool get isSyncing => phase == SyncPhase.syncing;
+
+  /// 檢查中（D-052）：同步中、還在拉取／比對遠端，尚未知道有沒有圖片要傳。
+  /// 頭像外圈轉不確定的弧，不可點。
+  bool get isChecking => isSyncing && !transfersPlanned;
+
+  /// 傳輸中（D-052）：同步中、有圖片要上傳或下載。頭像外圈是進度環，可點開「同步進度」。
+  bool get isTransferring =>
+      isSyncing && transfersPlanned && transfers.isNotEmpty;
+
+  int get uploadCount => transfers.where((t) => t.isUpload).length;
+  int get downloadCount => transfers.where((t) => t.isDownload).length;
+  int get uploadDone => transfers.where((t) => t.isUpload && t.isDone).length;
+  int get downloadDone =>
+      transfers.where((t) => t.isDownload && t.isDone).length;
+
+  /// 總張數與已完成張數（上傳＋下載）。
+  int get transferTotal => transfers.length;
+  int get transferDone => transfers.where((t) => t.isDone).length;
+
+  /// 進度環：已完成張數／總張數（0~1）；沒有傳輸時為 null。
+  double? get transferFraction =>
+      transfers.isEmpty ? null : transferDone / transfers.length;
+
+  /// 目前正在傳的那一張（沒有則 null）。
+  SyncTransfer? get activeTransfer {
+    for (final t in transfers) {
+      if (t.isActive) return t;
+    }
+    return null;
+  }
 
   /// 是否有圖片進度可以顯示（頂部橫條「同步中・圖片 N / M」）。
   bool get hasImageProgress => isSyncing && imagesTotal > 0;
@@ -61,6 +102,8 @@ class SyncState {
     int? imagesTotal,
     bool? isFirstSync,
     bool? needsAppUpdate,
+    List<SyncTransfer>? transfers,
+    bool? transfersPlanned,
   }) => SyncState(
     phase: phase ?? this.phase,
     lastSyncAt: lastSyncAt ?? this.lastSyncAt,
@@ -71,6 +114,8 @@ class SyncState {
     imagesTotal: imagesTotal ?? this.imagesTotal,
     isFirstSync: isFirstSync ?? this.isFirstSync,
     needsAppUpdate: needsAppUpdate ?? this.needsAppUpdate,
+    transfers: transfers ?? this.transfers,
+    transfersPlanned: transfersPlanned ?? this.transfersPlanned,
   );
 }
 
@@ -120,6 +165,8 @@ class SyncController extends Notifier<SyncState> {
           imagesDone: p.imagesDone,
           imagesTotal: p.imagesTotal,
           isFirstSync: first,
+          transfers: p.transfers,
+          transfersPlanned: p.transfersPlanned,
         ),
       );
       if (email != null) {
@@ -196,3 +243,28 @@ class SyncController extends Notifier<SyncState> {
 final syncControllerProvider = NotifierProvider<SyncController, SyncState>(
   SyncController.new,
 );
+
+/// 本次同步「下載」清單的索引（檔名 → 傳輸）。清單每次更新才重建一次，所有圖片格共用。
+final _downloadIndexProvider = Provider<Map<String, SyncTransfer>>((ref) {
+  final list = ref.watch(syncControllerProvider.select((s) => s.transfers));
+  return {
+    for (final t in list)
+      if (t.isDownload) t.file: t,
+  };
+});
+
+/// 圖片格的下載狀態（D-052 角標）：本機有這張圖→[ImageDownloadStatus.present]（不顯示角標）；
+/// 沒有→`isMissing`，`progress` 是下載進度（正在下載且知道大小時），null＝排隊中／沒有在同步
+/// （角標轉圈）。圖片下載完成時會自動變回 present。
+final imageTransferProvider = Provider.family<ImageDownloadStatus, String>((
+  ref,
+  file,
+) {
+  final exists = ref.watch(imageExistsProvider(file)).value ?? true;
+  if (exists) return ImageDownloadStatus.present;
+  final t = ref.watch(_downloadIndexProvider.select((m) => m[file]));
+  return ImageDownloadStatus(
+    isMissing: true,
+    progress: (t != null && t.isActive) ? t.progress : null,
+  );
+});

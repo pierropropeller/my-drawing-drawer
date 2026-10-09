@@ -66,16 +66,26 @@ class DriveRemote implements SyncRemote {
   }
 
   @override
-  Future<Uint8List?> download(String name) async {
+  Future<Uint8List?> download(
+    String name, {
+    TransferProgress? onProgress,
+  }) async {
     final id = _ids[name];
     if (id == null) return null;
-    final r = await _check(
-      await _http.get(
-        Uri.parse('$_api/$id?alt=media'),
-        headers: await headers(),
-      ),
-    );
-    return r.bodyBytes;
+    final req = http.Request('GET', Uri.parse('$_api/$id?alt=media'))
+      ..headers.addAll(await headers());
+    final resp = await _http.send(req);
+    if (resp.statusCode >= 400) {
+      await _check(await http.Response.fromStream(resp)); // 轉成對應的例外
+    }
+    // 串流讀取，依已收位元組回報進度（Content-Length 未知時 total 為 null）。
+    final total = resp.contentLength;
+    final out = BytesBuilder(copy: false);
+    await for (final chunk in resp.stream) {
+      out.add(chunk);
+      onProgress?.call(out.length, total);
+    }
+    return out.takeBytes();
   }
 
   @override
@@ -83,6 +93,7 @@ class DriveRemote implements SyncRemote {
     String name,
     Uint8List bytes, {
     String contentType = 'application/octet-stream',
+    TransferProgress? onProgress,
   }) async {
     final existing = _ids[name];
     final h = await headers();
@@ -107,15 +118,46 @@ class DriveRemote implements SyncRemote {
             'fields': 'id,modifiedTime',
           },
         );
-    final req = http.Request(existing == null ? 'POST' : 'PATCH', uri)
-      ..headers.addAll(h)
-      ..headers['Content-Type'] = 'multipart/related; boundary=$boundary'
-      ..bodyBytes = body.takeBytes();
+    final req =
+        _ProgressRequest(
+            existing == null ? 'POST' : 'PATCH',
+            uri,
+            body.takeBytes(),
+            onProgress,
+          )
+          ..headers.addAll(h)
+          ..headers['Content-Type'] = 'multipart/related; boundary=$boundary';
     final r = await _check(
       await http.Response.fromStream(await _http.send(req)),
     );
     final m = jsonDecode(r.body) as Map<String, dynamic>;
     _ids[name] = m['id'] as String;
     return m['modifiedTime'] as String;
+  }
+}
+
+/// 分段送出請求內容的請求：socket 每取一段就回報已送出的位元組（供上傳進度）。
+/// 進度是「已交給網絡層」的量，可能略快於對方實際收到的量；完成由呼叫端另行標示。
+class _ProgressRequest extends http.BaseRequest {
+  _ProgressRequest(super.method, super.url, this._body, this._onProgress) {
+    contentLength = _body.length;
+  }
+
+  final Uint8List _body;
+  final TransferProgress? _onProgress;
+  static const _chunk = 32 * 1024;
+
+  @override
+  http.ByteStream finalize() {
+    super.finalize();
+    return http.ByteStream(_chunks());
+  }
+
+  Stream<List<int>> _chunks() async* {
+    for (var i = 0; i < _body.length; i += _chunk) {
+      final end = i + _chunk < _body.length ? i + _chunk : _body.length;
+      yield Uint8List.sublistView(_body, i, end);
+      _onProgress?.call(end, _body.length);
+    }
   }
 }

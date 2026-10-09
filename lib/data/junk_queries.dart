@@ -17,6 +17,8 @@ class _Src {
     required this.height,
     required this.key,
     required this.createdAt,
+    this.author = '',
+    this.source = '',
   });
   final String id;
   final String pitId;
@@ -25,6 +27,10 @@ class _Src {
   final int height;
   final String key;
   final DateTime createdAt;
+
+  /// 只有同人圖來源列有（跨坑移動同人圖時一併帶過去）。
+  final String author;
+  final String source;
 }
 
 /// 目標格裡同一張圖（同 imageKey）的既有列。
@@ -77,23 +83,24 @@ extension JunkQueries on AppDatabase {
   Future<void> deleteAlbumImageRows(Iterable<String> ids, DateTime now) async {
     final idList = ids.toList();
     if (idList.isEmpty) return;
-    final keys = <(String, String)>{};
+    // imageKey 是整張圖的身分（跨格、跨坑都共用），所以按 key 找分身，不限定坑。
+    final keys = <String>{};
     for (final r in await (select(
       officialImages,
     )..where((i) => i.id.isIn(idList))).get()) {
-      keys.add((r.pitId, r.imageKey));
+      keys.add(r.imageKey);
     }
     for (final r in await (select(
       fanArts,
     )..where((i) => i.id.isIn(idList))).get()) {
-      keys.add((r.pitId, r.imageKey));
+      keys.add(r.imageKey);
     }
     for (final r in await (select(
       junkImages,
     )..where((i) => i.id.isIn(idList))).get()) {
-      keys.add((r.pitId, r.imageKey));
+      keys.add(r.imageKey);
     }
-    keys.removeWhere((k) => k.$2.isEmpty);
+    keys.remove('');
 
     await (update(officialImages)..where((i) => i.id.isIn(idList))).write(
       OfficialImagesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
@@ -104,91 +111,135 @@ extension JunkQueries on AppDatabase {
     await (update(junkImages)..where((i) => i.id.isIn(idList))).write(
       JunkImagesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
     );
-    for (final (pitId, key) in keys) {
-      await (update(officialImages)..where(
-            (i) =>
-                i.pitId.equals(pitId) &
-                i.imageKey.equals(key) &
-                i.deletedAt.isNull(),
-          ))
-          .write(
-            OfficialImagesCompanion(
-              deletedAt: Value(now),
-              updatedAt: Value(now),
-            ),
-          );
-      await (update(fanArts)..where(
-            (i) =>
-                i.pitId.equals(pitId) &
-                i.imageKey.equals(key) &
-                i.deletedAt.isNull(),
-          ))
-          .write(
-            FanArtsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
-          );
-      await (update(junkImages)..where(
-            (i) =>
-                i.pitId.equals(pitId) &
-                i.imageKey.equals(key) &
-                i.deletedAt.isNull(),
-          ))
-          .write(
-            JunkImagesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
-          );
+    for (final key in keys) {
+      await (update(
+        officialImages,
+      )..where((i) => i.imageKey.equals(key) & i.deletedAt.isNull())).write(
+        OfficialImagesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
+      await (update(
+        fanArts,
+      )..where((i) => i.imageKey.equals(key) & i.deletedAt.isNull())).write(
+        FanArtsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
+      await (update(
+        junkImages,
+      )..where((i) => i.imageKey.equals(key) & i.deletedAt.isNull())).write(
+        JunkImagesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
     }
   }
 
   // ---- 移動 ----
 
-  /// 把 [ids]（都在 [from] 格）移到 [to] 格。
+  /// 把 [ids]（都在 [from] 格）移到 [to] 格；[targetPitId] 給了就是**跨坑**移動（D-054）。
   ///
-  /// - 同一格（官方→官方、同人圖→同人圖）：只更新 [groupId]（換分組／出處）；雜物→雜物不做事。
-  /// - 不同格：在目標格建立一列（若目標格有同一張圖被隱藏的列就取消隱藏、恢復它原本的欄位），
-  ///   並把來源列隱藏。各格獨有的欄位（官方分組、同人圖作者／出處／tag）留在隱藏列上，
-  ///   移回時恢復；目標格沒有的欄位保持空白（例如同人圖作者為空字串）。
-  /// - [groupId]：目標是官方圖冊＝官方分組；目標是好看同人圖＝出處分組（可為 null）。
-  ///   沒指定時，取消隱藏的列沿用原本的分組，新建的官方列用第一個分組、同人圖列沒有出處。
-  /// - 被移動的圖若是坑封面：移到官方／同人圖時封面改指向新列；移到雜物時清掉封面
-  ///   （雜物不能當封面）。各格封面（官方／同人圖）一律清掉。
+  /// - 同一格同一坑（官方→官方、同人圖→同人圖）：只更新 [groupId]（換分組／出處）；
+  ///   沒給 [groupId] 就不做事；雜物→雜物不做事。
+  /// - 其他情況：在目標坑的目標格建立一列（目標坑的目標格若有同一張圖〔同 imageKey〕被隱藏的列
+  ///   就取消隱藏，恢復它原本的欄位），並把來源列隱藏。新列的 `pitId` 是目標坑；隱藏列保持
+  ///   原本的坑，所以圖再移回原坑時會恢復原本的分組／作者／出處／tag。
+  /// - [groupId]：目標是官方圖冊＝官方分組；目標是好看同人圖＝出處分組（可為 null）。必須屬於
+  ///   **目標坑**，否則丟 [ArgumentError]。沒指定時，取消隱藏的列沿用原本的分組，新建的官方列
+  ///   用目標坑第一個官方分組、同人圖列沒有出處。
+  /// - tag 按坑獨立：同人圖跨坑移到好看同人圖格時，來源的 tag 按**名稱**對應目標坑已有的 tag，
+  ///   目標坑沒有的自動新增同名 tag（作者、舊版出處文字也一併帶過去）。取消隱藏的列保留它自己的
+  ///   tag，不重新對應。
+  /// - 封面：被移動的圖若是來源坑的坑封面且目標是同一個坑的官方／同人圖→改指向新列；
+  ///   其餘（移到雜物、跨坑）清成 null。各格封面一律清掉。移進目標坑**不會**設定任何封面。
   Future<void> moveAlbumImages({
     required AlbumCell from,
     required List<String> ids,
     required AlbumCell to,
     String? groupId,
+    String? targetPitId,
   }) {
     return transaction(() async {
       final now = DateTime.now();
-      if (from == to) {
-        if (groupId == null) return;
-        if (from == AlbumCell.official) {
-          await (update(officialImages)..where((i) => i.id.isIn(ids))).write(
-            OfficialImagesCompanion(
-              groupId: Value(groupId),
-              updatedAt: Value(now),
-            ),
-          );
-        } else if (from == AlbumCell.fan) {
-          await (update(fanArts)..where((i) => i.id.isIn(ids))).write(
-            FanArtsCompanion(groupId: Value(groupId), updatedAt: Value(now)),
-          );
-        }
-        return;
-      }
-
       final sources = await _sources(from, ids);
       for (final src in sources) {
-        final twin = await _twinOf(to, src);
+        final pit = targetPitId ?? src.pitId;
+        final samePit = pit == src.pitId;
+        if (to != AlbumCell.junk && groupId != null) {
+          await _requireGroup(pit, groupId);
+        }
+        if (from == to && samePit) {
+          if (groupId == null) continue;
+          if (from == AlbumCell.official) {
+            await (update(
+              officialImages,
+            )..where((i) => i.id.equals(src.id))).write(
+              OfficialImagesCompanion(
+                groupId: Value(groupId),
+                updatedAt: Value(now),
+              ),
+            );
+          } else if (from == AlbumCell.fan) {
+            await (update(fanArts)..where((i) => i.id.equals(src.id))).write(
+              FanArtsCompanion(groupId: Value(groupId), updatedAt: Value(now)),
+            );
+          }
+          continue;
+        }
+
+        final twin = await _twinOf(to, src, pit);
         String targetId;
         if (twin != null) {
           targetId = twin.id;
           if (twin.hidden) await _unhide(to, twin.id, groupId, now);
         } else {
-          targetId = await _createCopy(to, src, groupId, now);
+          targetId = await _createCopy(to, src, pit, groupId, now);
+          if (from == AlbumCell.fan && to == AlbumCell.fan) {
+            await _copyFanTags(src.id, targetId, pit);
+          }
         }
         await _hide(from, src.id, now);
-        await _fixCovers(src.id, to == AlbumCell.junk ? null : targetId);
+        await _fixCovers(
+          src.id,
+          (to == AlbumCell.junk || !samePit) ? null : targetId,
+        );
       }
     });
+  }
+
+  /// 分組必須存在、未刪除且屬於 [pitId]。
+  Future<void> _requireGroup(String pitId, String groupId) async {
+    final g =
+        await (select(officialGroups)..where(
+              (x) =>
+                  x.id.equals(groupId) &
+                  x.pitId.equals(pitId) &
+                  x.deletedAt.isNull(),
+            ))
+            .getSingleOrNull();
+    if (g == null) {
+      throw ArgumentError.value(groupId, 'groupId', '分組不屬於目標坑 $pitId');
+    }
+  }
+
+  /// 同人圖跨坑：把來源的 tag 按名稱對應到目標坑（沒有就新增同名 tag），掛到新列上。
+  Future<void> _copyFanTags(String srcId, String newId, String pitId) async {
+    final links =
+        await (select(tagLinks)..where(
+              (l) =>
+                  l.targetType.equalsValue(TagTarget.fanArt) &
+                  l.targetId.equals(srcId),
+            ))
+            .get();
+    if (links.isEmpty) return;
+    final srcTags =
+        await (select(tags)..where(
+              (t) =>
+                  t.id.isIn(links.map((l) => l.tagId).toList()) &
+                  t.deletedAt.isNull(),
+            ))
+            .get();
+    srcTags.sort((a, b) => a.name.compareTo(b.name));
+    final mapped = <String>{};
+    for (final t in srcTags) {
+      mapped.add(await createTag(pitId, t.name));
+    }
+    await setTags(TagTarget.fanArt, newId, mapped.toList());
   }
 
   Future<List<_Src>> _sources(AlbumCell cell, List<String> ids) async {
@@ -235,6 +286,8 @@ extension JunkQueries on AppDatabase {
               r.height,
               r.imageKey,
               r.createdAt,
+              author: r.author,
+              source: r.source,
             ),
           );
         }
@@ -273,8 +326,10 @@ extension JunkQueries on AppDatabase {
     int w,
     int h,
     String key,
-    DateTime createdAt,
-  ) => _Src(
+    DateTime createdAt, {
+    String author = '',
+    String source = '',
+  }) => _Src(
     id: id,
     pitId: pitId,
     file: file,
@@ -282,16 +337,19 @@ extension JunkQueries on AppDatabase {
     height: h,
     key: key.isEmpty ? id : key, // 防呆：舊列沒有 imageKey 就用 id
     createdAt: createdAt,
+    author: author,
+    source: source,
   );
 
-  Future<_Twin?> _twinOf(AlbumCell cell, _Src src) async {
+  /// 目標坑 [pitId] 的目標格裡同一張圖（同 imageKey）的既有列。
+  Future<_Twin?> _twinOf(AlbumCell cell, _Src src, String pitId) async {
     switch (cell) {
       case AlbumCell.official:
         final r =
             await (select(officialImages)
                   ..where(
                     (i) =>
-                        i.pitId.equals(src.pitId) &
+                        i.pitId.equals(pitId) &
                         i.imageKey.equals(src.key) &
                         i.deletedAt.isNull(),
                   )
@@ -303,7 +361,7 @@ extension JunkQueries on AppDatabase {
             await (select(fanArts)
                   ..where(
                     (i) =>
-                        i.pitId.equals(src.pitId) &
+                        i.pitId.equals(pitId) &
                         i.imageKey.equals(src.key) &
                         i.deletedAt.isNull(),
                   )
@@ -315,7 +373,7 @@ extension JunkQueries on AppDatabase {
             await (select(junkImages)
                   ..where(
                     (i) =>
-                        i.pitId.equals(src.pitId) &
+                        i.pitId.equals(pitId) &
                         i.imageKey.equals(src.key) &
                         i.deletedAt.isNull(),
                   )
@@ -397,6 +455,7 @@ extension JunkQueries on AppDatabase {
   Future<String> _createCopy(
     AlbumCell cell,
     _Src src,
+    String pitId,
     String? groupId,
     DateTime now,
   ) async {
@@ -406,8 +465,8 @@ extension JunkQueries on AppDatabase {
         await into(officialImages).insert(
           OfficialImagesCompanion.insert(
             id: Value(id),
-            pitId: src.pitId,
-            groupId: groupId ?? await _firstGroupId(src.pitId, 'official'),
+            pitId: pitId,
+            groupId: groupId ?? await _firstGroupId(pitId, 'official'),
             imageFile: src.file,
             width: Value(src.width),
             height: Value(src.height),
@@ -420,10 +479,12 @@ extension JunkQueries on AppDatabase {
         await into(fanArts).insert(
           FanArtsCompanion.insert(
             id: Value(id),
-            pitId: src.pitId,
+            pitId: pitId,
             imageFile: src.file,
             width: Value(src.width),
             height: Value(src.height),
+            author: Value(src.author),
+            source: Value(src.source),
             groupId: Value(groupId),
             imageKey: Value(src.key),
             createdAt: Value(src.createdAt),
@@ -434,7 +495,7 @@ extension JunkQueries on AppDatabase {
         await into(junkImages).insert(
           JunkImagesCompanion.insert(
             id: Value(id),
-            pitId: src.pitId,
+            pitId: pitId,
             imageFile: src.file,
             width: Value(src.width),
             height: Value(src.height),
