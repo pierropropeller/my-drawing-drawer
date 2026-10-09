@@ -12,6 +12,7 @@ import '../l10n/l10n.dart';
 import 'login/welcome_page.dart';
 import 'me/profile_page.dart';
 import 'pits/pits_page.dart';
+import 'share/share_host.dart';
 
 /// 底部導覽列：坑／目標／我的。各分頁內容之後逐步補上。
 class AppShell extends ConsumerStatefulWidget {
@@ -80,7 +81,16 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (!ref.watch(settingsProvider.select((s) => s.onboarded))) {
       return const WelcomePage();
     }
-    return SyncDriver(child: _buildShell(context, t));
+    // 分享進來的「加入到」sheet 要在主畫面常駐監聽（D-053）。
+    return SyncDriver(
+      child: ShareHost(
+        pitsNavigator: _navKeys[0],
+        showPitsTab: () {
+          if (_index != 0) setState(() => _index = 0);
+        },
+        child: _buildShell(context, t),
+      ),
+    );
   }
 
   Widget _buildShell(BuildContext context, AppTokens t) {

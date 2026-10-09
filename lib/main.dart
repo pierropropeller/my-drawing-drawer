@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'share/share_inbox.dart';
 import 'state/settings.dart';
 import 'theme/app_theme.dart';
 import 'ui/shell.dart';
@@ -30,6 +31,8 @@ class HuaKengApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accent = ref.watch(settingsProvider.select((s) => s.accent));
+    // 啟動時就開始接收分享（冷啟動的初始分享、執行中的新分享）。
+    ref.watch(shareInboxProvider);
     return MaterialApp(
       onGenerateTitle: (_) => appName,
       // 目前只有繁體中文；English 之後補 app_en.arb 再開放（D-040）。
