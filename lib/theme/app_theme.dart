@@ -7,7 +7,7 @@ import 'tokens.dart';
 ThemeData buildTheme(
   Brightness brightness, {
   bool useGoogleFonts = true,
-  AccentPreset accent = AccentPreset.coral,
+  AccentPreset accent = AccentPreset.rose,
 }) {
   final t = (brightness == Brightness.light ? AppTokens.light : AppTokens.dark)
       .withAccent(accent, brightness);

@@ -125,7 +125,10 @@ void main() {
         0xFF9AAB79, 0xFFADBD8C, 0xFF2D3324,
       ],
     };
-    expect(AccentPreset.values.map((p) => p.label), ['珊瑚', '霧藍', '玫瑰', '抹茶']);
+    // D-067：次序為 玫瑰、霧藍、珊瑚、抹茶，預設玫瑰。
+    expect(AccentPreset.values.map((p) => p.label), ['玫瑰', '霧藍', '珊瑚', '抹茶']);
+    expect(AccentPreset.fromKey(null), AccentPreset.rose);
+    expect(const AppSettings().accent, AccentPreset.rose);
     for (final e in expected.entries) {
       for (final (b, base, off) in [
         (Brightness.light, AppTokens.light, 0),

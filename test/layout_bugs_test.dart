@@ -12,6 +12,7 @@ import 'package:huakeng/l10n/l10n.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/ui/album/fan_art_list_page.dart';
+import 'package:huakeng/ui/goals/review_canvas.dart';
 import 'package:huakeng/ui/goals/review_edit_page.dart';
 import 'package:huakeng/ui/pits/pit_page.dart';
 
@@ -115,6 +116,22 @@ void main() {
       );
     }
     await unmount(tester);
+  });
+
+  test('月份「January」格式：1×12、2×6 用縮寫加句點，其他排版寫全名', () {
+    final l = l10nStatic;
+    for (final cols in [12, 6]) {
+      expect(monthLabel(1, 'January', l, columns: cols), 'Jan.');
+      expect(monthLabel(9, 'January', l, columns: cols), 'Sep.');
+      expect(monthLabel(5, 'January', l, columns: cols), 'May');
+    }
+    for (final cols in [4, 3, 2]) {
+      expect(monthLabel(1, 'January', l, columns: cols), 'January');
+      expect(monthLabel(9, 'January', l, columns: cols), 'September');
+    }
+    // 其他格式與欄數無關。
+    expect(monthLabel(1, 'Jan', l, columns: 12), 'Jan');
+    expect(monthLabel(1, '01', l, columns: 2), '01');
   });
 }
 

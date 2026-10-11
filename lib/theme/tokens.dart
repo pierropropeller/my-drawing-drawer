@@ -153,22 +153,22 @@ class AccentColors {
   final Color soft;
 }
 
-/// 主題色預設（ColorSystem／HANDOFF 第 7 節）：珊瑚（預設）／霧藍／玫瑰／抹茶。
+/// 主題色預設（ColorSystem／HANDOFF 第 7 節）：玫瑰（預設）／霧藍／珊瑚／抹茶（D-067）。
 enum AccentPreset {
-  coral(
-    'coral',
-    AccentColors(Color(0xFFD9634E), Color(0xFFB84B38), Color(0xFFF6E3DC)),
-    AccentColors(Color(0xFFE27560), Color(0xFFE8876F), Color(0xFF3D2A24)),
+  rose(
+    'rose',
+    AccentColors(Color(0xFFB76A7C), Color(0xFF9A5264), Color(0xFFF3E2E6)),
+    AccentColors(Color(0xFFCF8A9B), Color(0xFFD99AAB), Color(0xFF3A2A2F)),
   ),
   slate(
     'slate',
     AccentColors(Color(0xFF5B7A99), Color(0xFF46627E), Color(0xFFE3EAF1)),
     AccentColors(Color(0xFF7F9DBB), Color(0xFF93AECB), Color(0xFF26303A)),
   ),
-  rose(
-    'rose',
-    AccentColors(Color(0xFFB76A7C), Color(0xFF9A5264), Color(0xFFF3E2E6)),
-    AccentColors(Color(0xFFCF8A9B), Color(0xFFD99AAB), Color(0xFF3A2A2F)),
+  coral(
+    'coral',
+    AccentColors(Color(0xFFD9634E), Color(0xFFB84B38), Color(0xFFF6E3DC)),
+    AccentColors(Color(0xFFE27560), Color(0xFFE8876F), Color(0xFF3D2A24)),
   ),
   matcha(
     'matcha',
@@ -197,7 +197,7 @@ enum AccentPreset {
   AccentColors colors(Brightness b) => b == Brightness.dark ? dark : light;
 
   static AccentPreset fromKey(String? key) =>
-      values.firstWhere((p) => p.key == key, orElse: () => coral);
+      values.firstWhere((p) => p.key == key, orElse: () => rose);
 }
 
 /// 圓角規格（HANDOFF 第 6 節）。

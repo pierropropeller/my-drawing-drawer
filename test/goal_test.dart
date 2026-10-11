@@ -59,8 +59,14 @@ void main() {
     expect(goalDisplayName(l10nStatic, g(GoalKind.idea)), '生產 12 個腦洞');
     expect(goalDisplayName(l10nStatic, g(GoalKind.draft)), '畫 12 份草稿');
     expect(goalDisplayName(l10nStatic, g(GoalKind.piece)), '完成 12 張成圖');
-    expect(goalDisplayName(l10nStatic, g(GoalKind.piece, likes: 500)), '互動量過 500 的成圖 12 張');
-    expect(goalDisplayName(l10nStatic, g(GoalKind.piece, name: '夏日企劃')), '夏日企劃');
+    expect(
+      goalDisplayName(l10nStatic, g(GoalKind.piece, likes: 500)),
+      '互動量過 500 的成圖 12 張',
+    );
+    expect(
+      goalDisplayName(l10nStatic, g(GoalKind.piece, name: '夏日企劃')),
+      '夏日企劃',
+    );
   });
 
   test('年度目標進度：期間、坑、互動量', () async {
@@ -184,7 +190,18 @@ void main() {
     final views = await db
         .watchGoalViews(GoalPeriod.month, 2026, month: 5)
         .first;
-    expect(views.map((v) => goalDisplayName(l10nStatic, v.goal)), ['五成', '兩成', '已達成', '超額']);
-    expect(goalDisplayName(l10nStatic, sortGoalsByProgress(views.reversed).first.goal), '五成');
+    expect(views.map((v) => goalDisplayName(l10nStatic, v.goal)), [
+      '五成',
+      '兩成',
+      '已達成',
+      '超額',
+    ]);
+    expect(
+      goalDisplayName(
+        l10nStatic,
+        sortGoalsByProgress(views.reversed).first.goal,
+      ),
+      '五成',
+    );
   });
 }

@@ -20,7 +20,7 @@ class AppSettings {
     this.avatarFile,
     this.onboarded = false,
     this.accountEmail,
-    this.accent = AccentPreset.coral,
+    this.accent = AccentPreset.rose,
     this.language = AppLanguage.system,
     this.defaultCurrency = 'CNY',
     this.syncedAccount,

@@ -30,7 +30,9 @@ String monthFormatOptionLabel(AppLocalizations l, String format) =>
       _ => format,
     };
 
-String monthLabel(int m, String format, AppLocalizations l) {
+/// 月份標籤。「January」格式依排版的欄數決定長短：1×12、2×6（欄數 ≥ 6，格子很窄）
+/// 用縮寫加句點（Jan.），其他排版格子夠寬，寫全名（January）。
+String monthLabel(int m, String format, AppLocalizations l, {int columns = 4}) {
   const short = [
     'Jan',
     'Feb',
@@ -45,8 +47,8 @@ String monthLabel(int m, String format, AppLocalizations l) {
     'Nov',
     'Dec',
   ];
-  // 設計稿：「January」選項顯示英文縮寫加句點（5 月不加）。
-  const long = [
+  // 窄格用：英文縮寫加句點（5 月不加）。
+  const narrow = [
     'Jan.',
     'Feb.',
     'Mar.',
@@ -60,8 +62,22 @@ String monthLabel(int m, String format, AppLocalizations l) {
     'Nov.',
     'Dec.',
   ];
+  const full = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
   return switch (format) {
-    'January' => long[m - 1],
+    'January' => (columns >= 6 ? narrow : full)[m - 1],
     '一月' => l.goalsMonthCn(m.toString()),
     '1月' => l.goalsMonthNum(m),
     '01' => m.toString().padLeft(2, '0'),
@@ -135,6 +151,7 @@ class ReviewCanvas extends StatelessWidget {
                             r * columns + col + 1,
                             monthFormat,
                             context.l10n,
+                            columns: columns,
                           ),
                           align: monthAlign,
                           onImage: monthOnImage,
