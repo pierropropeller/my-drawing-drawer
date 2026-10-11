@@ -4,8 +4,10 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/l10n/l10n.dart';
@@ -13,12 +15,15 @@ import 'package:huakeng/main.dart';
 import 'package:huakeng/share/share_channel.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/state/settings.dart';
+import 'package:huakeng/ui/album/fan_art_list_page.dart';
+import 'package:huakeng/ui/album/official_list_page.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/entity/draft_form_page.dart';
 import 'package:huakeng/ui/entity/idea_form_page.dart';
 import 'package:huakeng/ui/entity/piece_form_page.dart';
+import 'package:huakeng/ui/junk/junk_list_page.dart';
 import 'package:huakeng/ui/pits/pit_new_page.dart';
-import 'package:huakeng/ui/share/share_host.dart';
+import 'package:huakeng/ui/pits/pit_page.dart';
 import 'package:huakeng/ui/share/share_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,16 +32,12 @@ class FakeShareChannel extends ShareChannel {
   FakeShareChannel({this.initial = const []});
   final List<String> initial;
   void Function(List<String>)? onShare;
-  int backCalls = 0;
 
   @override
   Future<List<String>> getInitialShare() async => initial;
 
   @override
   void setOnShare(void Function(List<String> paths)? cb) => onShare = cb;
-
-  @override
-  Future<void> moveTaskToBack() async => backCalls++;
 
   void push(List<String> paths) => onShare!(paths);
 }
@@ -53,7 +54,6 @@ void main() {
 
   setUp(() async {
     navBarHiddenCount.value = 0;
-    shareBackDelay = Duration.zero;
     SharedPreferences.setMockInitialValues({'onboarded': true});
     db = AppDatabase(NativeDatabase.memory());
     tmp = await Directory.systemTemp.createTemp('share_ui');
@@ -88,9 +88,13 @@ void main() {
     }
   }
 
-  Future<void> pumpApp(WidgetTester tester, FakeShareChannel ch) async {
+  Future<void> pumpApp(
+    WidgetTester tester,
+    FakeShareChannel ch, {
+    Size size = const Size(1080, 2400),
+  }) async {
     channel = ch;
-    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
     final prefs = await SharedPreferences.getInstance();
@@ -120,6 +124,9 @@ void main() {
       find.descendant(of: find.byType(ShareSheet), matching: f);
 
   Future<void> tapIn(WidgetTester tester, String text) async {
+    // 中間內容可捲動，先捲到看得見再點。
+    await tester.ensureVisible(inSheet(find.text(text)));
+    await tester.pump(const Duration(milliseconds: 50));
     await tester.tap(inSheet(find.text(text)));
     await tester.pump(const Duration(milliseconds: 100));
   }
@@ -166,10 +173,11 @@ void main() {
     // 檔案已複製進 App 儲存空間，暫存檔已清掉。
     expect(Directory('${tmp.path}/images').listSync().length, 3);
     expect(File(files.first).existsSync(), isFalse);
-    // 顯示「已加入」並回到原本的 App。
+    // 顯示「已加入」，留在 App 裡，停在坑A 的官方圖冊列表。
     expect(find.text('已加入'), findsOneWidget);
-    expect(channel.backCalls, 1);
     expect(find.byType(ShareSheet), findsNothing);
+    expect(find.byType(OfficialListPage), findsOneWidget);
+    expect(find.byType(PitPage, skipOffstage: false), findsOneWidget);
     await unmount(tester);
   });
 
@@ -200,7 +208,7 @@ void main() {
       isTrue,
     );
     expect(find.text('已加入'), findsOneWidget);
-    expect(channel.backCalls, 1);
+    expect(find.byType(FanArtListPage), findsOneWidget);
     await unmount(tester);
   });
 
@@ -226,8 +234,6 @@ void main() {
         _ => throw StateError('unexpected'),
       };
       expect(images, (pitB, 2));
-      // 還沒儲存，也不會回到原本的 App。
-      expect(channel.backCalls, 0);
       expect(
         (await tester.runAsync(() => db.select(db.officialImages).get()))!,
         isEmpty,
@@ -277,6 +283,7 @@ void main() {
     final junk = (await tester.runAsync(() => db.select(db.junkImages).get()))!;
     expect(junk.length, 2);
     expect(junk.every((j) => j.pitId == pitA), isTrue);
+    expect(find.byType(JunkListPage), findsOneWidget);
 
     // 上次是 坑A＋雜物；切到坑B 時退回官方圖冊。
     channel.push(sharedFiles(1));
@@ -311,10 +318,220 @@ void main() {
     await unmount(tester);
   });
 
+  Future<List<String>> tagNamesOf(
+    WidgetTester tester,
+    TagTarget target,
+    String id,
+  ) async {
+    final ids = (await tester.runAsync(
+      () => db.watchTagIds(target, id).first,
+    ))!;
+    final tags = (await tester.runAsync(() => db.select(db.tags).get()))!;
+    return [
+      for (final t in tags)
+        if (ids.contains(t.id)) t.name,
+    ]..sort();
+  }
+
+  testWidgets('官方圖冊：分組單選＋tag 多選（可就地新增），加入後存進資料庫', (tester) async {
+    await tester.runAsync(() async {
+      await db.createTag(pitA, '角色1');
+      await db.createTag(pitA, '角色2');
+    });
+    await pumpApp(tester, FakeShareChannel(initial: sharedFiles(2)));
+    expect(inSheet(find.text('tag')), findsOneWidget);
+    await tapIn(tester, '#角色1');
+    await tapIn(tester, '#角色2');
+    await tapIn(tester, '#角色2'); // 再點一次＝取消
+    await tapIn(tester, '海報宣傳');
+    // 就地新增 tag：新 tag 自動選上。
+    await tapIn(tester, '新增');
+    await tester.enterText(find.byType(TextField).last, '夏日');
+    await tester.tap(find.text(l10nStatic.albumConfirm));
+    await settle(tester);
+    expect(inSheet(find.text('#夏日')), findsOneWidget);
+    await tapIn(tester, '加入');
+    await settleLong(tester);
+
+    final rows = (await tester.runAsync(
+      () => db.select(db.officialImages).get(),
+    ))!;
+    expect(rows.length, 2);
+    final groups = (await tester.runAsync(
+      () => db.select(db.officialGroups).get(),
+    ))!;
+    final poster = groups.firstWhere(
+      (g) => g.name == '海報宣傳' && g.pitId == pitA,
+    );
+    for (final r in rows) {
+      expect(r.groupId, poster.id);
+      expect(await tagNamesOf(tester, TagTarget.official, r.id), ['夏日', '角色1']);
+    }
+    await unmount(tester);
+  });
+
+  testWidgets('好看同人圖：作者＋出處（單選、可取消）＋tag，加入後存進資料庫', (tester) async {
+    await tester.runAsync(() => db.createTag(pitB, '夏日企劃'));
+    await pumpApp(tester, FakeShareChannel(initial: sharedFiles(2)));
+    await tapIn(tester, '坑B');
+    await tapIn(tester, '好看同人圖');
+    await settle(tester);
+    expect(inSheet(find.text('作者')), findsOneWidget);
+    expect(inSheet(find.text('出處')), findsOneWidget);
+    expect(inSheet(find.text('推特')), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('shareAuthor')),
+      ' @illust_ka ',
+    );
+    await tapIn(tester, '小紅書');
+    await tapIn(tester, 'lofter');
+    await tapIn(tester, 'lofter'); // 再點一次＝取消
+    await tapIn(tester, '小紅書');
+    await tapIn(tester, '#夏日企劃');
+    await tapIn(tester, '加入');
+    await settleLong(tester);
+
+    final rows = (await tester.runAsync(() => db.select(db.fanArts).get()))!;
+    expect(rows.length, 2);
+    final groups = (await tester.runAsync(
+      () => db.select(db.officialGroups).get(),
+    ))!;
+    final xhs = groups.firstWhere((g) => g.name == '小紅書' && g.pitId == pitB);
+    for (final r in rows) {
+      expect(r.pitId, pitB);
+      expect(r.author, '@illust_ka');
+      expect(r.groupId, xhs.id);
+      expect(await tagNamesOf(tester, TagTarget.fanArt, r.id), ['夏日企劃']);
+    }
+    // 留在 App 裡，停在坑B 的好看同人圖列表。
+    expect(find.byType(FanArtListPage), findsOneWidget);
+    expect(
+      tester.widget<FanArtListPage>(find.byType(FanArtListPage)).pitId,
+      pitB,
+    );
+    await unmount(tester);
+  });
+
+  testWidgets('加入後不再回到其他 App；列表返回是坑內頁、再返回是坑列表', (tester) async {
+    await pumpApp(tester, FakeShareChannel(initial: sharedFiles(1)));
+    await tapIn(tester, '加入');
+    await settleLong(tester);
+    expect(find.byType(OfficialListPage), findsOneWidget);
+    await tester.tap(find.byTooltip(l10nStatic.commonBack));
+    await settle(tester);
+    expect(find.byType(OfficialListPage), findsNothing);
+    expect(find.byType(PitPage, skipOffstage: false), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('位置是 4 欄 7 格：官方圖冊、好看同人圖、推活、雜物／草稿、腦洞、成圖', (tester) async {
+    await db.updatePit(pitA, name: '坑A', archived: false, junkEnabled: true);
+    await pumpApp(tester, FakeShareChannel(initial: sharedFiles(1)));
+    Offset c(String text) => tester.getCenter(inSheet(find.text(text)));
+    final first = [c('官方圖冊'), c('好看同人圖'), c('推活'), c('雜物')];
+    final second = [c('草稿'), c('腦洞'), c('成圖')];
+    // 第一列 4 格由左到右，同一水平線。
+    for (var i = 1; i < 4; i++) {
+      expect(first[i].dx, greaterThan(first[i - 1].dx));
+      expect(first[i].dy, closeTo(first[0].dy, 2));
+    }
+    // 第二列 3 格，對齊前三欄。
+    for (var i = 0; i < 3; i++) {
+      expect(second[i].dx, closeTo(first[i].dx, 0.5));
+      expect(second[i].dy, closeTo(second[0].dy, 2));
+    }
+    expect(second[0].dy, greaterThan(first[0].dy));
+    // 坑沒開雜物時只有 6 格，草稿掉到第二列第一欄之前（推活後直接是草稿）。
+    await tapIn(tester, '坑B');
+    expect(inSheet(find.text('雜物')), findsNothing);
+    expect(c('草稿').dx, closeTo(first[3].dx, 0.5));
+    expect(c('草稿').dy, closeTo(c('官方圖冊').dy, 2));
+    await unmount(tester);
+  });
+
+  testWidgets('坑 chips 用文件夾 icon ＋坑名，沒有彩色圓點／封面圓', (tester) async {
+    await pumpApp(tester, FakeShareChannel(initial: sharedFiles(1)));
+    final chip = find.ancestor(
+      of: inSheet(find.text('坑B')),
+      matching: find.byType(Row),
+    );
+    expect(
+      find.descendant(of: chip.first, matching: find.byType(SvgPicture)),
+      findsOneWidget,
+    );
+    await unmount(tester);
+  });
+
+  testWidgets('D-064：最高 88% 螢幕，中間可捲動、按鈕固定；縮圖單排橫向捲動', (tester) async {
+    await db.updatePit(pitA, name: '坑A', archived: false, junkEnabled: true);
+    // 360×500 的小螢幕，12 張以上縮圖。
+    await pumpApp(
+      tester,
+      FakeShareChannel(initial: sharedFiles(14)),
+      size: const Size(1080, 1500),
+    );
+    await tapIn(tester, '好看同人圖'); // 欄位最多的一格
+    final sheetSize = tester.getSize(find.byType(ShareSheet));
+    expect(sheetSize.height, lessThanOrEqualTo(500 * 0.88 + 0.5));
+    // 底部按鈕固定在畫面內。
+    final addBottom = tester.getBottomLeft(inSheet(find.text('加入'))).dy;
+    expect(addBottom, lessThanOrEqualTo(500));
+    // 中間內容超出時可捲動。
+    final scrollable = tester.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('shareScroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(scrollable.position.maxScrollExtent, greaterThan(0));
+    // 縮圖列：高度 60，單排橫向捲動，後面的縮圖要捲過去才看得到。
+    expect(
+      tester.getSize(find.byKey(const ValueKey('shareThumbs'))).height,
+      60,
+    );
+    expect(find.byKey(const ValueKey('shareThumb13')), findsNothing);
+    await tester.drag(
+      find.byKey(const ValueKey('shareThumbs')),
+      const Offset(-1500, 0),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const ValueKey('shareThumb13')), findsOneWidget);
+    // 仍然是同一排：縮圖的 y 一樣。
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('shareThumb12'))).dy,
+      tester.getTopLeft(find.byKey(const ValueKey('shareThumb13'))).dy,
+    );
+    await unmount(tester);
+  });
+
+  testWidgets('「下一步」：推活打開推活新增頁（佔位）', (tester) async {
+    await pumpApp(tester, FakeShareChannel(initial: sharedFiles(2)));
+    await tapIn(tester, '坑B');
+    await tapIn(tester, '推活');
+    expect(inSheet(find.text('下一步')), findsOneWidget);
+    expect(inSheet(find.text('分組')), findsNothing);
+    await tapIn(tester, '下一步');
+    await settle(tester);
+    expect(find.byType(ShareSheet), findsNothing);
+    // 佔位頁只寫「推活」。
+    expect(find.text('推活'), findsOneWidget);
+    expect(
+      (await tester.runAsync(() => db.select(db.officialImages).get()))!,
+      isEmpty,
+    );
+    expect(
+      (await SharedPreferences.getInstance()).getString('shareLastSection'),
+      'oshi',
+    );
+    await unmount(tester);
+  });
+
   testWidgets('取消 sheet 不會存任何東西，暫存檔被清掉', (tester) async {
     final files = sharedFiles(1);
     await pumpApp(tester, FakeShareChannel(initial: files));
-    await tester.tapAt(const Offset(200, 100)); // 點遮罩關閉
+    await tester.tapAt(const Offset(200, 10)); // 點遮罩關閉
     await settle(tester);
     expect(find.byType(ShareSheet), findsNothing);
     expect(
@@ -322,7 +539,6 @@ void main() {
       isEmpty,
     );
     expect(File(files.first).existsSync(), isFalse);
-    expect(channel.backCalls, 0);
     await unmount(tester);
   });
 }

@@ -8,18 +8,19 @@ import 'package:image_picker/image_picker.dart';
 import '../../data/album_queries.dart';
 import '../../data/junk_queries.dart';
 import '../../l10n/l10n.dart';
-import '../../share/share_channel.dart';
 import '../../share/share_inbox.dart';
 import '../../state/providers.dart';
 import '../album/album_actions.dart';
+import '../album/fan_art_list_page.dart';
+import '../album/official_list_page.dart';
 import '../entity/draft_form_page.dart';
 import '../entity/idea_form_page.dart';
 import '../entity/piece_form_page.dart';
+import '../junk/junk_list_page.dart';
 import '../pits/pit_new_page.dart';
+import '../pits/pit_page.dart';
 import 'share_sheet.dart';
-
-/// 儲存後、回到原本的 App 之前，讓「已加入」提示留在畫面上的時間。測試可設為 zero。
-Duration shareBackDelay = const Duration(milliseconds: 900);
+import 'share_targets.dart';
 
 /// 常駐在主畫面上方，收到分享就顯示「加入到」sheet（D-053）。
 ///
@@ -108,7 +109,8 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     }
   }
 
-  /// 「加入」：匯入 App 儲存空間、寫進資料庫、顯示「已加入」，再回到原本的 App。
+  /// 「加入」：匯入 App 儲存空間、寫進資料庫、顯示「已加入」，並留在 App 裡，
+  /// 停在剛加入的那個列表（坑 → 該格列表）。
   Future<void> _save(ShareChoice c, List<String> paths) async {
     final store = await ref.read(imageStoreProvider.future);
     final images = <NewImage>[];
@@ -123,21 +125,42 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     if (images.isEmpty) return;
     final db = ref.read(databaseProvider);
     final pitId = c.pitId!;
+    final Widget list;
     switch (c.section!) {
       case ShareSection.official:
-        await db.addOfficial(pitId, c.groupId!, images);
+        await db.addOfficial(pitId, c.groupId!, images, tagIds: c.tagIds);
+        list = OfficialListPage(pitId: pitId);
       case ShareSection.fan:
-        // 作者留空，也沒有出處。
-        await db.addFanArts(pitId, images, author: '');
+        await db.addFanArts(
+          pitId,
+          images,
+          author: c.author,
+          groupId: c.groupId,
+          tagIds: c.tagIds,
+        );
+        list = FanArtListPage(pitId: pitId);
       case ShareSection.junk:
         await db.addJunk(pitId, images);
-      case ShareSection.draft || ShareSection.idea || ShareSection.piece:
+        list = JunkListPage(pitId: pitId);
+      case ShareSection.draft ||
+          ShareSection.idea ||
+          ShareSection.piece ||
+          ShareSection.oshi:
         return;
     }
     if (!mounted) return;
+    _showDestination(pitId, list);
     showSnack(context, context.l10n.shareAdded, success: true);
-    await Future<void>.delayed(shareBackDelay);
-    await ref.read(shareChannelProvider).moveTaskToBack();
+  }
+
+  /// 切到「坑」分頁，回到最上層後依序打開該坑的頁面與目的地列表（返回時是坑內頁）。
+  void _showDestination(String pitId, Widget list) {
+    widget.showPitsTab();
+    final nav = widget.pitsNavigator.currentState;
+    if (nav == null) return;
+    nav.popUntil((r) => r.isFirst);
+    nav.push(MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pitId)));
+    nav.push(MaterialPageRoute<void>(builder: (_) => list));
   }
 
   /// 「下一步」：在「坑」分頁開該格的新增表單，圖片先放好。
@@ -149,6 +172,11 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     if (nav == null) return;
     // 表單關閉後回到坑列表，而不是使用者原本停留的深層頁面。
     nav.popUntil((r) => r.isFirst);
+    if (c.section == ShareSection.oshi) {
+      final inner = nav.overlay?.context;
+      if (inner != null) openOshiForm(inner, pitId, paths);
+      return;
+    }
     nav.push(
       MaterialPageRoute<void>(
         builder: (_) => switch (c.section!) {

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -36,17 +35,6 @@ class ShareChannel {
       }
       return null;
     });
-  }
-
-  /// 把整個 App 移到背景，回到分享來源的 App。
-  Future<void> moveTaskToBack() async {
-    try {
-      await _channel.invokeMethod<void>('moveTaskToBack');
-    } on MissingPluginException {
-      // 非 Android：沒有事要做。
-    } on PlatformException catch (e) {
-      debugPrint('moveTaskToBack failed: $e');
-    }
   }
 }
 

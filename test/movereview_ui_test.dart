@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
@@ -177,6 +178,14 @@ void main() {
     );
     await tester.tap(find.text('open'));
     await settle(tester);
+    // D-059：坑 chips 是文件夾 icon ＋坑名（沒有封面圓／彩色圓點）。
+    for (final name in ['坑甲', '坑乙']) {
+      final chip = find.ancestor(of: inSheet(name), matching: find.byType(Row));
+      expect(
+        find.descendant(of: chip.first, matching: find.byType(SvgPicture)),
+        findsOneWidget,
+      );
+    }
     expect(inSheet('雜物'), findsOneWidget); // 本坑開了雜物
     await tester.tap(inSheet('官方圖冊'));
     await settle(tester);

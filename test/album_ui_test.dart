@@ -21,7 +21,10 @@ import 'package:huakeng/ui/album/fan_art_edit_page.dart';
 import 'package:huakeng/ui/album/fan_art_list_page.dart';
 import 'package:huakeng/ui/album/fan_art_preview_page.dart';
 import 'package:huakeng/ui/album/group_manage_page.dart';
+import 'package:huakeng/data/batch_tag_queries.dart';
 import 'package:huakeng/ui/album/move_sheet.dart';
+import 'package:huakeng/ui/album/official_list_page.dart';
+import 'package:huakeng/ui/album/tag_batch_sheet.dart';
 import 'package:huakeng/ui/album/official_new_page.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/junk/junk_list_page.dart';
@@ -126,7 +129,7 @@ void main() {
     expect(downloadAlbumName, 'Drawer');
   });
 
-  testWidgets('官方圖冊：多選隱藏導覽列，底部是 下載／移動／刪除；移動到好看同人圖', (tester) async {
+  testWidgets('官方圖冊：多選隱藏導覽列，底部是 下載／移動／tag／刪除；移動到好看同人圖', (tester) async {
     await tester.runAsync(() => seedOfficial(2));
     await pumpApp(tester);
     await tester.tap(find.text('測試坑'));
@@ -141,6 +144,7 @@ void main() {
     expect(find.text('目標'), findsNothing); // 多選沒有導覽列
     expect(find.text('下載'), findsOneWidget);
     expect(find.text('移動'), findsOneWidget);
+    expect(find.text('tag'), findsOneWidget);
     expect(find.text('刪除'), findsOneWidget);
     expect(find.text('分組'), findsNothing);
     expect(find.text('分享'), findsNothing); // 分享只有雜物
@@ -361,7 +365,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('同人圖列表：無篩選時列出全部；多選一樣是 下載／移動／刪除', (tester) async {
+  testWidgets('同人圖列表：無篩選時列出全部；多選一樣是 下載／移動／tag／刪除', (tester) async {
     await tester.runAsync(() async {
       await db.addFanArts(pitId, const [
         NewImage(file: 'a.png', width: 10, height: 10),
@@ -373,7 +377,7 @@ void main() {
     await tester.longPress(find.byType(Image).first);
     await settle(tester);
     expect(navBarHiddenCount.value, 1);
-    for (final s in ['下載', '移動', '刪除']) {
+    for (final s in ['下載', '移動', 'tag', '刪除']) {
       expect(find.text(s), findsOneWidget);
     }
     // 同人圖移到官方圖冊：兩邊的數量都對。
@@ -389,6 +393,188 @@ void main() {
     final official = await tester.runAsync(() => db.watchOfficial(pitId).first);
     expect(fan!.length, 1);
     expect(official!.length, 1);
+    await unmount(tester);
+  });
+
+  /// 批次 tag sheet 的 chip（key 帶名稱與狀態）。
+  Finder tagChip(String name, TagCoverage state) =>
+      find.byKey(ValueKey('batchTag-$name-${state.name}'));
+
+  /// 官方圖冊兩張圖：T1 兩張都有、T2 只有第一張、T3 都沒有。回傳圖片 id 與 tag id。
+  Future<({List<String> images, Map<String, String> tags})> seedTagged() async {
+    await seedOfficial(2);
+    final rows = await db.watchOfficial(pitId).first;
+    final t1 = await db.createTag(pitId, 'T1');
+    final t2 = await db.createTag(pitId, 'T2');
+    final t3 = await db.createTag(pitId, 'T3');
+    await db.setOfficialTags(rows[0].id, [t1, t2]);
+    await db.setOfficialTags(rows[1].id, [t1]);
+    return (
+      images: [rows[0].id, rows[1].id],
+      tags: {'T1': t1, 'T2': t2, 'T3': t3},
+    );
+  }
+
+  Future<void> openTagSheet(WidgetTester tester) async {
+    await tester.longPress(find.byType(Image).first);
+    await settle(tester);
+    await tester.tap(find.text('全選'));
+    await settle(tester);
+    await tester.tap(find.text('tag'));
+    await settle(tester);
+  }
+
+  testWidgets('官方圖冊多選 tag：三種狀態，點一下部分/沒有→全加、全有→全移除，完成才套用', (tester) async {
+    final seeded = (await tester.runAsync(seedTagged))!;
+    await pumpPage(tester, OfficialListPage(pitId: pitId));
+    await openTagSheet(tester);
+
+    expect(find.byType(BatchTagSheet), findsOneWidget);
+    expect(find.text('2 張'), findsWidgets);
+    // 實色＋勾／虛線框＋橫線／白底。
+    expect(tagChip('T1', TagCoverage.all), findsOneWidget);
+    expect(tagChip('T2', TagCoverage.some), findsOneWidget);
+    expect(tagChip('T3', TagCoverage.none), findsOneWidget);
+
+    await tester.tap(tagChip('T2', TagCoverage.some)); // 部分 → 全加
+    await tester.tap(tagChip('T1', TagCoverage.all)); // 全有 → 全移除
+    await tester.tap(tagChip('T3', TagCoverage.none)); // 沒有 → 全加
+    await settle(tester);
+    expect(tagChip('T2', TagCoverage.all), findsOneWidget);
+    expect(tagChip('T1', TagCoverage.none), findsOneWidget);
+    expect(tagChip('T3', TagCoverage.all), findsOneWidget);
+    // 還沒按完成：資料沒有動。
+    final before = await tester.runAsync(
+      () => db.tagCoverage(AlbumCell.official, seeded.images),
+    );
+    expect(
+      {for (final e in before!) e.tag.name: e.coverage},
+      {'T1': TagCoverage.all, 'T2': TagCoverage.some, 'T3': TagCoverage.none},
+    );
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(BatchTagSheet),
+        matching: find.text('完成'),
+      ),
+    );
+    await settle(tester);
+    expect(find.byType(BatchTagSheet), findsNothing);
+    final after = await tester.runAsync(
+      () => db.tagCoverage(AlbumCell.official, seeded.images),
+    );
+    expect(
+      {for (final e in after!) e.tag.name: e.coverage},
+      {'T1': TagCoverage.none, 'T2': TagCoverage.all, 'T3': TagCoverage.all},
+    );
+    // 套用後結束多選，導覽列的規則回到瀏覽狀態。
+    expect(navBarHiddenCount.value, 0);
+    await unmount(tester);
+  });
+
+  testWidgets('批次 tag sheet：點兩下回到原狀；可在 sheet 裡新增 tag；點外面關閉不套用', (tester) async {
+    final seeded = (await tester.runAsync(seedTagged))!;
+    await pumpPage(tester, OfficialListPage(pitId: pitId));
+    await openTagSheet(tester);
+
+    // 部分有 → 全加 → 全移除。
+    await tester.tap(tagChip('T2', TagCoverage.some));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(tagChip('T2', TagCoverage.all));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(tagChip('T2', TagCoverage.none), findsOneWidget);
+
+    // 就地新增：新 tag 直接是「全部加上」。
+    await tester.tap(
+      find.descendant(
+        of: find.byType(BatchTagSheet),
+        matching: find.text('新增'),
+      ),
+    );
+    await settle(tester);
+    await tester.enterText(find.byType(TextField), '#新tag');
+    await tester.tap(find.text(l10nStatic.albumConfirm));
+    await settle(tester);
+    expect(tagChip('新tag', TagCoverage.all), findsOneWidget);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(BatchTagSheet),
+        matching: find.text('完成'),
+      ),
+    );
+    await settle(tester);
+    final cov = (await tester.runAsync(
+      () => db.tagCoverage(AlbumCell.official, seeded.images),
+    ))!;
+    expect(
+      {for (final e in cov) e.tag.name: e.coverage},
+      {
+        'T1': TagCoverage.all,
+        'T2': TagCoverage.none,
+        'T3': TagCoverage.none,
+        '新tag': TagCoverage.all,
+      },
+    );
+
+    // 再開一次，改了但點遮罩關閉＝不套用。
+    await openTagSheet(tester);
+    await tester.tap(tagChip('T3', TagCoverage.none));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tapAt(const Offset(180, 20));
+    await settle(tester);
+    expect(find.byType(BatchTagSheet), findsNothing);
+    final cov2 = (await tester.runAsync(
+      () => db.tagCoverage(AlbumCell.official, seeded.images),
+    ))!;
+    expect(
+      cov2.firstWhere((e) => e.tag.name == 'T3').coverage,
+      TagCoverage.none,
+    );
+    await unmount(tester);
+  });
+
+  testWidgets('好看同人圖多選也有 tag 按鈕並可批次套用；雜物沒有 tag', (tester) async {
+    final tag = (await tester.runAsync(() async {
+      await db.addFanArts(pitId, const [
+        NewImage(file: 'a.png', width: 10, height: 10),
+        NewImage(file: 'b.png', width: 10, height: 10),
+      ], author: '@x');
+      return db.createTag(pitId, '夏日');
+    }))!;
+    await pumpPage(tester, FanArtListPage(pitId: pitId));
+    await openTagSheet(tester);
+    expect(tagChip('夏日', TagCoverage.none), findsOneWidget);
+    await tester.tap(tagChip('夏日', TagCoverage.none));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(BatchTagSheet),
+        matching: find.text('完成'),
+      ),
+    );
+    await settle(tester);
+    final rows = (await tester.runAsync(() => db.watchFanArts(pitId).first))!;
+    for (final r in rows) {
+      final ids = (await tester.runAsync(
+        () => db.watchTagIds(TagTarget.fanArt, r.id).first,
+      ))!;
+      expect(ids, [tag]);
+    }
+    await unmount(tester);
+
+    await tester.runAsync(
+      () => db.addJunk(pitId, const [
+        NewImage(file: 'c.png', width: 10, height: 10),
+      ]),
+    );
+    await pumpPage(tester, JunkListPage(pitId: pitId));
+    await tester.longPress(find.byType(Image).first);
+    await settle(tester);
+    expect(find.text('tag'), findsNothing);
+    for (final s in ['分享', '下載', '移動', '刪除']) {
+      expect(find.text(s), findsOneWidget);
+    }
     await unmount(tester);
   });
 
