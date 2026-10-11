@@ -557,6 +557,8 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                                   file: d.images.isEmpty
                                       ? null
                                       : d.images.first.file,
+                                  imageCount: d.images.length,
+                                  date: d.draft.date,
                                 ),
                             ],
                             selected: _draftIds,

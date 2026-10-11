@@ -386,7 +386,7 @@ class _IdeaCard extends StatelessWidget {
               Expanded(child: TagPills(view.tags, onTagTap: onTagTap)),
               const SizedBox(width: 6),
               Text(
-                fmtMd(idea.createdAt),
+                fmtMd(idea.date),
                 style: TextStyle(color: t.text4, fontSize: 11.5),
               ),
             ],

@@ -10,10 +10,11 @@ import '../album/image_picker_field.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../tags/tag_picker.dart';
+import 'piece_widgets.dart';
 import 'connect_field.dart';
 import 'entity_widgets.dart';
 
-/// 新增腦洞（亦作編輯頁）：標題、內文、配圖、tag、關聯草稿、關聯成圖。
+/// 新增腦洞（亦作編輯頁）：標題、內文、配圖、tag、關聯草稿、關聯成圖、日期。
 /// 沒有導覽列。選擇草稿／成圖的面板只從這裡打開（D-037）。
 class IdeaFormPage extends ConsumerStatefulWidget {
   const IdeaFormPage({
@@ -26,7 +27,7 @@ class IdeaFormPage extends ConsumerStatefulWidget {
   final String pitId;
   final String? ideaId;
 
-  /// 新增時使用的建立時間（時間軸上以「此時此刻」新增、可改時間）。
+  /// 新增時的預設日期（目標日頁以「此時此刻」新增，帶時間）。
   final DateTime? initialTime;
 
   /// 預先放好的配圖（例如從其他 App 分享進來，D-053）。
@@ -45,6 +46,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
   List<String> _tagIds = [];
   List<String> _draftIds = [];
   List<String> _pieceIds = [];
+  late DateTime _date = widget.initialTime ?? DateTime.now();
   bool _loaded = false;
   bool _saving = false;
 
@@ -72,6 +74,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
         _tagIds = v.tags.map((e) => e.id).toList();
         _draftIds = v.draftIds;
         _pieceIds = v.pieceIds;
+        _date = v.idea.date;
       }
     }
     if (mounted) setState(() => _loaded = true);
@@ -100,7 +103,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
           tagIds: _tagIds,
           draftIds: _draftIds,
           pieceIds: _pieceIds,
-          createdAt: widget.initialTime,
+          date: _date,
         );
     if (mounted) Navigator.of(context).pop();
   }
@@ -195,7 +198,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                                         ? null
                                         : d.images.first.file,
                                     imageCount: d.images.length,
-                                    date: d.draft.createdAt,
+                                    date: d.draft.date,
                                   ),
                               ],
                               selected: _draftIds,
@@ -220,7 +223,14 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                               selected: _pieceIds,
                               onChanged: (v) => setState(() => _pieceIds = v),
                             ),
-                            const SizedBox(height: 22),
+                            const SizedBox(height: 16),
+                            FormLabel(context.l10n.entityFieldDate),
+                            PieceDateField(
+                              date: _date,
+                              semanticLabel: context.l10n.entityFieldDate,
+                              onChanged: (d) => setState(() => _date = d),
+                            ),
+                            const SizedBox(height: 24),
                             FormSubmitButton(
                               label: isNew
                                   ? context.l10n.ideaFormCreate

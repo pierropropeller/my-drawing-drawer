@@ -18,6 +18,7 @@ import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/ui/entity/entity_widgets.dart';
 import 'package:huakeng/ui/entity/finished_list_page.dart';
 import 'package:huakeng/ui/entity/piece_detail_page.dart';
+import 'package:huakeng/ui/entity/piece_form_page.dart';
 import 'package:huakeng/ui/entity/piece_platform.dart';
 import 'package:huakeng/ui/entity/piece_widgets.dart';
 import 'package:image_picker/image_picker.dart';
@@ -436,6 +437,50 @@ void main() {
     expect(v.piece.receivedAmount, 800);
     expect(v.payment.isPaid, isTrue);
     expect(v.piece.dueAt, DateTime(2026, 10, 20));
+    await unmount(tester);
+  });
+
+  testWidgets('草稿↔成圖關聯（D-069）：從草稿側設定，成圖詳情與編輯頁都看得到；從成圖側移除，草稿也消失', (
+    tester,
+  ) async {
+    late String pieceId;
+    late String draftId;
+    await tester.runAsync(() async {
+      pieceId = await seed();
+      draftId = await db.saveDraft(
+        pitId: pitId,
+        title: '構圖草稿',
+        images: const [NewImage(file: 'a.png', width: 10, height: 10)],
+        tagIds: const [],
+        ideaIds: const [],
+        pieceIds: [pieceId],
+        date: DateTime(2026, 8, 3),
+      );
+    });
+    await pumpPage(tester, PieceDetailPage(pieceId: pieceId, pitId: pitId));
+    await settle(tester);
+    expect(find.text('關聯的草稿'), findsOneWidget);
+    expect(find.byType(ThumbSquare), findsOneWidget);
+    // 詳情頁不能新增關聯
+    expect(find.bySemanticsLabel(RegExp('選擇草稿')), findsNothing);
+    await unmount(tester);
+
+    await pumpPage(tester, PieceFormPage(pitId: pitId, pieceId: pieceId));
+    await settle(tester);
+    expect(find.text('構圖草稿'), findsOneWidget); // 已關聯的 chip
+    await show(tester, find.text('選擇').last);
+    await tester.tap(find.text('選擇').last); // 最後一顆是關聯草稿
+    await settle(tester);
+    expect(find.text('選擇草稿'), findsWidgets);
+    expect(find.text('8/3'), findsOneWidget); // 面板列尾顯示草稿的 date
+    await tester.tap(find.text('完成'));
+    await settle(tester);
+    await tester.tap(find.bySemanticsLabel('移除').last);
+    await tester.pump(const Duration(milliseconds: 200));
+    await tapText(tester, '儲存');
+    await settle(tester);
+    final dv = (await tester.runAsync(() => db.watchDraftView(draftId).first))!;
+    expect(dv.pieceIds, isEmpty);
     await unmount(tester);
   });
 

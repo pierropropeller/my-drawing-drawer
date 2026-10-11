@@ -296,7 +296,7 @@ class _TextCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                fmtMd(d.createdAt),
+                fmtMd(d.date),
                 style: TextStyle(color: t.text4, fontSize: 11.5),
               ),
             ],
@@ -443,7 +443,7 @@ class _ImageOnlyCard extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(
-                fmtMd(view.draft.createdAt),
+                fmtMd(view.draft.date),
                 style: TextStyle(color: t.text4, fontSize: 11.5),
               ),
             ),
