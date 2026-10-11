@@ -6,11 +6,12 @@ import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import 'search_icons.dart';
 
-/// 搜尋分類；順序＝完成度（D-051）：全部／成圖／同人圖／草稿／腦洞。
+/// 搜尋分類；順序（D-051、D-065）：全部／成圖／同人圖／推活／草稿／腦洞。
 enum SearchCategory {
   all,
   piece,
   fan,
+  oshi,
   draft,
   idea;
 
@@ -18,6 +19,7 @@ enum SearchCategory {
     all => l.commonAll,
     piece => l.searchCategoryPiece,
     fan => l.searchCategoryFan,
+    oshi => l.pitSearchCategoryOshi,
     draft => l.searchCategoryDraft,
     idea => l.searchCategoryIdea,
   };
@@ -117,8 +119,9 @@ class SearchField extends StatelessWidget {
   }
 }
 
-/// 分類分頁 chips（全部／成圖／同人圖／草稿／腦洞）。[counts] 給了就在名稱後面加數字。
-/// 樣式照 PitSearch：間距 6、左右內距 13（比列表 chips 窄，五顆放得進一排）。
+/// 分類分頁 chips（全部／成圖／同人圖／推活／草稿／腦洞）。[counts] 給了就在名稱後面加數字，
+/// 並略過筆數 0 的分頁（D-061；「全部」一律保留）。
+/// 樣式照 PitSearch：間距 6、左右內距 13（比列表 chips 窄，放得進一排）。
 class SearchCategoryChips extends StatelessWidget {
   const SearchCategoryChips({
     super.key,
@@ -143,28 +146,31 @@ class SearchCategoryChips extends StatelessWidget {
         spacing: 6,
         children: [
           for (final c in SearchCategory.values)
-            GestureDetector(
-              onTap: () => onSelected(c),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 13,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: c == selected ? t.ink : t.surface,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: c == selected ? t.ink : t.border),
-                ),
-                child: Text(
-                  _label(context.l10n, c),
-                  style: TextStyle(
-                    color: c == selected ? t.surface : t.text2,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+            if (counts == null ||
+                c == SearchCategory.all ||
+                (counts![c] ?? 0) > 0)
+              GestureDetector(
+                onTap: () => onSelected(c),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: c == selected ? t.ink : t.surface,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: c == selected ? t.ink : t.border),
+                  ),
+                  child: Text(
+                    _label(context.l10n, c),
+                    style: TextStyle(
+                      color: c == selected ? t.surface : t.text2,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-            ),
         ],
       ),
     );

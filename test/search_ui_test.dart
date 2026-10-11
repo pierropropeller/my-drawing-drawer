@@ -10,6 +10,7 @@ import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/image_store.dart';
+import 'package:huakeng/data/oshi_queries.dart';
 import 'package:huakeng/l10n/l10n.dart';
 import 'package:huakeng/main.dart';
 import 'package:huakeng/state/providers.dart';
@@ -21,9 +22,10 @@ import 'package:huakeng/ui/entity/finished_list_page.dart';
 import 'package:huakeng/ui/entity/idea_list_page.dart';
 import 'package:huakeng/ui/search/pit_search_page.dart';
 import 'package:huakeng/ui/search/pit_search_result_page.dart';
+import 'package:huakeng/ui/search/search_widgets.dart';
 import 'package:huakeng/ui/search/tag_filter_bar.dart';
 
-/// tag 篩選列表與坑內搜尋（D-043、D-051）。
+/// tag 篩選列表與坑內搜尋（D-043、D-051、D-061、D-065）。
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late AppDatabase db;
@@ -151,6 +153,15 @@ void main() {
         finishedAt: DateTime(2026, 5, 1),
         ideaIds: const [],
         draftIds: const [],
+      );
+
+  Future<String> newOshi(int day, {List<String> tags = const []}) =>
+      db.saveOshiRecord(
+        pitId: pitId,
+        date: DateTime(2026, 5, day),
+        title: '推活$day',
+        images: const [NewImage(file: 'c.png')],
+        tagIds: tags,
       );
 
   Finder pill(String name) => find.descendant(
@@ -308,7 +319,7 @@ void main() {
 
     expect(find.byType(PitSearchPage), findsOneWidget);
     expect(find.text('目標'), findsNothing);
-    final labels = ['全部', '成圖', '同人圖', '草稿', '腦洞'];
+    final labels = ['全部', '成圖', '同人圖', '推活', '草稿', '腦洞'];
     final xs = [
       for (final l in labels)
         tester.getTopLeft(find.widgetWithText(Container, l).first).dx,
@@ -326,12 +337,15 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('點常用 tag 進結果：分段順序 成圖→同人圖→草稿→腦洞，+N 與沒有導覽列', (tester) async {
+  testWidgets('點常用 tag 進結果：分段順序 成圖→同人圖→推活→草稿→腦洞，+N 與沒有導覽列', (tester) async {
     await tester.runAsync(() async {
       for (var i = 0; i < 5; i++) {
         await newPiece('成圖$i', tags: [tagA]);
       }
       await seedFan(4, tags: [tagA]);
+      for (var i = 1; i <= 7; i++) {
+        await newOshi(i, tags: [tagA]);
+      }
       for (var i = 0; i < 3; i++) {
         await newDraft('草稿$i', tags: [tagA]);
       }
@@ -351,21 +365,23 @@ void main() {
     expect(find.text('目標'), findsNothing);
     expect(pill('角色1'), findsOneWidget);
     // 分頁帶數字。
-    expect(find.text('全部 13'), findsOneWidget);
+    expect(find.text('全部 20'), findsOneWidget);
     expect(find.text('成圖 5'), findsOneWidget);
     expect(find.text('同人圖 4'), findsOneWidget);
+    expect(find.text('推活 7'), findsOneWidget);
     expect(find.text('草稿 3'), findsOneWidget);
     expect(find.text('腦洞 1'), findsOneWidget);
     // 沒有「全部」連結在段頭。
     expect(find.text('查看全部'), findsNothing);
 
     double y(String t) => tester.getTopLeft(find.text(t)).dy;
-    final ys = [y('成圖  5'), y('好看同人圖  4'), y('草稿  3'), y('腦洞  1')];
+    final ys = [y('成圖  5'), y('好看同人圖  4'), y('推活  7'), y('草稿  3'), y('腦洞  1')];
     expect([...ys]..sort(), ys);
-    // 成圖 5 筆＝+2，同人圖 4 筆＝+1，草稿剛好 3 筆沒有 +N。
+    // 成圖 5 筆＝+2，同人圖 4 筆＝+1，推活 7 筆＝+4，草稿剛好 3 筆沒有 +N。
     expect(find.text('+2'), findsOneWidget);
     expect(find.text('+1'), findsOneWidget);
-    expect(find.textContaining('+'), findsNWidgets(2));
+    expect(find.text('+4'), findsOneWidget);
+    expect(find.textContaining('+'), findsNWidgets(3));
 
     // 點 +2 進成圖列表並帶同一個 tag。
     await tester.tap(find.text('+2'));
@@ -374,6 +390,106 @@ void main() {
     expect(pill('角色1'), findsOneWidget);
     expect(find.text('目標'), findsOneWidget);
     await unmount(tester);
+  });
+
+  testWidgets('推活段：點「+N」離開搜尋進推活（placeholder），點其他格開推活詳情（placeholder）', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      for (var i = 1; i <= 5; i++) {
+        await newOshi(i, tags: [tagA]);
+      }
+    });
+    await pumpApp(tester);
+    await tester.tap(find.text('測試坑'));
+    await settle(tester);
+    await tester.tap(find.text('好看同人圖'));
+    await settle(tester);
+    await tester.tap(find.bySemanticsLabel('搜尋'));
+    await settle(tester);
+    await tester.tap(find.textContaining('#角色1'));
+    await settle(tester);
+    expect(find.byType(PitSearchResultPage), findsOneWidget);
+    expect(find.text('+2'), findsOneWidget);
+    // 其他格：進詳情佔位頁（寫著「推活」），返回仍在結果頁。
+    await tester.tap(find.byType(Image).first);
+    await settle(tester);
+    expect(find.byType(PitSearchResultPage), findsNothing);
+    expect(find.text('推活'), findsOneWidget);
+    await back(tester);
+    expect(find.byType(PitSearchResultPage), findsOneWidget);
+
+    await tester.tap(find.text('+2'));
+    await settle(tester);
+    expect(find.byType(PitSearchResultPage), findsNothing);
+    expect(find.byType(PitSearchPage), findsNothing);
+    expect(find.text('推活'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('D-061 PitSearchFew：不滿 3 筆照實際張數、各自圓角、沒有 +N；0 筆的段與分頁不顯示', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      await newPiece('成圖甲', tags: [tagA]);
+      await newPiece('成圖乙', tags: [tagA]);
+      await seedFan(1, tags: [tagA]);
+      await newIdea('腦洞甲', tags: [tagA]);
+    });
+    await pumpPage(tester, PitSearchResultPage(pitId: pitId, tagId: tagA));
+    // 分頁：只有有結果的；順序 全部／成圖／同人圖／腦洞。
+    expect(find.text('全部 4'), findsOneWidget);
+    expect(find.text('成圖 2'), findsOneWidget);
+    expect(find.text('同人圖 1'), findsOneWidget);
+    expect(find.text('腦洞 1'), findsOneWidget);
+    expect(find.textContaining('推活'), findsNothing);
+    expect(find.textContaining('草稿'), findsNothing);
+    expect(find.textContaining('+'), findsNothing);
+
+    // 成圖 2 張＋同人圖 1 張，一共 3 張圖；格寬仍是 1/3，間距 4。
+    final imgs = find.byType(Image);
+    expect(imgs, findsNWidgets(3));
+    final r0 = tester.getRect(imgs.at(0));
+    final r1 = tester.getRect(imgs.at(1));
+    final r2 = tester.getRect(imgs.at(2));
+    expect((r1.left - r0.right).abs(), closeTo(4, 0.01));
+    expect(r0.width, closeTo(r0.height, 0.01));
+    expect(r2.left, closeTo(r0.left, 0.01)); // 同人圖那段只有一張，靠左
+    expect(r2.width, closeTo(r0.width, 0.01));
+    // 每張各自 10px 圓角。
+    final clips = tester
+        .widgetList<ClipRRect>(
+          find.ancestor(of: imgs.at(0), matching: find.byType(ClipRRect)),
+        )
+        .where((c) => c.borderRadius == BorderRadius.circular(10));
+    expect(clips, isNotEmpty);
+    await unmount(tester);
+  });
+
+  testWidgets('少於 3 筆的推活段：實際張數、沒有 +N；點分頁只看那一類', (tester) async {
+    await tester.runAsync(() async {
+      await newOshi(1, tags: [tagA]);
+      await newOshi(2, tags: [tagA]);
+    });
+    await pumpPage(tester, PitSearchResultPage(pitId: pitId, tagId: tagA));
+    expect(find.text('推活  2'), findsOneWidget);
+    expect(find.byType(Image), findsNWidgets(2));
+    expect(find.textContaining('+'), findsNothing);
+    await tester.tap(find.text('推活 2'));
+    await settle(tester);
+    expect(find.byType(Image), findsNWidgets(2));
+    await unmount(tester);
+  });
+
+  test('SearchCategory 順序：全部／成圖／同人圖／推活／草稿／腦洞', () {
+    expect(SearchCategory.values, [
+      SearchCategory.all,
+      SearchCategory.piece,
+      SearchCategory.fan,
+      SearchCategory.oshi,
+      SearchCategory.draft,
+      SearchCategory.idea,
+    ]);
   });
 
   testWidgets('文字搜尋：找標題、作者與 tag 名稱；沒有 tag 的 +N 開完整列表', (tester) async {

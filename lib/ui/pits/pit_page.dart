@@ -14,16 +14,16 @@ import '../entity/draft_list_page.dart';
 import '../entity/finished_list_page.dart';
 import '../entity/idea_list_page.dart';
 import '../common/app_icons.dart';
-import '../common/dashed_box.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import 'pit_edit_page.dart';
 import 'pit_junk_entry.dart';
+import 'pit_oshi_entry.dart';
 import 'pits_icons.dart';
 
-/// 坑內頁（Pit／PitFilled／PitDark）：2×2 正方形格（官方圖冊、好看同人圖、我的草稿、我的腦洞），
-/// 文字（名稱＋數量）在格子下方；最後是寬格「我的成圖」，高度與上方一格正方形相同。
-/// 格內有封面圖時，整格鋪滿真實圖片（取代 icon）。排序固定。
+/// 坑內頁（Pit／PitFilled／PitDark，D-058）：六格正方形（2 欄 3 列）：官方圖冊、好看同人圖／
+/// 我的草稿、我的腦洞／我的成圖、推活；文字（名稱＋數量）在格子下方。
+/// 格內有封面圖時，整格鋪滿真實圖片（取代 icon）；推活格沒有封面。排序固定。
 class PitPage extends ConsumerWidget {
   const PitPage({super.key, required this.pitId});
   final String pitId;
@@ -129,7 +129,7 @@ class PitPage extends ConsumerWidget {
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, c) {
-                    // 正方形格邊長；寬格高度與它相同。
+                    // 正方形格邊長。
                     final side = (c.maxWidth - 40 - 12) / 2;
                     return ListView(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -206,14 +206,42 @@ class PitPage extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 14),
-                        _PieceBlock(
-                          height: side,
-                          count: stats.pieces,
-                          file: covers.piece,
-                          onTap: () =>
-                              _open(context, FinishedListPage(pitId: pitId)),
-                          onLongPress: longPress(stats.pieces, 'piece'),
+                        const SizedBox(height: 12),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _Cell(
+                                context.l10n.pitsPieces,
+                                stats.pieces == 0
+                                    ? AppIcons.pitPieceEmpty
+                                    : AppIcons.image,
+                                t.piece,
+                                context.l10n.commonCountImages(stats.pieces),
+                                side: side,
+                                file: covers.piece,
+                                // 有成圖但還沒有封面檔：灰粉底＋淡色相框（PitFilled）。
+                                placeholder: stats.pieces > 0,
+                                onTap: () => _open(
+                                  context,
+                                  FinishedListPage(pitId: pitId),
+                                ),
+                                onLongPress: longPress(stats.pieces, 'piece'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _Cell(
+                                context.l10n.pitsCellOshi,
+                                PitsIcons.oshi,
+                                PitsOshiColors.of(context),
+                                context.l10n.pitsCellOshiCount(stats.oshi),
+                                side: side,
+                                // 推活格沒有封面，也不能長按。
+                                onTap: () => openOshiList(context, pitId),
+                              ),
+                            ),
+                          ],
                         ),
                         // 開啟「雜物」才出現，放在最底（PitJunk）。
                         if (pit.junkEnabled)
@@ -354,6 +382,7 @@ class _Cell extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.file,
+    this.placeholder = false,
   });
 
   final String label;
@@ -367,8 +396,13 @@ class _Cell extends StatelessWidget {
   /// 這一格的封面圖（有圖時整格鋪滿，取代 icon）。
   final String? file;
 
+  /// 沒有封面檔時用灰粉底＋淡色相框（有成圖、封面還沒好）。
+  final bool placeholder;
+
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -381,164 +415,25 @@ class _Cell extends StatelessWidget {
             child: Container(
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: color.bg,
+                color: file == null && placeholder
+                    ? (dark ? t.chipBg : const Color(0xFFEAD9E0))
+                    : color.bg,
                 borderRadius: BorderRadius.circular(Radii.card),
               ),
               alignment: Alignment.center,
               child: file != null
                   ? SizedBox.expand(child: StoredImage(file!, cacheWidth: 600))
+                  : placeholder
+                  ? SvgIcon(
+                      svg,
+                      size: 30,
+                      color: t.ink.withValues(alpha: 0.24),
+                      strokeWidth: 1.6,
+                    )
                   : SvgIcon(svg, size: 34, color: color.fg, strokeWidth: 1.6),
             ),
           ),
           _Caption(label, count),
-        ],
-      ),
-    );
-  }
-}
-
-/// 寬格「我的成圖」：高度＝上方正方形格的高度。
-/// 有成圖：圓角面板（內距 6）裡放縮圖＋虛線「＋」，名稱／數量在面板下方；
-/// 尚無成圖：淡色卡片，置中 icon 塊＋「我的成圖」＋提示。
-class _PieceBlock extends StatelessWidget {
-  const _PieceBlock({
-    required this.height,
-    required this.count,
-    required this.onTap,
-    this.file,
-    this.onLongPress,
-  });
-
-  final double height;
-  final int count;
-  final String? file;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final c = t.piece;
-    if (count == 0) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          height: height,
-          decoration: BoxDecoration(
-            color: dark ? const Color(0xFF2F2420) : const Color(0xFFFBF1ED),
-            border: Border.all(
-              color: dark ? const Color(0xFF4A3329) : const Color(0xFFF1DBD1),
-            ),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: dark
-                      ? const Color(0xFF4A3128)
-                      : const Color(0xFFF6DDD3),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                alignment: Alignment.center,
-                child: SvgIcon(
-                  AppIcons.pitPieceEmpty,
-                  size: 28,
-                  color: c.fg,
-                  strokeWidth: 1.6,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                context.l10n.pitsPieces,
-                style: TextStyle(
-                  color: t.ink,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                context.l10n.pitsPiecesEmpty,
-                style: TextStyle(
-                  color: dark
-                      ? const Color(0xFFE0A28C)
-                      : const Color(0xFF8A5443),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    final thumbTint = dark ? t.chipBg : const Color(0xFFEAD9E0);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: height,
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: c.bg,
-              borderRadius: BorderRadius.circular(Radii.card),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 14,
-                  child: Container(
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                      color: thumbTint,
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    alignment: Alignment.center,
-                    child: file != null
-                        ? SizedBox.expand(
-                            child: StoredImage(file!, cacheWidth: 600),
-                          )
-                        : SvgIcon(
-                            AppIcons.image,
-                            size: 28,
-                            color: t.ink.withValues(alpha: 0.24),
-                            strokeWidth: 1.6,
-                          ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  flex: 10,
-                  child: SizedBox.expand(
-                    child: DashedBox(
-                      color: dark ? t.dashed : const Color(0xFFE9C3B6),
-                      radius: 11,
-                      child: Center(
-                        child: SvgIcon(
-                          AppIcons.plus,
-                          size: 22,
-                          color: dark ? t.dashedText : const Color(0xFFD9A291),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          _Caption(
-            context.l10n.pitsPieces,
-            context.l10n.commonCountImages(count),
-          ),
         ],
       ),
     );

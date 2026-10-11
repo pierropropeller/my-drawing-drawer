@@ -14,12 +14,14 @@ import '../entity/draft_detail_page.dart';
 import '../entity/entity_widgets.dart';
 import '../entity/idea_detail_page.dart';
 import '../entity/piece_detail_page.dart';
+import '../pits/pit_oshi_entry.dart';
 import 'search_widgets.dart';
 import 'tag_filter_bar.dart';
 import 'tagged_list.dart';
 
 /// 坑內搜尋結果（PitSearchResult，D-051）：
-/// 分段順序 成圖 → 好看同人圖 → 草稿 → 腦洞；圖片類一排 3 格、第 3 格 +N，
+/// 分段順序 成圖 → 好看同人圖 → 推活 → 草稿 → 腦洞（D-065）；圖片類一排 3 格、第 3 格 +N，
+/// 少於 3 筆就照實際張數放、各自圓角（D-061）；筆數 0 的分段與分頁不顯示。
 /// 腦洞直向全列、往下捲動分批載入。設計稿沒有畫 `<nav>`，隱藏底部導覽列。
 class PitSearchResultPage extends ConsumerStatefulWidget {
   const PitSearchResultPage({
@@ -88,6 +90,14 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
   void _more(TaggedKind kind) =>
       openTaggedList(context, widget.pitId, kind, _tagId, leaveSearch: true);
 
+  /// 推活的「+N」：離開搜尋，進推活列表並帶同一個 tag（純文字搜尋＝完整列表）。
+  void _moreOshi() {
+    final nav = Navigator.of(context);
+    nav.popUntil((r) => r.settings.name != kSearchFlowRoute);
+    // 這個頁面關掉後 context 就失效，改用 Navigator 自己的 context。
+    openOshiList(nav.context, widget.pitId, tagId: _tagId);
+  }
+
   void _push(Widget page) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       settings: const RouteSettings(name: kSearchFlowRoute),
@@ -108,8 +118,20 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
             .watch(pitSearchProvider((widget.pitId, _text.trim(), _tagId)))
             .value ??
         PitSearchResult.empty;
+    // 目前分頁的結果變成 0 筆（分頁被隱藏）時退回「全部」。
+    final counts = {
+      SearchCategory.all: res.total,
+      SearchCategory.piece: res.pieces.total,
+      SearchCategory.fan: res.fanArts.total,
+      SearchCategory.oshi: res.oshi.total,
+      SearchCategory.draft: res.drafts.total,
+      SearchCategory.idea: res.ideas.total,
+    };
+    final category = (counts[_category] ?? 0) == 0
+        ? SearchCategory.all
+        : _category;
     bool show(SearchCategory c) =>
-        _category == SearchCategory.all || _category == c;
+        category == SearchCategory.all || category == c;
 
     final slivers = <Widget>[];
     void section(Widget w) => slivers.add(SliverToBoxAdapter(child: w));
@@ -163,6 +185,18 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
             ),
           ),
           onMore: () => _more(TaggedKind.fan),
+        ),
+      );
+    }
+    if (show(SearchCategory.oshi) && !res.oshi.isEmpty) {
+      section(
+        _ImageSection(
+          title: context.l10n.pitSearchCategoryOshi,
+          total: res.oshi.total,
+          files: [for (final v in res.oshi.items) v.cover.file],
+          more: res.oshi.more,
+          onTap: (i) => openOshiDetail(context, res.oshi.items[i].record.id),
+          onMore: _moreOshi,
         ),
       );
     }
@@ -251,15 +285,9 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
                 ),
               ),
               SearchCategoryChips(
-                selected: _category,
+                selected: category,
                 onSelected: (c) => setState(() => _category = c),
-                counts: {
-                  SearchCategory.all: res.total,
-                  SearchCategory.piece: res.pieces.total,
-                  SearchCategory.fan: res.fanArts.total,
-                  SearchCategory.draft: res.drafts.total,
-                  SearchCategory.idea: res.ideas.total,
-                },
+                counts: counts,
               ),
               Expanded(
                 child: slivers.isEmpty
@@ -336,6 +364,7 @@ class _SectionHeader extends StatelessWidget {
 
 /// 圖片類的一段：草稿多圖卡樣式，一排 3 格正方形、間距 4、外框圓角 10；
 /// 超過 3 筆時第 3 格蓋深色層寫「+N」，點它進該格列表。
+/// 少於 3 筆（D-061，PitSearchFew）：照實際張數放、不補空格、不顯示「+N」，每張各自圓角 10。
 class _ImageSection extends StatelessWidget {
   const _ImageSection({
     required this.title,
@@ -388,22 +417,31 @@ class _ImageSection extends StatelessWidget {
       );
     }
 
+    // 不滿 3 張：每張自己切圓角，空位留白（格寬仍是 1/3）。
+    final few = files.length < 3;
+    final row = Row(
+      spacing: 4,
+      children: [
+        for (var i = 0; i < 3; i++)
+          Expanded(
+            child: i < files.length
+                ? (few
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: cell(i),
+                        )
+                      : cell(i))
+                : const SizedBox.shrink(),
+          ),
+      ],
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(title, total),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Row(
-            spacing: 4,
-            children: [
-              for (var i = 0; i < 3; i++)
-                Expanded(
-                  child: i < files.length ? cell(i) : const SizedBox.shrink(),
-                ),
-            ],
-          ),
-        ),
+        few
+            ? row
+            : ClipRRect(borderRadius: BorderRadius.circular(10), child: row),
       ],
     );
   }
