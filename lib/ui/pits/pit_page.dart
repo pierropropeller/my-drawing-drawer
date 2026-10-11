@@ -234,7 +234,7 @@ class PitPage extends ConsumerWidget {
                               child: _Cell(
                                 context.l10n.pitsCellOshi,
                                 PitsIcons.oshi,
-                                PitsOshiColors.of(context),
+                                context.tokens.oshi,
                                 context.l10n.pitsCellOshiCount(stats.oshi),
                                 side: side,
                                 // 推活格沒有封面，也不能長按。

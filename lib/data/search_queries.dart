@@ -136,7 +136,11 @@ extension SearchQueries on AppDatabase {
 
         final oshiHits = [
           for (final v in await loadOshiViews(pitId))
-            if (match([v.record.title, v.record.description, v.group?.name], v.tags))
+            if (match([
+              v.record.title,
+              v.record.description,
+              v.group?.name,
+            ], v.tags))
               v,
         ];
 

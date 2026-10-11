@@ -422,14 +422,19 @@ extension EntityQueries on AppDatabase {
     )..where((x) => x.draftId.equals(draftId))).get()).map((r) => r.pieceId);
     final found = <(Piece, LinkedItem)>[];
     for (final id in ids) {
-      final p = await (select(
-        pieces,
-      )..where((x) => x.id.equals(id) & x.deletedAt.isNull())).getSingleOrNull();
+      final p =
+          await (select(pieces)
+                ..where((x) => x.id.equals(id) & x.deletedAt.isNull()))
+              .getSingleOrNull();
       if (p == null) continue;
       final im = await _imagesOf(OwnerType.piece, id);
       found.add((
         p,
-        LinkedItem(id: id, title: p.title, firstImage: im.isEmpty ? null : im.first),
+        LinkedItem(
+          id: id,
+          title: p.title,
+          firstImage: im.isEmpty ? null : im.first,
+        ),
       ));
     }
     // 順序固定：完成日期新到舊（關係表本身沒有順序）。
@@ -444,14 +449,19 @@ extension EntityQueries on AppDatabase {
     )..where((x) => x.pieceId.equals(pieceId))).get()).map((r) => r.draftId);
     final found = <(Draft, LinkedItem)>[];
     for (final id in ids) {
-      final d = await (select(
-        drafts,
-      )..where((x) => x.id.equals(id) & x.deletedAt.isNull())).getSingleOrNull();
+      final d =
+          await (select(drafts)
+                ..where((x) => x.id.equals(id) & x.deletedAt.isNull()))
+              .getSingleOrNull();
       if (d == null) continue;
       final im = await _imagesOf(OwnerType.draft, id);
       found.add((
         d,
-        LinkedItem(id: id, title: d.title, firstImage: im.isEmpty ? null : im.first),
+        LinkedItem(
+          id: id,
+          title: d.title,
+          firstImage: im.isEmpty ? null : im.first,
+        ),
       ));
     }
     // 順序固定：日期新到舊（關係表本身沒有順序）。
@@ -587,12 +597,14 @@ extension EntityQueries on AppDatabase {
       );
       // 關係由腦洞／成圖擁有：它們的文件裡還記著這份草稿，要一併更新才會同步出去。
       await _touchIdeas(
-        (await (select(ideaDrafts)..where((x) => x.draftId.isIn(ids))).get())
-            .map((r) => r.ideaId),
+        (await (select(
+          ideaDrafts,
+        )..where((x) => x.draftId.isIn(ids))).get()).map((r) => r.ideaId),
       );
       await _touchPieces(
-        (await (select(draftPieces)..where((x) => x.draftId.isIn(ids))).get())
-            .map((r) => r.pieceId),
+        (await (select(
+          draftPieces,
+        )..where((x) => x.draftId.isIn(ids))).get()).map((r) => r.pieceId),
       );
       await (delete(ideaDrafts)..where((x) => x.draftId.isIn(ids))).go();
       await (delete(draftPieces)..where((x) => x.draftId.isIn(ids))).go();
@@ -603,22 +615,25 @@ extension EntityQueries on AppDatabase {
   Future<PieceView> _pieceView(Piece p) async {
     final draftLinks = await _liveDraftLinks(p.id);
     return PieceView(
-    piece: p,
-    images: await _imagesOf(OwnerType.piece, p.id),
-    tags: await _tagsOf(TagTarget.piece, p.id),
-    links:
-        (await (select(pieceLinks)
-                  ..where((l) => l.pieceId.equals(p.id) & l.deletedAt.isNull()))
-                .get())
-            .map((l) => SocialLink(l.platform, l.url))
-            .toList(),
-    ideaIds:
-        (await (select(ideaPieces)..where((x) => x.pieceId.equals(p.id))).get())
-            .map((r) => r.ideaId)
-            .toList(),
-    draftIds: [for (final d in draftLinks) d.id],
-    linkedDrafts: draftLinks,
-  );
+      piece: p,
+      images: await _imagesOf(OwnerType.piece, p.id),
+      tags: await _tagsOf(TagTarget.piece, p.id),
+      links:
+          (await (select(pieceLinks)..where(
+                    (l) => l.pieceId.equals(p.id) & l.deletedAt.isNull(),
+                  ))
+                  .get())
+              .map((l) => SocialLink(l.platform, l.url))
+              .toList(),
+      ideaIds:
+          (await (select(
+                ideaPieces,
+              )..where((x) => x.pieceId.equals(p.id))).get())
+              .map((r) => r.ideaId)
+              .toList(),
+      draftIds: [for (final d in draftLinks) d.id],
+      linkedDrafts: draftLinks,
+    );
   }
 
   Stream<List<PieceView>> watchPieceViews(String pitId, {String? tagId}) {
@@ -795,8 +810,9 @@ extension EntityQueries on AppDatabase {
         PiecesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
       );
       await _touchIdeas(
-        (await (select(ideaPieces)..where((x) => x.pieceId.isIn(ids))).get())
-            .map((r) => r.ideaId),
+        (await (select(
+          ideaPieces,
+        )..where((x) => x.pieceId.isIn(ids))).get()).map((r) => r.ideaId),
       );
       await (delete(ideaPieces)..where((x) => x.pieceId.isIn(ids))).go();
       await (delete(draftPieces)..where((x) => x.pieceId.isIn(ids))).go();

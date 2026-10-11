@@ -860,6 +860,66 @@
       }
     }
   },
+  "oshiTitle": "推活",
+  "oshiCountRecords": "{count} 筆",
+  "@oshiCountRecords": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "oshiCountItems": "{count} 項",
+  "@oshiCountItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "oshiMonthHeader": "{year} 年 {month} 月",
+  "@oshiMonthHeader": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "oshiWeekdayMon": "週一",
+  "oshiWeekdayTue": "週二",
+  "oshiWeekdayWed": "週三",
+  "oshiWeekdayThu": "週四",
+  "oshiWeekdayFri": "週五",
+  "oshiWeekdaySat": "週六",
+  "oshiWeekdaySun": "週日",
+  "oshiLayoutTimeline": "時間軸",
+  "oshiLayoutGrid": "網格",
+  "oshiEmpty": "還沒有推活紀錄",
+  "oshiEmptyAction": "新增紀錄",
+  "oshiAddRecord": "新增推活紀錄",
+  "oshiFormTitleNew": "新增推活紀錄",
+  "oshiFormTitleEdit": "編輯推活紀錄",
+  "oshiFieldImages": "圖片",
+  "oshiFieldDescription": "描述",
+  "oshiFieldDate": "日期",
+  "oshiFormCreate": "建立紀錄",
+  "oshiDetailDate": "{date}（{weekday}）",
+  "@oshiDetailDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "weekday": {
+        "type": "String"
+      }
+    }
+  },
+  "oshiDeleteTitle": "刪除這筆紀錄？",
+  "oshiGroupHint": "分組只用於推活，拖曳可調整次序",
+  "oshiGroupDeleteBody": "組內的紀錄會變成沒有分組。",
   "pitsCellOshi": "推活",
   "pitsCellOshiCount": "{count} 筆",
   "@pitsCellOshiCount": {

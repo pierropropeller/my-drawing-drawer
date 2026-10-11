@@ -75,7 +75,10 @@ void main() {
       groupId: groups[1].id,
       title: null,
       description: '描述',
-      images: const [NewImage(file: 'b.png'), NewImage(file: 'c.png')],
+      images: const [
+        NewImage(file: 'b.png'),
+        NewImage(file: 'c.png'),
+      ],
       tagIds: const [],
     );
     v = (await db.watchOshiRecord(id).first)!;
@@ -133,8 +136,9 @@ void main() {
       r1,
     ]);
     expect(
-      (await db.watchOshiRecords(pitId, groupId: groups[0].id).first)
-          .map((v) => v.record.id),
+      (await db.watchOshiRecords(pitId, groupId: groups[0].id).first).map(
+        (v) => v.record.id,
+      ),
       [r3],
     );
     expect(
@@ -162,8 +166,9 @@ void main() {
     expect((await db.watchOshiRecords(pitId).first).length, 3);
     // 軟刪除：列還在、有 deletedAt（同步用）
     expect(
-      (await (db.select(db.oshiRecords)..where((o) => o.id.equals(r2))).getSingle())
-          .deletedAt,
+      (await (db.select(
+        db.oshiRecords,
+      )..where((o) => o.id.equals(r2))).getSingle()).deletedAt,
       isNotNull,
     );
   });

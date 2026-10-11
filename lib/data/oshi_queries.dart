@@ -47,9 +47,8 @@ extension OshiQueries on AppDatabase {
     OfficialGroup? group;
     if (r.groupId != null) {
       group =
-          await (select(officialGroups)..where(
-                (g) => g.id.equals(r.groupId!) & g.deletedAt.isNull(),
-              ))
+          await (select(officialGroups)
+                ..where((g) => g.id.equals(r.groupId!) & g.deletedAt.isNull()))
               .getSingleOrNull();
     }
     final imageRows =
@@ -62,9 +61,8 @@ extension OshiQueries on AppDatabase {
               ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
             .get();
     final tagRows =
-        await (select(
-              tags,
-            ).join([innerJoin(tagLinks, tagLinks.tagId.equalsExp(tags.id))])
+        await (select(tags)
+                .join([innerJoin(tagLinks, tagLinks.tagId.equalsExp(tags.id))])
               ..where(
                 tagLinks.targetType.equalsValue(TagTarget.oshi) &
                     tagLinks.targetId.equals(r.id) &
@@ -135,10 +133,9 @@ extension OshiQueries on AppDatabase {
   }
 
   Future<OshiRecordView?> getOshiRecord(String id) async {
-    final r =
-        await (select(oshiRecords)
-              ..where((o) => o.id.equals(id) & o.deletedAt.isNull()))
-            .getSingleOrNull();
+    final r = await (select(
+      oshiRecords,
+    )..where((o) => o.id.equals(id) & o.deletedAt.isNull())).getSingleOrNull();
     return r == null ? null : _oshiView(r);
   }
 
@@ -158,11 +155,9 @@ extension OshiQueries on AppDatabase {
   Stream<Map<String?, int>> watchOshiGroupCounts(String pitId) {
     return watchAssembled(this, {oshiRecords}, () async {
       final out = <String?, int>{};
-      for (final r
-          in await (select(oshiRecords)..where(
-                (o) => o.pitId.equals(pitId) & o.deletedAt.isNull(),
-              ))
-              .get()) {
+      for (final r in await (select(
+        oshiRecords,
+      )..where((o) => o.pitId.equals(pitId) & o.deletedAt.isNull())).get()) {
         out[r.groupId] = (out[r.groupId] ?? 0) + 1;
       }
       return out;

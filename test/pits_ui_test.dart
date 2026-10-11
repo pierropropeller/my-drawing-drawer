@@ -19,6 +19,7 @@ import 'package:huakeng/main.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/ui/common/app_switch.dart';
 import 'package:huakeng/ui/junk/junk_list_page.dart';
+import 'package:huakeng/ui/oshi/oshi_list_page.dart';
 import 'package:huakeng/state/settings.dart';
 
 void main() {
@@ -163,7 +164,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('D-058：點推活格呼叫 openOshiList 佔位頁；推活格長按不開選擇封面', (tester) async {
+  testWidgets('D-058：點推活格進推活列表；推活格長按不開選擇封面', (tester) async {
     await tester.runAsync(() => seedOshi(1));
     await pumpPitPage(tester, Brightness.light);
     // 沒有長按處理：長按不會開選擇封面（放開時照一般點擊進推活）。
@@ -175,8 +176,8 @@ void main() {
     await pumpPitPage(tester, Brightness.light);
     await tester.tap(find.text('推活'));
     await settle(tester);
-    expect(find.text('官方圖冊'), findsNothing); // 已進入佔位頁
-    expect(find.text('推活'), findsOneWidget);
+    expect(find.text('官方圖冊'), findsNothing); // 已進入推活列表頁
+    expect(find.byType(OshiListPage), findsOneWidget);
     await unmount(tester);
   });
 

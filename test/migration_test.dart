@@ -217,10 +217,16 @@ void main() {
       );
       final idea = (await db.watchIdeaView('i1').first)!;
       expect(idea.idea.title, '舊腦洞');
-      expect(idea.idea.date, DateTime.fromMillisecondsSinceEpoch(1700000000000));
+      expect(
+        idea.idea.date,
+        DateTime.fromMillisecondsSinceEpoch(1700000000000),
+      );
       expect(idea.idea.date, idea.idea.createdAt);
       final draft = (await db.watchDraftView('d1').first)!;
-      expect(draft.draft.date, DateTime.fromMillisecondsSinceEpoch(1690000000000));
+      expect(
+        draft.draft.date,
+        DateTime.fromMillisecondsSinceEpoch(1690000000000),
+      );
       // 舊資料的 updatedAt 不被遷移改動
       expect(
         idea.idea.updatedAt,
@@ -258,10 +264,10 @@ void main() {
         date: DateTime(2026, 12, 25),
       );
       // 新腦洞 date 最大 → 排最前
-      expect(
-        (await db.watchIdeaViews('p1').first).map((v) => v.idea.id),
-        [newIdea, 'i1'],
-      );
+      expect((await db.watchIdeaViews('p1').first).map((v) => v.idea.id), [
+        newIdea,
+        'i1',
+      ]);
       await db.close();
     });
   }
@@ -362,7 +368,9 @@ void _legacySchema(dynamic raw, int v) {
   raw.execute(
     'CREATE TABLE drafts ($base, pit_id TEXT NOT NULL, title TEXT NULL, body TEXT NULL)',
   );
-  raw.execute('CREATE TABLE tags ($base, pit_id TEXT NOT NULL, name TEXT NOT NULL)');
+  raw.execute(
+    'CREATE TABLE tags ($base, pit_id TEXT NOT NULL, name TEXT NOT NULL)',
+  );
   raw.execute(
     'CREATE TABLE tag_links (tag_id TEXT NOT NULL, target_type TEXT NOT NULL, target_id TEXT NOT NULL, PRIMARY KEY (tag_id, target_type, target_id))',
   );

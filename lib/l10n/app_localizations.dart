@@ -2343,6 +2343,162 @@ abstract class AppLocalizations {
   /// **'{count} 張成圖'**
   String moveReviewPieceCount(int count);
 
+  /// No description provided for @oshiTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'推活'**
+  String get oshiTitle;
+
+  /// No description provided for @oshiCountRecords.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 筆'**
+  String oshiCountRecords(int count);
+
+  /// No description provided for @oshiCountItems.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 項'**
+  String oshiCountItems(int count);
+
+  /// No description provided for @oshiMonthHeader.
+  ///
+  /// In zh, this message translates to:
+  /// **'{year} 年 {month} 月'**
+  String oshiMonthHeader(int year, int month);
+
+  /// No description provided for @oshiWeekdayMon.
+  ///
+  /// In zh, this message translates to:
+  /// **'週一'**
+  String get oshiWeekdayMon;
+
+  /// No description provided for @oshiWeekdayTue.
+  ///
+  /// In zh, this message translates to:
+  /// **'週二'**
+  String get oshiWeekdayTue;
+
+  /// No description provided for @oshiWeekdayWed.
+  ///
+  /// In zh, this message translates to:
+  /// **'週三'**
+  String get oshiWeekdayWed;
+
+  /// No description provided for @oshiWeekdayThu.
+  ///
+  /// In zh, this message translates to:
+  /// **'週四'**
+  String get oshiWeekdayThu;
+
+  /// No description provided for @oshiWeekdayFri.
+  ///
+  /// In zh, this message translates to:
+  /// **'週五'**
+  String get oshiWeekdayFri;
+
+  /// No description provided for @oshiWeekdaySat.
+  ///
+  /// In zh, this message translates to:
+  /// **'週六'**
+  String get oshiWeekdaySat;
+
+  /// No description provided for @oshiWeekdaySun.
+  ///
+  /// In zh, this message translates to:
+  /// **'週日'**
+  String get oshiWeekdaySun;
+
+  /// No description provided for @oshiLayoutTimeline.
+  ///
+  /// In zh, this message translates to:
+  /// **'時間軸'**
+  String get oshiLayoutTimeline;
+
+  /// No description provided for @oshiLayoutGrid.
+  ///
+  /// In zh, this message translates to:
+  /// **'網格'**
+  String get oshiLayoutGrid;
+
+  /// No description provided for @oshiEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有推活紀錄'**
+  String get oshiEmpty;
+
+  /// No description provided for @oshiEmptyAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增紀錄'**
+  String get oshiEmptyAction;
+
+  /// No description provided for @oshiAddRecord.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增推活紀錄'**
+  String get oshiAddRecord;
+
+  /// No description provided for @oshiFormTitleNew.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增推活紀錄'**
+  String get oshiFormTitleNew;
+
+  /// No description provided for @oshiFormTitleEdit.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯推活紀錄'**
+  String get oshiFormTitleEdit;
+
+  /// No description provided for @oshiFieldImages.
+  ///
+  /// In zh, this message translates to:
+  /// **'圖片'**
+  String get oshiFieldImages;
+
+  /// No description provided for @oshiFieldDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'描述'**
+  String get oshiFieldDescription;
+
+  /// No description provided for @oshiFieldDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'日期'**
+  String get oshiFieldDate;
+
+  /// No description provided for @oshiFormCreate.
+  ///
+  /// In zh, this message translates to:
+  /// **'建立紀錄'**
+  String get oshiFormCreate;
+
+  /// No description provided for @oshiDetailDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'{date}（{weekday}）'**
+  String oshiDetailDate(String date, String weekday);
+
+  /// No description provided for @oshiDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除這筆紀錄？'**
+  String get oshiDeleteTitle;
+
+  /// No description provided for @oshiGroupHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'分組只用於推活，拖曳可調整次序'**
+  String get oshiGroupHint;
+
+  /// No description provided for @oshiGroupDeleteBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'組內的紀錄會變成沒有分組。'**
+  String get oshiGroupDeleteBody;
+
   /// No description provided for @pitsCellOshi.
   ///
   /// In zh, this message translates to:

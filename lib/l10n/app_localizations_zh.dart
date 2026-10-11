@@ -1284,6 +1284,92 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get oshiTitle => '推活';
+
+  @override
+  String oshiCountRecords(int count) {
+    return '$count 筆';
+  }
+
+  @override
+  String oshiCountItems(int count) {
+    return '$count 項';
+  }
+
+  @override
+  String oshiMonthHeader(int year, int month) {
+    return '$year 年 $month 月';
+  }
+
+  @override
+  String get oshiWeekdayMon => '週一';
+
+  @override
+  String get oshiWeekdayTue => '週二';
+
+  @override
+  String get oshiWeekdayWed => '週三';
+
+  @override
+  String get oshiWeekdayThu => '週四';
+
+  @override
+  String get oshiWeekdayFri => '週五';
+
+  @override
+  String get oshiWeekdaySat => '週六';
+
+  @override
+  String get oshiWeekdaySun => '週日';
+
+  @override
+  String get oshiLayoutTimeline => '時間軸';
+
+  @override
+  String get oshiLayoutGrid => '網格';
+
+  @override
+  String get oshiEmpty => '還沒有推活紀錄';
+
+  @override
+  String get oshiEmptyAction => '新增紀錄';
+
+  @override
+  String get oshiAddRecord => '新增推活紀錄';
+
+  @override
+  String get oshiFormTitleNew => '新增推活紀錄';
+
+  @override
+  String get oshiFormTitleEdit => '編輯推活紀錄';
+
+  @override
+  String get oshiFieldImages => '圖片';
+
+  @override
+  String get oshiFieldDescription => '描述';
+
+  @override
+  String get oshiFieldDate => '日期';
+
+  @override
+  String get oshiFormCreate => '建立紀錄';
+
+  @override
+  String oshiDetailDate(String date, String weekday) {
+    return '$date（$weekday）';
+  }
+
+  @override
+  String get oshiDeleteTitle => '刪除這筆紀錄？';
+
+  @override
+  String get oshiGroupHint => '分組只用於推活，拖曳可調整次序';
+
+  @override
+  String get oshiGroupDeleteBody => '組內的紀錄會變成沒有分組。';
+
+  @override
   String get pitsCellOshi => '推活';
 
   @override

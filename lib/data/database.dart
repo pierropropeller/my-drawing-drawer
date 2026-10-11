@@ -113,7 +113,10 @@ class AppDatabase extends _$AppDatabase {
   /// 在 [pitId] 建立預設推活分組。[deterministic]＝id 由坑 id 推得（遷移用，可重複執行）。
   /// 只在這個坑**從沒有過**推活分組（連已刪除的都算）時才建立，
   /// 所以使用者刪光分組後不會被補回來。
-  Future<void> seedOshiGroups(String pitId, {bool deterministic = false}) async {
+  Future<void> seedOshiGroups(
+    String pitId, {
+    bool deterministic = false,
+  }) async {
     final any = await customSelect(
       "SELECT 1 FROM official_groups WHERE pit_id = ? AND kind = 'oshi' LIMIT 1",
       variables: [Variable<String>(pitId)],
@@ -126,7 +129,14 @@ class AppDatabase extends _$AppDatabase {
         'INSERT OR IGNORE INTO official_groups '
         '(id, created_at, updated_at, device_id, pit_id, kind, name, sort_order) '
         "VALUES (?, ?, ?, '', ?, 'oshi', ?, ?)",
-        [id, nowSec, deterministic ? 1 : nowSec, pitId, defaultOshiGroups[i], i],
+        [
+          id,
+          nowSec,
+          deterministic ? 1 : nowSec,
+          pitId,
+          defaultOshiGroups[i],
+          i,
+        ],
       );
     }
     // customStatement 不會自動通知 drift 的 watch 串流。

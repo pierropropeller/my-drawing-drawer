@@ -94,7 +94,10 @@ void main() {
       );
       var v = (await db.watchIdeaViews(pitId).first).map((v) => v.idea.id);
       expect(v, [fresh, mid, old]);
-      expect((await db.watchIdeaView(old).first)!.idea.date, DateTime(2026, 1, 5));
+      expect(
+        (await db.watchIdeaView(old).first)!.idea.date,
+        DateTime(2026, 1, 5),
+      );
 
       // 草稿同理
       final d1 = await draft('a', date: DateTime(2026, 3, 1));
@@ -139,7 +142,10 @@ void main() {
       }
 
       expect(await edit(DateTime(2026, 3, 1)), t); // 同一天：保留 15:40
-      expect(await edit(DateTime(2026, 3, 9)), DateTime(2026, 3, 9)); // 其他天：00:00
+      expect(
+        await edit(DateTime(2026, 3, 9)),
+        DateTime(2026, 3, 9),
+      ); // 其他天：00:00
       final today = DateTime.now();
       final got = await edit(DateTime(today.year, today.month, today.day));
       expect(got.difference(today).inSeconds.abs() < 5, isTrue); // 今天：現在
@@ -184,8 +190,9 @@ void main() {
       await idea('四月', date: DateTime(2026, 4, 15, 10));
       await draft('三月草稿', date: DateTime(2026, 3, 15, 20));
       await draft('去年草稿', date: DateTime(2025, 12, 31, 23, 59));
-      final month = (await db.watchGoalViews(GoalPeriod.month, 2026, month: 3).first)
-          .singleWhere((g) => g.goal.id == goal);
+      final month =
+          (await db.watchGoalViews(GoalPeriod.month, 2026, month: 3).first)
+              .singleWhere((g) => g.goal.id == goal);
       expect(month.progress, 1);
       final year = (await db.watchGoalViews(GoalPeriod.year, 2026).first)
           .singleWhere((g) => g.goal.id == dGoal);
@@ -197,7 +204,10 @@ void main() {
       expect(await db.watchTimeline(DateTime(2026, 4, 15)).first, hasLength(1));
       // createdAt（今天）那天沒有東西
       final n = DateTime.now();
-      expect(await db.watchTimeline(DateTime(n.year, n.month, n.day)).first, isEmpty);
+      expect(
+        await db.watchTimeline(DateTime(n.year, n.month, n.day)).first,
+        isEmpty,
+      );
     });
 
     test('成圖仍用 finishedAt', () async {
@@ -319,17 +329,20 @@ void main() {
       final t2 = await db.createTag(pitId, '角色2');
       final ims = await addOfficial(['a.png', 'b.png'], tagIds: [t1, t2]);
       for (final i in ims) {
-        expect(
-          (await db.watchTagIds(TagTarget.official, i.id).first).toSet(),
-          {t1, t2},
-        );
+        expect((await db.watchTagIds(TagTarget.official, i.id).first).toSet(), {
+          t1,
+          t2,
+        });
       }
       final before = ims.first.updatedAt;
       await Future<void>.delayed(const Duration(milliseconds: 1100));
       await db.setOfficialTags(ims.first.id, [t2]);
-      expect(await db.watchTagIds(TagTarget.official, ims.first.id).first, [t2]);
-      final after = (await db.watchOfficial(pitId).first)
-          .firstWhere((i) => i.id == ims.first.id);
+      expect(await db.watchTagIds(TagTarget.official, ims.first.id).first, [
+        t2,
+      ]);
+      final after = (await db.watchOfficial(pitId).first).firstWhere(
+        (i) => i.id == ims.first.id,
+      );
       expect(after.updatedAt.isAfter(before), isTrue);
       // 次數含官方圖
       final usage = {
@@ -357,7 +370,10 @@ void main() {
       );
       final fans = await db.watchFanArts(pitId, tagId: t).first;
       expect(fans, hasLength(2));
-      expect(fans.every((f) => f.author == '@au' && f.groupId == fg[1].id), isTrue);
+      expect(
+        fans.every((f) => f.author == '@au' && f.groupId == fg[1].id),
+        isTrue,
+      );
       await db.addJunk(pitId, const [NewImage(file: 'j.png')]);
       expect(await db.watchJunk(pitId).first, hasLength(1));
     });
@@ -370,7 +386,10 @@ void main() {
       await db.setOfficialTags(ims[0].id, [t1, t2]);
       await db.setOfficialTags(ims[1].id, [t1]);
       await db.setOfficialTags(ims[2].id, [t1, t2]);
-      var cov = await db.tagCoverage(AlbumCell.official, [ims[0].id, ims[1].id]);
+      var cov = await db.tagCoverage(AlbumCell.official, [
+        ims[0].id,
+        ims[1].id,
+      ]);
       Map<String, TagCoverage> m(List<TagCoverageEntry> l) => {
         for (final e in l) e.tag.name: e.coverage,
       };
@@ -390,7 +409,9 @@ void main() {
       // 空選取
       expect(await db.tagCoverage(AlbumCell.official, const []), isEmpty);
       // watch 版
-      final first = await db.watchTagCoverage(AlbumCell.official, [ims[1].id]).first;
+      final first = await db.watchTagCoverage(AlbumCell.official, [
+        ims[1].id,
+      ]).first;
       expect(m(first), {
         'A': TagCoverage.all,
         'B': TagCoverage.none,
@@ -399,63 +420,66 @@ void main() {
       expect(t3, isNotEmpty);
     });
 
-    test('applyBatchTags：加到全部、從全部移除、新增 tag，一個 transaction，只動有變的圖的 updatedAt', () async {
-      final a = await db.createTag(pitId, 'A');
-      final b = await db.createTag(pitId, 'B');
-      final ims = await addOfficial(['1.png', '2.png', '3.png']);
-      await db.setOfficialTags(ims[0].id, [a]);
-      await db.setOfficialTags(ims[1].id, [a, b]);
-      final ids = ims.map((i) => i.id).toList();
-      await Future<void>.delayed(const Duration(milliseconds: 1100));
+    test(
+      'applyBatchTags：加到全部、從全部移除、新增 tag，一個 transaction，只動有變的圖的 updatedAt',
+      () async {
+        final a = await db.createTag(pitId, 'A');
+        final b = await db.createTag(pitId, 'B');
+        final ims = await addOfficial(['1.png', '2.png', '3.png']);
+        await db.setOfficialTags(ims[0].id, [a]);
+        await db.setOfficialTags(ims[1].id, [a, b]);
+        final ids = ims.map((i) => i.id).toList();
+        await Future<void>.delayed(const Duration(milliseconds: 1100));
 
-      final created = await db.applyBatchTags(
-        AlbumCell.official,
-        ids.take(2),
-        addTagIds: [b], // 第二張已有，第一張要補
-        removeTagIds: [a],
-        newTagNames: ['#新tag'],
-      );
-      expect(created, hasLength(1));
-      final tagNames = {
-        for (final t in await db.watchTags(pitId).first) t.id: t.name,
-      };
-      expect(tagNames[created.single], '新tag'); // 去掉開頭的 #
-      for (final id in ids.take(2)) {
-        expect(
-          (await db.watchTagIds(TagTarget.official, id).first).toSet(),
-          {b, created.single},
+        final created = await db.applyBatchTags(
+          AlbumCell.official,
+          ids.take(2),
+          addTagIds: [b], // 第二張已有，第一張要補
+          removeTagIds: [a],
+          newTagNames: ['#新tag'],
         );
-      }
-      // 第三張完全沒動：tag 與 updatedAt 都不變
-      expect(await db.watchTagIds(TagTarget.official, ids[2]).first, isEmpty);
-      final all = await db.watchOfficial(pitId).first;
-      DateTime up(String id) => all.firstWhere((i) => i.id == id).updatedAt;
-      expect(up(ids[2]), ims[2].updatedAt);
-      expect(up(ids[0]).isAfter(ims[0].updatedAt), isTrue);
-      expect(up(ids[1]).isAfter(ims[1].updatedAt), isTrue);
+        expect(created, hasLength(1));
+        final tagNames = {
+          for (final t in await db.watchTags(pitId).first) t.id: t.name,
+        };
+        expect(tagNames[created.single], '新tag'); // 去掉開頭的 #
+        for (final id in ids.take(2)) {
+          expect((await db.watchTagIds(TagTarget.official, id).first).toSet(), {
+            b,
+            created.single,
+          });
+        }
+        // 第三張完全沒動：tag 與 updatedAt 都不變
+        expect(await db.watchTagIds(TagTarget.official, ids[2]).first, isEmpty);
+        final all = await db.watchOfficial(pitId).first;
+        DateTime up(String id) => all.firstWhere((i) => i.id == id).updatedAt;
+        expect(up(ids[2]), ims[2].updatedAt);
+        expect(up(ids[0]).isAfter(ims[0].updatedAt), isTrue);
+        expect(up(ids[1]).isAfter(ims[1].updatedAt), isTrue);
 
-      // 重複套用同樣的變更：沒有任何變動，不蓋 updatedAt
-      final snapshot = {for (final i in all) i.id: i.updatedAt};
-      await Future<void>.delayed(const Duration(milliseconds: 1100));
-      await db.applyBatchTags(
-        AlbumCell.official,
-        ids.take(2),
-        addTagIds: [b],
-        removeTagIds: [a],
-      );
-      final again = await db.watchOfficial(pitId).first;
-      for (final i in again) {
-        expect(i.updatedAt, snapshot[i.id]);
-      }
-      // 同名 tag 重用，不重複建立
-      final reuse = await db.applyBatchTags(
-        AlbumCell.official,
-        ids,
-        newTagNames: ['新tag'],
-      );
-      expect(reuse.single, created.single);
-      expect((await db.watchTags(pitId).first).length, 3);
-    });
+        // 重複套用同樣的變更：沒有任何變動，不蓋 updatedAt
+        final snapshot = {for (final i in all) i.id: i.updatedAt};
+        await Future<void>.delayed(const Duration(milliseconds: 1100));
+        await db.applyBatchTags(
+          AlbumCell.official,
+          ids.take(2),
+          addTagIds: [b],
+          removeTagIds: [a],
+        );
+        final again = await db.watchOfficial(pitId).first;
+        for (final i in again) {
+          expect(i.updatedAt, snapshot[i.id]);
+        }
+        // 同名 tag 重用，不重複建立
+        final reuse = await db.applyBatchTags(
+          AlbumCell.official,
+          ids,
+          newTagNames: ['新tag'],
+        );
+        expect(reuse.single, created.single);
+        expect((await db.watchTags(pitId).first).length, 3);
+      },
+    );
 
     test('applyBatchTags：同人圖同樣可用；雜物不行；跨坑 tag 或混坑選取回滾', () async {
       final other = await db.createPit(name: '坑B');
@@ -508,7 +532,10 @@ void main() {
         ids: [ims.single.id],
         to: AlbumCell.junk,
       );
-      expect(await db.tagCoverage(AlbumCell.official, [ims.single.id]), isEmpty);
+      expect(
+        await db.tagCoverage(AlbumCell.official, [ims.single.id]),
+        isEmpty,
+      );
       expect((await db.watchTagUsage(pitId).first).single.count, 0);
       final junk = (await db.watchJunk(pitId).first).single;
       await db.moveAlbumImages(
@@ -534,7 +561,9 @@ void main() {
       final fan = (await db.watchFanArts(pitId).first).single;
       expect(await db.watchTagIds(TagTarget.fanArt, fan.id).first, isEmpty);
       // 官方的 tag 留在隱藏列，不計入次數
-      expect(await db.watchTagIds(TagTarget.official, ims.single.id).first, [t]);
+      expect(await db.watchTagIds(TagTarget.official, ims.single.id).first, [
+        t,
+      ]);
       expect((await db.watchTagUsage(pitId).first).single.count, 0);
       await db.setTags(TagTarget.fanArt, fan.id, [t]);
       await db.moveAlbumImages(
@@ -564,7 +593,8 @@ void main() {
       );
       final inB = (await db.watchOfficial(other).first).single;
       expect(inB.groupId, bOfficial[1].id);
-      final bTagIds = (await db.watchTagIds(TagTarget.official, inB.id).first).toSet();
+      final bTagIds = (await db.watchTagIds(TagTarget.official, inB.id).first)
+          .toSet();
       expect(bTagIds.length, 2);
       expect(bTagIds.contains(existingInB), isTrue); // 同名重用
       final bNames = {
@@ -578,8 +608,14 @@ void main() {
         {ta, tb},
       );
       // A 坑的使用次數：隱藏列不算
-      expect((await db.watchTagUsage(pitId).first).every((u) => u.count == 0), isTrue);
-      expect((await db.watchTagUsage(other).first).every((u) => u.count == 1), isTrue);
+      expect(
+        (await db.watchTagUsage(pitId).first).every((u) => u.count == 0),
+        isTrue,
+      );
+      expect(
+        (await db.watchTagUsage(other).first).every((u) => u.count == 1),
+        isTrue,
+      );
 
       // 在 B 坑改 tag，再移回 A：恢復 A 的隱藏列與它原本的 tag（取消隱藏的列保留自己的 tag）
       await db.moveAlbumImages(

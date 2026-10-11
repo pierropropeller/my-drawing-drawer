@@ -42,13 +42,13 @@ void main() {
 
   Future<NewImage> imageOn(Directory dir, String name) async {
     await dir.create(recursive: true);
-    File(
-      '${dir.path}/$name',
-    ).writeAsBytesSync(Uint8List.fromList([9, 8, 7, name.length]));
+    File('${dir.path}/$name')
+        .writeAsBytesSync(Uint8List.fromList([9, 8, 7, name.length]));
     return NewImage(file: name, width: 10, height: 20);
   }
 
-  Future<void> tick() => Future<void>.delayed(const Duration(milliseconds: 1100));
+  Future<void> tick() =>
+      Future<void>.delayed(const Duration(milliseconds: 1100));
 
   test('推活：A 建立紀錄（圖、tag、分組）→ B 拉到；B 編輯 → A 拉到；刪除與分組刪除也會同步', () async {
     final pitId = await a.createPit(name: '坑');
@@ -83,10 +83,7 @@ void main() {
     expect(v.images.first.width, 10);
     expect(v.tags.single.name, '角色1');
     expect((await b.watchPitStats(pitId).first).oshi, 1);
-    expect(
-      (await b.watchTagUsage(pitId).first).single.count,
-      1,
-    ); // 推活計入 tag 次數
+    expect((await b.watchTagUsage(pitId).first).single.count, 1); // 推活計入 tag 次數
 
     // B 編輯：換分組、換日期、少一張圖
     await tick();
@@ -96,9 +93,7 @@ void main() {
       date: DateTime(2026, 10, 6),
       groupId: groups[1].id,
       title: '一週年展（改）',
-      images: [
-        NewImage(file: 'o2.png', width: 10, height: 20),
-      ],
+      images: [NewImage(file: 'o2.png', width: 10, height: 20)],
       tagIds: const [],
     );
     await engineB.sync();
@@ -171,7 +166,10 @@ void main() {
     );
     await engineA.sync();
     await engineB.sync();
-    expect((await b.watchIdeaView(i).first)!.idea.date, DateTime(2026, 3, 1, 9, 15));
+    expect(
+      (await b.watchIdeaView(i).first)!.idea.date,
+      DateTime(2026, 3, 1, 9, 15),
+    );
     expect((await b.watchDraftView(d).first)!.draft.date, DateTime(2026, 4, 2));
 
     // 舊版文件
@@ -313,10 +311,12 @@ void main() {
     final pitId = await a.createPit(name: '坑');
     final og = await a.watchGroups(pitId).first;
     final t1 = await a.createTag(pitId, '角色1');
-    await a.addOfficial(pitId, og.first.id, [
-      await imageOn(dirA, '1.png'),
-      await imageOn(dirA, '2.png'),
-    ], tagIds: [t1]);
+    await a.addOfficial(
+      pitId,
+      og.first.id,
+      [await imageOn(dirA, '1.png'), await imageOn(dirA, '2.png')],
+      tagIds: [t1],
+    );
     final ims = await a.watchOfficial(pitId).first;
     await engineA.sync();
     await engineB.sync();
@@ -339,16 +339,15 @@ void main() {
       expect(await b.watchTagIds(TagTarget.official, i.id).first, created);
     }
     expect(
-      {
-        for (final u in await b.watchTagUsage(pitId).first) u.tag.name: u.count,
-      },
+      {for (final u in await b.watchTagUsage(pitId).first) u.tag.name: u.count},
       {'角色1': 0, '新的': 2},
     );
 
     // 舊版文件（沒有 tagIds）覆蓋：B 本機的 tag 要保留
     final first = ims.first;
     final key = 'meta__official__${first.id}.json';
-    final doc = jsonDecode(utf8.decode(remote.files[key]!)) as Map<String, dynamic>;
+    final doc =
+        jsonDecode(utf8.decode(remote.files[key]!)) as Map<String, dynamic>;
     (doc['data'] as Map<String, dynamic>).remove('tagIds');
     doc['updatedAt'] = (doc['updatedAt'] as int) + 60000;
     (doc['data'] as Map<String, dynamic>)['updatedAt'] = doc['updatedAt'];
@@ -363,7 +362,12 @@ void main() {
     final g1 = await a.watchGroups(p1).first;
     final g2 = await a.watchGroups(p2).first;
     final tag = await a.createTag(p1, '角色1');
-    await a.addOfficial(p1, g1.first.id, [await imageOn(dirA, 'x.png')], tagIds: [tag]);
+    await a.addOfficial(
+      p1,
+      g1.first.id,
+      [await imageOn(dirA, 'x.png')],
+      tagIds: [tag],
+    );
     final img = (await a.watchOfficial(p1).first).single;
     await a.moveAlbumImages(
       from: AlbumCell.official,
@@ -378,11 +382,11 @@ void main() {
     expect(await b.watchOfficial(p1).first, isEmpty);
     final inB = (await b.watchOfficial(p2).first).single;
     expect(inB.groupId, g2[2].id);
-    final names = {
-      for (final t in await b.watchTags(p2).first) t.id: t.name,
-    };
+    final names = {for (final t in await b.watchTags(p2).first) t.id: t.name};
     expect(
-      (await b.watchTagIds(TagTarget.official, inB.id).first).map((i) => names[i]),
+      (await b.watchTagIds(TagTarget.official, inB.id).first).map(
+        (i) => names[i],
+      ),
       ['角色1'],
     );
     // 在 B 移回原坑：恢復原本的列與 tag

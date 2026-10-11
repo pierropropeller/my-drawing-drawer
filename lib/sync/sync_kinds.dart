@@ -123,9 +123,7 @@ class PitsKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.pits)
-      .upsertFull(
-        Pit.fromJson(withDefaults(data, {'junkEnabled': false})),
-      );
+      .upsertFull(Pit.fromJson(withDefaults(data, {'junkEnabled': false})));
 }
 
 class GroupsKind extends SyncKind {
@@ -143,9 +141,8 @@ class GroupsKind extends SyncKind {
         db.officialGroups,
       )..where((t) => t.id.equals(id))).getSingle()).toJson();
   @override
-  Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
-      .into(db.officialGroups)
-      .upsertFull(OfficialGroup.fromJson(data));
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) =>
+      db.into(db.officialGroups).upsertFull(OfficialGroup.fromJson(data));
 }
 
 class OfficialKind extends SyncKind {
@@ -178,6 +175,7 @@ class OfficialKind extends SyncKind {
       }
     });
   }
+
   @override
   Set<String> imageFiles(Map<String, dynamic> data) => {
     data['imageFile'] as String,
@@ -511,9 +509,8 @@ class ReviewMonthsKind extends SyncKind {
   }
 
   @override
-  Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
-      .into(db.yearReviewMonths)
-      .upsertFull(YearReviewMonth.fromJson(data));
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) =>
+      db.into(db.yearReviewMonths).upsertFull(YearReviewMonth.fromJson(data));
   @override
   Set<String> imageFiles(Map<String, dynamic> data) => {
     if (data['imageFile'] != null && data['imageFile'] != '')
@@ -537,9 +534,8 @@ class ReviewSettingsKind extends SyncKind {
         db.reviewSettings,
       )..where((t) => t.year.equals(int.parse(id)))).getSingle()).toJson();
   @override
-  Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
-      .into(db.reviewSettings)
-      .upsertFull(ReviewSetting.fromJson(data));
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) =>
+      db.into(db.reviewSettings).upsertFull(ReviewSetting.fromJson(data));
 }
 
 const allSyncKinds = <SyncKind>[

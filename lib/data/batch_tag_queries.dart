@@ -132,11 +132,12 @@ extension BatchTagQueries on AppDatabase {
     Iterable<String> ids,
   ) {
     final idList = ids.toList();
-    return watchAssembled(
-      this,
-      {tags, tagLinks, officialImages, fanArts},
-      () => tagCoverage(cell, idList),
-    );
+    return watchAssembled(this, {
+      tags,
+      tagLinks,
+      officialImages,
+      fanArts,
+    }, () => tagCoverage(cell, idList));
   }
 
   /// 一次套用 sheet 裡的所有變更（按「完成」時呼叫），全部在同一個 transaction：
@@ -169,15 +170,16 @@ extension BatchTagQueries on AppDatabase {
       final add = {...addTagIds, ...created};
       final remove = removeTagIds.toSet()..removeAll(add);
 
-      final valid = (await (select(tags)..where(
-                (t) =>
-                    t.id.isIn([...add, ...remove]) &
-                    t.pitId.equals(pitId) &
-                    t.deletedAt.isNull(),
-              ))
-              .get())
-          .map((t) => t.id)
-          .toSet();
+      final valid =
+          (await (select(tags)..where(
+                    (t) =>
+                        t.id.isIn([...add, ...remove]) &
+                        t.pitId.equals(pitId) &
+                        t.deletedAt.isNull(),
+                  ))
+                  .get())
+              .map((t) => t.id)
+              .toSet();
       for (final t in [...add, ...remove]) {
         if (!valid.contains(t)) {
           throw ArgumentError.value(t, 'tagId', 'tag 不屬於這個坑');
@@ -228,9 +230,8 @@ extension BatchTagQueries on AppDatabase {
       if (changed.isNotEmpty) {
         final now = DateTime.now();
         if (cell == AlbumCell.official) {
-          await (update(officialImages)..where((i) => i.id.isIn(changed))).write(
-            OfficialImagesCompanion(updatedAt: Value(now)),
-          );
+          await (update(officialImages)..where((i) => i.id.isIn(changed)))
+              .write(OfficialImagesCompanion(updatedAt: Value(now)));
         } else {
           await (update(fanArts)..where((i) => i.id.isIn(changed))).write(
             FanArtsCompanion(updatedAt: Value(now)),

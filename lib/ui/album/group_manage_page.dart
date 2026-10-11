@@ -109,14 +109,11 @@ class GroupManagePage extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(2, 0, 2, 12),
-              child: Text(
-                switch (kind) {
-                  'fan' => context.l10n.albumGroupHintFan,
-                  'oshi' => context.l10n.oshiGroupHint,
-                  _ => context.l10n.albumGroupHintOfficial,
-                },
-                style: TextStyle(color: t.text3, fontSize: 12.5),
-              ),
+              child: Text(switch (kind) {
+                'fan' => context.l10n.albumGroupHintFan,
+                'oshi' => context.l10n.oshiGroupHint,
+                _ => context.l10n.albumGroupHintOfficial,
+              }, style: TextStyle(color: t.text3, fontSize: 12.5)),
             ),
             Container(
               padding: const EdgeInsets.fromLTRB(14, 2, 10, 2),

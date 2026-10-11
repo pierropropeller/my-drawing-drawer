@@ -1,32 +1,32 @@
 import 'package:flutter/material.dart';
 
-import '../../l10n/l10n.dart';
+import '../oshi/oshi_detail_page.dart';
+import '../oshi/oshi_list_page.dart';
+import '../search/tagged_list.dart';
 
 /// 進推活列表（OshiTimeline）的單一入口：[tagId] 有值＝帶著同一個 tag 篩選（D-065 搜尋「+N」）。
-/// 暫時只推一個寫著「推活」的佔位頁；統籌合併時接到 `OshiListPage(pitId:, tagId:)`。
 void openOshiList(BuildContext context, String pitId, {String? tagId}) {
   Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => _OshiPlaceholder(label: context.l10n.pitsCellOshi),
+      builder: (_) => OshiListPage(pitId: pitId, tagId: tagId),
     ),
   );
 }
 
-/// 進推活詳情（OshiDetail）的單一入口。暫時是佔位頁；統籌合併時接到推活詳情頁。
-void openOshiDetail(BuildContext context, String recordId) {
+/// 進推活詳情（OshiDetail）的單一入口。從搜尋流程進來時 [inSearchFlow] 為 true，
+/// 讓詳情裡點 tag 能一併關掉整串搜尋頁面。
+void openOshiDetail(
+  BuildContext context,
+  String pitId,
+  String recordId, {
+  bool inSearchFlow = false,
+}) {
   Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => _OshiPlaceholder(label: context.l10n.pitsCellOshi),
+      settings: inSearchFlow
+          ? const RouteSettings(name: kSearchFlowRoute)
+          : null,
+      builder: (_) => OshiDetailPage(pitId: pitId, recordId: recordId),
     ),
-  );
-}
-
-class _OshiPlaceholder extends StatelessWidget {
-  const _OshiPlaceholder({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(child: Center(child: Text(label))),
   );
 }

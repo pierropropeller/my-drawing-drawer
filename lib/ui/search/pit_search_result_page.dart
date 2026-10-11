@@ -195,7 +195,12 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
           total: res.oshi.total,
           files: [for (final v in res.oshi.items) v.cover.file],
           more: res.oshi.more,
-          onTap: (i) => openOshiDetail(context, res.oshi.items[i].record.id),
+          onTap: (i) => openOshiDetail(
+            context,
+            widget.pitId,
+            res.oshi.items[i].record.id,
+            inSearchFlow: true,
+          ),
           onMore: _moreOshi,
         ),
       );
