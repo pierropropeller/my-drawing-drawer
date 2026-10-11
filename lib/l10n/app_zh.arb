@@ -360,7 +360,6 @@
   "meBackupChangeAccount": "更換同步的 Google 帳號",
   "meBackupDriveNote": "上傳圖片時自動儲存至 Drive；離線時會在恢復網絡後立即補傳。",
   "meBackupUnlink": "取消連結",
-  "loginTentativeName": "（暫定名稱，可更改）",
   "loginTagline": "一個坑一個坑，\n收藏你的同人宇宙",
   "loginStartWithGoogle": "用 Google 帳號開始",
   "loginOfflineNoSync": "離線使用，暫不同步",

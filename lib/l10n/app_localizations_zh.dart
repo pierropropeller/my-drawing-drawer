@@ -506,9 +506,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get meBackupUnlink => '取消連結';
 
   @override
-  String get loginTentativeName => '（暫定名稱，可更改）';
-
-  @override
   String get loginTagline => '一個坑一個坑，\n收藏你的同人宇宙';
 
   @override

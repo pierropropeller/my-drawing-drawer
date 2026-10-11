@@ -8,6 +8,7 @@ import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../common/app_icons.dart';
+import '../me/me_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
 import '../pits/pit_form.dart';
@@ -36,23 +37,24 @@ class WelcomePage extends ConsumerWidget {
                     Container(
                       width: 92,
                       height: 92,
+                      // D-068：App icon（白色線條匣子＋目前主題色底），跟著主題色變。
                       decoration: BoxDecoration(
-                        color: t.piece.bg,
-                        borderRadius: BorderRadius.circular(26),
+                        color: t.accent,
+                        borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: t.accent.withValues(alpha: .22),
+                            color: t.accent.withValues(alpha: .28),
                             offset: const Offset(0, 10),
                             blurRadius: 26,
                           ),
                         ],
                       ),
-                      child: Center(
+                      child: const Center(
                         child: SvgIcon(
-                          AppIcons.pencilDot,
-                          size: 48,
-                          strokeWidth: 1.6,
-                          color: t.piece.fg,
+                          MeIcons.appDrawer,
+                          size: 46,
+                          strokeWidth: 1.8,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -61,15 +63,6 @@ class WelcomePage extends ConsumerWidget {
                       appName,
                       style: Theme.of(context).textTheme.headlineLarge
                           ?.copyWith(fontSize: 34, letterSpacing: 1),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      context.l10n.loginTentativeName,
-                      style: TextStyle(
-                        fontSize: 11,
-                        letterSpacing: .5,
-                        color: t.text4,
-                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(

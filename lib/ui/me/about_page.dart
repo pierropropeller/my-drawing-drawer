@@ -64,7 +64,8 @@ class AboutPage extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(22),
                               boxShadow: [
                                 BoxShadow(
-                                  color: t.accent.withValues(alpha: .3),
+                                  color: const Color(0xFF2B2622)
+                                      .withValues(alpha: .18),
                                   offset: const Offset(0, 6),
                                   blurRadius: 16,
                                 ),
@@ -74,7 +75,7 @@ class AboutPage extends ConsumerWidget {
                               child: SvgIcon(
                                 MeIcons.appDrawer,
                                 size: 42,
-                                strokeWidth: 1.6,
+                                strokeWidth: 1.8,
                                 color: Colors.white,
                               ),
                             ),

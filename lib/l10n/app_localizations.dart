@@ -982,12 +982,6 @@ abstract class AppLocalizations {
   /// **'取消連結'**
   String get meBackupUnlink;
 
-  /// No description provided for @loginTentativeName.
-  ///
-  /// In zh, this message translates to:
-  /// **'（暫定名稱，可更改）'**
-  String get loginTentativeName;
-
   /// No description provided for @loginTagline.
   ///
   /// In zh, this message translates to:
