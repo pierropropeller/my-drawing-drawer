@@ -1323,6 +1323,12 @@ abstract class AppLocalizations {
   /// **'內文'**
   String get entityFieldBody;
 
+  /// No description provided for @entityFieldDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'日期'**
+  String get entityFieldDate;
+
   /// No description provided for @entityTitleRequired.
   ///
   /// In zh, this message translates to:
@@ -2768,6 +2774,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已加入'**
   String get shareAdded;
+
+  /// No description provided for @shareMoveOshi.
+  ///
+  /// In zh, this message translates to:
+  /// **'推活'**
+  String get shareMoveOshi;
+
+  /// No description provided for @shareMoveTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'tag'**
+  String get shareMoveTag;
+
+  /// No description provided for @shareMoveTagStateAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選的圖片都有'**
+  String get shareMoveTagStateAll;
+
+  /// No description provided for @shareMoveTagStateSome.
+  ///
+  /// In zh, this message translates to:
+  /// **'部分圖片有'**
+  String get shareMoveTagStateSome;
+
+  /// No description provided for @shareMoveTagStateNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'沒有'**
+  String get shareMoveTagStateNone;
 
   /// No description provided for @syncuiSheetLabel.
   ///

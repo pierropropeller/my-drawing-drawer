@@ -697,6 +697,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get entityFieldBody => '內文';
 
   @override
+  String get entityFieldDate => '日期';
+
+  @override
   String get entityTitleRequired => '請輸入標題';
 
   @override
@@ -1521,6 +1524,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get shareAdded => '已加入';
+
+  @override
+  String get shareMoveOshi => '推活';
+
+  @override
+  String get shareMoveTag => 'tag';
+
+  @override
+  String get shareMoveTagStateAll => '已選的圖片都有';
+
+  @override
+  String get shareMoveTagStateSome => '部分圖片有';
+
+  @override
+  String get shareMoveTagStateNone => '沒有';
 
   @override
   String get syncuiSheetLabel => '同步進度';

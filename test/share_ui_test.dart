@@ -24,6 +24,7 @@ import 'package:huakeng/ui/entity/piece_form_page.dart';
 import 'package:huakeng/ui/junk/junk_list_page.dart';
 import 'package:huakeng/ui/pits/pit_new_page.dart';
 import 'package:huakeng/ui/pits/pit_page.dart';
+import 'package:huakeng/ui/oshi/oshi_form_page.dart';
 import 'package:huakeng/ui/share/share_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -506,7 +507,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('「下一步」：推活打開推活新增頁（佔位）', (tester) async {
+  testWidgets('「下一步」：推活打開推活新增頁，圖片已放好', (tester) async {
     await pumpApp(tester, FakeShareChannel(initial: sharedFiles(2)));
     await tapIn(tester, '坑B');
     await tapIn(tester, '推活');
@@ -515,8 +516,8 @@ void main() {
     await tapIn(tester, '下一步');
     await settle(tester);
     expect(find.byType(ShareSheet), findsNothing);
-    // 佔位頁只寫「推活」。
-    expect(find.text('推活'), findsOneWidget);
+    // 打開推活新增頁，分享進來的圖片已放好。
+    expect(find.byType(OshiFormPage), findsOneWidget);
     expect(
       (await tester.runAsync(() => db.select(db.officialImages).get()))!,
       isEmpty,
