@@ -20,6 +20,8 @@ import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/entity/draft_list_page.dart';
 import 'package:huakeng/ui/entity/finished_list_page.dart';
 import 'package:huakeng/ui/entity/idea_list_page.dart';
+import 'package:huakeng/ui/oshi/oshi_detail_page.dart';
+import 'package:huakeng/ui/oshi/oshi_list_page.dart';
 import 'package:huakeng/ui/search/pit_search_page.dart';
 import 'package:huakeng/ui/search/pit_search_result_page.dart';
 import 'package:huakeng/ui/search/search_widgets.dart';
@@ -392,9 +394,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('推活段：點「+N」離開搜尋進推活（placeholder），點其他格開推活詳情（placeholder）', (
-    tester,
-  ) async {
+  testWidgets('推活段：點「+N」離開搜尋進推活，點其他格開推活詳情', (tester) async {
     await tester.runAsync(() async {
       for (var i = 1; i <= 5; i++) {
         await newOshi(i, tags: [tagA]);
@@ -411,11 +411,11 @@ void main() {
     await settle(tester);
     expect(find.byType(PitSearchResultPage), findsOneWidget);
     expect(find.text('+2'), findsOneWidget);
-    // 其他格：進詳情佔位頁（寫著「推活」），返回仍在結果頁。
+    // 其他格：進推活詳情，返回仍在結果頁。
     await tester.tap(find.byType(Image).first);
     await settle(tester);
     expect(find.byType(PitSearchResultPage), findsNothing);
-    expect(find.text('推活'), findsOneWidget);
+    expect(find.byType(OshiDetailPage), findsOneWidget);
     await back(tester);
     expect(find.byType(PitSearchResultPage), findsOneWidget);
 
@@ -423,7 +423,7 @@ void main() {
     await settle(tester);
     expect(find.byType(PitSearchResultPage), findsNothing);
     expect(find.byType(PitSearchPage), findsNothing);
-    expect(find.text('推活'), findsOneWidget);
+    expect(find.byType(OshiListPage), findsOneWidget); // 帶著同一個 tag 篩選
     await unmount(tester);
   });
 
