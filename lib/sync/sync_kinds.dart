@@ -8,8 +8,9 @@ import '../data/entity_queries.dart';
 /// 連接關係、tag、圖片清單等「附屬資料」跟著擁有它的實體文件一起走：
 /// - 腦洞文件：tagIds、draftIds、pieceIds、images
 /// - 草稿文件：tagIds、images
-/// - 成圖文件：tagIds、images、links、draftIds
-/// - 同人圖／目標文件：tagIds
+/// - 成圖文件：tagIds、images、links、draftIds（草稿↔成圖的關係由成圖擁有，D-069）
+/// - 推活文件：tagIds、images
+/// - 官方圖（v7 起）／同人圖／目標文件：tagIds
 abstract class SyncKind {
   const SyncKind();
   String get name;
@@ -139,14 +140,26 @@ class OfficialKind extends SyncKind {
       r.id: r.updatedAt.millisecondsSinceEpoch,
   };
   @override
-  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>
-      (await (db.select(
-        db.officialImages,
-      )..where((t) => t.id.equals(id))).getSingle()).toJson();
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async => {
+    ...(await (db.select(
+      db.officialImages,
+    )..where((t) => t.id.equals(id))).getSingle()).toJson(),
+    'tagIds': await _tagIdsOf(db, TagTarget.official, id),
+  };
   @override
-  Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
-      .into(db.officialImages)
-      .insertOnConflictUpdate(OfficialImage.fromJson(_albumImageJson(data)));
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
+    final row = OfficialImage.fromJson(_albumImageJson(data));
+    await db.transaction(() async {
+      await db.into(db.officialImages).insertOnConflictUpdate(row);
+      // 舊版（v6 以前）寫出的官方圖文件沒有 tagIds：不動本機已有的 tag。
+      final raw = data['tagIds'];
+      if (raw is List) {
+        await db.setTags(TagTarget.official, row.id, [
+          for (final t in raw) t as String,
+        ]);
+      }
+    });
+  }
   @override
   Set<String> imageFiles(Map<String, dynamic> data) => {
     data['imageFile'] as String,
@@ -253,7 +266,10 @@ class IdeasKind extends SyncKind {
   };
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
-    final row = Idea.fromJson(data);
+    // 舊版文件沒有 date（D-070）：沿用 createdAt。
+    final row = Idea.fromJson(
+      withDefaults(data, {'date': (Map<String, dynamic> d) => d['createdAt']}),
+    );
     await db.transaction(() async {
       await db.into(db.ideas).insertOnConflictUpdate(row);
       await db.setTags(TagTarget.idea, row.id, [
@@ -296,7 +312,9 @@ class DraftsKind extends SyncKind {
   };
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
-    final row = Draft.fromJson(data);
+    final row = Draft.fromJson(
+      withDefaults(data, {'date': (Map<String, dynamic> d) => d['createdAt']}),
+    );
     await db.transaction(() async {
       await db.into(db.drafts).insertOnConflictUpdate(row);
       await db.setTags(TagTarget.draft, row.id, [
@@ -391,6 +409,44 @@ class PiecesKind extends SyncKind {
   Set<String> imageFiles(Map<String, dynamic> data) => _entityImageFiles(data);
 }
 
+/// 推活紀錄（D-057）：圖片與 tag 跟著紀錄文件走；分組走 `groups`（kind=oshi）。
+class OshiKind extends SyncKind {
+  const OshiKind();
+  @override
+  String get name => 'oshi';
+  @override
+  Future<Map<String, int>> versions(AppDatabase db) async => {
+    for (final r in await db.select(db.oshiRecords).get())
+      r.id: r.updatedAt.millisecondsSinceEpoch,
+  };
+  @override
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async => {
+    ...(await (db.select(
+      db.oshiRecords,
+    )..where((t) => t.id.equals(id))).getSingle()).toJson(),
+    'tagIds': await _tagIdsOf(db, TagTarget.oshi, id),
+    'images': await _imagesOf(db, OwnerType.oshi, id),
+  };
+  @override
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
+    final row = OshiRecord.fromJson(data);
+    await db.transaction(() async {
+      await db.into(db.oshiRecords).insertOnConflictUpdate(row);
+      await db.setTags(TagTarget.oshi, row.id, [
+        for (final t in data['tagIds'] as List<dynamic>) t as String,
+      ]);
+      await db.replaceEntityImages(
+        OwnerType.oshi,
+        row.id,
+        _newImages(data['images']),
+      );
+    });
+  }
+
+  @override
+  Set<String> imageFiles(Map<String, dynamic> data) => _entityImageFiles(data);
+}
+
 class GoalsKind extends SyncKind {
   const GoalsKind();
   @override
@@ -478,6 +534,7 @@ const allSyncKinds = <SyncKind>[
   IdeasKind(),
   DraftsKind(),
   PiecesKind(),
+  OshiKind(),
   GoalsKind(),
   ReviewMonthsKind(),
   ReviewSettingsKind(),

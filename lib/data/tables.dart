@@ -20,10 +20,11 @@ enum GoalPeriod { year, month }
 enum GoalKind { idea, draft, piece }
 
 /// 圖片附屬於哪種實體。
-enum OwnerType { idea, draft, piece }
+enum OwnerType { idea, draft, piece, oshi }
 
-/// 標籤掛在哪種實體上（官方圖沒有 tag）。
-enum TagTarget { fanArt, idea, draft, piece, goal }
+/// 標籤掛在哪種實體上（v7 起官方圖也能有 tag，D-060；推活紀錄 D-057）。
+/// 新值只能加在最後（資料庫存的是名稱，順序無關，但保持習慣）。
+enum TagTarget { fanArt, idea, draft, piece, goal, official, oshi }
 
 class Pits extends Table with SyncColumns {
   TextColumn get name => text()();
@@ -40,7 +41,8 @@ class Pits extends Table with SyncColumns {
   BoolColumn get junkEnabled => boolean().withDefault(const Constant(false))();
 }
 
-/// 分組：官方圖冊的分組（kind=official）與好看同人圖的分組（kind=fan，預設是各出處）。
+/// 分組：官方圖冊的分組（kind=official）、好看同人圖的分組（kind=fan，預設是各出處）
+/// 與推活的分組（kind=oshi，D-057）。
 class OfficialGroups extends Table with SyncColumns {
   TextColumn get pitId => text()();
   TextColumn get kind => text().withDefault(const Constant('official'))();
@@ -106,12 +108,19 @@ class Ideas extends Table with SyncColumns {
   TextColumn get pitId => text()();
   TextColumn get title => text()();
   TextColumn get body => text().withDefault(const Constant(''))();
+
+  /// 使用者可改的日期（D-070）：列表排序、卡片時間、目標進度、時間軸都用它，不用 createdAt。
+  /// 含時間（從目標日頁的 ＋ 新增時是「現在」）；舊資料回填成 createdAt。
+  DateTimeColumn get date => dateTime().clientDefault(DateTime.now)();
 }
 
 class Drafts extends Table with SyncColumns {
   TextColumn get pitId => text()();
   TextColumn get title => text().nullable()();
   TextColumn get body => text().nullable()();
+
+  /// 同 [Ideas.date]（D-070）。
+  DateTimeColumn get date => dateTime().clientDefault(DateTime.now)();
 }
 
 class Pieces extends Table with SyncColumns {
@@ -135,7 +144,21 @@ class Pieces extends Table with SyncColumns {
   DateTimeColumn get dueAt => dateTime().nullable()();
 }
 
-/// 腦洞／草稿／成圖的多張圖片。
+/// 推活紀錄（D-057／D-062，HANDOFF 3.11）：與角色相處的足跡，不屬於創作線。
+/// 圖片放 [EntityImages]（ownerType=oshi），tag 放 [TagLinks]（target=oshi）。
+class OshiRecords extends Table with SyncColumns {
+  TextColumn get pitId => text()();
+
+  /// 日期（只有年月日，存當天 00:00）。
+  DateTimeColumn get date => dateTime()();
+
+  /// 推活分組（[OfficialGroups] kind=oshi）；可不分組。
+  TextColumn get groupId => text().nullable()();
+  TextColumn get title => text().nullable()();
+  TextColumn get description => text().nullable()();
+}
+
+/// 腦洞／草稿／成圖／推活的多張圖片。
 class EntityImages extends Table with SyncColumns {
   TextColumn get ownerType => textEnum<OwnerType>()();
   TextColumn get ownerId => text()();

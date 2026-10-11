@@ -36,6 +36,16 @@ class IdeaView {
       : (draftIds.isNotEmpty ? IdeaStatus.hatching : IdeaStatus.open);
 }
 
+/// 關聯對象的摘要（草稿的「關聯成圖」、成圖的「關聯草稿」顯示用）。
+class LinkedItem {
+  const LinkedItem({required this.id, this.title, this.firstImage});
+  final String id;
+
+  /// 成圖一定有標題；草稿可能沒有（顯示「無標題」由 UI 決定）。
+  final String? title;
+  final ImageRef? firstImage;
+}
+
 class DraftView {
   const DraftView({
     required this.draft,
@@ -43,6 +53,7 @@ class DraftView {
     required this.tags,
     required this.ideaIds,
     required this.pieceIds,
+    this.linkedPieces = const [],
   });
 
   final Draft draft;
@@ -50,6 +61,9 @@ class DraftView {
   final List<Tag> tags;
   final List<String> ideaIds;
   final List<String> pieceIds;
+
+  /// 關聯的成圖（D-069），順序同 [pieceIds]；已刪除的成圖不含。
+  final List<LinkedItem> linkedPieces;
 
   /// 純圖草稿：沒有標題、內文、tag、連接。
   bool get imageOnly =>
@@ -74,6 +88,7 @@ class PieceView {
     required this.links,
     required this.ideaIds,
     required this.draftIds,
+    this.linkedDrafts = const [],
   });
 
   final Piece piece;
@@ -82,6 +97,9 @@ class PieceView {
   final List<SocialLink> links;
   final List<String> ideaIds;
   final List<String> draftIds;
+
+  /// 關聯的草稿（D-069），順序同 [draftIds]；已刪除的草稿不含。
+  final List<LinkedItem> linkedDrafts;
 
   /// 商稿收款狀態（只有 [Piece.isCommission] 時有意義）。
   PaymentState get payment =>
@@ -111,6 +129,7 @@ extension EntityQueries on AppDatabase {
   };
   Set<TableInfo> get _draftTables => {
     drafts,
+    pieces,
     entityImages,
     tagLinks,
     tags,
@@ -119,6 +138,7 @@ extension EntityQueries on AppDatabase {
   };
   Set<TableInfo> get _pieceTables => {
     pieces,
+    drafts,
     entityImages,
     tagLinks,
     tags,
@@ -136,6 +156,26 @@ extension EntityQueries on AppDatabase {
               ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
             .get();
     return [for (final r in rows) ImageRef(r.imageFile, r.width, r.height)];
+  }
+
+  /// 腦洞／草稿的日期（D-070）：
+  /// - [given] 為 null：新增＝現在；編輯＝維持 [previous]。
+  /// - [given] 是「只有日期」（00:00:00，日期選擇器選出來的）：與 [previous] 同一天就沿用
+  ///   [previous]（保留原本的時間，時間軸順序不亂跳）；是今天就取現在；其他天維持 00:00。
+  /// - 其他（帶時間）原樣儲存，例如目標日頁 ＋ 傳進來的「現在」。
+  DateTime _resolveDate(DateTime? given, {DateTime? previous}) {
+    if (given == null) return previous ?? DateTime.now();
+    final dateOnly =
+        given.hour == 0 &&
+        given.minute == 0 &&
+        given.second == 0 &&
+        given.millisecond == 0;
+    if (!dateOnly) return given;
+    bool sameDay(DateTime a, DateTime b) =>
+        a.year == b.year && a.month == b.month && a.day == b.day;
+    if (previous != null && sameDay(previous, given)) return previous;
+    final now = DateTime.now();
+    return sameDay(now, given) ? now : given;
   }
 
   Future<List<Tag>> _tagsOf(TagTarget type, String id) async {
@@ -207,7 +247,7 @@ extension EntityQueries on AppDatabase {
     for (final r
         in await (select(ideas)
               ..where((i) => i.pitId.equals(pitId) & i.deletedAt.isNull())
-              ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
+              ..orderBy(_ideaByDateDesc))
             .get())
       await _ideaView(r),
   ];
@@ -216,7 +256,7 @@ extension EntityQueries on AppDatabase {
     for (final r
         in await (select(drafts)
               ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
-              ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+              ..orderBy(_draftByDateDesc))
             .get())
       await _draftView(r),
   ];
@@ -228,6 +268,18 @@ extension EntityQueries on AppDatabase {
               ..orderBy([(p) => OrderingTerm.desc(p.updatedAt)]))
             .get())
       await _pieceView(r),
+  ];
+
+  // 腦洞／草稿列表：日期新到舊（D-070），同日以建立時間新到舊。
+  List<OrderClauseGenerator<$IdeasTable>> get _ideaByDateDesc => [
+    (i) => OrderingTerm.desc(i.date),
+    (i) => OrderingTerm.desc(i.createdAt),
+    (i) => OrderingTerm.desc(const CustomExpression<int>('rowid')),
+  ];
+  List<OrderClauseGenerator<$DraftsTable>> get _draftByDateDesc => [
+    (d) => OrderingTerm.desc(d.date),
+    (d) => OrderingTerm.desc(d.createdAt),
+    (d) => OrderingTerm.desc(const CustomExpression<int>('rowid')),
   ];
 
   // ---------- 腦洞 ----------
@@ -250,7 +302,7 @@ extension EntityQueries on AppDatabase {
       final rows =
           await (select(ideas)
                 ..where((i) => i.pitId.equals(pitId) & i.deletedAt.isNull())
-                ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
+                ..orderBy(_ideaByDateDesc))
               .get();
       final views = [for (final r in rows) await _ideaView(r)];
       return tagId == null
@@ -278,7 +330,8 @@ extension EntityQueries on AppDatabase {
     required List<String> tagIds,
     required List<String> draftIds,
     required List<String> pieceIds,
-    DateTime? createdAt,
+    DateTime? date,
+    DateTime? createdAt, // 相容舊呼叫：新增且沒給 date 時當作 date
   }) {
     return transaction(() async {
       String ideaId;
@@ -288,6 +341,7 @@ extension EntityQueries on AppDatabase {
             pitId: pitId,
             title: title,
             body: Value(body),
+            date: Value(_resolveDate(date ?? createdAt)),
             createdAt: createdAt == null
                 ? const Value.absent()
                 : Value(createdAt),
@@ -296,10 +350,14 @@ extension EntityQueries on AppDatabase {
         ideaId = row.id;
       } else {
         ideaId = id;
+        final old = await (select(
+          ideas,
+        )..where((i) => i.id.equals(id))).getSingle();
         await (update(ideas)..where((i) => i.id.equals(id))).write(
           IdeasCompanion(
             title: Value(title),
             body: Value(body),
+            date: Value(_resolveDate(date, previous: old.date)),
             updatedAt: Value(DateTime.now()),
           ),
         );
@@ -340,21 +398,60 @@ extension EntityQueries on AppDatabase {
   }
 
   // ---------- 草稿 ----------
-  Future<DraftView> _draftView(Draft d) async => DraftView(
-    draft: d,
-    images: await _imagesOf(OwnerType.draft, d.id),
-    tags: await _tagsOf(TagTarget.draft, d.id),
-    ideaIds:
-        (await (select(ideaDrafts)..where((x) => x.draftId.equals(d.id))).get())
-            .map((r) => r.ideaId)
-            .toList(),
-    pieceIds:
-        (await (select(
-              draftPieces,
-            )..where((x) => x.draftId.equals(d.id))).get())
-            .map((r) => r.pieceId)
-            .toList(),
-  );
+  Future<DraftView> _draftView(Draft d) async {
+    final pieceLinks = await _livePieceLinks(d.id);
+    return DraftView(
+      draft: d,
+      images: await _imagesOf(OwnerType.draft, d.id),
+      tags: await _tagsOf(TagTarget.draft, d.id),
+      ideaIds:
+          (await (select(
+                ideaDrafts,
+              )..where((x) => x.draftId.equals(d.id))).get())
+              .map((r) => r.ideaId)
+              .toList(),
+      pieceIds: [for (final p in pieceLinks) p.id],
+      linkedPieces: pieceLinks,
+    );
+  }
+
+  /// 草稿關聯的成圖（略過已刪除的）。
+  Future<List<LinkedItem>> _livePieceLinks(String draftId) async {
+    final ids = (await (select(
+      draftPieces,
+    )..where((x) => x.draftId.equals(draftId))).get()).map((r) => r.pieceId);
+    final out = <LinkedItem>[];
+    for (final id in ids) {
+      final p = await (select(
+        pieces,
+      )..where((x) => x.id.equals(id) & x.deletedAt.isNull())).getSingleOrNull();
+      if (p == null) continue;
+      final im = await _imagesOf(OwnerType.piece, id);
+      out.add(
+        LinkedItem(id: id, title: p.title, firstImage: im.isEmpty ? null : im.first),
+      );
+    }
+    return out;
+  }
+
+  /// 成圖關聯的草稿（略過已刪除的）。
+  Future<List<LinkedItem>> _liveDraftLinks(String pieceId) async {
+    final ids = (await (select(
+      draftPieces,
+    )..where((x) => x.pieceId.equals(pieceId))).get()).map((r) => r.draftId);
+    final out = <LinkedItem>[];
+    for (final id in ids) {
+      final d = await (select(
+        drafts,
+      )..where((x) => x.id.equals(id) & x.deletedAt.isNull())).getSingleOrNull();
+      if (d == null) continue;
+      final im = await _imagesOf(OwnerType.draft, id);
+      out.add(
+        LinkedItem(id: id, title: d.title, firstImage: im.isEmpty ? null : im.first),
+      );
+    }
+    return out;
+  }
 
   /// [tagId]：只列出有這個 tag 的草稿（D-043）。
   Stream<List<DraftView>> watchDraftViews(String pitId, {String? tagId}) {
@@ -362,7 +459,7 @@ extension EntityQueries on AppDatabase {
       final rows =
           await (select(drafts)
                 ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
-                ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+                ..orderBy(_draftByDateDesc))
               .get();
       final views = [for (final r in rows) await _draftView(r)];
       return tagId == null
@@ -389,7 +486,9 @@ extension EntityQueries on AppDatabase {
     required List<NewImage> images,
     required List<String> tagIds,
     required List<String> ideaIds,
-    DateTime? createdAt,
+    List<String>? pieceIds, // null＝不動關聯成圖（D-069）
+    DateTime? date,
+    DateTime? createdAt, // 相容舊呼叫：新增且沒給 date 時當作 date
   }) {
     String? clean(String? s) =>
         (s == null || s.trim().isEmpty) ? null : s.trim();
@@ -401,15 +500,23 @@ extension EntityQueries on AppDatabase {
             pitId: pitId,
             title: Value(clean(title)),
             body: Value(clean(body)),
+            date: Value(_resolveDate(date ?? createdAt)),
+            createdAt: createdAt == null
+                ? const Value.absent()
+                : Value(createdAt),
           ),
         );
         draftId = row.id;
       } else {
         draftId = id;
+        final old = await (select(
+          drafts,
+        )..where((d) => d.id.equals(id))).getSingle();
         await (update(drafts)..where((d) => d.id.equals(id))).write(
           DraftsCompanion(
             title: Value(clean(title)),
             body: Value(clean(body)),
+            date: Value(_resolveDate(date, previous: old.date)),
             updatedAt: Value(DateTime.now()),
           ),
         );
@@ -417,6 +524,7 @@ extension EntityQueries on AppDatabase {
       await replaceEntityImages(OwnerType.draft, draftId, images);
       await setTags(TagTarget.draft, draftId, tagIds);
       await setDraftIdeas(draftId, ideaIds);
+      if (pieceIds != null) await setDraftPieces(draftId, pieceIds);
       return draftId;
     });
   }
@@ -428,6 +536,29 @@ extension EntityQueries on AppDatabase {
     await (update(ideas)..where((i) => i.id.isIn(set))).write(
       IdeasCompanion(updatedAt: Value(DateTime.now())),
     );
+  }
+
+  /// 草稿↔成圖的關係由**成圖**那邊擁有（同步時隨成圖文件走，文件有 draftIds），
+  /// 所以從草稿側修改時要把受影響（原本的與新的）成圖的 updatedAt 往前蓋，另一台才拉得到。
+  Future<void> _touchPieces(Iterable<String> ids) async {
+    final set = ids.toSet();
+    if (set.isEmpty) return;
+    await (update(pieces)..where((p) => p.id.isIn(set))).write(
+      PiecesCompanion(updatedAt: Value(DateTime.now())),
+    );
+  }
+
+  /// 以整組替換草稿的關聯成圖（D-069）；會更新受影響成圖的 updatedAt。
+  Future<void> setDraftPieces(String draftId, List<String> pieceIds) async {
+    final old = (await (select(
+      draftPieces,
+    )..where((x) => x.draftId.equals(draftId))).get()).map((r) => r.pieceId);
+    await _touchPieces([...old, ...pieceIds]);
+    await (delete(draftPieces)..where((x) => x.draftId.equals(draftId))).go();
+    for (final p in pieceIds.toSet()) {
+      await into(draftPieces)
+          .insert(DraftPiecesCompanion.insert(draftId: draftId, pieceId: p));
+    }
   }
 
   Future<void> setDraftIdeas(String draftId, List<String> ideaIds) async {
@@ -448,13 +579,24 @@ extension EntityQueries on AppDatabase {
       await (update(drafts)..where((d) => d.id.isIn(ids))).write(
         DraftsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
       );
+      // 關係由腦洞／成圖擁有：它們的文件裡還記著這份草稿，要一併更新才會同步出去。
+      await _touchIdeas(
+        (await (select(ideaDrafts)..where((x) => x.draftId.isIn(ids))).get())
+            .map((r) => r.ideaId),
+      );
+      await _touchPieces(
+        (await (select(draftPieces)..where((x) => x.draftId.isIn(ids))).get())
+            .map((r) => r.pieceId),
+      );
       await (delete(ideaDrafts)..where((x) => x.draftId.isIn(ids))).go();
       await (delete(draftPieces)..where((x) => x.draftId.isIn(ids))).go();
     });
   }
 
   // ---------- 成圖 ----------
-  Future<PieceView> _pieceView(Piece p) async => PieceView(
+  Future<PieceView> _pieceView(Piece p) async {
+    final draftLinks = await _liveDraftLinks(p.id);
+    return PieceView(
     piece: p,
     images: await _imagesOf(OwnerType.piece, p.id),
     tags: await _tagsOf(TagTarget.piece, p.id),
@@ -468,13 +610,10 @@ extension EntityQueries on AppDatabase {
         (await (select(ideaPieces)..where((x) => x.pieceId.equals(p.id))).get())
             .map((r) => r.ideaId)
             .toList(),
-    draftIds:
-        (await (select(
-              draftPieces,
-            )..where((x) => x.pieceId.equals(p.id))).get())
-            .map((r) => r.draftId)
-            .toList(),
+    draftIds: [for (final d in draftLinks) d.id],
+    linkedDrafts: draftLinks,
   );
+  }
 
   Stream<List<PieceView>> watchPieceViews(String pitId, {String? tagId}) {
     return watchAssembled(this, _pieceTables, () async {
@@ -618,7 +757,7 @@ extension EntityQueries on AppDatabase {
 
   Future<void> setPieceDrafts(String pieceId, List<String> draftIds) async {
     await (delete(draftPieces)..where((x) => x.pieceId.equals(pieceId))).go();
-    for (final d in draftIds) {
+    for (final d in draftIds.toSet()) {
       await into(draftPieces)
           .insert(DraftPiecesCompanion.insert(draftId: d, pieceId: pieceId));
     }
@@ -648,6 +787,10 @@ extension EntityQueries on AppDatabase {
     return transaction(() async {
       await (update(pieces)..where((p) => p.id.isIn(ids))).write(
         PiecesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
+      await _touchIdeas(
+        (await (select(ideaPieces)..where((x) => x.pieceId.isIn(ids))).get())
+            .map((r) => r.ideaId),
       );
       await (delete(ideaPieces)..where((x) => x.pieceId.isIn(ids))).go();
       await (delete(draftPieces)..where((x) => x.pieceId.isIn(ids))).go();

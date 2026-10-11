@@ -129,8 +129,8 @@ extension GoalQueries on AppDatabase {
             await (select(ideas)..where(
                   (i) =>
                       i.deletedAt.isNull() &
-                      i.createdAt.isBiggerOrEqualValue(start) &
-                      i.createdAt.isSmallerThanValue(end) &
+                      i.date.isBiggerOrEqualValue(start) &
+                      i.date.isSmallerThanValue(end) &
                       (g.pitId == null
                           ? const Constant(true)
                           : i.pitId.equals(g.pitId!)),
@@ -144,8 +144,8 @@ extension GoalQueries on AppDatabase {
             await (select(drafts)..where(
                   (i) =>
                       i.deletedAt.isNull() &
-                      i.createdAt.isBiggerOrEqualValue(start) &
-                      i.createdAt.isSmallerThanValue(end) &
+                      i.date.isBiggerOrEqualValue(start) &
+                      i.date.isSmallerThanValue(end) &
                       (g.pitId == null
                           ? const Constant(true)
                           : i.pitId.equals(g.pitId!)),
@@ -387,8 +387,8 @@ extension GoalQueries on AppDatabase {
             in await (select(ideas)..where(
                   (x) =>
                       x.deletedAt.isNull() &
-                      x.createdAt.isBiggerOrEqualValue(start) &
-                      x.createdAt.isSmallerThanValue(end),
+                      x.date.isBiggerOrEqualValue(start) &
+                      x.date.isSmallerThanValue(end),
                 ))
                 .get()) {
           final files = await images(OwnerType.idea, i.id);
@@ -397,7 +397,7 @@ extension GoalQueries on AppDatabase {
               kind: GoalKind.idea,
               id: i.id,
               pitId: i.pitId,
-              time: i.createdAt,
+              time: i.date,
               title: i.title,
               file: files.isEmpty ? null : files.first,
               files: files,
@@ -410,8 +410,8 @@ extension GoalQueries on AppDatabase {
             in await (select(drafts)..where(
                   (x) =>
                       x.deletedAt.isNull() &
-                      x.createdAt.isBiggerOrEqualValue(start) &
-                      x.createdAt.isSmallerThanValue(end),
+                      x.date.isBiggerOrEqualValue(start) &
+                      x.date.isSmallerThanValue(end),
                 ))
                 .get()) {
           final files = await images(OwnerType.draft, d.id);
@@ -420,7 +420,7 @@ extension GoalQueries on AppDatabase {
               kind: GoalKind.draft,
               id: d.id,
               pitId: d.pitId,
-              time: d.createdAt,
+              time: d.date,
               title: d.title ?? '',
               file: files.isEmpty ? null : files.first,
               files: files,

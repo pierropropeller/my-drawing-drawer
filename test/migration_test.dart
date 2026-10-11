@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
+import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/junk_queries.dart';
+import 'package:huakeng/data/oshi_queries.dart';
 
 /// 舊版（v1）資料庫：官方圖與同人圖沒有寬高，entity_images 沒有寬高，沒有 sync_docs。
 void main() {
@@ -204,6 +208,114 @@ void main() {
       await db.close();
     });
   }
+
+  // v7：推活、腦洞／草稿的 date（D-057、D-070）。從每個舊版本升上來都要通。
+  for (var from = 1; from <= 5; from++) {
+    test('v$from → v7：腦洞／草稿 date 回填成 createdAt、既有坑補預設推活分組、推活可用', () async {
+      final db = AppDatabase(
+        NativeDatabase.memory(setup: (raw) => _legacySchema(raw, from)),
+      );
+      final idea = (await db.watchIdeaView('i1').first)!;
+      expect(idea.idea.title, '舊腦洞');
+      expect(idea.idea.date, DateTime.fromMillisecondsSinceEpoch(1700000000000));
+      expect(idea.idea.date, idea.idea.createdAt);
+      final draft = (await db.watchDraftView('d1').first)!;
+      expect(draft.draft.date, DateTime.fromMillisecondsSinceEpoch(1690000000000));
+      // 舊資料的 updatedAt 不被遷移改動
+      expect(
+        idea.idea.updatedAt,
+        DateTime.fromMillisecondsSinceEpoch(1700005000000),
+      );
+
+      final oshi = await db.watchGroups('p1', kind: 'oshi').first;
+      expect(oshi.map((g) => g.name), ['線下照片', '遊戲截圖', '對話記錄']);
+      expect(oshi.map((g) => g.id), [
+        'oshi-default-p1-0',
+        'oshi-default-p1-1',
+        'oshi-default-p1-2',
+      ]); // 決定性 id，兩台裝置各自升級不會重複
+      // 官方圖冊／同人圖的分組不受影響（v1~v4 本來沒有 kind 欄，v5 才補）
+      final all = await db.select(db.officialGroups).get();
+      expect(all.where((g) => g.kind == 'oshi').length, 3);
+
+      // 新功能可用
+      final id = await db.saveOshiRecord(
+        pitId: 'p1',
+        date: DateTime(2026, 10, 1),
+        groupId: oshi.first.id,
+        images: const [NewImage(file: 'x.png')],
+      );
+      expect((await db.watchOshiRecords('p1').first).single.record.id, id);
+      expect((await db.watchPitStats('p1').first).oshi, 1);
+      final newIdea = await db.saveIdea(
+        pitId: 'p1',
+        title: '新',
+        body: '',
+        images: const [],
+        tagIds: const [],
+        draftIds: const [],
+        pieceIds: const [],
+        date: DateTime(2026, 12, 25),
+      );
+      // 新腦洞 date 最大 → 排最前
+      expect(
+        (await db.watchIdeaViews('p1').first).map((v) => v.idea.id),
+        [newIdea, 'i1'],
+      );
+      await db.close();
+    });
+  }
+
+  test('v6 → v7（用真實的 v6 結構：由目前結構拆掉 v7 的部分）：date 回填、推活分組、其餘資料不動', () async {
+    final dir = await Directory.systemTemp.createTemp('mig_v6');
+    final file = File('${dir.path}/db.sqlite');
+    // 1) 建出目前的結構並放資料，再還原成 v6 的樣子
+    var db = AppDatabase(NativeDatabase(file));
+    final pitId = await db.createPit(name: '舊坑');
+    final tag = await db.createTag(pitId, 'x');
+    final ideaId = await db.saveIdea(
+      pitId: pitId,
+      title: '舊腦洞',
+      body: '',
+      images: const [NewImage(file: 'i.png')],
+      tagIds: [tag],
+      draftIds: const [],
+      pieceIds: const [],
+    );
+    await db.customStatement('UPDATE ideas SET created_at = 1700000000');
+    await db.customStatement('DROP TABLE oshi_records');
+    await db.customStatement("DELETE FROM official_groups WHERE kind = 'oshi'");
+    await db.customStatement('ALTER TABLE ideas DROP COLUMN date');
+    await db.customStatement('ALTER TABLE drafts DROP COLUMN date');
+    await db.customStatement('PRAGMA user_version = 6');
+    await db.close();
+
+    // 2) 以 v7 開啟 → 執行 v6 → v7 遷移
+    db = AppDatabase(NativeDatabase(file));
+    final idea = (await db.watchIdeaView(ideaId).first)!;
+    expect(idea.idea.date, DateTime.fromMillisecondsSinceEpoch(1700000000000));
+    expect(idea.tags.single.name, 'x'); // 其他資料不動
+    expect(idea.images.single.file, 'i.png');
+    expect(
+      (await db.watchGroups(pitId, kind: 'oshi').first).map((g) => g.name),
+      ['線下照片', '遊戲截圖', '對話記錄'],
+    );
+    expect((await db.watchGroups(pitId).first).length, 6);
+    expect(await db.watchOshiRecords(pitId).first, isEmpty);
+    await db.close();
+    await dir.delete(recursive: true);
+  });
+
+  test('v7 遷移可以重複執行（已有 date 欄、已有推活分組）而不出錯也不重複', () async {
+    final db = AppDatabase(
+      NativeDatabase.memory(setup: (raw) => _legacySchema(raw, 6)),
+    );
+    expect((await db.watchGroups('p1', kind: 'oshi').first).length, 3);
+    await db.seedOshiGroups('p1', deterministic: true);
+    await db.ensureOshiGroups('p1');
+    expect((await db.watchGroups('p1', kind: 'oshi').first).length, 3);
+    await db.close();
+  });
 }
 
 /// 建出第 [v] 版的舊資料庫結構並放入一筆種子資料。
@@ -245,6 +357,26 @@ void _legacySchema(dynamic raw, int v) {
     'target_likes INTEGER NOT NULL DEFAULT 0, actual_likes INTEGER NOT NULL DEFAULT 0, finished_at INTEGER NOT NULL)',
   );
   raw.execute(
+    "CREATE TABLE ideas ($base, pit_id TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '')",
+  );
+  raw.execute(
+    'CREATE TABLE drafts ($base, pit_id TEXT NOT NULL, title TEXT NULL, body TEXT NULL)',
+  );
+  raw.execute('CREATE TABLE tags ($base, pit_id TEXT NOT NULL, name TEXT NOT NULL)');
+  raw.execute(
+    'CREATE TABLE tag_links (tag_id TEXT NOT NULL, target_type TEXT NOT NULL, target_id TEXT NOT NULL, PRIMARY KEY (tag_id, target_type, target_id))',
+  );
+  for (final t in ['idea_drafts', 'idea_pieces', 'draft_pieces']) {
+    final cols = {
+      'idea_drafts': ['idea_id', 'draft_id'],
+      'idea_pieces': ['idea_id', 'piece_id'],
+      'draft_pieces': ['draft_id', 'piece_id'],
+    }[t]!;
+    raw.execute(
+      'CREATE TABLE $t (${cols[0]} TEXT NOT NULL, ${cols[1]} TEXT NOT NULL, PRIMARY KEY (${cols[0]}, ${cols[1]}))',
+    );
+  }
+  raw.execute(
     'CREATE TABLE review_settings (year INTEGER NOT NULL PRIMARY KEY, columns INTEGER NOT NULL DEFAULT 4, '
     "ratio TEXT NOT NULL DEFAULT '1:1', month_format TEXT NOT NULL DEFAULT 'Jan', month_on_image INTEGER NOT NULL DEFAULT 1)",
   );
@@ -267,4 +399,10 @@ void _legacySchema(dynamic raw, int v) {
     "INSERT INTO pieces (id, created_at, updated_at, pit_id, title, finished_at) VALUES ('pc1', 1, 1, 'p1', '舊成圖', 1700000000)",
   );
   raw.execute('INSERT INTO review_settings (year) VALUES (2026)');
+  raw.execute(
+    "INSERT INTO ideas (id, created_at, updated_at, pit_id, title) VALUES ('i1', 1700000000, 1700005000, 'p1', '舊腦洞')",
+  );
+  raw.execute(
+    "INSERT INTO drafts (id, created_at, updated_at, pit_id, title) VALUES ('d1', 1690000000, 1700005000, 'p1', '舊草稿')",
+  );
 }
