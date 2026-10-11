@@ -34,6 +34,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.draft,
     required this.idea,
     required this.piece,
+    required this.oshi,
   });
 
   final Color ground;
@@ -60,6 +61,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
   final CategoryColor idea;
   final CategoryColor piece;
 
+  /// 推活（D-058）。
+  final CategoryColor oshi;
+
   static const light = AppTokens(
     ground: Color(0xFFFAF7F2),
     surface: Color(0xFFFFFFFF),
@@ -82,6 +86,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     draft: CategoryColor(Color(0xFFF1EAD9), Color(0xFFA9812F)),
     idea: CategoryColor(Color(0xFFF5EFCF), Color(0xFFA98A1E)),
     piece: CategoryColor(Color(0xFFFBE7E0), Color(0xFFC25436)),
+    oshi: CategoryColor(Color(0xFFECE6F3), Color(0xFF6E5A92)),
   );
 
   static const dark = AppTokens(
@@ -106,6 +111,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     draft: CategoryColor(Color(0xFF383126), Color(0xFFD6B267)),
     idea: CategoryColor(Color(0xFF37321F), Color(0xFFD9BD55)),
     piece: CategoryColor(Color(0xFF3E2A23), Color(0xFFE8876F)),
+    oshi: CategoryColor(Color(0xFF312B3A), Color(0xFFB8A6D9)),
   );
 
   /// 換主題色：只替換 accent／strong／soft 三色（ColorSystem 色值表，淺／深各一組），其餘不變。
@@ -134,6 +140,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
       draft: draft,
       idea: idea,
       piece: piece,
+      oshi: oshi,
     );
   }
 

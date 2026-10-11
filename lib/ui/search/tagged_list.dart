@@ -7,11 +7,12 @@ import '../common/svg_icon.dart';
 import '../entity/draft_list_page.dart';
 import '../entity/finished_list_page.dart';
 import '../entity/idea_list_page.dart';
+import '../oshi/oshi_list_page.dart';
 import 'pit_search_page.dart';
 import 'search_icons.dart';
 
-/// 有 tag 的四種列表（D-043）。
-enum TaggedKind { fan, idea, draft, piece }
+/// 有 tag 的列表（D-043；推活見 D-065）。
+enum TaggedKind { fan, idea, draft, piece, oshi }
 
 /// 搜尋流程（PitSearch、結果頁、從結果開啟的詳情）的 route 名稱。
 /// 這些頁面都隱藏導覽列；離開搜尋去列表時要整串關掉，列表的導覽列才會回來。
@@ -24,6 +25,7 @@ Widget taggedListPage(TaggedKind kind, String pitId, String? tagId) =>
       TaggedKind.idea => IdeaListPage(pitId: pitId, tagId: tagId),
       TaggedKind.draft => DraftListPage(pitId: pitId, tagId: tagId),
       TaggedKind.piece => FinishedListPage(pitId: pitId, tagId: tagId),
+      TaggedKind.oshi => OshiListPage(pitId: pitId, tagId: tagId),
     };
 
 /// 回到該格列表並套用 tag 篩選（[tagId] 為 null＝完整列表）。
