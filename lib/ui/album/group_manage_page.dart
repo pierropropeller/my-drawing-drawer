@@ -20,7 +20,7 @@ class GroupManagePage extends ConsumerWidget {
   });
   final String pitId;
 
-  /// `official`（官方圖冊）或 `fan`（好看同人圖）。
+  /// `official`（官方圖冊）、`fan`（好看同人圖）或 `oshi`（推活）。
   final String kind;
 
   Future<void> _delete(
@@ -31,7 +31,9 @@ class GroupManagePage extends ConsumerWidget {
     final ok = await confirmDelete(
       context,
       title: context.l10n.albumGroupDeleteTitle(g.name),
-      message: context.l10n.albumGroupDeleteBody,
+      message: g.kind == 'oshi'
+          ? context.l10n.oshiGroupDeleteBody
+          : context.l10n.albumGroupDeleteBody,
     );
     if (!ok) return;
     final done = await ref.read(databaseProvider).deleteGroup(g.id);
@@ -61,7 +63,14 @@ class GroupManagePage extends ConsumerWidget {
     final groups = ref.watch(groupsProvider((pitId, kind))).value ?? const [];
     // 每個分組的張數。
     final counts = <String, int>{};
-    if (kind == 'fan') {
+    if (kind == 'oshi') {
+      // 推活分組（OshiTimeline 的「管理分組」）：筆數來自推活紀錄。
+      final byGroup =
+          ref.watch(oshiGroupCountsProvider(pitId)).value ?? const {};
+      for (final e in byGroup.entries) {
+        if (e.key != null) counts[e.key!] = e.value;
+      }
+    } else if (kind == 'fan') {
       for (final r
           in ref.watch(fanArtsProvider((pitId, null))).value ?? const []) {
         final id = r.groupId;
@@ -101,9 +110,11 @@ class GroupManagePage extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(2, 0, 2, 12),
               child: Text(
-                kind == 'fan'
-                    ? context.l10n.albumGroupHintFan
-                    : context.l10n.albumGroupHintOfficial,
+                switch (kind) {
+                  'fan' => context.l10n.albumGroupHintFan,
+                  'oshi' => context.l10n.oshiGroupHint,
+                  _ => context.l10n.albumGroupHintOfficial,
+                },
                 style: TextStyle(color: t.text3, fontSize: 12.5),
               ),
             ),
@@ -177,9 +188,13 @@ class GroupManagePage extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.only(right: 2),
                               child: Text(
-                                context.l10n.commonCountImages(
-                                  counts[g.id] ?? 0,
-                                ),
+                                kind == 'oshi'
+                                    ? context.l10n.oshiCountRecords(
+                                        counts[g.id] ?? 0,
+                                      )
+                                    : context.l10n.commonCountImages(
+                                        counts[g.id] ?? 0,
+                                      ),
                                 style: TextStyle(
                                   color: t.text4,
                                   fontSize: 12.5,
