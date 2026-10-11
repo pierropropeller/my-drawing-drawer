@@ -2343,6 +2343,24 @@ abstract class AppLocalizations {
   /// **'{count} 張成圖'**
   String moveReviewPieceCount(int count);
 
+  /// No description provided for @pitsCellOshi.
+  ///
+  /// In zh, this message translates to:
+  /// **'推活'**
+  String get pitsCellOshi;
+
+  /// No description provided for @pitsCellOshiCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 筆'**
+  String pitsCellOshiCount(int count);
+
+  /// No description provided for @pitSearchCategoryOshi.
+  ///
+  /// In zh, this message translates to:
+  /// **'推活'**
+  String get pitSearchCategoryOshi;
+
   /// No description provided for @searchCategoryPiece.
   ///
   /// In zh, this message translates to:

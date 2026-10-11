@@ -1284,6 +1284,17 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get pitsCellOshi => '推活';
+
+  @override
+  String pitsCellOshiCount(int count) {
+    return '$count 筆';
+  }
+
+  @override
+  String get pitSearchCategoryOshi => '推活';
+
+  @override
   String get searchCategoryPiece => '成圖';
 
   @override
