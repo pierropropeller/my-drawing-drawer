@@ -153,9 +153,9 @@ extension BatchTagQueries on AppDatabase {
     Iterable<String> removeTagIds = const [],
     Iterable<String> newTagNames = const [],
   }) {
-    final target = _batchTarget(cell);
     final idList = ids.toSet().toList();
     return transaction(() async {
+      final target = _batchTarget(cell);
       final pitOf = await _pitsOf(cell, idList);
       final pitId = await _singlePit(pitOf);
       if (pitId == null) return <String>[];

@@ -277,7 +277,7 @@ void main() {
   });
 
   test('刪坑：推活紀錄一併軟刪除；推活活動讓坑排到主頁最前', () async {
-    final other = await db.createPit(name: '坑B');
+    await db.createPit(name: '坑B');
     await Future<void>.delayed(const Duration(milliseconds: 1100));
     // 之後在坑A 新增推活 → 坑A 排最前
     await rec(date: DateTime(2026, 10, 1));

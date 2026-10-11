@@ -27,6 +27,24 @@ abstract class SyncKind {
   Set<String> imageFiles(Map<String, dynamic> data) => const {};
 }
 
+/// 套用遠端文件用的 upsert。drift 的 `insertOnConflictUpdate` 在**更新**時會略過 null 欄位
+/// （內部用 `toColumns(true)`），遠端把某個欄位清成 null（例如推活取消分組、清掉標題）
+/// 就傳不到本機。這裡改成整列覆寫，null 也會寫進去。
+extension FullUpsert<T extends Table, D> on InsertStatement<T, D> {
+  Future<int> upsertFull(Insertable<D> row) => insert(
+    _FullRow<D>(row),
+    onConflict: DoUpdate<T, D>((_) => _FullRow<D>(row)),
+  );
+}
+
+class _FullRow<D> implements Insertable<D> {
+  const _FullRow(this.inner);
+  final Insertable<D> inner;
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) =>
+      inner.toColumns(false);
+}
+
 /// 舊版文件缺少新欄位：補上預設值再交給 drift 的 fromJson（缺 key 的非空欄位會丟例外）。
 /// [defaults] 的值可以是函式 `(data) => 值`，用來依同文件其他欄位推算。
 Map<String, dynamic> withDefaults(
@@ -105,7 +123,7 @@ class PitsKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.pits)
-      .insertOnConflictUpdate(
+      .upsertFull(
         Pit.fromJson(withDefaults(data, {'junkEnabled': false})),
       );
 }
@@ -127,7 +145,7 @@ class GroupsKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.officialGroups)
-      .insertOnConflictUpdate(OfficialGroup.fromJson(data));
+      .upsertFull(OfficialGroup.fromJson(data));
 }
 
 class OfficialKind extends SyncKind {
@@ -150,7 +168,7 @@ class OfficialKind extends SyncKind {
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
     final row = OfficialImage.fromJson(_albumImageJson(data));
     await db.transaction(() async {
-      await db.into(db.officialImages).insertOnConflictUpdate(row);
+      await db.into(db.officialImages).upsertFull(row);
       // 舊版（v6 以前）寫出的官方圖文件沒有 tagIds：不動本機已有的 tag。
       final raw = data['tagIds'];
       if (raw is List) {
@@ -185,7 +203,7 @@ class FanArtKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
     final row = FanArt.fromJson(_albumImageJson(data));
-    await db.into(db.fanArts).insertOnConflictUpdate(row);
+    await db.into(db.fanArts).upsertFull(row);
     await db.setTags(TagTarget.fanArt, row.id, [
       for (final t in data['tagIds'] as List<dynamic>) t as String,
     ]);
@@ -215,7 +233,7 @@ class JunkKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.junkImages)
-      .insertOnConflictUpdate(JunkImage.fromJson(_albumImageJson(data)));
+      .upsertFull(JunkImage.fromJson(_albumImageJson(data)));
   @override
   Set<String> imageFiles(Map<String, dynamic> data) => {
     data['imageFile'] as String,
@@ -238,7 +256,7 @@ class TagsKind extends SyncKind {
       )..where((t) => t.id.equals(id))).getSingle()).toJson();
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) =>
-      db.into(db.tags).insertOnConflictUpdate(Tag.fromJson(data));
+      db.into(db.tags).upsertFull(Tag.fromJson(data));
 }
 
 class IdeasKind extends SyncKind {
@@ -271,7 +289,7 @@ class IdeasKind extends SyncKind {
       withDefaults(data, {'date': (Map<String, dynamic> d) => d['createdAt']}),
     );
     await db.transaction(() async {
-      await db.into(db.ideas).insertOnConflictUpdate(row);
+      await db.into(db.ideas).upsertFull(row);
       await db.setTags(TagTarget.idea, row.id, [
         for (final t in data['tagIds'] as List<dynamic>) t as String,
       ]);
@@ -316,7 +334,7 @@ class DraftsKind extends SyncKind {
       withDefaults(data, {'date': (Map<String, dynamic> d) => d['createdAt']}),
     );
     await db.transaction(() async {
-      await db.into(db.drafts).insertOnConflictUpdate(row);
+      await db.into(db.drafts).upsertFull(row);
       await db.setTags(TagTarget.draft, row.id, [
         for (final t in data['tagIds'] as List<dynamic>) t as String,
       ]);
@@ -375,7 +393,7 @@ class PiecesKind extends SyncKind {
       }),
     );
     await db.transaction(() async {
-      await db.into(db.pieces).insertOnConflictUpdate(row);
+      await db.into(db.pieces).upsertFull(row);
       await db.setTags(TagTarget.piece, row.id, [
         for (final t in data['tagIds'] as List<dynamic>) t as String,
       ]);
@@ -431,7 +449,7 @@ class OshiKind extends SyncKind {
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
     final row = OshiRecord.fromJson(data);
     await db.transaction(() async {
-      await db.into(db.oshiRecords).insertOnConflictUpdate(row);
+      await db.into(db.oshiRecords).upsertFull(row);
       await db.setTags(TagTarget.oshi, row.id, [
         for (final t in data['tagIds'] as List<dynamic>) t as String,
       ]);
@@ -466,7 +484,7 @@ class GoalsKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
     final row = Goal.fromJson(data);
-    await db.into(db.goals).insertOnConflictUpdate(row);
+    await db.into(db.goals).upsertFull(row);
     await db.setTags(TagTarget.goal, row.id, [
       for (final t in data['tagIds'] as List<dynamic>) t as String,
     ]);
@@ -495,7 +513,7 @@ class ReviewMonthsKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.yearReviewMonths)
-      .insertOnConflictUpdate(YearReviewMonth.fromJson(data));
+      .upsertFull(YearReviewMonth.fromJson(data));
   @override
   Set<String> imageFiles(Map<String, dynamic> data) => {
     if (data['imageFile'] != null && data['imageFile'] != '')
@@ -521,7 +539,7 @@ class ReviewSettingsKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.reviewSettings)
-      .insertOnConflictUpdate(ReviewSetting.fromJson(data));
+      .upsertFull(ReviewSetting.fromJson(data));
 }
 
 const allSyncKinds = <SyncKind>[

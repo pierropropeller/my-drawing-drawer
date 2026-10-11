@@ -62,7 +62,7 @@ class DraftView {
   final List<String> ideaIds;
   final List<String> pieceIds;
 
-  /// 關聯的成圖（D-069），順序同 [pieceIds]；已刪除的成圖不含。
+  /// 關聯的成圖（D-069），完成日期新到舊，順序同 [pieceIds]；已刪除的成圖不含。
   final List<LinkedItem> linkedPieces;
 
   /// 純圖草稿：沒有標題、內文、tag、連接。
@@ -98,7 +98,7 @@ class PieceView {
   final List<String> ideaIds;
   final List<String> draftIds;
 
-  /// 關聯的草稿（D-069），順序同 [draftIds]；已刪除的草稿不含。
+  /// 關聯的草稿（D-069），日期新到舊，順序同 [draftIds]；已刪除的草稿不含。
   final List<LinkedItem> linkedDrafts;
 
   /// 商稿收款狀態（只有 [Piece.isCommission] 時有意義）。
@@ -420,18 +420,21 @@ extension EntityQueries on AppDatabase {
     final ids = (await (select(
       draftPieces,
     )..where((x) => x.draftId.equals(draftId))).get()).map((r) => r.pieceId);
-    final out = <LinkedItem>[];
+    final found = <(Piece, LinkedItem)>[];
     for (final id in ids) {
       final p = await (select(
         pieces,
       )..where((x) => x.id.equals(id) & x.deletedAt.isNull())).getSingleOrNull();
       if (p == null) continue;
       final im = await _imagesOf(OwnerType.piece, id);
-      out.add(
+      found.add((
+        p,
         LinkedItem(id: id, title: p.title, firstImage: im.isEmpty ? null : im.first),
-      );
+      ));
     }
-    return out;
+    // 順序固定：完成日期新到舊（關係表本身沒有順序）。
+    found.sort((a, b) => b.$1.finishedAt.compareTo(a.$1.finishedAt));
+    return [for (final f in found) f.$2];
   }
 
   /// 成圖關聯的草稿（略過已刪除的）。
@@ -439,18 +442,21 @@ extension EntityQueries on AppDatabase {
     final ids = (await (select(
       draftPieces,
     )..where((x) => x.pieceId.equals(pieceId))).get()).map((r) => r.draftId);
-    final out = <LinkedItem>[];
+    final found = <(Draft, LinkedItem)>[];
     for (final id in ids) {
       final d = await (select(
         drafts,
       )..where((x) => x.id.equals(id) & x.deletedAt.isNull())).getSingleOrNull();
       if (d == null) continue;
       final im = await _imagesOf(OwnerType.draft, id);
-      out.add(
+      found.add((
+        d,
         LinkedItem(id: id, title: d.title, firstImage: im.isEmpty ? null : im.first),
-      );
+      ));
     }
-    return out;
+    // 順序固定：日期新到舊（關係表本身沒有順序）。
+    found.sort((a, b) => b.$1.date.compareTo(a.$1.date));
+    return [for (final f in found) f.$2];
   }
 
   /// [tagId]：只列出有這個 tag 的草稿（D-043）。
