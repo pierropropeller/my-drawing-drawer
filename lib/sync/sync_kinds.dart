@@ -8,8 +8,9 @@ import '../data/entity_queries.dart';
 /// 連接關係、tag、圖片清單等「附屬資料」跟著擁有它的實體文件一起走：
 /// - 腦洞文件：tagIds、draftIds、pieceIds、images
 /// - 草稿文件：tagIds、images
-/// - 成圖文件：tagIds、images、links、draftIds
-/// - 同人圖／目標文件：tagIds
+/// - 成圖文件：tagIds、images、links、draftIds（草稿↔成圖的關係由成圖擁有，D-069）
+/// - 推活文件：tagIds、images
+/// - 官方圖（v7 起）／同人圖／目標文件：tagIds
 abstract class SyncKind {
   const SyncKind();
   String get name;
@@ -24,6 +25,24 @@ abstract class SyncKind {
 
   /// 文件引用到的圖片檔名（需一併上傳／下載）。
   Set<String> imageFiles(Map<String, dynamic> data) => const {};
+}
+
+/// 套用遠端文件用的 upsert。drift 的 `insertOnConflictUpdate` 在**更新**時會略過 null 欄位
+/// （內部用 `toColumns(true)`），遠端把某個欄位清成 null（例如推活取消分組、清掉標題）
+/// 就傳不到本機。這裡改成整列覆寫，null 也會寫進去。
+extension FullUpsert<T extends Table, D> on InsertStatement<T, D> {
+  Future<int> upsertFull(Insertable<D> row) => insert(
+    _FullRow<D>(row),
+    onConflict: DoUpdate<T, D>((_) => _FullRow<D>(row)),
+  );
+}
+
+class _FullRow<D> implements Insertable<D> {
+  const _FullRow(this.inner);
+  final Insertable<D> inner;
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) =>
+      inner.toColumns(false);
 }
 
 /// 舊版文件缺少新欄位：補上預設值再交給 drift 的 fromJson（缺 key 的非空欄位會丟例外）。
@@ -104,7 +123,7 @@ class PitsKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.pits)
-      .insertOnConflictUpdate(
+      .upsertFull(
         Pit.fromJson(withDefaults(data, {'junkEnabled': false})),
       );
 }
@@ -126,7 +145,7 @@ class GroupsKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.officialGroups)
-      .insertOnConflictUpdate(OfficialGroup.fromJson(data));
+      .upsertFull(OfficialGroup.fromJson(data));
 }
 
 class OfficialKind extends SyncKind {
@@ -139,14 +158,26 @@ class OfficialKind extends SyncKind {
       r.id: r.updatedAt.millisecondsSinceEpoch,
   };
   @override
-  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>
-      (await (db.select(
-        db.officialImages,
-      )..where((t) => t.id.equals(id))).getSingle()).toJson();
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async => {
+    ...(await (db.select(
+      db.officialImages,
+    )..where((t) => t.id.equals(id))).getSingle()).toJson(),
+    'tagIds': await _tagIdsOf(db, TagTarget.official, id),
+  };
   @override
-  Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
-      .into(db.officialImages)
-      .insertOnConflictUpdate(OfficialImage.fromJson(_albumImageJson(data)));
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
+    final row = OfficialImage.fromJson(_albumImageJson(data));
+    await db.transaction(() async {
+      await db.into(db.officialImages).upsertFull(row);
+      // 舊版（v6 以前）寫出的官方圖文件沒有 tagIds：不動本機已有的 tag。
+      final raw = data['tagIds'];
+      if (raw is List) {
+        await db.setTags(TagTarget.official, row.id, [
+          for (final t in raw) t as String,
+        ]);
+      }
+    });
+  }
   @override
   Set<String> imageFiles(Map<String, dynamic> data) => {
     data['imageFile'] as String,
@@ -172,7 +203,7 @@ class FanArtKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
     final row = FanArt.fromJson(_albumImageJson(data));
-    await db.into(db.fanArts).insertOnConflictUpdate(row);
+    await db.into(db.fanArts).upsertFull(row);
     await db.setTags(TagTarget.fanArt, row.id, [
       for (final t in data['tagIds'] as List<dynamic>) t as String,
     ]);
@@ -202,7 +233,7 @@ class JunkKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.junkImages)
-      .insertOnConflictUpdate(JunkImage.fromJson(_albumImageJson(data)));
+      .upsertFull(JunkImage.fromJson(_albumImageJson(data)));
   @override
   Set<String> imageFiles(Map<String, dynamic> data) => {
     data['imageFile'] as String,
@@ -225,7 +256,7 @@ class TagsKind extends SyncKind {
       )..where((t) => t.id.equals(id))).getSingle()).toJson();
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) =>
-      db.into(db.tags).insertOnConflictUpdate(Tag.fromJson(data));
+      db.into(db.tags).upsertFull(Tag.fromJson(data));
 }
 
 class IdeasKind extends SyncKind {
@@ -253,9 +284,12 @@ class IdeasKind extends SyncKind {
   };
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
-    final row = Idea.fromJson(data);
+    // 舊版文件沒有 date（D-070）：沿用 createdAt。
+    final row = Idea.fromJson(
+      withDefaults(data, {'date': (Map<String, dynamic> d) => d['createdAt']}),
+    );
     await db.transaction(() async {
-      await db.into(db.ideas).insertOnConflictUpdate(row);
+      await db.into(db.ideas).upsertFull(row);
       await db.setTags(TagTarget.idea, row.id, [
         for (final t in data['tagIds'] as List<dynamic>) t as String,
       ]);
@@ -296,9 +330,11 @@ class DraftsKind extends SyncKind {
   };
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
-    final row = Draft.fromJson(data);
+    final row = Draft.fromJson(
+      withDefaults(data, {'date': (Map<String, dynamic> d) => d['createdAt']}),
+    );
     await db.transaction(() async {
-      await db.into(db.drafts).insertOnConflictUpdate(row);
+      await db.into(db.drafts).upsertFull(row);
       await db.setTags(TagTarget.draft, row.id, [
         for (final t in data['tagIds'] as List<dynamic>) t as String,
       ]);
@@ -357,7 +393,7 @@ class PiecesKind extends SyncKind {
       }),
     );
     await db.transaction(() async {
-      await db.into(db.pieces).insertOnConflictUpdate(row);
+      await db.into(db.pieces).upsertFull(row);
       await db.setTags(TagTarget.piece, row.id, [
         for (final t in data['tagIds'] as List<dynamic>) t as String,
       ]);
@@ -391,6 +427,44 @@ class PiecesKind extends SyncKind {
   Set<String> imageFiles(Map<String, dynamic> data) => _entityImageFiles(data);
 }
 
+/// 推活紀錄（D-057）：圖片與 tag 跟著紀錄文件走；分組走 `groups`（kind=oshi）。
+class OshiKind extends SyncKind {
+  const OshiKind();
+  @override
+  String get name => 'oshi';
+  @override
+  Future<Map<String, int>> versions(AppDatabase db) async => {
+    for (final r in await db.select(db.oshiRecords).get())
+      r.id: r.updatedAt.millisecondsSinceEpoch,
+  };
+  @override
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async => {
+    ...(await (db.select(
+      db.oshiRecords,
+    )..where((t) => t.id.equals(id))).getSingle()).toJson(),
+    'tagIds': await _tagIdsOf(db, TagTarget.oshi, id),
+    'images': await _imagesOf(db, OwnerType.oshi, id),
+  };
+  @override
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
+    final row = OshiRecord.fromJson(data);
+    await db.transaction(() async {
+      await db.into(db.oshiRecords).upsertFull(row);
+      await db.setTags(TagTarget.oshi, row.id, [
+        for (final t in data['tagIds'] as List<dynamic>) t as String,
+      ]);
+      await db.replaceEntityImages(
+        OwnerType.oshi,
+        row.id,
+        _newImages(data['images']),
+      );
+    });
+  }
+
+  @override
+  Set<String> imageFiles(Map<String, dynamic> data) => _entityImageFiles(data);
+}
+
 class GoalsKind extends SyncKind {
   const GoalsKind();
   @override
@@ -410,7 +484,7 @@ class GoalsKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
     final row = Goal.fromJson(data);
-    await db.into(db.goals).insertOnConflictUpdate(row);
+    await db.into(db.goals).upsertFull(row);
     await db.setTags(TagTarget.goal, row.id, [
       for (final t in data['tagIds'] as List<dynamic>) t as String,
     ]);
@@ -439,7 +513,7 @@ class ReviewMonthsKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.yearReviewMonths)
-      .insertOnConflictUpdate(YearReviewMonth.fromJson(data));
+      .upsertFull(YearReviewMonth.fromJson(data));
   @override
   Set<String> imageFiles(Map<String, dynamic> data) => {
     if (data['imageFile'] != null && data['imageFile'] != '')
@@ -465,7 +539,7 @@ class ReviewSettingsKind extends SyncKind {
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.reviewSettings)
-      .insertOnConflictUpdate(ReviewSetting.fromJson(data));
+      .upsertFull(ReviewSetting.fromJson(data));
 }
 
 const allSyncKinds = <SyncKind>[
@@ -478,6 +552,7 @@ const allSyncKinds = <SyncKind>[
   IdeasKind(),
   DraftsKind(),
   PiecesKind(),
+  OshiKind(),
   GoalsKind(),
   ReviewMonthsKind(),
   ReviewSettingsKind(),

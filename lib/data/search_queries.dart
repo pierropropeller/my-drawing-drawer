@@ -2,8 +2,12 @@ import 'package:drift/drift.dart';
 
 import 'database.dart';
 import 'entity_queries.dart';
+import 'oshi_queries.dart';
 
-/// 搜尋結果的一段（成圖／好看同人圖／草稿／腦洞）。
+/// 搜尋結果的段（也是分頁 chips）；列舉順序＝顯示順序（D-051、D-065）。
+enum PitSearchSection { pieces, fanArts, oshi, drafts, ideas }
+
+/// 搜尋結果的一段（成圖／好看同人圖／推活／草稿／腦洞）。
 class PitSearchGroup<T> {
   const PitSearchGroup(this.total, this.items);
 
@@ -19,35 +23,54 @@ class PitSearchGroup<T> {
   static const empty = PitSearchGroup<Never>(0, []);
 }
 
-/// 坑內搜尋結果；分段順序＝完成度：成圖 → 好看同人圖 → 草稿 → 腦洞（D-051）。
+/// 坑內搜尋結果；分段順序：成圖 → 好看同人圖 → 推活 → 草稿 → 腦洞（D-051、D-065）。
 class PitSearchResult {
   const PitSearchResult({
     required this.pieces,
     required this.fanArts,
+    this.oshi = PitSearchGroup.empty,
     required this.drafts,
     required this.ideas,
   });
 
   final PitSearchGroup<PieceView> pieces;
   final PitSearchGroup<FanArt> fanArts;
+  final PitSearchGroup<OshiRecordView> oshi;
   final PitSearchGroup<DraftView> drafts;
   final PitSearchGroup<IdeaView> ideas;
 
   /// 分頁 chips「全部」的數字。
-  int get total => pieces.total + fanArts.total + drafts.total + ideas.total;
+  int get total =>
+      pieces.total + fanArts.total + oshi.total + drafts.total + ideas.total;
   bool get isEmpty => total == 0;
+
+  /// 各段的實際筆數（D-061：少於 3 張時照實際張數放，不補格、不顯示「+N」）。
+  Map<PitSearchSection, int> get counts => {
+    PitSearchSection.pieces: pieces.total,
+    PitSearchSection.fanArts: fanArts.total,
+    PitSearchSection.oshi: oshi.total,
+    PitSearchSection.drafts: drafts.total,
+    PitSearchSection.ideas: ideas.total,
+  };
+
+  /// 結果不是 0 的段，依顯示順序（0 筆的分頁與分段都不顯示，D-061）。
+  List<PitSearchSection> get visibleSections => [
+    for (final e in counts.entries)
+      if (e.value > 0) e.key,
+  ];
 
   static const empty = PitSearchResult(
     pieces: PitSearchGroup.empty,
     fanArts: PitSearchGroup.empty,
+    oshi: PitSearchGroup.empty,
     drafts: PitSearchGroup.empty,
     ideas: PitSearchGroup.empty,
   );
 }
 
 extension SearchQueries on AppDatabase {
-  /// 坑內搜尋。[text] 以空白分詞，每個詞都要出現在「標題／內文／作者／tag 名稱」其中之一
-  /// （不分大小寫）；[tagId] 要求項目有該 tag。兩者都沒給時回傳空結果。
+  /// 坑內搜尋。[text] 以空白分詞，每個詞都要出現在「標題／內文（推活＝描述、分組名稱）／作者／tag 名稱」
+  /// 其中之一（不分大小寫）；[tagId] 要求項目有該 tag。兩者都沒給時回傳空結果。
   /// 已刪除、被移走而隱藏的同人圖、雜物都不會出現。
   /// [thumbLimit]：圖片類每段最多回傳幾筆。
   Stream<PitSearchResult> watchPitSearch(
@@ -66,7 +89,17 @@ extension SearchQueries on AppDatabase {
     }
     return watchAssembled(
       this,
-      {pieces, drafts, ideas, fanArts, entityImages, tags, tagLinks},
+      {
+        pieces,
+        drafts,
+        ideas,
+        fanArts,
+        oshiRecords,
+        officialGroups,
+        entityImages,
+        tags,
+        tagLinks,
+      },
       () async {
         bool match(Iterable<String?> fields, List<Tag> tagList) {
           if (tagId != null && !tagList.any((t) => t.id == tagId)) {
@@ -101,6 +134,12 @@ extension SearchQueries on AppDatabase {
             if (match([v.idea.title, v.idea.body], v.tags)) v,
         ];
 
+        final oshiHits = [
+          for (final v in await loadOshiViews(pitId))
+            if (match([v.record.title, v.record.description, v.group?.name], v.tags))
+              v,
+        ];
+
         final fanRows =
             await (select(fanArts)
                   ..where(
@@ -130,6 +169,7 @@ extension SearchQueries on AppDatabase {
         return PitSearchResult(
           pieces: group(pieceHits, limited: true),
           fanArts: group(fanHits, limited: true),
+          oshi: group(oshiHits, limited: true),
           drafts: group(draftHits, limited: true),
           ideas: group(ideaHits, limited: false),
         );

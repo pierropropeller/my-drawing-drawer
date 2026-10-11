@@ -3924,6 +3924,16 @@ class $IdeasTable extends Ideas with TableInfo<$IdeasTable, Idea> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3934,6 +3944,7 @@ class $IdeasTable extends Ideas with TableInfo<$IdeasTable, Idea> {
     pitId,
     title,
     body,
+    date,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3996,6 +4007,12 @@ class $IdeasTable extends Ideas with TableInfo<$IdeasTable, Idea> {
         body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
       );
     }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    }
     return context;
   }
 
@@ -4037,6 +4054,10 @@ class $IdeasTable extends Ideas with TableInfo<$IdeasTable, Idea> {
         DriftSqlType.string,
         data['${effectivePrefix}body'],
       )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
     );
   }
 
@@ -4055,6 +4076,10 @@ class Idea extends DataClass implements Insertable<Idea> {
   final String pitId;
   final String title;
   final String body;
+
+  /// 使用者可改的日期（D-070）：列表排序、卡片時間、目標進度、時間軸都用它，不用 createdAt。
+  /// 含時間（從目標日頁的 ＋ 新增時是「現在」）；舊資料回填成 createdAt。
+  final DateTime date;
   const Idea({
     required this.id,
     required this.createdAt,
@@ -4064,6 +4089,7 @@ class Idea extends DataClass implements Insertable<Idea> {
     required this.pitId,
     required this.title,
     required this.body,
+    required this.date,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4078,6 +4104,7 @@ class Idea extends DataClass implements Insertable<Idea> {
     map['pit_id'] = Variable<String>(pitId);
     map['title'] = Variable<String>(title);
     map['body'] = Variable<String>(body);
+    map['date'] = Variable<DateTime>(date);
     return map;
   }
 
@@ -4093,6 +4120,7 @@ class Idea extends DataClass implements Insertable<Idea> {
       pitId: Value(pitId),
       title: Value(title),
       body: Value(body),
+      date: Value(date),
     );
   }
 
@@ -4110,6 +4138,7 @@ class Idea extends DataClass implements Insertable<Idea> {
       pitId: serializer.fromJson<String>(json['pitId']),
       title: serializer.fromJson<String>(json['title']),
       body: serializer.fromJson<String>(json['body']),
+      date: serializer.fromJson<DateTime>(json['date']),
     );
   }
   @override
@@ -4124,6 +4153,7 @@ class Idea extends DataClass implements Insertable<Idea> {
       'pitId': serializer.toJson<String>(pitId),
       'title': serializer.toJson<String>(title),
       'body': serializer.toJson<String>(body),
+      'date': serializer.toJson<DateTime>(date),
     };
   }
 
@@ -4136,6 +4166,7 @@ class Idea extends DataClass implements Insertable<Idea> {
     String? pitId,
     String? title,
     String? body,
+    DateTime? date,
   }) => Idea(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -4145,6 +4176,7 @@ class Idea extends DataClass implements Insertable<Idea> {
     pitId: pitId ?? this.pitId,
     title: title ?? this.title,
     body: body ?? this.body,
+    date: date ?? this.date,
   );
   Idea copyWithCompanion(IdeasCompanion data) {
     return Idea(
@@ -4156,6 +4188,7 @@ class Idea extends DataClass implements Insertable<Idea> {
       pitId: data.pitId.present ? data.pitId.value : this.pitId,
       title: data.title.present ? data.title.value : this.title,
       body: data.body.present ? data.body.value : this.body,
+      date: data.date.present ? data.date.value : this.date,
     );
   }
 
@@ -4169,7 +4202,8 @@ class Idea extends DataClass implements Insertable<Idea> {
           ..write('deviceId: $deviceId, ')
           ..write('pitId: $pitId, ')
           ..write('title: $title, ')
-          ..write('body: $body')
+          ..write('body: $body, ')
+          ..write('date: $date')
           ..write(')'))
         .toString();
   }
@@ -4184,6 +4218,7 @@ class Idea extends DataClass implements Insertable<Idea> {
     pitId,
     title,
     body,
+    date,
   );
   @override
   bool operator ==(Object other) =>
@@ -4196,7 +4231,8 @@ class Idea extends DataClass implements Insertable<Idea> {
           other.deviceId == this.deviceId &&
           other.pitId == this.pitId &&
           other.title == this.title &&
-          other.body == this.body);
+          other.body == this.body &&
+          other.date == this.date);
 }
 
 class IdeasCompanion extends UpdateCompanion<Idea> {
@@ -4208,6 +4244,7 @@ class IdeasCompanion extends UpdateCompanion<Idea> {
   final Value<String> pitId;
   final Value<String> title;
   final Value<String> body;
+  final Value<DateTime> date;
   final Value<int> rowid;
   const IdeasCompanion({
     this.id = const Value.absent(),
@@ -4218,6 +4255,7 @@ class IdeasCompanion extends UpdateCompanion<Idea> {
     this.pitId = const Value.absent(),
     this.title = const Value.absent(),
     this.body = const Value.absent(),
+    this.date = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   IdeasCompanion.insert({
@@ -4229,6 +4267,7 @@ class IdeasCompanion extends UpdateCompanion<Idea> {
     required String pitId,
     required String title,
     this.body = const Value.absent(),
+    this.date = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : pitId = Value(pitId),
        title = Value(title);
@@ -4241,6 +4280,7 @@ class IdeasCompanion extends UpdateCompanion<Idea> {
     Expression<String>? pitId,
     Expression<String>? title,
     Expression<String>? body,
+    Expression<DateTime>? date,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -4252,6 +4292,7 @@ class IdeasCompanion extends UpdateCompanion<Idea> {
       if (pitId != null) 'pit_id': pitId,
       if (title != null) 'title': title,
       if (body != null) 'body': body,
+      if (date != null) 'date': date,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4265,6 +4306,7 @@ class IdeasCompanion extends UpdateCompanion<Idea> {
     Value<String>? pitId,
     Value<String>? title,
     Value<String>? body,
+    Value<DateTime>? date,
     Value<int>? rowid,
   }) {
     return IdeasCompanion(
@@ -4276,6 +4318,7 @@ class IdeasCompanion extends UpdateCompanion<Idea> {
       pitId: pitId ?? this.pitId,
       title: title ?? this.title,
       body: body ?? this.body,
+      date: date ?? this.date,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4307,6 +4350,9 @@ class IdeasCompanion extends UpdateCompanion<Idea> {
     if (body.present) {
       map['body'] = Variable<String>(body.value);
     }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4324,6 +4370,7 @@ class IdeasCompanion extends UpdateCompanion<Idea> {
           ..write('pitId: $pitId, ')
           ..write('title: $title, ')
           ..write('body: $body, ')
+          ..write('date: $date, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4419,6 +4466,16 @@ class $DraftsTable extends Drafts with TableInfo<$DraftsTable, Draft> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4429,6 +4486,7 @@ class $DraftsTable extends Drafts with TableInfo<$DraftsTable, Draft> {
     pitId,
     title,
     body,
+    date,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4489,6 +4547,12 @@ class $DraftsTable extends Drafts with TableInfo<$DraftsTable, Draft> {
         body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
       );
     }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    }
     return context;
   }
 
@@ -4530,6 +4594,10 @@ class $DraftsTable extends Drafts with TableInfo<$DraftsTable, Draft> {
         DriftSqlType.string,
         data['${effectivePrefix}body'],
       ),
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
     );
   }
 
@@ -4548,6 +4616,9 @@ class Draft extends DataClass implements Insertable<Draft> {
   final String pitId;
   final String? title;
   final String? body;
+
+  /// 同 [Ideas.date]（D-070）。
+  final DateTime date;
   const Draft({
     required this.id,
     required this.createdAt,
@@ -4557,6 +4628,7 @@ class Draft extends DataClass implements Insertable<Draft> {
     required this.pitId,
     this.title,
     this.body,
+    required this.date,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4575,6 +4647,7 @@ class Draft extends DataClass implements Insertable<Draft> {
     if (!nullToAbsent || body != null) {
       map['body'] = Variable<String>(body);
     }
+    map['date'] = Variable<DateTime>(date);
     return map;
   }
 
@@ -4592,6 +4665,7 @@ class Draft extends DataClass implements Insertable<Draft> {
           ? const Value.absent()
           : Value(title),
       body: body == null && nullToAbsent ? const Value.absent() : Value(body),
+      date: Value(date),
     );
   }
 
@@ -4609,6 +4683,7 @@ class Draft extends DataClass implements Insertable<Draft> {
       pitId: serializer.fromJson<String>(json['pitId']),
       title: serializer.fromJson<String?>(json['title']),
       body: serializer.fromJson<String?>(json['body']),
+      date: serializer.fromJson<DateTime>(json['date']),
     );
   }
   @override
@@ -4623,6 +4698,7 @@ class Draft extends DataClass implements Insertable<Draft> {
       'pitId': serializer.toJson<String>(pitId),
       'title': serializer.toJson<String?>(title),
       'body': serializer.toJson<String?>(body),
+      'date': serializer.toJson<DateTime>(date),
     };
   }
 
@@ -4635,6 +4711,7 @@ class Draft extends DataClass implements Insertable<Draft> {
     String? pitId,
     Value<String?> title = const Value.absent(),
     Value<String?> body = const Value.absent(),
+    DateTime? date,
   }) => Draft(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -4644,6 +4721,7 @@ class Draft extends DataClass implements Insertable<Draft> {
     pitId: pitId ?? this.pitId,
     title: title.present ? title.value : this.title,
     body: body.present ? body.value : this.body,
+    date: date ?? this.date,
   );
   Draft copyWithCompanion(DraftsCompanion data) {
     return Draft(
@@ -4655,6 +4733,7 @@ class Draft extends DataClass implements Insertable<Draft> {
       pitId: data.pitId.present ? data.pitId.value : this.pitId,
       title: data.title.present ? data.title.value : this.title,
       body: data.body.present ? data.body.value : this.body,
+      date: data.date.present ? data.date.value : this.date,
     );
   }
 
@@ -4668,7 +4747,8 @@ class Draft extends DataClass implements Insertable<Draft> {
           ..write('deviceId: $deviceId, ')
           ..write('pitId: $pitId, ')
           ..write('title: $title, ')
-          ..write('body: $body')
+          ..write('body: $body, ')
+          ..write('date: $date')
           ..write(')'))
         .toString();
   }
@@ -4683,6 +4763,7 @@ class Draft extends DataClass implements Insertable<Draft> {
     pitId,
     title,
     body,
+    date,
   );
   @override
   bool operator ==(Object other) =>
@@ -4695,7 +4776,8 @@ class Draft extends DataClass implements Insertable<Draft> {
           other.deviceId == this.deviceId &&
           other.pitId == this.pitId &&
           other.title == this.title &&
-          other.body == this.body);
+          other.body == this.body &&
+          other.date == this.date);
 }
 
 class DraftsCompanion extends UpdateCompanion<Draft> {
@@ -4707,6 +4789,7 @@ class DraftsCompanion extends UpdateCompanion<Draft> {
   final Value<String> pitId;
   final Value<String?> title;
   final Value<String?> body;
+  final Value<DateTime> date;
   final Value<int> rowid;
   const DraftsCompanion({
     this.id = const Value.absent(),
@@ -4717,6 +4800,7 @@ class DraftsCompanion extends UpdateCompanion<Draft> {
     this.pitId = const Value.absent(),
     this.title = const Value.absent(),
     this.body = const Value.absent(),
+    this.date = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DraftsCompanion.insert({
@@ -4728,6 +4812,7 @@ class DraftsCompanion extends UpdateCompanion<Draft> {
     required String pitId,
     this.title = const Value.absent(),
     this.body = const Value.absent(),
+    this.date = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : pitId = Value(pitId);
   static Insertable<Draft> custom({
@@ -4739,6 +4824,7 @@ class DraftsCompanion extends UpdateCompanion<Draft> {
     Expression<String>? pitId,
     Expression<String>? title,
     Expression<String>? body,
+    Expression<DateTime>? date,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -4750,6 +4836,7 @@ class DraftsCompanion extends UpdateCompanion<Draft> {
       if (pitId != null) 'pit_id': pitId,
       if (title != null) 'title': title,
       if (body != null) 'body': body,
+      if (date != null) 'date': date,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4763,6 +4850,7 @@ class DraftsCompanion extends UpdateCompanion<Draft> {
     Value<String>? pitId,
     Value<String?>? title,
     Value<String?>? body,
+    Value<DateTime>? date,
     Value<int>? rowid,
   }) {
     return DraftsCompanion(
@@ -4774,6 +4862,7 @@ class DraftsCompanion extends UpdateCompanion<Draft> {
       pitId: pitId ?? this.pitId,
       title: title ?? this.title,
       body: body ?? this.body,
+      date: date ?? this.date,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4805,6 +4894,9 @@ class DraftsCompanion extends UpdateCompanion<Draft> {
     if (body.present) {
       map['body'] = Variable<String>(body.value);
     }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4822,6 +4914,7 @@ class DraftsCompanion extends UpdateCompanion<Draft> {
           ..write('pitId: $pitId, ')
           ..write('title: $title, ')
           ..write('body: $body, ')
+          ..write('date: $date, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5869,6 +5962,613 @@ class PiecesCompanion extends UpdateCompanion<Piece> {
           ..write('currency: $currency, ')
           ..write('receivedAmount: $receivedAmount, ')
           ..write('dueAt: $dueAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $OshiRecordsTable extends OshiRecords
+    with TableInfo<$OshiRecordsTable, OshiRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OshiRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => uuid.v4(),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _pitIdMeta = const VerificationMeta('pitId');
+  @override
+  late final GeneratedColumn<String> pitId = GeneratedColumn<String>(
+    'pit_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _groupIdMeta = const VerificationMeta(
+    'groupId',
+  );
+  @override
+  late final GeneratedColumn<String> groupId = GeneratedColumn<String>(
+    'group_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    pitId,
+    date,
+    groupId,
+    title,
+    description,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'oshi_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OshiRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('pit_id')) {
+      context.handle(
+        _pitIdMeta,
+        pitId.isAcceptableOrUnknown(data['pit_id']!, _pitIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pitIdMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('group_id')) {
+      context.handle(
+        _groupIdMeta,
+        groupId.isAcceptableOrUnknown(data['group_id']!, _groupIdMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  OshiRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OshiRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+      pitId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pit_id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      groupId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_id'],
+      ),
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      ),
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+    );
+  }
+
+  @override
+  $OshiRecordsTable createAlias(String alias) {
+    return $OshiRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class OshiRecord extends DataClass implements Insertable<OshiRecord> {
+  final String id;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String deviceId;
+  final String pitId;
+
+  /// 日期（只有年月日，存當天 00:00）。
+  final DateTime date;
+
+  /// 推活分組（[OfficialGroups] kind=oshi）；可不分組。
+  final String? groupId;
+  final String? title;
+  final String? description;
+  const OshiRecord({
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.deviceId,
+    required this.pitId,
+    required this.date,
+    this.groupId,
+    this.title,
+    this.description,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['device_id'] = Variable<String>(deviceId);
+    map['pit_id'] = Variable<String>(pitId);
+    map['date'] = Variable<DateTime>(date);
+    if (!nullToAbsent || groupId != null) {
+      map['group_id'] = Variable<String>(groupId);
+    }
+    if (!nullToAbsent || title != null) {
+      map['title'] = Variable<String>(title);
+    }
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    return map;
+  }
+
+  OshiRecordsCompanion toCompanion(bool nullToAbsent) {
+    return OshiRecordsCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      deviceId: Value(deviceId),
+      pitId: Value(pitId),
+      date: Value(date),
+      groupId: groupId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(groupId),
+      title: title == null && nullToAbsent
+          ? const Value.absent()
+          : Value(title),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+    );
+  }
+
+  factory OshiRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OshiRecord(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+      pitId: serializer.fromJson<String>(json['pitId']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      groupId: serializer.fromJson<String?>(json['groupId']),
+      title: serializer.fromJson<String?>(json['title']),
+      description: serializer.fromJson<String?>(json['description']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'deviceId': serializer.toJson<String>(deviceId),
+      'pitId': serializer.toJson<String>(pitId),
+      'date': serializer.toJson<DateTime>(date),
+      'groupId': serializer.toJson<String?>(groupId),
+      'title': serializer.toJson<String?>(title),
+      'description': serializer.toJson<String?>(description),
+    };
+  }
+
+  OshiRecord copyWith({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? deviceId,
+    String? pitId,
+    DateTime? date,
+    Value<String?> groupId = const Value.absent(),
+    Value<String?> title = const Value.absent(),
+    Value<String?> description = const Value.absent(),
+  }) => OshiRecord(
+    id: id ?? this.id,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    deviceId: deviceId ?? this.deviceId,
+    pitId: pitId ?? this.pitId,
+    date: date ?? this.date,
+    groupId: groupId.present ? groupId.value : this.groupId,
+    title: title.present ? title.value : this.title,
+    description: description.present ? description.value : this.description,
+  );
+  OshiRecord copyWithCompanion(OshiRecordsCompanion data) {
+    return OshiRecord(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      pitId: data.pitId.present ? data.pitId.value : this.pitId,
+      date: data.date.present ? data.date.value : this.date,
+      groupId: data.groupId.present ? data.groupId.value : this.groupId,
+      title: data.title.present ? data.title.value : this.title,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OshiRecord(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('pitId: $pitId, ')
+          ..write('date: $date, ')
+          ..write('groupId: $groupId, ')
+          ..write('title: $title, ')
+          ..write('description: $description')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    pitId,
+    date,
+    groupId,
+    title,
+    description,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OshiRecord &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.deviceId == this.deviceId &&
+          other.pitId == this.pitId &&
+          other.date == this.date &&
+          other.groupId == this.groupId &&
+          other.title == this.title &&
+          other.description == this.description);
+}
+
+class OshiRecordsCompanion extends UpdateCompanion<OshiRecord> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String> deviceId;
+  final Value<String> pitId;
+  final Value<DateTime> date;
+  final Value<String?> groupId;
+  final Value<String?> title;
+  final Value<String?> description;
+  final Value<int> rowid;
+  const OshiRecordsCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.pitId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.groupId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OshiRecordsCompanion.insert({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    required String pitId,
+    required DateTime date,
+    this.groupId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : pitId = Value(pitId),
+       date = Value(date);
+  static Insertable<OshiRecord> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? deviceId,
+    Expression<String>? pitId,
+    Expression<DateTime>? date,
+    Expression<String>? groupId,
+    Expression<String>? title,
+    Expression<String>? description,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (pitId != null) 'pit_id': pitId,
+      if (date != null) 'date': date,
+      if (groupId != null) 'group_id': groupId,
+      if (title != null) 'title': title,
+      if (description != null) 'description': description,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OshiRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String>? deviceId,
+    Value<String>? pitId,
+    Value<DateTime>? date,
+    Value<String?>? groupId,
+    Value<String?>? title,
+    Value<String?>? description,
+    Value<int>? rowid,
+  }) {
+    return OshiRecordsCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      deviceId: deviceId ?? this.deviceId,
+      pitId: pitId ?? this.pitId,
+      date: date ?? this.date,
+      groupId: groupId ?? this.groupId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (pitId.present) {
+      map['pit_id'] = Variable<String>(pitId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (groupId.present) {
+      map['group_id'] = Variable<String>(groupId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OshiRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('pitId: $pitId, ')
+          ..write('date: $date, ')
+          ..write('groupId: $groupId, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10122,6 +10822,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $IdeasTable ideas = $IdeasTable(this);
   late final $DraftsTable drafts = $DraftsTable(this);
   late final $PiecesTable pieces = $PiecesTable(this);
+  late final $OshiRecordsTable oshiRecords = $OshiRecordsTable(this);
   late final $EntityImagesTable entityImages = $EntityImagesTable(this);
   late final $PieceLinksTable pieceLinks = $PieceLinksTable(this);
   late final $TagLinksTable tagLinks = $TagLinksTable(this);
@@ -10149,6 +10850,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     ideas,
     drafts,
     pieces,
+    oshiRecords,
     entityImages,
     pieceLinks,
     tagLinks,
@@ -12064,6 +12766,7 @@ typedef $$IdeasTableCreateCompanionBuilder = IdeasCompanion Function({
   required String pitId,
   required String title,
   Value<String> body,
+  Value<DateTime> date,
   Value<int> rowid,
 });
 typedef $$IdeasTableUpdateCompanionBuilder = IdeasCompanion Function({
@@ -12075,6 +12778,7 @@ typedef $$IdeasTableUpdateCompanionBuilder = IdeasCompanion Function({
   Value<String> pitId,
   Value<String> title,
   Value<String> body,
+  Value<DateTime> date,
   Value<int> rowid,
 });
 
@@ -12123,6 +12827,11 @@ class $$IdeasTableFilterComposer extends Composer<_$AppDatabase, $IdeasTable> {
 
   ColumnFilters<String> get body => $composableBuilder(
     column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -12175,6 +12884,11 @@ class $$IdeasTableOrderingComposer
     column: $table.body,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$IdeasTableAnnotationComposer
@@ -12209,6 +12923,9 @@ class $$IdeasTableAnnotationComposer
 
   GeneratedColumn<String> get body =>
       $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
 }
 
 class $$IdeasTableTableManager
@@ -12247,6 +12964,7 @@ class $$IdeasTableTableManager
                 Value<String> pitId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> body = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => IdeasCompanion(
                 id: id,
@@ -12257,6 +12975,7 @@ class $$IdeasTableTableManager
                 pitId: pitId,
                 title: title,
                 body: body,
+                date: date,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -12269,6 +12988,7 @@ class $$IdeasTableTableManager
                 required String pitId,
                 required String title,
                 Value<String> body = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => IdeasCompanion.insert(
                 id: id,
@@ -12279,6 +12999,7 @@ class $$IdeasTableTableManager
                 pitId: pitId,
                 title: title,
                 body: body,
+                date: date,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -12321,6 +13042,7 @@ typedef $$DraftsTableCreateCompanionBuilder = DraftsCompanion Function({
   required String pitId,
   Value<String?> title,
   Value<String?> body,
+  Value<DateTime> date,
   Value<int> rowid,
 });
 typedef $$DraftsTableUpdateCompanionBuilder = DraftsCompanion Function({
@@ -12332,6 +13054,7 @@ typedef $$DraftsTableUpdateCompanionBuilder = DraftsCompanion Function({
   Value<String> pitId,
   Value<String?> title,
   Value<String?> body,
+  Value<DateTime> date,
   Value<int> rowid,
 });
 
@@ -12381,6 +13104,11 @@ class $$DraftsTableFilterComposer
 
   ColumnFilters<String> get body => $composableBuilder(
     column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -12433,6 +13161,11 @@ class $$DraftsTableOrderingComposer
     column: $table.body,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DraftsTableAnnotationComposer
@@ -12467,6 +13200,9 @@ class $$DraftsTableAnnotationComposer
 
   GeneratedColumn<String> get body =>
       $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
 }
 
 class $$DraftsTableTableManager
@@ -12505,6 +13241,7 @@ class $$DraftsTableTableManager
                 Value<String> pitId = const Value.absent(),
                 Value<String?> title = const Value.absent(),
                 Value<String?> body = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DraftsCompanion(
                 id: id,
@@ -12515,6 +13252,7 @@ class $$DraftsTableTableManager
                 pitId: pitId,
                 title: title,
                 body: body,
+                date: date,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -12527,6 +13265,7 @@ class $$DraftsTableTableManager
                 required String pitId,
                 Value<String?> title = const Value.absent(),
                 Value<String?> body = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DraftsCompanion.insert(
                 id: id,
@@ -12537,6 +13276,7 @@ class $$DraftsTableTableManager
                 pitId: pitId,
                 title: title,
                 body: body,
+                date: date,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -13049,6 +13789,312 @@ typedef $$PiecesTableProcessedTableManager =
       $$PiecesTableUpdateCompanionBuilder,
       (Piece, BaseReferences<_$AppDatabase, $PiecesTable, Piece>),
       Piece,
+      PrefetchHooks Function()
+    >;
+typedef $$OshiRecordsTableCreateCompanionBuilder =
+    OshiRecordsCompanion Function({
+      Value<String> id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String> deviceId,
+      required String pitId,
+      required DateTime date,
+      Value<String?> groupId,
+      Value<String?> title,
+      Value<String?> description,
+      Value<int> rowid,
+    });
+typedef $$OshiRecordsTableUpdateCompanionBuilder =
+    OshiRecordsCompanion Function({
+      Value<String> id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String> deviceId,
+      Value<String> pitId,
+      Value<DateTime> date,
+      Value<String?> groupId,
+      Value<String?> title,
+      Value<String?> description,
+      Value<int> rowid,
+    });
+
+class $$OshiRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $OshiRecordsTable> {
+  $$OshiRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pitId => $composableBuilder(
+    column: $table.pitId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get groupId => $composableBuilder(
+    column: $table.groupId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OshiRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $OshiRecordsTable> {
+  $$OshiRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pitId => $composableBuilder(
+    column: $table.pitId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get groupId => $composableBuilder(
+    column: $table.groupId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OshiRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OshiRecordsTable> {
+  $$OshiRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get pitId =>
+      $composableBuilder(column: $table.pitId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get groupId =>
+      $composableBuilder(column: $table.groupId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+}
+
+class $$OshiRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OshiRecordsTable,
+          OshiRecord,
+          $$OshiRecordsTableFilterComposer,
+          $$OshiRecordsTableOrderingComposer,
+          $$OshiRecordsTableAnnotationComposer,
+          $$OshiRecordsTableCreateCompanionBuilder,
+          $$OshiRecordsTableUpdateCompanionBuilder,
+          (
+            OshiRecord,
+            BaseReferences<_$AppDatabase, $OshiRecordsTable, OshiRecord>,
+          ),
+          OshiRecord,
+          PrefetchHooks Function()
+        > {
+  $$OshiRecordsTableTableManager(_$AppDatabase db, $OshiRecordsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OshiRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OshiRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OshiRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<String> pitId = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<String?> groupId = const Value.absent(),
+                Value<String?> title = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OshiRecordsCompanion(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                pitId: pitId,
+                date: date,
+                groupId: groupId,
+                title: title,
+                description: description,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                required String pitId,
+                required DateTime date,
+                Value<String?> groupId = const Value.absent(),
+                Value<String?> title = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OshiRecordsCompanion.insert(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                pitId: pitId,
+                date: date,
+                groupId: groupId,
+                title: title,
+                description: description,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$OshiRecordsTable, OshiRecord>(table),
+                  BaseReferences<_$AppDatabase, $OshiRecordsTable, OshiRecord>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OshiRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OshiRecordsTable,
+      OshiRecord,
+      $$OshiRecordsTableFilterComposer,
+      $$OshiRecordsTableOrderingComposer,
+      $$OshiRecordsTableAnnotationComposer,
+      $$OshiRecordsTableCreateCompanionBuilder,
+      $$OshiRecordsTableUpdateCompanionBuilder,
+      (
+        OshiRecord,
+        BaseReferences<_$AppDatabase, $OshiRecordsTable, OshiRecord>,
+      ),
+      OshiRecord,
       PrefetchHooks Function()
     >;
 typedef $$EntityImagesTableCreateCompanionBuilder =
@@ -15451,6 +16497,8 @@ class $AppDatabaseManager {
       $$DraftsTableTableManager(_db, _db.drafts);
   $$PiecesTableTableManager get pieces =>
       $$PiecesTableTableManager(_db, _db.pieces);
+  $$OshiRecordsTableTableManager get oshiRecords =>
+      $$OshiRecordsTableTableManager(_db, _db.oshiRecords);
   $$EntityImagesTableTableManager get entityImages =>
       $$EntityImagesTableTableManager(_db, _db.entityImages);
   $$PieceLinksTableTableManager get pieceLinks =>

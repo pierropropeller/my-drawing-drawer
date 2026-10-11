@@ -18,6 +18,7 @@ part 'database.g.dart';
     Ideas,
     Drafts,
     Pieces,
+    OshiRecords,
     EntityImages,
     PieceLinks,
     TagLinks,
@@ -36,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -69,8 +70,70 @@ class AppDatabase extends _$AppDatabase {
       if (from < 6) {
         await _migrateV6(m);
       }
+      if (from < 7) {
+        await _migrateV7(m);
+      }
     },
   );
+
+  /// v7：推活（OshiRecords 表＋每個既有坑補三個預設推活分組）、
+  /// 腦洞／草稿的 `date`（回填成 createdAt，D-070）。
+  /// 官方圖 tag、草稿↔成圖關係不需要改結構（TagLinks／DraftPieces 早就有）。
+  Future<void> _migrateV7(Migrator m) async {
+    Future<Set<String>> columnsOf(String table) async => {
+      for (final r in await customSelect('PRAGMA table_info($table)').get())
+        r.read<String>('name'),
+    };
+
+    // 腦洞／草稿加 date：NOT NULL 欄位必須有常數預設才能 ALTER，加完立刻用 created_at 回填。
+    // 缺表（極舊的測試資料庫）就整張建立。
+    for (final t in <TableInfo<Table, dynamic>>[ideas, drafts]) {
+      final name = t.actualTableName;
+      final have = await columnsOf(name);
+      if (have.isEmpty) {
+        await m.createTable(t);
+      } else if (!have.contains('date')) {
+        await customStatement(
+          'ALTER TABLE $name ADD COLUMN date INTEGER NOT NULL DEFAULT 0',
+        );
+        await customStatement('UPDATE $name SET date = created_at');
+      }
+    }
+
+    await m.createTable(oshiRecords);
+
+    // 既有坑補預設推活分組。id 由坑 id 決定（兩台裝置各自升級也會得到同一批列，
+    // 同步後不會重複）；updated_at 設成最小值，使用者在別台改過或刪過的版本永遠勝出。
+    if ((await columnsOf('pits')).isEmpty) return;
+    for (final r in await customSelect('SELECT id FROM pits').get()) {
+      await seedOshiGroups(r.read<String>('id'), deterministic: true);
+    }
+  }
+
+  /// 在 [pitId] 建立預設推活分組。[deterministic]＝id 由坑 id 推得（遷移用，可重複執行）。
+  /// 只在這個坑**從沒有過**推活分組（連已刪除的都算）時才建立，
+  /// 所以使用者刪光分組後不會被補回來。
+  Future<void> seedOshiGroups(String pitId, {bool deterministic = false}) async {
+    final any = await customSelect(
+      "SELECT 1 FROM official_groups WHERE pit_id = ? AND kind = 'oshi' LIMIT 1",
+      variables: [Variable<String>(pitId)],
+    ).get();
+    if (any.isNotEmpty) return;
+    final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    for (var i = 0; i < defaultOshiGroups.length; i++) {
+      final id = deterministic ? 'oshi-default-$pitId-$i' : uuid.v4();
+      await customStatement(
+        'INSERT OR IGNORE INTO official_groups '
+        '(id, created_at, updated_at, device_id, pit_id, kind, name, sort_order) '
+        "VALUES (?, ?, ?, '', ?, 'oshi', ?, ?)",
+        [id, nowSec, deterministic ? 1 : nowSec, pitId, defaultOshiGroups[i], i],
+      );
+    }
+    // customStatement 不會自動通知 drift 的 watch 串流。
+    notifyUpdates({
+      TableUpdate.onTable(officialGroups, kind: UpdateKind.insert),
+    });
+  }
 
   /// v6：雜物、移動（imageKey／hidden）、成圖公開發佈與商稿欄位、回顧月份對齊。
   /// 每個欄位先確認存在與否再加，缺表時整張建立，讓任何舊版本都能升上來。
@@ -137,6 +200,9 @@ class AppDatabase extends _$AppDatabase {
 
   /// 好看同人圖預設分組（＝各出處）。
   static const defaultFanGroups = ['推特', '小紅書', 'lofter', '朋友發的', '網上搜的'];
+
+  /// 推活預設分組（D-057）。
+  static const defaultOshiGroups = ['線下照片', '遊戲截圖', '對話記錄'];
 
   /// 舊坑：「自定義」改名為「圖透」（圖片保留），補上「官方周邊」；
   /// 建立同人圖分組並把舊的出處文字對應過去。
@@ -222,6 +288,16 @@ class AppDatabase extends _$AppDatabase {
           ),
         );
       }
+      for (var i = 0; i < defaultOshiGroups.length; i++) {
+        await into(officialGroups).insert(
+          OfficialGroupsCompanion.insert(
+            pitId: pit.id,
+            kind: const Value('oshi'),
+            name: defaultOshiGroups[i],
+            sortOrder: Value(i),
+          ),
+        );
+      }
       return pit.id;
     });
   }
@@ -237,7 +313,8 @@ class AppDatabase extends _$AppDatabase {
         COALESCE((SELECT MAX(updated_at) FROM junk_images WHERE pit_id = p.id), 0),
         COALESCE((SELECT MAX(updated_at) FROM ideas WHERE pit_id = p.id), 0),
         COALESCE((SELECT MAX(updated_at) FROM drafts WHERE pit_id = p.id), 0),
-        COALESCE((SELECT MAX(updated_at) FROM pieces WHERE pit_id = p.id), 0)
+        COALESCE((SELECT MAX(updated_at) FROM pieces WHERE pit_id = p.id), 0),
+        COALESCE((SELECT MAX(updated_at) FROM oshi_records WHERE pit_id = p.id), 0)
       ) AS last_activity
       FROM pits p
       WHERE p.deleted_at IS NULL AND p.archived = ?
@@ -252,6 +329,7 @@ class AppDatabase extends _$AppDatabase {
         ideas,
         drafts,
         pieces,
+        oshiRecords,
       },
     ).watch().map((rows) => [for (final r in rows) pits.map(r.data)]);
   }
@@ -281,7 +359,7 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  /// 軟刪除（同步用）；坑內的雜物一併軟刪除。
+  /// 軟刪除（同步用）；坑內的雜物、推活紀錄一併軟刪除。
   Future<void> deletePit(String id) {
     final now = DateTime.now();
     return transaction(() async {
@@ -292,6 +370,11 @@ class AppDatabase extends _$AppDatabase {
         junkImages,
       )..where((j) => j.pitId.equals(id) & j.deletedAt.isNull())).write(
         JunkImagesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
+      await (update(
+        oshiRecords,
+      )..where((o) => o.pitId.equals(id) & o.deletedAt.isNull())).write(
+        OshiRecordsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
       );
     });
   }
@@ -308,6 +391,7 @@ class AppDatabase extends _$AppDatabase {
         (SELECT COUNT(*) FROM drafts WHERE pit_id = (SELECT id FROM p) AND deleted_at IS NULL) AS drafts,
         (SELECT COUNT(*) FROM ideas WHERE pit_id = (SELECT id FROM p) AND deleted_at IS NULL) AS ideas,
         (SELECT COUNT(*) FROM pieces WHERE pit_id = (SELECT id FROM p) AND deleted_at IS NULL) AS pieces,
+        (SELECT COUNT(*) FROM oshi_records WHERE pit_id = (SELECT id FROM p) AND deleted_at IS NULL) AS oshi,
         (SELECT COUNT(*) FROM ideas i
           WHERE i.pit_id = (SELECT id FROM p) AND i.deleted_at IS NULL
             AND NOT EXISTS (SELECT 1 FROM idea_drafts d WHERE d.idea_id = i.id)
@@ -329,6 +413,7 @@ class AppDatabase extends _$AppDatabase {
         ideaDrafts,
         ideaPieces,
         entityImages,
+        oshiRecords,
       },
     ).watchSingle().map(
       (r) => PitStats(
@@ -338,6 +423,7 @@ class AppDatabase extends _$AppDatabase {
         drafts: r.read<int>('drafts'),
         ideas: r.read<int>('ideas'),
         pieces: r.read<int>('pieces'),
+        oshi: r.read<int>('oshi'),
         openIdeas: r.read<int>('open_ideas'),
         imageCount:
             r.read<int>('official') +
@@ -356,6 +442,7 @@ class PitStats {
     required this.drafts,
     required this.ideas,
     required this.pieces,
+    this.oshi = 0,
     required this.openIdeas,
     required this.imageCount,
   });
@@ -368,6 +455,9 @@ class PitStats {
   final int drafts;
   final int ideas;
   final int pieces;
+
+  /// 推活紀錄筆數（坑內頁第六格「N 筆」）。不計入 [imageCount]。
+  final int oshi;
   final int openIdeas;
   final int imageCount;
 

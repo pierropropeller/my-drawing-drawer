@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../data/album_queries.dart';
+import '../data/batch_tag_queries.dart';
 import '../data/database.dart';
 import '../data/entity_queries.dart';
 import '../data/goal_queries.dart';
@@ -13,6 +14,7 @@ import '../data/image_location.dart';
 import '../data/image_store.dart';
 import '../data/income_queries.dart';
 import '../data/junk_queries.dart';
+import '../data/oshi_queries.dart';
 import '../data/search_queries.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -45,7 +47,7 @@ final imagePickerProvider = Provider<Future<List<XFile>> Function()>(
       () => ImagePicker().pickMultiImage(),
 );
 
-/// 分組：key＝(坑 id, 種類)，種類為 `official`（官方圖冊）或 `fan`（好看同人圖）。
+/// 分組：key＝(坑 id, 種類)，種類為 `official`（官方圖冊）、`fan`（好看同人圖）或 `oshi`（推活）。
 final groupsProvider =
     StreamProvider.family<List<OfficialGroup>, (String, String)>(
       (ref, key) =>
@@ -214,3 +216,35 @@ final imageExistsProvider = StreamProvider.family<bool, String>((
 final imageLocationProvider = FutureProvider.family<ImageLocation?, String>(
   (ref, file) => ref.watch(databaseProvider).imageLocationOf(file),
 );
+
+// ---- 批次 6–8（見 docs/DATA_API.md「批次 6–8」）----
+
+/// 推活紀錄（日期新到舊）。key＝(坑 id, 分組 id?, tag id?)；兩個篩選可並用。
+final oshiRecordsProvider =
+    StreamProvider.family<List<OshiRecordView>, (String, String?, String?)>(
+      (ref, key) => ref
+          .watch(databaseProvider)
+          .watchOshiRecords(key.$1, groupId: key.$2, tagId: key.$3),
+    );
+
+final oshiRecordProvider = StreamProvider.family<OshiRecordView?, String>(
+  (ref, id) => ref.watch(databaseProvider).watchOshiRecord(id),
+);
+
+/// 推活每個分組的筆數（key＝分組 id；沒有分組的是 null 這個 key）。
+final oshiGroupCountsProvider =
+    StreamProvider.family<Map<String?, int>, String>(
+      (ref, pitId) => ref.watch(databaseProvider).watchOshiGroupCounts(pitId),
+    );
+
+/// 多選後 tag sheet 的三態。key＝(格, 選取的圖片列 id 以逗號串起來)；
+/// 串接前請先排序，同一組選取才會共用同一個 provider。
+final tagCoverageProvider =
+    StreamProvider.family<List<TagCoverageEntry>, (AlbumCell, String)>(
+      (ref, key) => ref
+          .watch(databaseProvider)
+          .watchTagCoverage(
+            key.$1,
+            key.$2.isEmpty ? const <String>[] : key.$2.split(','),
+          ),
+    );

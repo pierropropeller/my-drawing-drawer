@@ -1,4 +1,4 @@
-# 資料層 API 參考（schema v6）
+# 資料層 API 參考（schema v7；批次 6–8 見檔案最後一節）
 
 給 UI 工程師：這份只列「批次 3、4 資料層」新增／變更的公開 API。所有 query 都是 `AppDatabase` 的 extension，
 用法與 `album_queries.dart`、`entity_queries.dart` 一致；對應的 Riverpod provider 在 `lib/state/providers.dart`。
@@ -313,3 +313,185 @@ ReviewMonthPiece? defaultReviewPiece(Iterable<ReviewMonthPiece>);              /
   使用者選到的剛好是預設圖時，UI 想存成手動或清回預設都可以，建議存成手動（之後互動量變動也不會跳走）。
 - `watchReviewMonthSummaries` 供年度格決定長按是否有反應：`canPick`（候選多於一張）；`isManual` 可用來顯示標記；`file` 為目前使用的圖。
 - 手動挑的是**檔名**，不綁成圖：成圖之後被刪或移到別月，那個月仍顯示該檔名（與既有行為相同）。
+
+---
+
+# 批次 6–8 資料層（D-057～D-070）— schema v7
+
+給 UI 工程師的唯一資料層參考。資料層不回傳任何介面文字（預設分組名稱是資料值）。
+測試：`test/oshi_test.dart`、`test/batch678_test.dart`、`test/batch678_sync_test.dart`、`test/migration_test.dart`（v1～v6 → v7）。
+**D-071 素材庫是〔試稿〕，資料層沒有實作。**
+
+## 1. Schema v7 與遷移
+
+| 變更 | 內容 |
+|---|---|
+| 新表 `OshiRecords` | `SyncColumns`、`pitId`、`date`（當天 00:00）、`groupId?`、`title?`、`description?` |
+| `Ideas`、`Drafts` | 新欄位 `date`（DateTime，含時間） |
+| `OwnerType.oshi` | 推活的圖片放 `EntityImages`（`ownerType = oshi`） |
+| `TagTarget.official`、`TagTarget.oshi` | 官方圖 tag（D-060）、推活 tag |
+| `OfficialGroups.kind = 'oshi'` | 推活分組，沿用既有分組表與函式 |
+
+遷移（`database.dart` `_migrateV7`，v1～v6 都測過；缺表會整張建立）：
+- `Ideas.date`、`Drafts.date` = 該列的 `createdAt`；`updatedAt` 不動。
+- 每個既有坑補 3 個推活分組（線下照片、遊戲截圖、對話記錄）。**id 由坑 id 決定**（`oshi-default-{pitId}-{0..2}`），
+  `updatedAt` 設成最小值：兩台裝置各自升級也會得到同一批列，同步後不會重複；別台改過／刪過的版本永遠勝出。
+- 新坑（`createPit`）自動建立三個推活分組（一般 uuid）。
+- `AppDatabase.defaultOshiGroups`、`seedOshiGroups(pitId, {deterministic})`。
+- `ensureOshiGroups(pitId)`：從**舊版 App**同步進來的坑沒有推活分組；進推活頁時呼叫一次即可（可重複呼叫、很便宜）。
+  只在這個坑**從沒有過**推活分組（含已刪除的）時才建立，所以使用者刪光後不會補回來。
+- 官方圖 tag、草稿↔成圖關係不需要改結構（`TagLinks`、`DraftPieces` 本來就有）。
+
+## 2. 推活（D-057／D-062／D-065）— `oshi_queries.dart`
+
+```dart
+class OshiRecordView { OshiRecord record; List<ImageRef> images /* ≥1 */; List<Tag> tags; OfficialGroup? group; DateTime get date; ImageRef get cover; }
+
+Stream<List<OshiRecordView>> watchOshiRecords(String pitId, {String? groupId, String? tagId});
+Stream<OshiRecordView?> watchOshiRecord(String id);   Future<OshiRecordView?> getOshiRecord(String id);
+Stream<int> watchOshiCount(String pitId);              // PitStats.oshi 也是同一個數字
+Stream<Map<String?, int>> watchOshiGroupCounts(String pitId);   // key＝分組 id；null＝沒有分組
+Future<String> saveOshiRecord({String? id, required String pitId, required DateTime date, String? groupId,
+    String? title, String? description, required List<NewImage> images, List<String> tagIds = const []});
+Future<void> deleteOshiRecords(Iterable<String> ids);  // 軟刪除
+Future<void> ensureOshiGroups(String pitId);
+```
+Providers（`lib/state/providers.dart` 最後）：`oshiRecordsProvider((pitId, groupId?, tagId?))`、`oshiRecordProvider(id)`、
+`oshiGroupCountsProvider(pitId)`、`groupsProvider((pitId, 'oshi'))`、`tagCoverageProvider((cell, 'id1,id2'))`。
+
+- **排序**：日期新到舊；同日以建立時間新到舊。按月份分段、段首「N 筆」是 UI 的事（資料已排好）。
+- `groupId` 與 `tagId` 可並用。**搜尋結果「+N」與詳情頁點 tag 都用 `watchOshiRecords(pitId, tagId: …)`**（D-065）；
+  筆數與搜尋的 `oshi.total` 一致。分組 pills 的「全部」＝不傳 `groupId`。
+- `saveOshiRecord`：
+  - `images` 至少一張，否則丟 `ArgumentError`（整筆回滾）。
+  - `date` 只取年月日（存當天 00:00）。預設日期（第一張圖的 EXIF 拍攝時間 → 檔案時間 → 今天）是 UI 的事，傳進來即可。
+  - `groupId` 必須是**同一個坑**、未刪除的**推活**分組，否則 `ArgumentError`；`null` ＝不分組。
+  - 標題、描述 trim 後空字串存成 `null`。編輯（傳 `id`）會更新 `updatedAt`；整組替換圖片與 tag（相同檔名的圖沿用原列）。
+- **分組**（沿用 `GroupManage` 的函式，`kind: 'oshi'`）：`watchGroups(pitId, kind: 'oshi')`、`addGroup(pitId, name, kind: 'oshi')`、
+  `renameGroup`、`reorderGroups`、`deleteGroup(id)`。
+  - **判斷**：推活的分組是選填的，所以 `deleteGroup` 對 oshi 分組**可以刪光**（官方／同人圖仍至少保留一個）；
+    組內紀錄的 `groupId` 變成 `null`（「沒有分組」，只顯示日期）並更新紀錄的 `updatedAt`，會同步。
+    對 oshi 分組 `deleteGroup` 一律回傳 `true`。
+- **不計入**：目標進度、目標時間軸（`watchTimeline`）、坑封面候選（`watchCoverCandidates`）、`PitStats.imageCount`、年度回顧。
+- **計入**：`watchTagUsage` 的 tag 使用次數（只算未刪除的）、`deletePit` 連帶軟刪除推活紀錄、主頁坑的「最後更新」排序。
+- 推活的圖不在 `imageLocationOf`（同步進度 sheet 的「坑 · 格」）的範圍：回傳 `null`，UI 只顯示縮圖。
+  （我沒有加 `ImageCell.oshi`，因為 UI 的 `switch` 是窮舉的；要加的話連同 ARB 一起加。）
+
+## 3. 腦洞／草稿的 `date`（D-070）— `entity_queries.dart`、`goal_queries.dart`
+
+```dart
+saveIdea({..., DateTime? date, DateTime? createdAt})
+saveDraft({..., List<String>? pieceIds, DateTime? date, DateTime? createdAt})
+```
+- `Idea.date`、`Draft.date`（含時間）。**列表排序**（`watchIdeaViews`、`watchDraftViews`、搜尋、封面）＝`date` 新到舊，
+  同日以建立時間新到舊；**編輯內容不再讓項目跳到最前**（以前依 `updatedAt`）。
+  成圖列表仍依 `updatedAt`，成圖的時間仍是 `finishedAt`。
+- **目標進度（腦洞、草稿）與目標日頁時間軸（`TimelineItem.time`）改用 `date`**；成圖仍用 `finishedAt`。
+- `date` 規則（日期選擇器只選到「日」，但目標日頁的時間軸要顯示時間）：
+  - 不傳：新增＝現在；編輯＝不變。
+  - 傳「只有日期」（00:00:00）：與原本**同一天**→沿用原本的時間；**今天**→取現在；其他天→維持 00:00。
+  - 傳帶時間的值（例如目標日頁 ＋ 的「現在」）→ 原樣儲存。
+  所以表單可以一律把日期選擇器的結果（00:00）傳進來，不用自己合併時間。
+- 相容：`createdAt` 參數還在——新增且沒傳 `date` 時當作 `date`（`createdAt` 欄位也照寫）。`saveDraft` 以前忽略 `createdAt`，現在會用。
+- 卡片上的時間／詳情頁的日期請改讀 `idea.date`／`draft.date`（不要再讀 `createdAt`）。
+- 同步：文件多一個 `date` 欄位；舊文件沒有時補成 `createdAt`。
+
+## 4. 草稿↔成圖關聯（D-069）
+
+同一組關係（表 `DraftPieces`），從兩邊都能設定、兩邊都會顯示：
+```dart
+class LinkedItem { String id; String? title; ImageRef? firstImage; }
+DraftView.pieceIds / DraftView.linkedPieces   // 關聯成圖；順序＝完成日期新到舊；略過已刪除的
+PieceView.draftIds / PieceView.linkedDrafts   // 關聯草稿；順序＝日期新到舊；略過已刪除的
+saveDraft(..., List<String>? pieceIds)        // null＝不動；[]＝清空
+savePiece(..., draftIds)                      // 本來就有（必填）
+Future<void> setDraftPieces(String draftId, List<String> pieceIds)
+```
+- 同步擁有者是**成圖**（成圖文件有 `draftIds`）。從草稿側修改（`saveDraft(pieceIds:)`／`setDraftPieces`）會把**受影響成圖
+  （原本的與新的）的 `updatedAt` 往前蓋**，另一台才拉得到。副作用：成圖列表（依 `updatedAt`）裡這些成圖會跳到前面。
+- 刪除草稿會把成圖／腦洞文件裡對它的記錄一併更新（蓋 `updatedAt`）；刪除成圖會更新關聯的腦洞。
+- `DraftView.imageOnly` 仍用 `pieceIds.isEmpty` 判斷（行為不變）。
+
+## 5. 官方圖 tag 與多選批次 tag（D-060）— `album_queries.dart`、`batch_tag_queries.dart`
+
+- 官方圖現在可以有 tag（`TagTarget.official`）；tag 次數（`watchTagUsage`）含官方圖。官方圖文件多一個 `tagIds`。
+- `addOfficial(pitId, groupId, images, {List<String> tagIds = const []})` — 一次加圖＋分組＋tag（分享進來用）。
+- `setOfficialTags(imageId, tagIds)` — 整組替換並更新 `updatedAt`；讀取用 `watchTagIds(TagTarget.official, id)`。
+- **批次 tag**（官方圖冊、好看同人圖的多選 tag sheet）：
+```dart
+enum TagCoverage { none, some, all }            // 白底／虛線框＋橫線／實色＋勾
+class TagCoverageEntry { Tag tag; TagCoverage coverage; int count; int total; bool get tapAdds; }
+
+Future<List<TagCoverageEntry>> tagCoverage(AlbumCell cell, Iterable<String> ids);
+Stream<List<TagCoverageEntry>> watchTagCoverage(AlbumCell cell, Iterable<String> ids);   // tagCoverageProvider((cell, 'id1,id2,…'))
+Future<List<String>> applyBatchTags(AlbumCell cell, Iterable<String> ids,
+    {Iterable<String> addTagIds, Iterable<String> removeTagIds, Iterable<String> newTagNames});  // 回傳新增（或重用）的 tag id
+```
+  - `cell` 只能是 `AlbumCell.official` 或 `AlbumCell.fan`（雜物沒有 tag → `ArgumentError`）。`ids` 是該格目前可見的圖片列 id，必須同一個坑。
+  - `tagCoverage` 回傳**坑內所有 tag**（依名稱排序）在這批圖上的狀態；`tapAdds`＝點一下會「全部加上」（部分有／都沒有），
+    否則「全部移除」（全部有）。沒有有效的圖 → 空清單。
+  - `applyBatchTags` 一個 transaction：先 `newTagNames`（去掉開頭 `#`、空白略過；同名 tag 重用，不重複建立）→ 這些與 `addTagIds` 加到**每一張**；
+    `removeTagIds` 從**每一張**移除（同一個 tag 兩邊都有時以 add 為準）。**只有實際有變動的圖才更新 `updatedAt`**（tag 隨圖片文件同步）。
+    tag 不屬於這個坑、混坑選取、雜物 → `ArgumentError`，整個回滾（連新建的 tag 也不留）。
+  - 建議用法：sheet 內只暫存點擊，按「完成」時一次呼叫 `applyBatchTags`；sheet 內「新增」tag 若要立刻顯示，可先 `createTag(pitId, name)`
+    （同名會重用），再把它放進 `addTagIds`。
+  - 副作用：官方圖／同人圖列表依 `updatedAt`，被批次改過 tag 的圖會跳到列表前面。
+- **移動規則（D-044／D-054 的延伸，判斷）**：tag 是各格的列的欄位，跟分組／作者／出處一樣「保留但隱藏」：
+  - 官方→同人圖（或反向）：新列**沒有 tag**；原列隱藏、tag 留在隱藏列（不計入使用次數）；移回時恢復。
+  - 官方→官方**跨坑**：新列的 tag 按名稱對應目標坑（沒有就新增同名 tag），與同人圖→同人圖跨坑一致；取消隱藏的列保留自己的 tag。
+  - 雜物沒有 tag（移進雜物後 tag 留在隱藏列）。
+
+## 6. 分享進來（D-059／D-053）
+
+不需要新 API，一次呼叫存一批：
+- 官方圖冊：`addOfficial(pitId, groupId, images, tagIds: [...])`
+- 好看同人圖：`addFanArts(pitId, images, author: …, groupId: 出處分組 id, tagIds: [...])`（既有）
+- 雜物：`addJunk(pitId, images)`
+- 開新坑：`createPit(name:)`（會一併建立推活分組）
+- 草稿／腦洞／成圖／推活：「下一步」打開各自的新增頁，圖片預先放好；推活用 `saveOshiRecord`。
+- **MoveSheet（設計稿）只有 官方圖冊／好看同人圖／雜物三個位置，沒有推活**：`moveAlbumImages` **不支援**移到／移出推活，
+  也沒有「相簿圖片轉成推活紀錄」的 API（設計稿沒畫，依規定不做；要做請先問 Molly）。
+
+## 7. 坑內搜尋（D-061／D-065）— `search_queries.dart`
+
+`watchPitSearch(pitId, {text, tagId, thumbLimit})`（簽名不變）；`PitSearchResult` 新增：
+```dart
+PitSearchGroup<OshiRecordView> oshi;
+Map<PitSearchSection, int> get counts;               // 各段實際筆數
+List<PitSearchSection> get visibleSections;          // 筆數 > 0 的段，依顯示順序
+enum PitSearchSection { pieces, fanArts, oshi, drafts, ideas }
+```
+- 段與分頁順序：**成圖 → 同人圖 → 推活 → 草稿 → 腦洞**。`total`（「全部」）含推活。
+- 推活命中：標題、描述、**分組名稱**、tag 名稱（每個詞都要命中其中一個欄位）；`tagId` 要求有該 tag。圖片類 `items` 只含前 `thumbLimit` 筆。
+- D-061：段內筆數直接用 `group.items.length`／`total`——少於 3 筆就照實際張數放、`more == 0` 不顯示「+N」；筆數 0 的段與分頁用 `visibleSections` 略過。
+- 「+N」進推活時間軸並帶同一個 tag：`oshiRecordsProvider((pitId, null, tagId))`。
+
+## 8. 坑內六格（D-058）
+
+```dart
+PitStats.official / fanArts / drafts / ideas / pieces / oshi   // 新增 oshi（「N 筆」）
+CellCovers.official / fanArt / draft / idea / piece              // 沒有 oshi
+```
+- 設計稿（`Pit`、`PitFilled`）六格：**只有「我的成圖」在有圖時用最新一張成圖當封面**（`PitFilled` 該格是灰色圖片佔位），
+  其餘五格（含推活）永遠是淡色底＋icon，所以 `CellCovers` **沒有 oshi 欄位**。
+- `CellCovers.piece` 現在是**完成日期（`finishedAt`）最晚**的成圖的第一張圖（以前是 `updatedAt` 最新）；沒有成圖 → `null`（顯示 icon）。
+  草稿／腦洞封面改取 `date` 最新的一筆（六格設計稿不用，但「選擇封面」仍會用到）。
+- 計數：官方圖冊「N 張」＝`official`、好看同人圖＝`fanArts`、草稿＝`drafts` 份、腦洞＝`ideas` 個、成圖＝`pieces` 張、推活＝`oshi` 筆。
+
+## 9. 同步
+
+- `syncFormatVersion` **維持 2**：新版寫出的文件舊版 App 仍讀得懂（多的欄位／新種類被忽略），舊文件新版也讀得懂（缺的欄位補預設：
+  `date`＝`createdAt`；官方圖文件沒有 `tagIds` 時**不動本機已有的 tag**）。舊版 App 改寫某筆資料時會丟掉它不認識的欄位
+  （`date`、官方圖 tag），這是向下相容的代價；Molly 兩台都更新後就沒有問題。
+- 新種類 `oshi`（紀錄＋圖片清單＋tagIds；圖片檔隨文件上傳／下載）；推活分組走既有的 `groups`（kind=oshi）。
+- **修正（影響所有種類）**：套用遠端文件改成整列覆寫（`FullUpsert.upsertFull`）。drift 的 `insertOnConflictUpdate`
+  在更新時會**略過 null 欄位**，所以遠端把欄位清成空（取消推活分組、清掉標題、草稿清掉標題內文、成圖清掉發佈日期…）
+  以前傳不到另一台。有測試（`batch678_sync_test.dart`）。
+- 受影響的 updatedAt 蓋法：草稿側改關聯成圖→成圖；刪分組→組內推活紀錄；批次 tag→有變動的圖；刪草稿／成圖→擁有關係的腦洞／成圖。
+
+## 10. 刻意的行為改變（既有測試沒有需要更新的）
+
+- 腦洞／草稿列表、封面、搜尋、目標進度、目標日頁時間軸 → 以 `date` 為準，不再是 `updatedAt`／`createdAt`。
+- 成圖格封面 → 最新完成日期的成圖。
+- `watchTagUsage` 含官方圖與推活。
+- `deleteGroup` 對推活分組可刪光，組內紀錄變成無分組。

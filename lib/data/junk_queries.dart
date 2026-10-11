@@ -189,8 +189,12 @@ extension JunkQueries on AppDatabase {
           if (twin.hidden) await _unhide(to, twin.id, groupId, now);
         } else {
           targetId = await _createCopy(to, src, pit, groupId, now);
+          // 同一種格（官方→官方、同人圖→同人圖）跨坑：新列帶著按名稱對應的 tag。
+          // 官方↔同人圖之間不轉換 tag：各格的 tag 屬於各格的列，留在隱藏列上（D-044）。
           if (from == AlbumCell.fan && to == AlbumCell.fan) {
-            await _copyFanTags(src.id, targetId, pit);
+            await _copyTags(TagTarget.fanArt, src.id, targetId, pit);
+          } else if (from == AlbumCell.official && to == AlbumCell.official) {
+            await _copyTags(TagTarget.official, src.id, targetId, pit);
           }
         }
         await _hide(from, src.id, now);
@@ -217,13 +221,17 @@ extension JunkQueries on AppDatabase {
     }
   }
 
-  /// 同人圖跨坑：把來源的 tag 按名稱對應到目標坑（沒有就新增同名 tag），掛到新列上。
-  Future<void> _copyFanTags(String srcId, String newId, String pitId) async {
+  /// 同種格跨坑：把來源的 tag 按名稱對應到目標坑（沒有就新增同名 tag），掛到新列上。
+  Future<void> _copyTags(
+    TagTarget target,
+    String srcId,
+    String newId,
+    String pitId,
+  ) async {
     final links =
         await (select(tagLinks)..where(
               (l) =>
-                  l.targetType.equalsValue(TagTarget.fanArt) &
-                  l.targetId.equals(srcId),
+                  l.targetType.equalsValue(target) & l.targetId.equals(srcId),
             ))
             .get();
     if (links.isEmpty) return;
@@ -239,7 +247,7 @@ extension JunkQueries on AppDatabase {
     for (final t in srcTags) {
       mapped.add(await createTag(pitId, t.name));
     }
-    await setTags(TagTarget.fanArt, newId, mapped.toList());
+    await setTags(target, newId, mapped.toList());
   }
 
   Future<List<_Src>> _sources(AlbumCell cell, List<String> ids) async {

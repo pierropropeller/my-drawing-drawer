@@ -23,7 +23,7 @@ class TagUsage {
 /// 官方圖冊、同人圖、tag、封面相關查詢（HANDOFF 3.2、3.3、3.7）。
 extension AlbumQueries on AppDatabase {
   // ---- 分組 ----
-  /// [kind]：`official`（官方圖冊）或 `fan`（好看同人圖）。
+  /// [kind]：`official`（官方圖冊）、`fan`（好看同人圖）或 `oshi`（推活，D-057）。
   Stream<List<OfficialGroup>> watchGroups(
     String pitId, {
     String kind = 'official',
@@ -74,12 +74,26 @@ extension AlbumQueries on AppDatabase {
     );
   }
 
-  /// 刪除分組；組內圖片改歸入剩下的第一個分組。至少要保留一個分組。
+  /// 刪除分組；組內圖片改歸入剩下的第一個分組。官方圖冊／好看同人圖至少要保留一個分組。
+  /// 推活（kind=oshi）的分組是選填的：可以刪光，組內紀錄變成「沒有分組」（groupId = null）。
   Future<bool> deleteGroup(String id) {
     return transaction(() async {
       final g = await (select(
         officialGroups,
       )..where((x) => x.id.equals(id))).getSingle();
+      if (g.kind == 'oshi') {
+        final now = DateTime.now();
+        await (update(oshiRecords)..where((r) => r.groupId.equals(id))).write(
+          OshiRecordsCompanion(
+            groupId: const Value(null),
+            updatedAt: Value(now),
+          ),
+        );
+        await (update(officialGroups)..where((x) => x.id.equals(id))).write(
+          OfficialGroupsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+        );
+        return true;
+      }
       final rest =
           await (select(officialGroups)
                 ..where(
@@ -136,15 +150,31 @@ extension AlbumQueries on AppDatabase {
         .watch();
   }
 
+  /// [tagIds]：同一批圖都掛上這些 tag（分享進來／批次新增，D-059；D-060 起官方圖可以有 tag）。
   Future<void> addOfficial(
     String pitId,
     String groupId,
-    List<NewImage> images,
-  ) {
-    return batch((b) {
-      b.insertAll(officialImages, [
-        for (final im in images) _newOfficial(pitId, groupId, im),
-      ]);
+    List<NewImage> images, {
+    List<String> tagIds = const [],
+  }) {
+    return transaction(() async {
+      for (final im in images) {
+        final row = _newOfficial(pitId, groupId, im);
+        await into(officialImages).insert(row);
+        if (tagIds.isNotEmpty) {
+          await setTags(TagTarget.official, row.id.value, tagIds);
+        }
+      }
+    });
+  }
+
+  /// 整組替換一張官方圖的 tag，並更新 updatedAt（tag 隨官方圖文件同步）。
+  Future<void> setOfficialTags(String id, List<String> tagIds) {
+    return transaction(() async {
+      await setTags(TagTarget.official, id, tagIds);
+      await (update(officialImages)..where((i) => i.id.equals(id))).write(
+        OfficialImagesCompanion(updatedAt: Value(DateTime.now())),
+      );
     });
   }
 
@@ -288,12 +318,23 @@ extension AlbumQueries on AppDatabase {
         .watch();
   }
 
-  /// 使用次數只算還存在的項目（已刪除、被移走而隱藏的同人圖不算）。
+  /// 使用次數只算還存在的項目（已刪除、被移走而隱藏的官方圖／同人圖不算）；
+  /// 含官方圖（D-060）與推活紀錄（D-057）。
   /// [byUsage]：true＝常用的在前（次數相同按名稱）；false＝按名稱。
   Stream<List<TagUsage>> watchTagUsage(String pitId, {bool byUsage = false}) {
     return watchAssembled(
       this,
-      {tags, tagLinks, fanArts, ideas, drafts, pieces, goals},
+      {
+        tags,
+        tagLinks,
+        fanArts,
+        officialImages,
+        oshiRecords,
+        ideas,
+        drafts,
+        pieces,
+        goals,
+      },
       () async {
         final list =
             await (select(tags)
@@ -335,6 +376,21 @@ extension AlbumQueries on AppDatabase {
                   ))
                   .get())
               .map((x) => x.id),
+        TagTarget.official =>
+          (await (select(officialImages)..where(
+                    (x) =>
+                        x.id.isIn(ids) &
+                        x.deletedAt.isNull() &
+                        x.hidden.equals(false),
+                  ))
+                  .get())
+              .map((x) => x.id),
+        TagTarget.oshi =>
+          (await (select(
+            oshiRecords,
+          )..where((x) => x.id.isIn(ids) & x.deletedAt.isNull())).get()).map(
+            (x) => x.id,
+          ),
         TagTarget.idea =>
           (await (select(
             ideas,
@@ -488,7 +544,9 @@ extension AlbumQueries on AppDatabase {
   }
 }
 
-/// 坑內頁五格的封面（檔名）。
+/// 坑內頁各格的封面（檔名）。
+/// 六格裡**推活格沒有封面**：設計稿（Pit／PitFilled）推活格始終是淡紫底＋icon，所以這裡沒有 oshi 欄位。
+/// 成圖格（D-058）：有成圖時是最新一張成圖（完成日期最晚）的第一張圖，否則 null（顯示 icon）。
 class CellCovers {
   const CellCovers({
     this.official,
@@ -590,7 +648,10 @@ extension CellCoverQueries on AppDatabase {
                       ..where(
                         (d) => d.pitId.equals(pitId) & d.deletedAt.isNull(),
                       )
-                      ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+                      ..orderBy([
+                        (d) => OrderingTerm.desc(d.date),
+                        (d) => OrderingTerm.desc(d.createdAt),
+                      ]))
                     .get())
                 .map((d) => d.id)
                 .toList();
@@ -599,16 +660,23 @@ extension CellCoverQueries on AppDatabase {
                       ..where(
                         (d) => d.pitId.equals(pitId) & d.deletedAt.isNull(),
                       )
-                      ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+                      ..orderBy([
+                        (d) => OrderingTerm.desc(d.date),
+                        (d) => OrderingTerm.desc(d.createdAt),
+                      ]))
                     .get())
                 .map((d) => d.id)
                 .toList();
+        // 成圖格的封面＝最新一張成圖（完成日期最晚；D-058）的第一張圖。
         final pieceIds =
             (await (select(pieces)
                       ..where(
                         (d) => d.pitId.equals(pitId) & d.deletedAt.isNull(),
                       )
-                      ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+                      ..orderBy([
+                        (d) => OrderingTerm.desc(d.finishedAt),
+                        (d) => OrderingTerm.desc(d.createdAt),
+                      ]))
                     .get())
                 .map((d) => d.id)
                 .toList();
