@@ -22,6 +22,8 @@ import 'package:huakeng/ui/entity/idea_detail_page.dart';
 import 'package:huakeng/ui/entity/idea_form_page.dart';
 import 'package:huakeng/ui/entity/idea_list_page.dart';
 import 'package:huakeng/ui/entity/image_gallery_page.dart';
+import 'package:huakeng/ui/entity/piece_detail_page.dart';
+import 'package:huakeng/ui/entity/piece_widgets.dart';
 import 'package:huakeng/ui/tags/tag_manage_page.dart';
 
 /// 腦洞／草稿／tag 畫面的互動與規則（D-001～D-005、D-015～D-018、D-037、D-043）。
@@ -254,8 +256,8 @@ void main() {
       await newIdea('腦洞甲');
       await show(tester, DraftFormPage(pitId: pitId));
       expect(find.text('關聯腦洞'), findsOneWidget);
-      await tester.ensureVisible(find.text('選擇'));
-      await tester.tap(find.text('選擇'));
+      await tester.ensureVisible(find.text('選擇').first);
+      await tester.tap(find.text('選擇').first);
       await settle(tester);
       expect(find.text('選擇腦洞'), findsWidgets);
       expect(find.text('已選 0 個'), findsOneWidget);
@@ -286,6 +288,171 @@ void main() {
       await tester.tap(find.text('選擇'));
       await settle(tester);
       expect(find.text('已選 0 張'), findsOneWidget);
+      await unmount(tester);
+    });
+  });
+
+  group('日期欄（D-070）與關聯成圖（D-069）', () {
+    DateTime today() {
+      final n = DateTime.now();
+      return DateTime(n.year, n.month, n.day);
+    }
+
+    Future<void> pickDay(WidgetTester tester, int day) async {
+      await tester.tap(find.text('$day').last);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(
+        find
+            .descendant(
+              of: find.byType(DatePickerDialog),
+              matching: find.byType(TextButton),
+            )
+            .last,
+      );
+      await settle(tester);
+    }
+
+    testWidgets('腦洞新增：日期欄在最底（關聯成圖下面、建立按鈕上面），預設今天，改日期後存成 date', (tester) async {
+      await show(tester, IdeaFormPage(pitId: pitId));
+      expect(find.text('日期'), findsOneWidget);
+      expect(find.text(fmtSlash(today())), findsOneWidget);
+      final yPiece = tester.getTopLeft(find.text('關聯成圖')).dy;
+      await tester.ensureVisible(find.text('建立腦洞'));
+      await tester.pump();
+      expect(
+        tester.getTopLeft(find.text('日期')).dy,
+        greaterThan(tester.getTopLeft(find.text('關聯成圖')).dy),
+      );
+      expect(
+        tester.getTopLeft(find.text('日期')).dy,
+        lessThan(tester.getTopLeft(find.text('建立腦洞')).dy),
+      );
+      expect(yPiece, isNotNull);
+
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -400));
+      await tester.pump(const Duration(seconds: 2));
+      await tester.tap(find.byType(PieceDateField));
+      await settle(tester);
+      final day = today().day == 27 ? 26 : 27;
+      await pickDay(tester, day);
+      final picked = DateTime(today().year, today().month, day);
+      expect(find.text(fmtSlash(picked)), findsOneWidget);
+      await tester.enterText(find.byType(TextFormField).first, '新腦洞');
+      await tester.ensureVisible(find.text('建立腦洞'));
+      await tester.tap(find.text('建立腦洞'));
+      await settle(tester);
+      final all = await tester.runAsync(() => db.watchIdeaViews(pitId).first);
+      final d = all!.single.idea.date;
+      expect(DateTime(d.year, d.month, d.day), picked);
+      await unmount(tester);
+    });
+
+    testWidgets('草稿編輯：帶入原日期；不動日期儲存不變；列表與詳情顯示 date 而非建立時間', (tester) async {
+      final id = await db.saveDraft(
+        pitId: pitId,
+        title: '舊草稿',
+        images: const [NewImage(file: 'a.png')],
+        tagIds: const [],
+        ideaIds: const [],
+        date: DateTime(2026, 3, 5),
+      );
+      await show(tester, DraftFormPage(pitId: pitId, draftId: id));
+      expect(find.text('2026 / 03 / 05'), findsOneWidget);
+      await tester.ensureVisible(find.text('儲存'));
+      await tester.tap(find.text('儲存'));
+      await settle(tester);
+      final v = (await tester.runAsync(() => db.watchDraftView(id).first))!;
+      expect(v.draft.date, DateTime(2026, 3, 5));
+      await unmount(tester);
+
+      await show(tester, DraftListPage(pitId: pitId));
+      expect(find.text('3/5'), findsOneWidget);
+      await unmount(tester);
+
+      await show(tester, DraftDetailPage(draftId: id, pitId: pitId));
+      expect(find.text('2026 / 03 / 05'), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('腦洞列表與詳情顯示 date', (tester) async {
+      final id = await db.saveIdea(
+        pitId: pitId,
+        title: '舊腦洞',
+        body: '內文',
+        images: const [],
+        tagIds: const [],
+        draftIds: const [],
+        pieceIds: const [],
+        date: DateTime(2026, 2, 9),
+      );
+      await show(tester, IdeaListPage(pitId: pitId));
+      expect(find.text('2/9'), findsOneWidget);
+      await unmount(tester);
+      await show(tester, IdeaDetailPage(ideaId: id, pitId: pitId));
+      expect(find.text('建立於 2026 / 02 / 09'), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('草稿表單：關聯成圖在關聯腦洞下面；編輯時選擇後存成兩邊的關係，兩邊詳情都顯示', (tester) async {
+      final pieceId = await newPiece('成圖甲');
+      final draftId = await newDraft(title: '草稿甲');
+      await show(tester, DraftFormPage(pitId: pitId, draftId: draftId));
+      expect(find.text('關聯成圖'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('關聯成圖')).dy,
+        greaterThan(tester.getTopLeft(find.text('關聯腦洞')).dy),
+      );
+      await tester.ensureVisible(find.text('選擇').last);
+      await tester.tap(find.text('選擇').last); // 第二顆＝關聯成圖
+      await settle(tester);
+      expect(find.text('選擇成圖'), findsWidgets);
+      expect(find.text('已選 0 張'), findsOneWidget);
+      await tester.tap(find.text('成圖甲'));
+      await settle(tester);
+      await tester.tap(find.text('完成'));
+      await settle(tester);
+      expect(find.text('成圖甲'), findsOneWidget); // chip
+      await tester.ensureVisible(find.text('儲存'));
+      await tester.tap(find.text('儲存'));
+      await settle(tester);
+      final dv = (await tester.runAsync(
+        () => db.watchDraftView(draftId).first,
+      ))!;
+      expect(dv.pieceIds, [pieceId]);
+      await unmount(tester);
+
+      // 草稿詳情顯示關聯成圖（方形縮圖，沒有「＋」）
+      await show(tester, DraftDetailPage(draftId: draftId, pitId: pitId));
+      expect(find.text('關聯的成圖'), findsOneWidget);
+      expect(find.byType(ThumbSquare), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('選擇成圖')), findsNothing);
+      await unmount(tester);
+
+      // 成圖詳情顯示關聯草稿
+      await show(tester, PieceDetailPage(pieceId: pieceId, pitId: pitId));
+      expect(find.text('關聯的草稿'), findsOneWidget);
+      await unmount(tester);
+
+      // 草稿編輯頁帶入已選成圖，可移除並存成空
+      await show(tester, DraftFormPage(pitId: pitId, draftId: draftId));
+      expect(find.text('成圖甲'), findsOneWidget);
+      await tester.ensureVisible(find.bySemanticsLabel('移除').first);
+      await tester.tap(find.bySemanticsLabel('移除').first);
+      await settle(tester);
+      await tester.ensureVisible(find.text('儲存'));
+      await tester.tap(find.text('儲存'));
+      await settle(tester);
+      final v = (await tester.runAsync(
+        () => db.watchDraftView(draftId).first,
+      ))!;
+      expect(v.pieceIds, isEmpty);
+      await unmount(tester);
+    });
+
+    testWidgets('草稿詳情沒有關聯成圖時整段不顯示', (tester) async {
+      final id = await newDraft(title: '空', body: '字');
+      await show(tester, DraftDetailPage(draftId: id, pitId: pitId));
+      expect(find.text('關聯的成圖'), findsNothing);
       await unmount(tester);
     });
   });

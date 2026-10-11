@@ -114,9 +114,7 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      context.l10n.ideaDetailCreatedAt(
-                        fmtSlash(v.idea.createdAt),
-                      ),
+                      context.l10n.ideaDetailCreatedAt(fmtSlash(v.idea.date)),
                       style: TextStyle(color: t.text4, fontSize: 12),
                     ),
                     if (v.idea.body.isNotEmpty) ...[

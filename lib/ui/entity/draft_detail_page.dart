@@ -15,6 +15,7 @@ import 'draft_form_page.dart';
 import 'entity_widgets.dart';
 import 'idea_detail_page.dart';
 import 'image_gallery_page.dart';
+import 'piece_detail_page.dart';
 
 /// 草稿詳情（沒有導覽列），三種情況（D-017）：
 /// - 完整（DraftDetail）：大圖（多張時右上「1 / N」＋縮圖列）、標題、日期、內文、tag、關聯腦洞；
@@ -50,6 +51,11 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
     if (v == null) return const Scaffold(body: SizedBox.shrink());
     final ideas = ref.watch(ideaViewsProvider((pitId, null))).value ?? const [];
     final mine = ideas.where((i) => v.ideaIds.contains(i.idea.id)).toList();
+    final pieces =
+        ref.watch(pieceViewsProvider((pitId, null))).value ?? const [];
+    final myPieces = pieces
+        .where((p) => v.pieceIds.contains(p.piece.id))
+        .toList();
     final d = v.draft;
     final plain = v.imageOnly;
     return Scaffold(
@@ -98,7 +104,7 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
                         child: Text(
-                          fmtSlash(d.createdAt),
+                          fmtSlash(d.date),
                           style: TextStyle(color: t.text4, fontSize: 12.5),
                         ),
                       )
@@ -126,7 +132,7 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
                                 ),
                                 const SizedBox(width: 10),
                                 Text(
-                                  fmtSlash(d.createdAt),
+                                  fmtSlash(d.date),
                                   style: TextStyle(
                                     color: t.text4,
                                     fontSize: 12,
@@ -181,6 +187,45 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
                                             ideaId: i.idea.id,
                                             pitId: pitId,
                                             onTagTap: widget.onTagTap,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                            if (myPieces.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 20,
+                                  bottom: 10,
+                                ),
+                                child: Text(
+                                  context.l10n.pieceLinkedHeading,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  for (final p in myPieces)
+                                    Semantics(
+                                      button: true,
+                                      label: p.piece.title,
+                                      child: ThumbSquare(
+                                        images: p.images,
+                                        size: 80,
+                                        placeholder: t.piece.bg,
+                                        onTap: () => Navigator.of(context).push(
+                                          MaterialPageRoute<void>(
+                                            builder: (_) => PieceDetailPage(
+                                              pieceId: p.piece.id,
+                                              pitId: pitId,
+                                            ),
                                           ),
                                         ),
                                       ),

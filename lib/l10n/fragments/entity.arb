@@ -4,6 +4,7 @@
   "entityAddImage": "加圖",
   "entityFieldTitle": "標題",
   "entityFieldBody": "內文",
+  "entityFieldDate": "日期",
   "entityTitleRequired": "請輸入標題",
 
   "entityConnectIdea": "關聯腦洞",

@@ -11,11 +11,12 @@ import '../album/image_picker_field.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../tags/tag_picker.dart';
+import 'piece_widgets.dart';
 import 'connect_field.dart';
 import 'entity_widgets.dart';
 
 /// 新增草稿（亦作編輯頁）：圖片置頂（至少一張），標題、內文、tag 可空，可關聯多個腦洞。
-/// 時間＝建立時間，表單不讓使用者改。沒有導覽列。
+/// 最底有「日期」欄（預設今天，可改，D-070）。沒有導覽列。
 class DraftFormPage extends ConsumerStatefulWidget {
   const DraftFormPage({
     super.key,
@@ -27,7 +28,7 @@ class DraftFormPage extends ConsumerStatefulWidget {
   final String pitId;
   final String? draftId;
 
-  /// 新增時使用的建立時間（時間軸上以「此時此刻」新增、可改時間）。
+  /// 新增時的預設日期（目標日頁以「此時此刻」新增，帶時間）。
   final DateTime? initialTime;
 
   /// 先從相簿選好的圖片（新增流程是先選圖、再進新增頁）。
@@ -44,6 +45,8 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
   final List<ImageItem> _images = [];
   List<String> _tagIds = [];
   List<String> _ideaIds = [];
+  List<String> _pieceIds = [];
+  late DateTime _date = widget.initialTime ?? DateTime.now();
   bool _loaded = false;
   bool _saving = false;
 
@@ -70,6 +73,8 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
         );
         _tagIds = v.tags.map((e) => e.id).toList();
         _ideaIds = v.ideaIds;
+        _pieceIds = v.pieceIds;
+        _date = v.draft.date;
       }
     }
     if (mounted) setState(() => _loaded = true);
@@ -100,7 +105,8 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
           images: imgs,
           tagIds: _tagIds,
           ideaIds: _ideaIds,
-          createdAt: widget.initialTime,
+          pieceIds: _pieceIds,
+          date: _date,
         );
     if (mounted) Navigator.of(context).pop();
   }
@@ -116,6 +122,8 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
   Widget build(BuildContext context) {
     final ideas =
         ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? const [];
+    final pieces =
+        ref.watch(pieceViewsProvider((widget.pitId, null))).value ?? const [];
     final isNew = widget.draftId == null;
     return Scaffold(
       body: SafeArea(
@@ -185,13 +193,39 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
                                       ? null
                                       : i.images.first.file,
                                   imageCount: i.images.length,
-                                  date: i.idea.createdAt,
+                                  date: i.idea.date,
                                 ),
                             ],
                             selected: _ideaIds,
                             onChanged: (v) => setState(() => _ideaIds = v),
                           ),
-                          const SizedBox(height: 22),
+                          const SizedBox(height: 16),
+                          ConnectField(
+                            label: context.l10n.entityConnectPiece,
+                            kind: ConnectKind.piece,
+                            options: [
+                              for (final p in pieces)
+                                ConnectOption(
+                                  id: p.piece.id,
+                                  title: p.piece.title,
+                                  file: p.images.isEmpty
+                                      ? null
+                                      : p.images.first.file,
+                                  imageCount: p.images.length,
+                                  date: p.piece.finishedAt,
+                                ),
+                            ],
+                            selected: _pieceIds,
+                            onChanged: (v) => setState(() => _pieceIds = v),
+                          ),
+                          const SizedBox(height: 16),
+                          FormLabel(context.l10n.entityFieldDate),
+                          PieceDateField(
+                            date: _date,
+                            semanticLabel: context.l10n.entityFieldDate,
+                            onChanged: (d) => setState(() => _date = d),
+                          ),
+                          const SizedBox(height: 24),
                           FormSubmitButton(
                             label: isNew
                                 ? context.l10n.draftFormCreate
