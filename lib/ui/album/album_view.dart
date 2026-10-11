@@ -15,8 +15,9 @@ import 'album_image.dart';
 import 'image_masonry.dart';
 import 'image_preview_page.dart';
 import 'move_sheet.dart';
+import 'tag_batch_sheet.dart';
 
-/// 官方圖冊、同人圖、雜物共用：列表＋長按多選（下載／移動／刪除，雜物多一個分享）＋點擊預覽＋新增按鈕。
+/// 官方圖冊、同人圖、雜物共用：列表＋長按多選（下載／移動／tag／刪除，雜物沒有 tag、多一個分享）＋點擊預覽＋新增按鈕。
 /// 瀏覽時有底部導覽列，進入多選就隱藏（OfficialSelect／JunkSelect 沒畫 `<nav>`）。
 class AlbumView extends ConsumerStatefulWidget {
   const AlbumView({
@@ -170,6 +171,22 @@ class _AlbumViewState extends ConsumerState<AlbumView>
       success: true,
     );
     _exit();
+  }
+
+  /// 官方圖冊、好看同人圖的多選有 tag（D-060）；雜物沒有。
+  bool get _taggable =>
+      widget.cell == AlbumCell.official || widget.cell == AlbumCell.fan;
+
+  Future<void> _tag() async {
+    final cell = widget.cell;
+    if (cell == null) return;
+    final applied = await showBatchTagSheet(
+      context,
+      pitId: widget.pitId,
+      cell: cell,
+      ids: [for (final p in _picked) p.id],
+    );
+    if (applied == true && mounted) _exit();
   }
 
   Future<void> _delete() async {
@@ -378,6 +395,17 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                             iconSize: 22,
                             strokeWidth: 1.7,
                             onTap: _move,
+                          ),
+                        ),
+                      if (_taggable)
+                        Expanded(
+                          child: _BarAction(
+                            context.l10n.shareMoveTag,
+                            AlbumIcons.tag,
+                            t.ink,
+                            iconSize: 22,
+                            strokeWidth: 1.7,
+                            onTap: _tag,
                           ),
                         ),
                       Expanded(

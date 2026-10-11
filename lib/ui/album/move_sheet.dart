@@ -7,7 +7,6 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
-import 'album_image.dart';
 import '../common/svg_icon.dart';
 
 /// 移動的目的地：哪一坑、哪一格，以及（官方圖冊＝分組／好看同人圖＝出處）。
@@ -257,8 +256,8 @@ class _SectionLabel extends StatelessWidget {
   );
 }
 
-/// 坑 chips（橫向捲動）：26px 圓形封面＋坑名；選中＝主色底。
-class _PitChips extends ConsumerWidget {
+/// 坑 chips（橫向捲動）：文件夾 icon ＋坑名（同目標卡上的坑標籤）；選中＝主色底。
+class _PitChips extends StatelessWidget {
   const _PitChips({
     required this.pits,
     required this.selected,
@@ -269,11 +268,11 @@ class _PitChips extends ConsumerWidget {
   final ValueChanged<Pit> onSelected;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final t = context.tokens;
     // 抵銷 sheet 的左右 padding（20），讓捲動時 chips 貼齊螢幕邊。
     return SizedBox(
-      height: 36,
+      height: 38,
       child: LayoutBuilder(
         builder: (_, c) => OverflowBox(
           minWidth: c.maxWidth + 40,
@@ -286,11 +285,12 @@ class _PitChips extends ConsumerWidget {
             itemBuilder: (_, i) {
               final p = pits[i];
               final on = p.id == selected;
-              final cover = ref.watch(coverFileProvider(p.id)).value;
+              final fg = on ? Colors.white : t.ink;
               return GestureDetector(
                 onTap: () => onSelected(p),
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(4, 4, 14, 4),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.fromLTRB(11, 7, 14, 7),
                   decoration: BoxDecoration(
                     color: on ? t.accent : t.surface,
                     borderRadius: BorderRadius.circular(Radii.chip),
@@ -298,27 +298,20 @@ class _PitChips extends ConsumerWidget {
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    spacing: 7,
                     children: [
-                      Container(
-                        width: 26,
-                        height: 26,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: t.chipBg,
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
-                        child: cover == null
-                            ? null
-                            : StoredImage(cover, cacheWidth: 80),
+                      SvgIcon(
+                        AppIcons.folder,
+                        size: 16,
+                        color: fg,
+                        strokeWidth: 1.8,
                       ),
+                      const SizedBox(width: 6),
                       Text(
                         p.name,
                         style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,
-                          color: on ? Colors.white : t.ink,
+                          color: fg,
                         ),
                       ),
                     ],

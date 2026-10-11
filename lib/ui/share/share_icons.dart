@@ -20,6 +20,10 @@ abstract final class ShareIcons {
       '<circle cx="8.5" cy="9.5" r="1.8"/>'
       '<path d="M3.5 16.5l4.5-4 4 3 3-2.5 5.5 4.5"/>';
 
+  /// 推活（星形，線寬 1.8）。
+  static const star =
+      '<path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>';
+
   /// 「開新坑」chip 的加號（線寬 2）。
   static const plus = '<path d="M12 5v14M5 12h14"/>';
 }

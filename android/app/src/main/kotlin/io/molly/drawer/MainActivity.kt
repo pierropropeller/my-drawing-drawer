@@ -20,7 +20,6 @@ import java.util.UUID
  * `cacheDir/share_import/`（不保留外部 URI），再把檔案路徑交給 Dart：
  * - 冷啟動：Dart 呼叫 `getInitialShare`，取得啟動時帶來的路徑（沒有則 null）。
  * - 已在執行：`onNewIntent` 後主動呼叫 Dart 的 `onShare`。
- * - `moveTaskToBack`：加入完成後回到原本的 App。
  */
 class MainActivity : FlutterActivity() {
     private var channel: MethodChannel? = null
@@ -71,10 +70,6 @@ class MainActivity : FlutterActivity() {
                     } else {
                         result.success(null)
                     }
-                }
-                "moveTaskToBack" -> {
-                    moveTaskToBack(true)
-                    result.success(null)
                 }
                 else -> result.notImplemented()
             }
