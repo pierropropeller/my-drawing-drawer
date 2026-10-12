@@ -10,6 +10,7 @@ import '../data/entity_queries.dart';
 /// - 草稿文件：tagIds、images
 /// - 成圖文件：tagIds、images、links、draftIds（草稿↔成圖的關係由成圖擁有，D-069）
 /// - 推活文件：tagIds、images
+/// - 素材庫（v8 起）：只有圖檔與分類，沒有附屬資料
 /// - 官方圖（v7 起）／同人圖／目標文件：tagIds
 abstract class SyncKind {
   const SyncKind();
@@ -232,6 +233,41 @@ class JunkKind extends SyncKind {
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
       .into(db.junkImages)
       .upsertFull(JunkImage.fromJson(_albumImageJson(data)));
+  @override
+  Set<String> imageFiles(Map<String, dynamic> data) => {
+    data['imageFile'] as String,
+  };
+}
+
+/// 素材庫（D-071）：一張圖一份文件；沒有 tag、沒有關聯。
+class MaterialKind extends SyncKind {
+  const MaterialKind();
+  @override
+  String get name => 'material';
+  @override
+  Future<Map<String, int>> versions(AppDatabase db) async => {
+    for (final r in await db.select(db.materialImages).get())
+      r.id: r.updatedAt.millisecondsSinceEpoch,
+  };
+  @override
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>
+      (await (db.select(
+        db.materialImages,
+      )..where((t) => t.id.equals(id))).getSingle()).toJson();
+  @override
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
+    // 較新版 App 加了本機不認識的分類：略過這份文件（不覆蓋、不丟例外），等本機更新後再說。
+    final known = MaterialCategory.values.any(
+      (c) => c.name == data['category'],
+    );
+    if (!known) return;
+    await db
+        .into(db.materialImages)
+        .upsertFull(
+          MaterialImage.fromJson(withDefaults(data, {'width': 0, 'height': 0})),
+        );
+  }
+
   @override
   Set<String> imageFiles(Map<String, dynamic> data) => {
     data['imageFile'] as String,
@@ -545,6 +581,7 @@ const allSyncKinds = <SyncKind>[
   OfficialKind(),
   FanArtKind(),
   JunkKind(),
+  MaterialKind(),
   IdeasKind(),
   DraftsKind(),
   PiecesKind(),

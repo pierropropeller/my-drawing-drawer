@@ -99,6 +99,19 @@ class JunkImages extends Table with SyncColumns {
   BoolColumn get hidden => boolean().withDefault(const Constant(false))();
 }
 
+/// 素材庫的固定分類（D-071）。資料庫存的是名稱（穩定的英文 id），顯示文字由 UI 的 ARB 提供；
+/// 新值只能加在最後。順序＝畫面上 pills 的順序（全部 → 服裝 → 姿勢 → 人體 → 色盤 → 場景 → 畫風 → 貼圖）。
+enum MaterialCategory { clothing, pose, body, palette, scene, style, sticker }
+
+/// 素材庫（D-071，HANDOFF 3.12）：畫畫參考圖，不屬於任何坑，只有圖與分類，沒有任何文字欄位。
+/// 不計入目標、時間軸、搜尋、封面與坑統計。排序依 [createdAt]，新的在前。
+class MaterialImages extends Table with SyncColumns {
+  TextColumn get imageFile => text()();
+  IntColumn get width => integer().withDefault(const Constant(0))();
+  IntColumn get height => integer().withDefault(const Constant(0))();
+  TextColumn get category => textEnum<MaterialCategory>()();
+}
+
 class Tags extends Table with SyncColumns {
   TextColumn get pitId => text()();
   TextColumn get name => text()();

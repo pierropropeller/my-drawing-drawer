@@ -7,6 +7,7 @@ import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/junk_queries.dart';
+import 'package:huakeng/data/material_queries.dart';
 import 'package:huakeng/data/oshi_queries.dart';
 
 /// 舊版（v1）資料庫：官方圖與同人圖沒有寬高，entity_images 沒有寬高，沒有 sync_docs。
@@ -321,6 +322,57 @@ void main() {
     await db.ensureOshiGroups('p1');
     expect((await db.watchGroups('p1', kind: 'oshi').first).length, 3);
     await db.close();
+  });
+
+  // v8：素材庫（D-071）。從每個舊版本升上來都要通，舊資料不動。
+  for (var from = 1; from <= 6; from++) {
+    test('v$from → v8：素材庫表建立、舊資料保留、素材 API 可用', () async {
+      final db = AppDatabase(
+        NativeDatabase.memory(setup: (raw) => _legacySchema(raw, from)),
+      );
+      expect(await db.select(db.materialImages).get(), isEmpty);
+      expect((await db.watchIdeaView('i1').first)!.idea.title, '舊腦洞');
+      expect((await db.watchMaterialCounts().first).total, 0);
+      await db.addMaterials(MaterialCategory.pose, const [
+        NewImage(file: 'm.png', width: 3, height: 4),
+      ]);
+      final m = (await db.watchMaterials().first).single;
+      expect((m.category, m.width, m.height), (MaterialCategory.pose, 3, 4));
+      await db.close();
+    });
+  }
+
+  test('v7 → v8（用真實的 v7 結構：拆掉素材庫表）：其他資料不動、表重新建立', () async {
+    final dir = await Directory.systemTemp.createTemp('mig_v7');
+    final file = File('${dir.path}/db.sqlite');
+    var db = AppDatabase(NativeDatabase(file));
+    final pitId = await db.createPit(name: '舊坑');
+    final tag = await db.createTag(pitId, 'x');
+    await db.saveIdea(
+      pitId: pitId,
+      title: '腦洞',
+      body: '',
+      images: const [NewImage(file: 'i.png')],
+      tagIds: [tag],
+      draftIds: const [],
+      pieceIds: const [],
+    );
+    await db.customStatement('DROP TABLE material_images');
+    await db.customStatement('PRAGMA user_version = 7');
+    await db.close();
+
+    db = AppDatabase(NativeDatabase(file));
+    expect(await db.watchMaterials().first, isEmpty);
+    expect((await db.watchIdeaViews(pitId).first).single.tags.single.name, 'x');
+    await db.addMaterials(MaterialCategory.sticker, const [
+      NewImage(file: 'm.png'),
+    ]);
+    expect(
+      (await db.watchMaterialCounts().first).of(MaterialCategory.sticker),
+      1,
+    );
+    await db.close();
+    await dir.delete(recursive: true);
   });
 }
 

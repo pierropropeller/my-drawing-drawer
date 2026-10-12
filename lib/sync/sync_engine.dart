@@ -322,6 +322,9 @@ class SyncEngine {
     for (final r in await db.select(db.junkImages).get()) {
       needed.add(r.imageFile);
     }
+    for (final r in await db.select(db.materialImages).get()) {
+      needed.add(r.imageFile);
+    }
     for (final r in await db.select(db.entityImages).get()) {
       needed.add(r.imageFile);
     }
