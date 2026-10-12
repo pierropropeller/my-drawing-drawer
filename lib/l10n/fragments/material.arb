@@ -1,0 +1,16 @@
+{
+  "materialTitle": "素材庫",
+  "materialLayoutWaterfall": "瀑布",
+  "materialLayoutGrid": "九宮格",
+  "materialAddLabel": "加素材",
+  "materialEmpty": "還沒有素材",
+  "materialCatClothing": "服裝",
+  "materialCatPose": "姿勢",
+  "materialCatBody": "人體",
+  "materialCatPalette": "色盤",
+  "materialCatScene": "場景",
+  "materialCatStyle": "畫風",
+  "materialCatSticker": "貼圖",
+  "materialFieldCategory": "分類",
+  "materialShareDestLabel": "加入到哪裡"
+}

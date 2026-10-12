@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/junk_queries.dart';
+import '../../data/material_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../share/share_inbox.dart';
 import '../../state/providers.dart';
@@ -21,6 +22,7 @@ import '../entity/draft_form_page.dart';
 import '../entity/idea_form_page.dart';
 import '../entity/piece_form_page.dart';
 import '../junk/junk_list_page.dart';
+import '../material/material_library_page.dart';
 import '../pits/pit_new_page.dart';
 import '../pits/pit_page.dart';
 import 'share_sheet.dart';
@@ -36,6 +38,8 @@ class ShareHost extends ConsumerStatefulWidget {
     required this.child,
     required this.pitsNavigator,
     required this.showPitsTab,
+    required this.profileNavigator,
+    required this.showProfileTab,
   });
 
   final Widget child;
@@ -45,6 +49,12 @@ class ShareHost extends ConsumerStatefulWidget {
 
   /// 切到「坑」分頁。
   final VoidCallback showPitsTab;
+
+  /// 「我的」分頁自己的 Navigator（素材庫頁開在這裡）。
+  final GlobalKey<NavigatorState> profileNavigator;
+
+  /// 切到「我的」分頁。
+  final VoidCallback showProfileTab;
 
   @override
   ConsumerState<ShareHost> createState() => _ShareHostState();
@@ -106,6 +116,9 @@ class _ShareHostState extends ConsumerState<ShareHost> {
         case ShareAction.add:
           await _save(choice, paths);
           return;
+        case ShareAction.addMaterial:
+          await _saveMaterial(choice, paths);
+          return;
         case ShareAction.next:
           _openForm(choice, paths);
           return;
@@ -154,6 +167,35 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     }
     if (!mounted) return;
     _showDestination(pitId, list);
+    showSnack(context, context.l10n.shareAdded, success: true);
+  }
+
+  /// 「素材庫」段的「加入」（D-071）：匯入、寫進素材庫，並留在 App 裡，
+  /// 停在剛存的分類的素材庫頁（我的 → 素材庫）。
+  Future<void> _saveMaterial(ShareChoice c, List<String> paths) async {
+    final store = await ref.read(imageStoreProvider.future);
+    final images = <NewImage>[];
+    for (final path in paths) {
+      try {
+        images.add(await store.import(XFile(path)));
+      } catch (_) {
+        // 讀不到的檔案略過。
+      }
+    }
+    _deleteFiles(paths);
+    if (images.isEmpty) return;
+    final category = c.material!;
+    await ref.read(databaseProvider).addMaterials(category, images);
+    if (!mounted) return;
+    widget.showProfileTab();
+    final nav = widget.profileNavigator.currentState;
+    if (nav == null) return;
+    nav.popUntil((r) => r.isFirst);
+    nav.push(
+      MaterialPageRoute<void>(
+        builder: (_) => MaterialLibraryPage(initialCategory: category),
+      ),
+    );
     showSnack(context, context.l10n.shareAdded, success: true);
   }
 

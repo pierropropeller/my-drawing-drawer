@@ -88,6 +88,10 @@ class _AppShellState extends ConsumerState<AppShell> {
         showPitsTab: () {
           if (_index != 0) setState(() => _index = 0);
         },
+        profileNavigator: _navKeys[2],
+        showProfileTab: () {
+          if (_index != 2) setState(() => _index = 2);
+        },
         child: _buildShell(context, t),
       ),
     );
