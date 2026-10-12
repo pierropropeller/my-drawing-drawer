@@ -16,6 +16,7 @@ import '../entity/entity_widgets.dart';
 import '../tags/tag_picker.dart';
 import 'oshi_date_guess.dart';
 import 'oshi_icons.dart';
+import '../common/reorder_tile.dart';
 
 /// 新增推活紀錄（OshiNew），編輯用同一頁（[recordId]，按鈕改「儲存」）。沒有導覽列。
 /// 欄位順序：圖片 → 標題 → 描述 → 分組 → tag → 日期（最後）。
@@ -196,6 +197,8 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage>
                             items: _images,
                             onAdd: _addImages,
                             onRemove: _removeImage,
+                            onReorder: (a, b) =>
+                                setState(() => moveListItem(_images, a, b)),
                           ),
                           const SizedBox(height: 16),
                           FormLabel(context.l10n.entityFieldTitle),

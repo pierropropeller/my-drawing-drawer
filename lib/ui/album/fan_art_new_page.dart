@@ -12,6 +12,7 @@ import 'album_actions.dart';
 import 'album_form.dart';
 import 'group_picker.dart';
 import 'image_picker_field.dart';
+import '../common/reorder_tile.dart';
 
 /// 新增同人圖：圖片、作者、出處、tag。設計稿沒畫，版型沿用 OfficialNew。沒有底部導覽列。
 class FanArtNewPage extends ConsumerStatefulWidget {
@@ -85,6 +86,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
           items: _files,
           onAdd: _pick,
           onRemove: (i) => setState(() => _files.removeAt(i)),
+          onReorder: (a, b) => setState(() => moveListItem(_files, a, b)),
         ),
         const SizedBox(height: 18),
         AlbumFieldLabel(context.l10n.albumFieldAuthor),

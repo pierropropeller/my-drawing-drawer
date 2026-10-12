@@ -14,6 +14,7 @@ import '../tags/tag_picker.dart';
 import 'piece_widgets.dart';
 import 'connect_field.dart';
 import 'entity_widgets.dart';
+import '../common/reorder_tile.dart';
 
 /// 新增草稿（亦作編輯頁）：圖片置頂（至少一張），標題、內文、tag 可空，可關聯多個腦洞。
 /// 最底有「日期」欄（預設今天，可改，D-070）。沒有導覽列。
@@ -151,6 +152,8 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
                             onAdd: _addImages,
                             onRemove: (i) =>
                                 setState(() => _images.removeAt(i)),
+                            onReorder: (a, b) =>
+                                setState(() => moveListItem(_images, a, b)),
                           ),
                           const SizedBox(height: 16),
                           FormLabel(context.l10n.entityFieldTitle),

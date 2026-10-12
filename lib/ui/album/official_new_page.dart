@@ -10,6 +10,7 @@ import 'album_actions.dart';
 import 'album_form.dart';
 import 'group_picker.dart';
 import 'image_picker_field.dart';
+import '../common/reorder_tile.dart';
 
 /// 新增官方圖（OfficialNew）：一次可加多張，選分組；官方圖沒有 tag。沒有底部導覽列。
 class OfficialNewPage extends ConsumerStatefulWidget {
@@ -78,6 +79,7 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
           items: _files,
           onAdd: _pick,
           onRemove: (i) => setState(() => _files.removeAt(i)),
+          onReorder: (a, b) => setState(() => moveListItem(_files, a, b)),
         ),
         const SizedBox(height: 18),
         GroupPicker(

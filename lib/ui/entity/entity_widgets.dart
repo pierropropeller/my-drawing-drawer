@@ -12,6 +12,7 @@ import '../album/image_picker_field.dart';
 import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
+import '../common/reorder_tile.dart';
 
 String fmtDate(DateTime d) =>
     '${d.year}.${d.month.toString().padLeft(2, '0')}.${d.day.toString().padLeft(2, '0')}';
@@ -664,11 +665,15 @@ class FormImageGrid extends ConsumerWidget {
     required this.items,
     required this.onAdd,
     required this.onRemove,
+    this.onReorder,
     this.size = 72,
   });
   final List<ImageItem> items;
   final VoidCallback onAdd;
   final void Function(int index) onRemove;
+
+  /// 長按拖曳排序；為 null＝不能排序。
+  final void Function(int from, int to)? onReorder;
   final double size;
 
   @override
@@ -678,56 +683,61 @@ class FormImageGrid extends ConsumerWidget {
       runSpacing: 8,
       children: [
         for (var i = 0; i < items.length; i++)
-          SizedBox(
-            width: size,
-            height: size,
-            child: Stack(
-              clipBehavior: Clip.none,
-              fit: StackFit.expand,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(Radii.image),
-                  child: items[i].picked != null
-                      ? Image.file(
-                          File(items[i].picked!.path),
-                          cacheWidth: 300,
-                          fit: BoxFit.cover,
-                        )
-                      : StoredImage(items[i].stored!.file, cacheWidth: 300),
-                ),
-                // D-018：22px 深色圓、2px 底色描邊，凸出縮圖右上角 6px。
-                Positioned(
-                  top: -6,
-                  right: -6,
-                  child: Semantics(
-                    button: true,
-                    label: context.l10n.entityRemoveImage,
-                    child: GestureDetector(
-                      onTap: () => onRemove(i),
-                      child: Container(
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          color: context.tokens.ink,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: context.tokens.ground,
-                            width: 2,
+          ReorderTile(
+            index: i,
+            size: size,
+            onReorder: onReorder,
+            child: SizedBox(
+              width: size,
+              height: size,
+              child: Stack(
+                clipBehavior: Clip.none,
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(Radii.image),
+                    child: items[i].picked != null
+                        ? Image.file(
+                            File(items[i].picked!.path),
+                            cacheWidth: 300,
+                            fit: BoxFit.cover,
+                          )
+                        : StoredImage(items[i].stored!.file, cacheWidth: 300),
+                  ),
+                  // D-018：22px 深色圓、2px 底色描邊，凸出縮圖右上角 6px。
+                  Positioned(
+                    top: -6,
+                    right: -6,
+                    child: Semantics(
+                      button: true,
+                      label: context.l10n.entityRemoveImage,
+                      child: GestureDetector(
+                        onTap: () => onRemove(i),
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            color: context.tokens.ink,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: context.tokens.ground,
+                              width: 2,
+                            ),
                           ),
-                        ),
-                        child: Center(
-                          child: SvgIcon(
-                            AppIcons.closeX,
-                            size: 11,
-                            strokeWidth: 3,
-                            color: context.tokens.ground,
+                          child: Center(
+                            child: SvgIcon(
+                              AppIcons.closeX,
+                              size: 11,
+                              strokeWidth: 3,
+                              color: context.tokens.ground,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         DashedAddTile(

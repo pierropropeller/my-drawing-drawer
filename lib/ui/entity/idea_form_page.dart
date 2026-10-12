@@ -13,6 +13,7 @@ import '../tags/tag_picker.dart';
 import 'piece_widgets.dart';
 import 'connect_field.dart';
 import 'entity_widgets.dart';
+import '../common/reorder_tile.dart';
 
 /// 新增腦洞（亦作編輯頁）：標題、內文、配圖、tag、關聯草稿、關聯成圖、日期。
 /// 沒有導覽列。選擇草稿／成圖的面板只從這裡打開（D-037）。
@@ -178,6 +179,8 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                               onAdd: _addImages,
                               onRemove: (i) =>
                                   setState(() => _images.removeAt(i)),
+                              onReorder: (a, b) =>
+                                  setState(() => moveListItem(_images, a, b)),
                             ),
                             const SizedBox(height: 16),
                             TagPicker(

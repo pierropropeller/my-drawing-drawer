@@ -19,6 +19,7 @@ import 'connect_field.dart';
 import 'entity_widgets.dart';
 import 'piece_platform.dart';
 import 'piece_widgets.dart';
+import '../common/reorder_tile.dart';
 
 /// 新增成圖（亦作編輯頁 PieceEdit）：圖片置頂（只限圖片）、標題、內文、tag、
 /// 兩個獨立開關「已公開發佈」「商稿」（D-046）、完成時間、關聯腦洞與草稿。
@@ -475,6 +476,8 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                             },
                             onRemove: (i) =>
                                 setState(() => _images.removeAt(i)),
+                            onReorder: (a, b) =>
+                                setState(() => moveListItem(_images, a, b)),
                           ),
                           const SizedBox(height: 16),
                           FormLabel(context.l10n.entityFieldTitle),

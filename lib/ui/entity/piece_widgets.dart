@@ -12,6 +12,7 @@ import '../common/app_switch.dart';
 import '../common/svg_icon.dart';
 import 'entity_widgets.dart';
 import 'piece_icons.dart';
+import '../common/reorder_tile.dart';
 
 String pieceHex(Color c) =>
     '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
@@ -302,10 +303,14 @@ class PieceImageGrid extends StatelessWidget {
     required this.items,
     required this.onAdd,
     required this.onRemove,
+    this.onReorder,
   });
   final List<ImageItem> items;
   final VoidCallback onAdd;
   final void Function(int index) onRemove;
+
+  /// 長按拖曳排序；為 null＝不能排序。
+  final void Function(int from, int to)? onReorder;
 
   static const double size = 84;
 
@@ -317,52 +322,57 @@ class PieceImageGrid extends StatelessWidget {
       runSpacing: 8,
       children: [
         for (var i = 0; i < items.length; i++)
-          SizedBox(
-            width: size,
-            height: size,
-            child: Stack(
-              clipBehavior: Clip.none,
-              fit: StackFit.expand,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(Radii.image),
-                  child: items[i].picked != null
-                      ? Image.file(
-                          File(items[i].picked!.path),
-                          cacheWidth: 300,
-                          fit: BoxFit.cover,
-                        )
-                      : StoredImage(items[i].stored!.file, cacheWidth: 300),
-                ),
-                Positioned(
-                  top: -6,
-                  right: -6,
-                  child: Semantics(
-                    button: true,
-                    label: context.l10n.entityRemoveImage,
-                    child: GestureDetector(
-                      onTap: () => onRemove(i),
-                      child: Container(
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          color: t.ink,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: t.ground, width: 2),
-                        ),
-                        child: Center(
-                          child: SvgIcon(
-                            AppIcons.closeX,
-                            size: 11,
-                            strokeWidth: 3,
-                            color: t.ground,
+          ReorderTile(
+            index: i,
+            size: size,
+            onReorder: onReorder,
+            child: SizedBox(
+              width: size,
+              height: size,
+              child: Stack(
+                clipBehavior: Clip.none,
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(Radii.image),
+                    child: items[i].picked != null
+                        ? Image.file(
+                            File(items[i].picked!.path),
+                            cacheWidth: 300,
+                            fit: BoxFit.cover,
+                          )
+                        : StoredImage(items[i].stored!.file, cacheWidth: 300),
+                  ),
+                  Positioned(
+                    top: -6,
+                    right: -6,
+                    child: Semantics(
+                      button: true,
+                      label: context.l10n.entityRemoveImage,
+                      child: GestureDetector(
+                        onTap: () => onRemove(i),
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            color: t.ink,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: t.ground, width: 2),
+                          ),
+                          child: Center(
+                            child: SvgIcon(
+                              AppIcons.closeX,
+                              size: 11,
+                              strokeWidth: 3,
+                              color: t.ground,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         DashedAddTile(
