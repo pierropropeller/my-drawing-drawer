@@ -682,6 +682,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get dayflowEmpty => '還沒有紀錄';
+
+  @override
   String get entityRemove => '移除';
 
   @override
@@ -1264,6 +1267,48 @@ class AppLocalizationsZh extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get materialTitle => '素材庫';
+
+  @override
+  String get materialLayoutWaterfall => '瀑布';
+
+  @override
+  String get materialLayoutGrid => '九宮格';
+
+  @override
+  String get materialAddLabel => '加素材';
+
+  @override
+  String get materialEmpty => '還沒有素材';
+
+  @override
+  String get materialCatClothing => '服裝';
+
+  @override
+  String get materialCatPose => '姿勢';
+
+  @override
+  String get materialCatBody => '人體';
+
+  @override
+  String get materialCatPalette => '色盤';
+
+  @override
+  String get materialCatScene => '場景';
+
+  @override
+  String get materialCatStyle => '畫風';
+
+  @override
+  String get materialCatSticker => '貼圖';
+
+  @override
+  String get materialFieldCategory => '分類';
+
+  @override
+  String get materialShareDestLabel => '加入到哪裡';
 
   @override
   String get moveReviewPitLabel => '坑';

@@ -56,7 +56,7 @@ void main() {
     expect(find.text('月度小目標'), findsOneWidget);
     await tester.tap(find.text('日').first);
     await settle(tester);
-    expect(find.text('這天沒有紀錄'), findsOneWidget);
+    expect(find.text('還沒有紀錄'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));

@@ -492,6 +492,7 @@
       }
     }
   },
+  "dayflowEmpty": "還沒有紀錄",
   "entityRemove": "移除",
   "entityRemoveImage": "移除圖片",
   "entityAddImage": "加圖",
@@ -829,6 +830,20 @@
       }
     }
   },
+  "materialTitle": "素材庫",
+  "materialLayoutWaterfall": "瀑布",
+  "materialLayoutGrid": "九宮格",
+  "materialAddLabel": "加素材",
+  "materialEmpty": "還沒有素材",
+  "materialCatClothing": "服裝",
+  "materialCatPose": "姿勢",
+  "materialCatBody": "人體",
+  "materialCatPalette": "色盤",
+  "materialCatScene": "場景",
+  "materialCatStyle": "畫風",
+  "materialCatSticker": "貼圖",
+  "materialFieldCategory": "分類",
+  "materialShareDestLabel": "加入到哪裡",
   "moveReviewPitLabel": "坑",
   "moveReviewPositionLabel": "位置",
   "moveReviewMovedToPit": "已移動 {count} 張到「{pit}」的{target}",

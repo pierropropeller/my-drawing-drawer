@@ -1293,6 +1293,12 @@ abstract class AppLocalizations {
   /// **'已選 {count} 張'**
   String commonSelectedCount(int count);
 
+  /// No description provided for @dayflowEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有紀錄'**
+  String get dayflowEmpty;
+
   /// No description provided for @entityRemove.
   ///
   /// In zh, this message translates to:
@@ -2318,6 +2324,90 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'{code, select, CNY{人民幣} HKD{港幣} TWD{新台幣} USD{美元} JPY{日圓} EUR{歐元} GBP{英鎊} KRW{韓元} SGD{新加坡幣} other{{code}}}'**
   String goalsCurrencyName(String code);
+
+  /// No description provided for @materialTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'素材庫'**
+  String get materialTitle;
+
+  /// No description provided for @materialLayoutWaterfall.
+  ///
+  /// In zh, this message translates to:
+  /// **'瀑布'**
+  String get materialLayoutWaterfall;
+
+  /// No description provided for @materialLayoutGrid.
+  ///
+  /// In zh, this message translates to:
+  /// **'九宮格'**
+  String get materialLayoutGrid;
+
+  /// No description provided for @materialAddLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'加素材'**
+  String get materialAddLabel;
+
+  /// No description provided for @materialEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有素材'**
+  String get materialEmpty;
+
+  /// No description provided for @materialCatClothing.
+  ///
+  /// In zh, this message translates to:
+  /// **'服裝'**
+  String get materialCatClothing;
+
+  /// No description provided for @materialCatPose.
+  ///
+  /// In zh, this message translates to:
+  /// **'姿勢'**
+  String get materialCatPose;
+
+  /// No description provided for @materialCatBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'人體'**
+  String get materialCatBody;
+
+  /// No description provided for @materialCatPalette.
+  ///
+  /// In zh, this message translates to:
+  /// **'色盤'**
+  String get materialCatPalette;
+
+  /// No description provided for @materialCatScene.
+  ///
+  /// In zh, this message translates to:
+  /// **'場景'**
+  String get materialCatScene;
+
+  /// No description provided for @materialCatStyle.
+  ///
+  /// In zh, this message translates to:
+  /// **'畫風'**
+  String get materialCatStyle;
+
+  /// No description provided for @materialCatSticker.
+  ///
+  /// In zh, this message translates to:
+  /// **'貼圖'**
+  String get materialCatSticker;
+
+  /// No description provided for @materialFieldCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'分類'**
+  String get materialFieldCategory;
+
+  /// No description provided for @materialShareDestLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'加入到哪裡'**
+  String get materialShareDestLabel;
 
   /// No description provided for @moveReviewPitLabel.
   ///
