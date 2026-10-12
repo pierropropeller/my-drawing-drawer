@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
 import '../../l10n/l10n.dart';
+import '../../state/settings.dart' show sharedPrefsProvider;
 import '../../share/share_inbox.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
@@ -15,6 +16,7 @@ import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
 import '../entity/entity_widgets.dart';
 import '../goals/pit_pill.dart' show mockLine;
+import '../material/material_category.dart';
 import 'share_icons.dart';
 
 /// 「加入到」的七個位置。順序＝設計稿 4 欄 7 格的順序（官方圖冊、好看同人圖、推活、雜物／草稿、腦洞、成圖）。
@@ -77,7 +79,8 @@ enum ShareSection {
   };
 }
 
-enum ShareAction { add, next, newPit }
+/// [addMaterial]＝「素材庫」段的「加入」（D-071），分類在 [ShareChoice.material]。
+enum ShareAction { add, next, newPit, addMaterial }
 
 /// sheet 的結果：按了什麼，以及當時選的坑／位置／分組。
 class ShareChoice {
@@ -88,6 +91,7 @@ class ShareChoice {
     this.groupId,
     this.author = '',
     this.tagIds = const [],
+    this.material,
   });
   final ShareAction action;
   final String? pitId;
@@ -101,7 +105,13 @@ class ShareChoice {
 
   /// 官方圖冊、好看同人圖選的 tag。
   final List<String> tagIds;
+
+  /// 「素材庫」段選的分類（action＝addMaterial 時才有）。
+  final MaterialCategory? material;
 }
+
+const _kDestKey = 'shareLastDest';
+const _kMaterialKey = 'shareLastMaterial';
 
 /// 分享進來的「加入到」bottom sheet（ShareImport，D-053／D-059／D-064）。
 Future<ShareChoice?> showShareSheet(
@@ -159,9 +169,20 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
   final Set<String> _tagIds = {};
   final _author = TextEditingController();
 
+  /// 頂部「坑｜素材庫」切換（D-071）；預設停在上次用的那段。
+  bool _toMaterial = false;
+  late MaterialCategory _material;
+
   @override
   void initState() {
     super.initState();
+    final prefs = ref.read(sharedPrefsProvider);
+    _toMaterial = prefs?.getString(_kDestKey) == 'material';
+    _material =
+        MaterialCategory.values
+            .where((c) => c.name == prefs?.getString(_kMaterialKey))
+            .firstOrNull ??
+        MaterialCategory.values.first;
     final memory = ref.read(shareMemoryProvider);
     _pitId = widget.initialPitId ?? memory.lastPit;
     _section =
@@ -175,6 +196,20 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
   void dispose() {
     _author.dispose();
     super.dispose();
+  }
+
+  void _setDest(bool material) {
+    if (material == _toMaterial) return;
+    setState(() => _toMaterial = material);
+    ref
+        .read(sharedPrefsProvider)
+        ?.setString(_kDestKey, material ? 'material' : 'pit');
+  }
+
+  void _finishMaterial() {
+    ref.read(sharedPrefsProvider)?.setString(_kMaterialKey, _material.name);
+    Navigator.of(context)
+        .pop(ShareChoice(ShareAction.addMaterial, material: _material));
   }
 
   void _finish(
@@ -314,147 +349,165 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _Label(l.shareFieldPit),
-                    SizedBox(
-                      height: 38,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        children: [
-                          for (final p in pits)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: _PitChip(
-                                pit: p,
-                                selected: p.id == pit?.id,
-                                onTap: () => setState(() {
-                                  if (_pitId != p.id) {
-                                    _groupId = null;
-                                    _fanGroupId = null;
-                                    _tagIds.clear();
-                                  }
-                                  _pitId = p.id;
-                                }),
-                              ),
-                            ),
-                          _NewPitChip(
-                            label: l.pitsNewTitle,
-                            onTap: () => _finish(
-                              ShareAction.newPit,
-                              pit?.id,
-                              section,
-                              group?.id,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _Label(l.shareFieldPosition),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: LayoutBuilder(
-                        builder: (_, c) {
-                          // 4 欄、欄距 8。
-                          final w = (c.maxWidth - 24) / 4;
-                          return Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final s in sections)
-                                SizedBox(
-                                  width: w,
-                                  child: _SectionCell(
-                                    section: s,
-                                    dark: dark,
-                                    selected: s == section,
-                                    onTap: () => setState(() => _section = s),
-                                  ),
-                                ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                    if (section == ShareSection.official &&
-                        groups.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      _Label(l.albumGroupLabel),
+                    _DestToggle(toMaterial: _toMaterial, onChanged: _setDest),
+                    if (_toMaterial) ...[
+                      _Label(l.materialFieldCategory),
                       _ChipWrap(
                         children: [
-                          for (final g in groups)
-                            _GroupChip(
-                              label: g.name,
-                              selected: g.id == group?.id,
-                              onTap: () => setState(() => _groupId = g.id),
+                          for (final c in MaterialCategory.values)
+                            KeyedSubtree(
+                              key: ValueKey('shareMaterial-${c.name}'),
+                              child: _GroupChip(
+                                label: c.label(l),
+                                selected: c == _material,
+                                onTap: () => setState(() => _material = c),
+                              ),
                             ),
                         ],
                       ),
-                    ],
-                    if (section == ShareSection.fan) ...[
-                      const SizedBox(height: 14),
-                      _Label(l.albumFieldAuthor),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: TextField(
-                          key: const ValueKey('shareAuthor'),
-                          controller: _author,
-                          style: TextStyle(fontSize: 15, color: t.ink),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            filled: true,
-                            fillColor: t.surface,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
+                    ] else ...[
+                      _Label(l.shareFieldPit),
+                      SizedBox(
+                        height: 38,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          children: [
+                            for (final p in pits)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: _PitChip(
+                                  pit: p,
+                                  selected: p.id == pit?.id,
+                                  onTap: () => setState(() {
+                                    if (_pitId != p.id) {
+                                      _groupId = null;
+                                      _fanGroupId = null;
+                                      _tagIds.clear();
+                                    }
+                                    _pitId = p.id;
+                                  }),
+                                ),
+                              ),
+                            _NewPitChip(
+                              label: l.pitsNewTitle,
+                              onTap: () => _finish(
+                                ShareAction.newPit,
+                                pit?.id,
+                                section,
+                                group?.id,
+                              ),
                             ),
-                            border: _fieldBorder(context),
-                            enabledBorder: _fieldBorder(context),
-                            focusedBorder: _fieldBorder(context),
-                          ),
+                          ],
                         ),
                       ),
-                      if (fanGroups.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        _Label(l.albumFieldSource),
+                      const SizedBox(height: 14),
+                      _Label(l.shareFieldPosition),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: LayoutBuilder(
+                          builder: (_, c) {
+                            // 4 欄、欄距 8。
+                            final w = (c.maxWidth - 24) / 4;
+                            return Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final s in sections)
+                                  SizedBox(
+                                    width: w,
+                                    child: _SectionCell(
+                                      section: s,
+                                      dark: dark,
+                                      selected: s == section,
+                                      onTap: () => setState(() => _section = s),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                      if (section == ShareSection.official &&
+                          groups.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        _Label(l.albumGroupLabel),
                         _ChipWrap(
                           children: [
-                            for (final g in fanGroups)
+                            for (final g in groups)
                               _GroupChip(
                                 label: g.name,
-                                selected: g.id == fanGroup?.id,
-                                // 再點一次已選的出處＝取消（出處可留空）。
-                                onTap: () => setState(
-                                  () => _fanGroupId = g.id == fanGroup?.id
-                                      ? null
-                                      : g.id,
-                                ),
+                                selected: g.id == group?.id,
+                                onTap: () => setState(() => _groupId = g.id),
                               ),
                           ],
                         ),
                       ],
-                    ],
-                    if (section.hasTags && pit != null) ...[
-                      const SizedBox(height: 12),
-                      _Label(l.shareMoveTag),
-                      _ChipWrap(
-                        children: [
-                          for (final tag in tags)
-                            _GroupChip(
-                              label: '#${tag.name}',
-                              selected: _tagIds.contains(tag.id),
-                              onTap: () => setState(() {
-                                if (!_tagIds.remove(tag.id)) {
-                                  _tagIds.add(tag.id);
-                                }
-                              }),
+                      if (section == ShareSection.fan) ...[
+                        const SizedBox(height: 14),
+                        _Label(l.albumFieldAuthor),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: TextField(
+                            key: const ValueKey('shareAuthor'),
+                            controller: _author,
+                            style: TextStyle(fontSize: 15, color: t.ink),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              filled: true,
+                              fillColor: t.surface,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              border: _fieldBorder(context),
+                              enabledBorder: _fieldBorder(context),
+                              focusedBorder: _fieldBorder(context),
                             ),
-                          DashedAddChip(
-                            semanticLabel: l.tagsAdd,
-                            onTap: () => _newTag(pit.id),
+                          ),
+                        ),
+                        if (fanGroups.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _Label(l.albumFieldSource),
+                          _ChipWrap(
+                            children: [
+                              for (final g in fanGroups)
+                                _GroupChip(
+                                  label: g.name,
+                                  selected: g.id == fanGroup?.id,
+                                  // 再點一次已選的出處＝取消（出處可留空）。
+                                  onTap: () => setState(
+                                    () => _fanGroupId = g.id == fanGroup?.id
+                                        ? null
+                                        : g.id,
+                                  ),
+                                ),
+                            ],
                           ),
                         ],
-                      ),
+                      ],
+                      if (section.hasTags && pit != null) ...[
+                        const SizedBox(height: 12),
+                        _Label(l.shareMoveTag),
+                        _ChipWrap(
+                          children: [
+                            for (final tag in tags)
+                              _GroupChip(
+                                label: '#${tag.name}',
+                                selected: _tagIds.contains(tag.id),
+                                onTap: () => setState(() {
+                                  if (!_tagIds.remove(tag.id)) {
+                                    _tagIds.add(tag.id);
+                                  }
+                                }),
+                              ),
+                            DashedAddChip(
+                              semanticLabel: l.tagsAdd,
+                              onTap: () => _newTag(pit.id),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ],
                 ),
@@ -472,7 +525,9 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
                 border: Border(top: BorderSide(color: t.border)),
               ),
               child: GestureDetector(
-                onTap: canGo
+                onTap: _toMaterial
+                    ? _finishMaterial
+                    : canGo
                     ? () => _finish(
                         section.needsForm ? ShareAction.next : ShareAction.add,
                         pit.id,
@@ -485,11 +540,15 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   decoration: BoxDecoration(
-                    color: canGo ? t.accent : t.accent.withValues(alpha: 0.4),
+                    color: (canGo || _toMaterial)
+                        ? t.accent
+                        : t.accent.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(Radii.button),
                   ),
                   child: Text(
-                    section.needsForm ? l.shareNext : l.shareAdd,
+                    (!_toMaterial && section.needsForm)
+                        ? l.shareNext
+                        : l.shareAdd,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -500,6 +559,78 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 頂部「坑｜素材庫」兩段切換（ShareImport）：底色 chipBg、圓角 12，選中＝白底＋淡影。
+class _DestToggle extends StatelessWidget {
+  const _DestToggle({required this.toMaterial, required this.onChanged});
+  final bool toMaterial;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    Widget seg(bool material, String label) {
+      final on = material == toMaterial;
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: on,
+          child: GestureDetector(
+            key: ValueKey(material ? 'shareDestMaterial' : 'shareDestPit'),
+            onTap: () => onChanged(material),
+            child: Container(
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(vertical: 9),
+              decoration: BoxDecoration(
+                color: on ? t.surface : Colors.transparent,
+                borderRadius: BorderRadius.circular(9),
+                boxShadow: on
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF2B2622)
+                              .withValues(alpha: 0.12),
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: on ? t.ink : t.text3,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: Semantics(
+        label: context.l10n.materialShareDestLabel,
+        child: Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: t.chipBg,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              seg(false, context.l10n.shareFieldPit),
+              const SizedBox(width: 2),
+              seg(true, context.l10n.materialTitle),
+            ],
+          ),
         ),
       ),
     );

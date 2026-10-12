@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import '../common/user_avatar.dart';
+import '../material/material_icons.dart';
+import '../material/material_library_page.dart';
 import 'about_page.dart';
 import 'backup_page.dart';
 import 'me_widgets.dart';
@@ -35,6 +38,7 @@ class ProfilePage extends ConsumerWidget {
         : (sync.lastSyncAt == null
               ? context.l10n.meBackupLinked
               : meTimeLabel(sync.lastSyncAt));
+    final materialTotal = ref.watch(materialCountsProvider).value?.total ?? 0;
     final chevron = dark ? t.text4 : const Color(0xFFB7ADA0);
     final divider = dark ? t.border : const Color(0xFFF1EADF);
 
@@ -156,6 +160,27 @@ class ProfilePage extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  // 素材庫（D-071）：獨立一張卡，右邊顯示總張數。
+                  MePanel(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: row(
+                        icon: MaterialLibIcons.library,
+                        tileBg: t.accentSoft,
+                        tileFg: t.piece.fg,
+                        title: context.l10n.materialTitle,
+                        value: context.l10n.commonCountImages(materialTotal),
+                        last: true,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const MaterialLibraryPage(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
                   MePanel(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
