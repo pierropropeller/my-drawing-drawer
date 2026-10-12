@@ -6,13 +6,16 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
-import 'day_page.dart';
 import 'goal_widgets.dart';
+import 'day_page.dart';
 import 'goals_page.dart';
 
 /// 月度（Month）：月曆（當天有成圖，日期變成圓形圖片，預設最晚一張）＋月度小目標。
 class MonthView extends ConsumerStatefulWidget {
-  const MonthView({super.key, this.onYearChanged});
+  const MonthView({super.key, this.onYearChanged, this.onDayTap});
+
+  /// 點日曆某一天：上層切到「日」並捲到該日（D-072）；沒給就另開一頁日頁。
+  final ValueChanged<DateTime>? onDayTap;
 
   /// 月份切換後所在年份改變時通知（標題列的年份跟著變）。
   final ValueChanged<int>? onYearChanged;
@@ -96,11 +99,19 @@ class _MonthViewState extends ConsumerState<MonthView> {
                     today.year == _year &&
                     today.month == _month &&
                     today.day == d,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => DayPage(day: DateTime(_year, _month, d)),
-                  ),
-                ),
+                onTap: () {
+                  final day = DateTime(_year, _month, d);
+                  final cb = widget.onDayTap;
+                  if (cb != null) {
+                    cb(day);
+                  } else {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => DayPage(day: day),
+                      ),
+                    );
+                  }
+                },
               ),
           ],
         ),

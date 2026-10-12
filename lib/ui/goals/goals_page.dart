@@ -11,6 +11,7 @@ import '../common/dashed_box.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import 'day_page.dart';
+import 'day_timeline.dart';
 import 'goal_new_page.dart';
 import 'goal_widgets.dart';
 import 'month_view.dart';
@@ -27,6 +28,7 @@ class GoalsPage extends StatefulWidget {
 
 class _GoalsPageState extends State<GoalsPage> {
   int _mode = 0;
+  final _dayKey = GlobalKey<DayTimelineState>();
   int _year = DateTime.now().year; // 年度視圖的年份
   final _years = [DateTime.now().year, DateTime.now().year]; // 月、日視圖目前顯示的年份
 
@@ -105,8 +107,14 @@ class _GoalsPageState extends State<GoalsPage> {
                     YearView(year: _year),
                     MonthView(
                       onYearChanged: (y) => setState(() => _years[0] = y),
+                      // 月頁點日曆：切到「日」並捲到該日（D-072）。
+                      onDayTap: (d) {
+                        setState(() => _mode = 2);
+                        _dayKey.currentState?.jumpToDay(d);
+                      },
                     ),
                     DayView(
+                      timelineKey: _dayKey,
                       onYearChanged: (y) => setState(() => _years[1] = y),
                     ),
                   ],

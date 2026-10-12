@@ -10,7 +10,7 @@ import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import '../common/timeline.dart';
 import 'day_add_sheet.dart';
-import 'goal_widgets.dart';
+import 'day_timeline.dart';
 import '../entity/draft_detail_page.dart';
 import '../entity/draft_form_page.dart';
 import '../entity/entity_widgets.dart';
@@ -19,46 +19,40 @@ import '../entity/idea_form_page.dart';
 import '../entity/piece_detail_page.dart';
 import '../entity/piece_form_page.dart';
 
-/// 日（Day）：時間軸分頁，顯示今天。
+/// 日（Day）：連續時間軸分頁（D-072），從今天開始；[timelineKey] 讓上層（月頁點日曆）捲到指定日子。
 class DayView extends StatelessWidget {
-  const DayView({super.key, this.onYearChanged});
+  const DayView({super.key, this.onYearChanged, this.timelineKey});
   final ValueChanged<int>? onYearChanged;
+  final GlobalKey<DayTimelineState>? timelineKey;
 
   @override
   Widget build(BuildContext context) => DayPage(
-    day: DateTime.now(),
     embedded: true,
     onYearChanged: onYearChanged,
+    timelineKey: timelineKey,
   );
 }
 
-/// 某天的時間軸：依時間列出腦洞／草稿／成圖；右下 ＋ 開啟 DayAddSheet，建立時間一律是現在。
+/// 連續時間軸：依時間列出腦洞／草稿／成圖；右下 ＋ 開啟 DayAddSheet，建立時間一律是現在。
+/// [day]：一開始捲到的日子（沒內容就捲到之前最近有內容的一天）；null＝從今天開始。
 class DayPage extends ConsumerStatefulWidget {
   const DayPage({
     super.key,
-    required this.day,
+    this.day,
     this.embedded = false,
     this.onYearChanged,
+    this.timelineKey,
   });
-  final DateTime day;
+  final DateTime? day;
   final bool embedded;
   final ValueChanged<int>? onYearChanged;
+  final GlobalKey<DayTimelineState>? timelineKey;
 
   @override
   ConsumerState<DayPage> createState() => _DayPageState();
 }
 
 class _DayPageState extends ConsumerState<DayPage> {
-  late DateTime _day = widget.day;
-
-  String get _title => context.l10n.goalsDayTitle(_day.month, _day.day);
-
-  void _shift(int days) {
-    final old = _day.year;
-    setState(() => _day = DateTime(_day.year, _day.month, _day.day + days));
-    if (_day.year != old) widget.onYearChanged?.call(_day.year);
-  }
-
   Future<void> _add() async {
     final pits = ref.read(pitsProvider(false)).value ?? const [];
     if (pits.isEmpty) {
@@ -142,39 +136,12 @@ class _DayPageState extends ConsumerState<DayPage> {
 
   @override
   Widget build(BuildContext context) {
-    final t = context.tokens;
     ref.watch(pitsProvider(false)); // 讓 ＋ 按下時坑清單已載入
-    final items =
-        ref
-            .watch(timelineProvider(DateTime(_day.year, _day.month, _day.day)))
-            .value ??
-        const [];
-    final body = Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
-          child: PeriodNav(
-            label: _title,
-            prevTooltip: context.l10n.goalsPrevDay,
-            nextTooltip: context.l10n.goalsNextDay,
-            onPrev: () => _shift(-1),
-            onNext: () => _shift(1),
-          ),
-        ),
-        Expanded(
-          child: items.isEmpty
-              ? Center(
-                  child: Text(
-                    context.l10n.goalsDayEmpty,
-                    style: TextStyle(color: t.text3),
-                  ),
-                )
-              : TimelineView(
-                  entries: [for (final it in items) _entryOf(context, it)],
-                  countLabel: context.l10n.oshiCountItems,
-                ),
-        ),
-      ],
+    final body = DayTimeline(
+      key: widget.timelineKey,
+      initialDay: widget.day,
+      onYearChanged: widget.onYearChanged,
+      entryOf: _entryOf,
     );
     final fab = Positioned(
       right: 18,

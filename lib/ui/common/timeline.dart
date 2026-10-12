@@ -94,7 +94,7 @@ String weekdayLabel(AppLocalizations l, DateTime d) => switch (d.weekday) {
   _ => l.oshiWeekdaySun,
 };
 
-bool _sameDay(DateTime a, DateTime b) =>
+bool sameTimelineDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
 /// 圓形數字（深色半透明底、白字），多張圖的標記。
@@ -143,7 +143,7 @@ class TimelineView extends StatelessWidget {
     final rows = <Widget>[];
     for (final s in groupTimelineByMonth(entries)) {
       rows.add(
-        _SectionHeader(
+        TimelineSectionHeader(
           title: context.l10n.oshiMonthHeader(s.year, s.month),
           count: countLabel(s.entries.length),
         ),
@@ -151,11 +151,11 @@ class TimelineView extends StatelessWidget {
       for (var i = 0; i < s.entries.length; i++) {
         final e = s.entries[i];
         rows.add(
-          _TimelineRow(
+          TimelineRowTile(
             key: ValueKey('timeline-${e.id}'),
             entry: e,
             // 同一天的第二筆起不顯示日期，改成小灰點。
-            showDate: i == 0 || !_sameDay(s.entries[i - 1].date, e.date),
+            showDate: i == 0 || !sameTimelineDay(s.entries[i - 1].date, e.date),
             // 月份最後一筆不畫線。
             line: i < s.entries.length - 1,
           ),
@@ -166,8 +166,13 @@ class TimelineView extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.count});
+/// 月份段首（月份＋數量）。
+class TimelineSectionHeader extends StatelessWidget {
+  const TimelineSectionHeader({
+    super.key,
+    required this.title,
+    required this.count,
+  });
   final String title;
   final String count;
 
@@ -197,8 +202,9 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _TimelineRow extends StatelessWidget {
-  const _TimelineRow({
+/// 時間軸的一列：左欄日期（或小灰點）＋線＋卡片。
+class TimelineRowTile extends StatelessWidget {
+  const TimelineRowTile({
     super.key,
     required this.entry,
     required this.showDate,
