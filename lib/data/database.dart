@@ -3,7 +3,8 @@ import 'package:drift_flutter/drift_flutter.dart';
 
 import 'tables.dart';
 
-export 'tables.dart' show GoalKind, GoalPeriod, OwnerType, TagTarget;
+export 'tables.dart'
+    show GoalKind, GoalPeriod, MaterialCategory, OwnerType, TagTarget;
 
 part 'database.g.dart';
 
@@ -19,6 +20,7 @@ part 'database.g.dart';
     Drafts,
     Pieces,
     OshiRecords,
+    MaterialImages,
     EntityImages,
     PieceLinks,
     TagLinks,
@@ -37,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -72,6 +74,10 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 7) {
         await _migrateV7(m);
+      }
+      if (from < 8) {
+        // v8：素材庫（D-071）。全新的表，沒有舊資料要回填。
+        await m.createTable(materialImages);
       }
     },
   );

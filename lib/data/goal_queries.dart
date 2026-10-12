@@ -350,6 +350,7 @@ extension GoalQueries on AppDatabase {
   }
 
   /// 某天所有坑的腦洞／草稿／成圖，時間新到舊。
+  /// （D-072 起日頁改用 `loadTimelinePage` 連續分頁；這個單日查詢保留給既有用途與測試。）
   Stream<List<TimelineItem>> watchTimeline(DateTime day) {
     final start = DateTime(day.year, day.month, day.day);
     final end = start.add(const Duration(days: 1));
@@ -357,105 +358,120 @@ extension GoalQueries on AppDatabase {
       this,
       {ideas, drafts, pieces, entityImages, tags, tagLinks},
       () async {
-        Future<List<String>> images(OwnerType t, String id) async =>
-            (await (select(entityImages)
-                      ..where(
-                        (e) =>
-                            e.ownerType.equalsValue(t) & e.ownerId.equals(id),
-                      )
-                      ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
-                    .get())
-                .map((e) => e.imageFile)
-                .toList();
-
-        Future<List<String>> tagNames(TagTarget t, String id) async {
-          final q =
-              select(
-                  tags,
-                ).join([innerJoin(tagLinks, tagLinks.tagId.equalsExp(tags.id))])
-                ..where(
-                  tagLinks.targetType.equalsValue(t) &
-                      tagLinks.targetId.equals(id) &
-                      tags.deletedAt.isNull(),
-                )
-                ..orderBy([OrderingTerm.asc(tags.name)]);
-          return (await q.get()).map((r) => r.readTable(tags).name).toList();
-        }
-
-        final items = <TimelineItem>[];
-        for (final i
-            in await (select(ideas)..where(
+        final ideaRows =
+            await (select(ideas)..where(
                   (x) =>
                       x.deletedAt.isNull() &
                       x.date.isBiggerOrEqualValue(start) &
                       x.date.isSmallerThanValue(end),
                 ))
-                .get()) {
-          final files = await images(OwnerType.idea, i.id);
-          items.add(
-            TimelineItem(
-              kind: GoalKind.idea,
-              id: i.id,
-              pitId: i.pitId,
-              time: i.date,
-              title: i.title,
-              file: files.isEmpty ? null : files.first,
-              files: files,
-              text: i.body,
-              tagNames: await tagNames(TagTarget.idea, i.id),
-            ),
-          );
-        }
-        for (final d
-            in await (select(drafts)..where(
+                .get();
+        final draftRows =
+            await (select(drafts)..where(
                   (x) =>
                       x.deletedAt.isNull() &
                       x.date.isBiggerOrEqualValue(start) &
                       x.date.isSmallerThanValue(end),
                 ))
-                .get()) {
-          final files = await images(OwnerType.draft, d.id);
-          items.add(
-            TimelineItem(
-              kind: GoalKind.draft,
-              id: d.id,
-              pitId: d.pitId,
-              time: d.date,
-              title: d.title ?? '',
-              file: files.isEmpty ? null : files.first,
-              files: files,
-              tagNames: await tagNames(TagTarget.draft, d.id),
-            ),
-          );
-        }
-        for (final p
-            in await (select(pieces)..where(
+                .get();
+        final pieceRows =
+            await (select(pieces)..where(
                   (x) =>
                       x.deletedAt.isNull() &
                       x.finishedAt.isBiggerOrEqualValue(start) &
                       x.finishedAt.isSmallerThanValue(end),
                 ))
-                .get()) {
-          final files = await images(OwnerType.piece, p.id);
-          items.add(
-            TimelineItem(
-              kind: GoalKind.piece,
-              id: p.id,
-              pitId: p.pitId,
-              time: p.finishedAt,
-              title: p.title,
-              file: files.isEmpty ? null : files.first,
-              files: files,
-              tagNames: await tagNames(TagTarget.piece, p.id),
-              actualLikes: p.actualLikes,
-              targetLikes: p.targetLikes,
-            ),
-          );
-        }
+                .get();
+        final items = await timelineItemsOf(
+          ideasList: ideaRows,
+          draftsList: draftRows,
+          piecesList: pieceRows,
+        );
         items.sort((a, b) => b.time.compareTo(a.time));
         return items;
       },
     );
+  }
+
+  /// 把腦洞／草稿／成圖列組成時間軸項目（補上圖片與 tag 名稱）。順序：腦洞、草稿、成圖，各自保持輸入順序。
+  Future<List<TimelineItem>> timelineItemsOf({
+    List<Idea> ideasList = const [],
+    List<Draft> draftsList = const [],
+    List<Piece> piecesList = const [],
+  }) async {
+    Future<List<String>> images(OwnerType t, String id) async =>
+        (await (select(entityImages)
+                  ..where(
+                    (e) => e.ownerType.equalsValue(t) & e.ownerId.equals(id),
+                  )
+                  ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
+                .get())
+            .map((e) => e.imageFile)
+            .toList();
+
+    Future<List<String>> tagNames(TagTarget t, String id) async {
+      final q =
+          select(tags)
+              .join([innerJoin(tagLinks, tagLinks.tagId.equalsExp(tags.id))])
+            ..where(
+              tagLinks.targetType.equalsValue(t) &
+                  tagLinks.targetId.equals(id) &
+                  tags.deletedAt.isNull(),
+            )
+            ..orderBy([OrderingTerm.asc(tags.name)]);
+      return (await q.get()).map((r) => r.readTable(tags).name).toList();
+    }
+
+    final items = <TimelineItem>[];
+    for (final i in ideasList) {
+      final files = await images(OwnerType.idea, i.id);
+      items.add(
+        TimelineItem(
+          kind: GoalKind.idea,
+          id: i.id,
+          pitId: i.pitId,
+          time: i.date,
+          title: i.title,
+          file: files.isEmpty ? null : files.first,
+          files: files,
+          text: i.body,
+          tagNames: await tagNames(TagTarget.idea, i.id),
+        ),
+      );
+    }
+    for (final d in draftsList) {
+      final files = await images(OwnerType.draft, d.id);
+      items.add(
+        TimelineItem(
+          kind: GoalKind.draft,
+          id: d.id,
+          pitId: d.pitId,
+          time: d.date,
+          title: d.title ?? '',
+          file: files.isEmpty ? null : files.first,
+          files: files,
+          tagNames: await tagNames(TagTarget.draft, d.id),
+        ),
+      );
+    }
+    for (final p in piecesList) {
+      final files = await images(OwnerType.piece, p.id);
+      items.add(
+        TimelineItem(
+          kind: GoalKind.piece,
+          id: p.id,
+          pitId: p.pitId,
+          time: p.finishedAt,
+          title: p.title,
+          file: files.isEmpty ? null : files.first,
+          files: files,
+          tagNames: await tagNames(TagTarget.piece, p.id),
+          actualLikes: p.actualLikes,
+          targetLikes: p.targetLikes,
+        ),
+      );
+    }
+    return items;
   }
 
   // ---- 年度回顧 ----

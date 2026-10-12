@@ -14,8 +14,10 @@ import '../data/image_location.dart';
 import '../data/image_store.dart';
 import '../data/income_queries.dart';
 import '../data/junk_queries.dart';
+import '../data/material_queries.dart';
 import '../data/oshi_queries.dart';
 import '../data/search_queries.dart';
+import '../data/timeline_queries.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -126,6 +128,24 @@ final monthCoversProvider = StreamProvider.family<Map<int, String>, (int, int)>(
 
 final timelineProvider = StreamProvider.family<List<TimelineItem>, DateTime>(
   (ref, day) => ref.watch(databaseProvider).watchTimeline(day),
+);
+
+/// 連續日頁（D-072）的刷新訊號：腦洞／草稿／成圖（含圖片、tag）有變動就遞增。
+/// UI 監看它，變動時重新載入已載入的頁；分頁查詢用 `ref.read(databaseProvider).loadTimelinePage(...)`。
+final timelineRevisionProvider = StreamProvider<int>(
+  (ref) => ref.watch(databaseProvider).watchTimelineRevision(),
+);
+
+/// 素材庫列表（D-071）；key＝分類，null＝全部。
+final materialsProvider =
+    StreamProvider.family<List<MaterialImage>, MaterialCategory?>(
+      (ref, category) =>
+          ref.watch(databaseProvider).watchMaterials(category: category),
+    );
+
+/// 素材庫各分類張數與總數（Profile 素材庫卡、移動 sheet）。
+final materialCountsProvider = StreamProvider<MaterialCounts>(
+  (ref) => ref.watch(databaseProvider).watchMaterialCounts(),
 );
 
 final reviewMonthsProvider = StreamProvider.family<Map<int, String?>, int>(

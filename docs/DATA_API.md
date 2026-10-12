@@ -1,4 +1,4 @@
-# 資料層 API 參考（schema v7；批次 6–8 見檔案最後一節）
+# 資料層 API 參考（schema v8；批次 6–8、批次 9 見檔案後段）
 
 給 UI 工程師：這份只列「批次 3、4 資料層」新增／變更的公開 API。所有 query 都是 `AppDatabase` 的 extension，
 用法與 `album_queries.dart`、`entity_queries.dart` 一致；對應的 Riverpod provider 在 `lib/state/providers.dart`。
@@ -320,7 +320,7 @@ ReviewMonthPiece? defaultReviewPiece(Iterable<ReviewMonthPiece>);              /
 
 給 UI 工程師的唯一資料層參考。資料層不回傳任何介面文字（預設分組名稱是資料值）。
 測試：`test/oshi_test.dart`、`test/batch678_test.dart`、`test/batch678_sync_test.dart`、`test/migration_test.dart`（v1～v6 → v7）。
-**D-071 素材庫是〔試稿〕，資料層沒有實作。**
+（D-071 素材庫已在批次 9 實作，見最後一節。）
 
 ## 1. Schema v7 與遷移
 
@@ -495,3 +495,102 @@ CellCovers.official / fanArt / draft / idea / piece              // 沒有 oshi
 - 成圖格封面 → 最新完成日期的成圖。
 - `watchTagUsage` 含官方圖與推活。
 - `deleteGroup` 對推活分組可刪光，組內紀錄變成無分組。
+
+---
+
+# 批次 9 資料層（D-071 素材庫、D-072 連續日頁時間軸）— schema v8
+
+測試：`test/material_test.dart`、`test/timeline_test.dart`、`test/migration_test.dart`（v1～v7 → v8）。
+資料層不回傳任何介面文字：分類只回傳 enum 名稱（英文 id），顯示文字（服裝、姿勢…）由 UI 的 ARB 提供。
+
+## 1. Schema v8 與遷移
+
+| 變更 | 內容 |
+|---|---|
+| 新表 `MaterialImages`（資料類別 `MaterialImage`） | `SyncColumns`、`imageFile`、`width`、`height`、`category`（`MaterialCategory`，DB 存名稱） |
+| 新 enum `MaterialCategory` | `clothing, pose, body, palette, scene, style, sticker`＝服裝、姿勢、人體、色盤、場景、畫風、貼圖。順序＝畫面 pills 順序（「全部」是 UI 的 `null`）；新值只能加在最後 |
+
+- 遷移：`from < 8` → `createTable(materialImages)`，沒有舊資料要回填；v1～v7 都測過。`database.dart` 已 re-export `MaterialCategory`。
+- 沒有任何文字欄位、沒有 tag、沒有 pit。**不計入**目標、時間軸、搜尋、封面、坑統計、坑的「最後更新」排序（有測試）。
+
+## 2. 素材庫（D-071）— `lib/data/material_queries.dart`
+
+```dart
+Stream<List<MaterialImage>> watchMaterials({MaterialCategory? category}); // null＝全部；新的在前
+Future<List<String>> addMaterials(MaterialCategory category, List<NewImage> images); // 回傳新 id（同順序）
+Future<void> moveMaterials(Iterable<String> ids, MaterialCategory category);
+Future<void> deleteMaterials(Iterable<String> ids);                       // 軟刪除
+Stream<MaterialCounts> watchMaterialCounts();
+
+class MaterialCounts { Map<MaterialCategory,int> byCategory; int of(MaterialCategory c); int get total; static final empty; }
+```
+Providers（`lib/state/providers.dart`）：`materialsProvider(MaterialCategory?)`（family；null＝全部）、`materialCountsProvider`。
+
+- **排序**：`createdAt` 新到舊。`createdAt` 只有**秒**精度，所以同一秒內以寫入順序決定；
+  `addMaterials` 一批共用同一個 `createdAt`，且**這批的顯示順序＝傳入 `images` 的順序**（第一張在最上面），整批排在舊的前面。
+- `addMaterials`：單一交易；`deviceId` 留空（同其他實體）。空清單回傳空 list 不做事。
+  「在『全部』下加圖要先選分類」是 UI 的事：呼叫前就要決定好 `category`（分享進來的「素材庫」段也一樣呼叫它）。
+- `moveMaterials`：只更新**不在目標分類且未刪除**的列（`updatedAt` 蓋現在）；已在目標分類的不動，避免無謂同步。
+- `deleteMaterials`：設 `deletedAt`/`updatedAt`；圖檔不會從磁碟移除（同其他實體）。已刪除的不會再被移動。
+- `watchMaterialCounts`：`MaterialCounts.byCategory` **一定有全部 7 個分類**（沒有圖為 0）。
+  Profile 的素材庫卡右邊用 `total`；移動 sheet 每個分類「N 張」用 `of(category)`。
+- 下載到 `Pictures/Drawer` 等是 UI／平台層的事，資料層只提供 `imageFile` 檔名（用 `ImageStore` 取路徑，同其他圖片）。
+
+## 3. 素材庫同步
+
+- 新種類 `material`（`MaterialKind`，`allSyncKinds` 已加入）：一張圖一份文件，內容＝整列 JSON；沒有附屬資料。
+  圖檔隨文件上傳／下載，與其他圖片完全一樣：進**傳輸清單／進度**（批次 5 的 `SyncProgress.transfers`）、
+  斷線中斷後「只缺圖檔」的情況下次同步補下載（`_referencedImages` 已含素材）。
+- `syncFormatVersion` **維持 2**，向下相容：舊版 App 看到未知種類 `material` 會忽略（不讀、也不動），新舊並存不出錯；
+  代價是素材在舊版 App 上看不到，兩台都更新後就正常。
+- 文件缺 `width`／`height` 補 0。**遠端文件的 `category` 本機不認識**（日後新增分類、本機還沒更新）時：整份文件略過
+  （不覆蓋、不丟例外、不中斷同步）。
+- **`imageLocationOf(file)`（同步進度 sheet 的「坑 · 格」）**：素材的圖**回傳 null**（不在任何坑）。我**沒有**新增
+  `ImageCell.material`——`lib/ui/sync/sync_sheet.dart` 的 `cellName` 是窮盡 `switch`，加 enum 值會讓 UI 編譯失敗，
+  而且 `ImageLocation` 必須有 `pitId`／`pitName`，素材沒有。現有 UI 對 null 的處理是該行位置文字留空（只看縮圖與方向標籤）。
+  想在進度 sheet 顯示「素材庫」：UI 端自己判斷檔名是否屬於素材，或日後把 `ImageLocation` 的坑欄位改成可為空並加
+  `ImageCell.material`（需同時改 `sync_sheet.dart` 與 ARB）。
+
+## 4. 連續日頁時間軸（D-072）— `lib/data/timeline_queries.dart`
+
+目標 · 日頁不再逐日查詢，改成一條連續的時間軸：腦洞／草稿（依 `date`）與成圖（依 `finishedAt`）合併，時間**新到舊**；
+沒有內容的日子不出現；已刪除的不算。項目沿用 `TimelineItem`（`goal_queries.dart`，欄位與單日查詢相同）。
+
+```dart
+class TimelineCursor { DateTime date; String id; factory TimelineCursor.of(TimelineItem item); }
+class TimelinePage   { List<TimelineItem> items; bool hasMore; TimelineCursor? get next; static const empty; }
+
+Future<TimelinePage> loadTimelinePage({TimelineCursor? after, int limit = 30});
+Future<TimelinePage> loadTimelineUntil(DateTime day, {int limit = 30});
+Future<DateTime?>    nearestTimelineDay(DateTime day);
+Future<Map<DateTime,int>> timelineMonthCounts(Iterable<DateTime> months);
+Stream<int>          watchTimelineRevision();
+```
+Provider：`timelineRevisionProvider`（`StreamProvider<int>`）。分頁查詢不是 provider——在 notifier／state 裡用
+`ref.read(databaseProvider).loadTimelinePage(...)` 呼叫。
+
+- **排序與游標**：全域排序鍵＝`(時間 desc, id desc)`（id 只用來打破同時間的平手，跨種類）。
+  `after` 游標＝上一頁最後一筆的 `(time, id)`（`page.next`），**不含**那一筆。因此跨頁不重複、不跳過，
+  同一時間（DB 的日期是秒精度，容易撞）的多筆也不會被頁界切壞。`limit` 以**筆**為單位，頁界可能落在某一天中間——
+  UI 把相鄰頁接起來後再按日期分組、插月份標題即可（同一天可能被分到兩頁，這是正常的）。
+- `hasMore`：這頁之後還有更舊的項目（剛好湊滿一頁且沒有更多時為 false）。空頁 `next == null`。
+- **刷新**：`watchTimelineRevision()` 先發 `0`，之後腦洞／草稿／成圖（含其圖片、tag）有任何寫入就遞增，不帶資料。
+  UI 在它變動時重新載入「目前已載入的範圍」（例如重載到同樣的筆數：`loadTimelinePage(limit: 已載入筆數)`）。
+  它偏寬鬆：與時間軸無關的寫入（例如只改關聯）也會發出，重載很便宜。
+- **跳到某天**（月頁點日曆）：
+  1. `final target = await db.nearestTimelineDay(day)`＝`day` 當天**或之前**最近一個有內容的日子（當天 00:00）；之前完全沒有內容回 `null`
+     （日頁從頂端開始，不捲動）。傳入的 `day` 若帶時間，仍以那一天為準。
+  2. `final page = await db.loadTimelineUntil(day)`：從最新的一筆載到**包含 `target` 整天**的所有項目（單次查詢，不分頁），
+     至少 `limit` 筆；之後照常用 `loadTimelinePage(after: page.next)` 接下一頁。之前沒內容時等同第一頁。
+     UI 再用 `target` 把清單捲到那一天的位置。
+  直接點「日」分頁＝一般的 `loadTimelinePage()`（時間軸本來就從最新開始）。
+  注意：若有「未來日期」的項目（日期欄可選未來），它們會排在最上面、在今天之前；設計稿沒畫，若 Molly 要「從今天開始」請先問她，目前不另外處理。
+- **月份標題**「2026 年 9 月 · 4 項」：`timelineMonthCounts(months)`。`months` 的每個元素只取年月；回傳 key 是 `DateTime(年, 月)`，
+  值＝該月**整個月**的腦洞＋草稿＋成圖筆數（與載入了幾筆無關、不含已刪除，沒有內容為 0）。
+  做法：從已載入 items 的 `time` 取出出現過的月份，一次查完；`timelineRevisionProvider` 變動時一起重查。
+- **舊的單日查詢保留**：`watchTimeline(day)`（`timelineProvider`）行為不變，仍有測試；內部改成與新查詢共用 `timelineItemsOf(...)`
+  （`goal_queries.dart`，把腦洞／草稿／成圖列組成 `TimelineItem`）。
+
+## 5. 刻意的行為改變
+
+- 無（既有測試沒有需要更新的）。`AppDatabase.schemaVersion = 8`。
