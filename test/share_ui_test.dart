@@ -25,6 +25,7 @@ import 'package:huakeng/ui/junk/junk_list_page.dart';
 import 'package:huakeng/ui/pits/pit_new_page.dart';
 import 'package:huakeng/ui/pits/pit_page.dart';
 import 'package:huakeng/ui/oshi/oshi_form_page.dart';
+import 'package:huakeng/ui/oshi/oshi_list_page.dart';
 import 'package:huakeng/ui/share/share_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -518,6 +519,15 @@ void main() {
     expect(find.byType(ShareSheet), findsNothing);
     // 打開推活新增頁，分享進來的圖片已放好。
     expect(find.byType(OshiFormPage), findsOneWidget);
+    // 表單關閉後停在推活列表（不是掉回主頁），再返回是坑內頁。
+    await tester.binding.handlePopRoute();
+    await settle(tester);
+    expect(find.byType(OshiFormPage), findsNothing);
+    expect(find.byType(OshiListPage), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await settle(tester);
+    expect(find.byType(OshiListPage), findsNothing);
+    expect(find.byType(PitPage), findsOneWidget);
     expect(
       (await tester.runAsync(() => db.select(db.officialImages).get()))!,
       isEmpty,

@@ -13,6 +13,10 @@ import '../../state/providers.dart';
 import '../album/album_actions.dart';
 import '../album/fan_art_list_page.dart';
 import '../album/official_list_page.dart';
+import '../entity/draft_list_page.dart';
+import '../entity/finished_list_page.dart';
+import '../entity/idea_list_page.dart';
+import '../oshi/oshi_list_page.dart';
 import '../entity/draft_form_page.dart';
 import '../entity/idea_form_page.dart';
 import '../entity/piece_form_page.dart';
@@ -164,14 +168,27 @@ class _ShareHostState extends ConsumerState<ShareHost> {
   }
 
   /// 「下一步」：在「坑」分頁開該格的新增表單，圖片先放好。
+  ///
+  /// 頁面堆疊是 坑內頁 → 該格列表 → 新增表單，所以存檔後（表單關閉）會停在
+  /// 該格列表，看得到剛加入的內容，而不是掉回主頁。
   void _openForm(ShareChoice c, List<String> paths) {
     final pitId = c.pitId!;
     final files = [for (final p in paths) XFile(p)];
     widget.showPitsTab();
     final nav = widget.pitsNavigator.currentState;
     if (nav == null) return;
-    // 表單關閉後回到坑列表，而不是使用者原本停留的深層頁面。
     nav.popUntil((r) => r.isFirst);
+    nav.push(MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pitId)));
+    nav.push(
+      MaterialPageRoute<void>(
+        builder: (_) => switch (c.section!) {
+          ShareSection.draft => DraftListPage(pitId: pitId),
+          ShareSection.idea => IdeaListPage(pitId: pitId),
+          ShareSection.piece => FinishedListPage(pitId: pitId),
+          _ => OshiListPage(pitId: pitId),
+        },
+      ),
+    );
     if (c.section == ShareSection.oshi) {
       final inner = nav.overlay?.context;
       if (inner != null) openOshiForm(inner, pitId, paths);

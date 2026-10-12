@@ -1,4 +1,4 @@
-name: Build debug APK
+name: Build APK
 
 on:
   push:
@@ -30,24 +30,39 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      # debug 版：出錯時直接顯示紅色錯誤畫面，方便試用階段抓問題（體積大，約 100MB）。
       - name: Build debug APK
         env:
           # Google 登入用的 Web OAuth Client ID（GitHub Secret，沒設定時為空，登入功能會顯示尚未設定）
           GOOGLE_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SERVER_CLIENT_ID }}
         run: flutter build apk --debug --target-platform android-arm64 --dart-define=GOOGLE_SERVER_CLIENT_ID=$GOOGLE_SERVER_CLIENT_ID
 
-      - name: Name APK
+      # release 版：預先編譯、精簡引擎，體積小很多，日常使用這個。
+      # 簽名沿用同一把 keystore，所以兩個版本可以互相覆蓋安裝，資料不會丟。
+      - name: Build release APK
+        env:
+          GOOGLE_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SERVER_CLIENT_ID }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-debug.apk "$RUNNER_TEMP/app-debug.apk"
+          flutter build apk --release --target-platform android-arm64 --dart-define=GOOGLE_SERVER_CLIENT_ID=$GOOGLE_SERVER_CLIENT_ID
+
+      - name: Name APKs
         id: apk
         run: |
-          cp build/app/outputs/flutter-apk/app-debug.apk "drawer-debug-${{ github.run_number }}.apk"
-          echo "path=drawer-debug-${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
+          cp "$RUNNER_TEMP/app-debug.apk" "drawer-debug-${{ github.run_number }}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "drawer-release-${{ github.run_number }}.apk"
+          ls -l drawer-*.apk
+          echo "debug=drawer-debug-${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
+          echo "release=drawer-release-${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: debug-build-${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          name: Debug build ${{ github.run_number }}
+          name: Build ${{ github.run_number }}
           body: |
-            Automated debug build from commit ${{ github.sha }} (branch `${{ github.ref_name }}`).
-          files: ${{ steps.apk.outputs.path }}
+            Automated build (release + debug APK) from commit ${{ github.sha }} (branch `${{ github.ref_name }}`).
+          files: |
+            ${{ steps.apk.outputs.release }}
+            ${{ steps.apk.outputs.debug }}
