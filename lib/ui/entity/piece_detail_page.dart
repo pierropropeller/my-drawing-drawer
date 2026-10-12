@@ -9,14 +9,13 @@ import '../../data/payment.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
-import '../album/album_image.dart';
 import 'draft_detail_page.dart';
 import '../common/app_icons.dart';
+import '../common/detail_carousel.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import 'entity_widgets.dart';
 import 'idea_detail_page.dart';
-import 'image_gallery_page.dart';
 import 'piece_form_page.dart';
 import 'piece_platform.dart';
 import 'piece_widgets.dart';
@@ -122,48 +121,12 @@ class PieceDetailPage extends ConsumerWidget {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
                   children: [
-                    if (v.images.isEmpty)
-                      AspectRatio(
-                        aspectRatio: 4 / 3,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: t.piece.bg,
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Center(
-                            child: SvgIcon(
-                              AppIcons.image,
-                              size: 46,
-                              strokeWidth: 1.4,
-                              color: t.ink.withValues(alpha: .22),
-                            ),
-                          ),
-                        ),
-                      ),
-                    for (var i = 0; i < v.images.length; i++)
-                      Padding(
-                        padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
-                        child: GestureDetector(
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => ImageGalleryPage(
-                                images: v.images,
-                                initialIndex: i,
-                              ),
-                            ),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
-                            child: AspectRatio(
-                              aspectRatio: v.images[i].aspect.clamp(0.5, 2.0),
-                              child: StoredImage(
-                                v.images[i].file,
-                                cacheWidth: 1000,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                    DetailCarousel(
+                      images: v.images,
+                      borderRadius: 18,
+                      emptyAspect: 4 / 3,
+                      emptyColor: t.piece.bg,
+                    ),
                     const SizedBox(height: 16),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.baseline,

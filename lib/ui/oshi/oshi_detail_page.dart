@@ -6,14 +6,13 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
-import '../album/album_image.dart';
 import '../common/app_icons.dart';
+import '../common/detail_carousel.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import '../common/timeline.dart';
 import '../entity/entity_widgets.dart';
-import '../entity/image_gallery_page.dart';
 import '../search/tagged_list.dart';
 import 'oshi_form_page.dart';
 import 'oshi_icons.dart';
@@ -102,58 +101,11 @@ class _OshiDetailPageState extends ConsumerState<OshiDetailPage>
                 child: ListView(
                   padding: const EdgeInsets.only(bottom: 24),
                   children: [
-                    AspectRatio(
-                      aspectRatio: 1,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          PageView.builder(
-                            controller: _controller,
-                            itemCount: n,
-                            onPageChanged: (i) => setState(() => _index = i),
-                            itemBuilder: (_, i) => GestureDetector(
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => ImageGalleryPage(
-                                    images: v.images,
-                                    initialIndex: i,
-                                  ),
-                                ),
-                              ),
-                              child: StoredImage(
-                                v.images[i].file,
-                                cacheWidth: 900,
-                              ),
-                            ),
-                          ),
-                          if (n > 1)
-                            Positioned(
-                              right: 12,
-                              bottom: 12,
-                              child: IgnorePointer(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 9,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF2B2622)
-                                        .withValues(alpha: 0.62),
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: Text(
-                                    '${index + 1} / $n',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                    DetailCarousel(
+                      images: v.images,
+                      controller: _controller,
+                      onPageChanged: (i) => setState(() => _index = i),
+                      cacheWidth: 900,
                     ),
                     if (n > 1)
                       Padding(

@@ -8,13 +8,13 @@ import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../album/album_image.dart';
 import '../common/app_icons.dart';
+import '../common/detail_carousel.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import 'connect_field.dart';
 import 'draft_form_page.dart';
 import 'entity_widgets.dart';
 import 'idea_detail_page.dart';
-import 'image_gallery_page.dart';
 import 'piece_detail_page.dart';
 
 /// 草稿詳情（沒有導覽列），三種情況（D-017）：
@@ -247,7 +247,7 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
   }
 }
 
-/// 大圖（3:4，可左右滑；點一下開全屏看圖）。多張時右上「1 / N」，下方縮圖列（目前這張描主色框）。
+/// 大圖（D-073：共用 [DetailCarousel]，框比例依最瘦長那張）。多張時下方縮圖列（目前這張描主色框）。
 class _ImageStage extends StatefulWidget {
   const _ImageStage({required this.images});
   final List<ImageRef> images;
@@ -266,73 +266,19 @@ class _ImageStageState extends State<_ImageStage> {
     super.dispose();
   }
 
-  void _openGallery() => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) =>
-          ImageGalleryPage(images: widget.images, initialIndex: _index),
-    ),
-  );
-
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final images = widget.images;
     final multi = images.length > 1;
-    // 平板上別讓 3:4 的大圖高過螢幕。
-    final maxH = MediaQuery.sizeOf(context).height * 0.62;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        LayoutBuilder(
-          builder: (_, c) {
-            final h = (c.maxWidth * 4 / 3).clamp(0.0, maxH);
-            return SizedBox(
-              height: h,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (images.isEmpty)
-                    const ImagePlaceholder(iconSize: 44)
-                  else
-                    PageView.builder(
-                      controller: _controller,
-                      itemCount: images.length,
-                      onPageChanged: (i) => setState(() => _index = i),
-                      itemBuilder: (_, i) => GestureDetector(
-                        onTap: _openGallery,
-                        child: StoredImage(images[i].file, cacheWidth: 1000),
-                      ),
-                    ),
-                  if (multi)
-                    Positioned(
-                      right: 12,
-                      top: 12,
-                      child: IgnorePointer(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2B2622)
-                                .withValues(alpha: 0.55),
-                            borderRadius: BorderRadius.circular(Radii.chip),
-                          ),
-                          child: Text(
-                            '${_index + 1} / ${images.length}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            );
-          },
+        DetailCarousel(
+          images: images,
+          controller: _controller,
+          onPageChanged: (i) => setState(() => _index = i),
+          emptyAspect: 3 / 4,
         ),
         if (multi)
           SizedBox(
