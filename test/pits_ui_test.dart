@@ -165,13 +165,12 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('D-058：點推活格進推活列表；推活格長按不開選擇封面', (tester) async {
+  testWidgets('D-058：點推活格進推活列表；推活格長按開選擇封面（推活格自己的封面）', (tester) async {
     await tester.runAsync(() => seedOshi(1));
     await pumpPitPage(tester, Brightness.light);
-    // 沒有長按處理：長按不會開選擇封面（放開時照一般點擊進推活）。
     await tester.longPress(find.text('推活'));
     await settle(tester);
-    expect(find.text('選擇封面'), findsNothing);
+    expect(find.text('長按中：推活 封面'), findsOneWidget);
     await unmount(tester);
 
     await pumpPitPage(tester, Brightness.light);

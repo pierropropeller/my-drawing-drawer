@@ -11,13 +11,14 @@ import '../common/svg_icon.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
 
-/// 選擇坑的封面（主頁坑卡片上的圖）：長按坑內頁的某一格進入，只列出該格內的圖，
-/// 點一下即設為封面，沒有選中狀態。
+/// 選擇封面：長按坑內頁的某一格進入（[kind] 非 null），只列出該格內的圖，點一下即設為「這一格」
+/// 的封面（`setCellCover`）；[kind] 為 null（編輯坑的「更換封面」）則設為坑的封面（`setCover`）。
+/// 沒有選中狀態。
 class CoverPickPage extends ConsumerStatefulWidget {
   const CoverPickPage({super.key, required this.pitId, this.kind});
   final String pitId;
 
-  /// `official`／`fan`／`draft`／`idea`／`piece`；null＝整個坑的圖都列出（編輯坑的「更換封面」）。
+  /// `official`／`fan`／`draft`／`idea`／`piece`／`oshi`；null＝整個坑的圖都列出（編輯坑的「更換封面」）。
   final String? kind;
 
   @override
@@ -34,14 +35,25 @@ class _CoverPickPageState extends ConsumerState<CoverPickPage>
     'draft' => l.pitsDrafts,
     'idea' => l.pitsIdeas,
     'piece' => l.pitsPieces,
+    'oshi' => l.pitsCellOshi,
     _ => null,
   };
 
   Future<void> _pick(CoverCandidate c) async {
-    await ref.read(databaseProvider).setCover(widget.pitId, c.id);
+    final db = ref.read(databaseProvider);
+    final kind = widget.kind;
+    final l = context.l10n;
+    final msg = kind == null
+        ? l.albumCoverSet
+        : l.pitcoverCellSet(_kindLabel(l, kind) ?? '');
+    if (kind == null) {
+      await db.setCover(widget.pitId, c.id);
+    } else {
+      await db.setCellCover(widget.pitId, kind, c.id);
+    }
     if (!mounted) return;
     Navigator.of(context).pop();
-    showSnack(context, context.l10n.albumCoverSet, success: true);
+    showSnack(context, msg, success: true);
   }
 
   @override

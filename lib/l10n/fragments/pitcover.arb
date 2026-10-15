@@ -1,0 +1,10 @@
+{
+  "pitcoverCellSet": "已設為「{label}」的封面",
+  "@pitcoverCellSet": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  }
+}
