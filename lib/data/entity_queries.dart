@@ -2,19 +2,62 @@ import 'package:drift/drift.dart';
 
 import 'album_queries.dart';
 import 'database.dart';
+import 'media.dart';
 import 'payment.dart';
 
 /// 腦洞狀態由關係推導，不儲存（HANDOFF 3.4）。
 enum IdeaStatus { open, hatching, hatched }
 
 class ImageRef {
-  const ImageRef(this.file, this.width, this.height);
+  const ImageRef(
+    this.file,
+    this.width,
+    this.height, {
+    this.kind = MediaKind.image,
+    this.durationMs,
+    this.poster,
+  });
   final String file;
   final int width;
   final int height;
 
+  /// 媒體種類（D-080）：圖片／GIF／影片。
+  final MediaKind kind;
+
+  /// 影片長度（毫秒）；只有影片。
+  final int? durationMs;
+
+  /// 影片第一格截圖的檔名；影片尚未產生截圖時為 null。
+  final String? poster;
+
   double get aspect => (width > 0 && height > 0) ? width / height : 1;
+
+  bool get isVideo => kind == MediaKind.video;
+  bool get isGif => kind == MediaKind.gif;
+
+  /// 需要靜態圖的地方（封面、縮圖）用的檔名：影片＝[poster]（可能是 null），其餘＝[file]。
+  String? get staticFile => staticFileOf(kind, file, poster);
+
+  /// 編輯表單把既有圖片原樣送回 `saveXxx` 用（保留媒體欄位）。
+  NewImage toNewImage() => NewImage(
+    file: file,
+    width: width,
+    height: height,
+    kind: kind,
+    durationMs: durationMs,
+    posterFile: poster,
+  );
 }
+
+/// 腦洞／草稿／成圖／推活的圖片列 → 視圖模型。
+ImageRef entityImageRef(EntityImage r) => ImageRef(
+  r.imageFile,
+  r.width,
+  r.height,
+  kind: r.kind,
+  durationMs: r.durationMs,
+  poster: r.posterFile,
+);
 
 class IdeaView {
   const IdeaView({
@@ -155,7 +198,7 @@ extension EntityQueries on AppDatabase {
               )
               ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
             .get();
-    return [for (final r in rows) ImageRef(r.imageFile, r.width, r.height)];
+    return [for (final r in rows) entityImageRef(r)];
   }
 
   /// 腦洞／草稿的日期（D-070）：
@@ -220,11 +263,23 @@ extension EntityQueries on AppDatabase {
     for (var i = 0; i < images.length; i++) {
       final old = keep[images[i].file];
       if (old != null) {
+        // 媒體欄位只在新資料有資訊時才覆寫：表單把舊圖原樣送回時（只帶檔名與寬高）
+        // 不會把影片洗回圖片，而同步進來的新截圖／長度仍能補上。
+        final n = images[i];
         await (update(entityImages)..where((e) => e.id.equals(old.id))).write(
           EntityImagesCompanion(
             sortOrder: Value(i),
-            width: Value(images[i].width),
-            height: Value(images[i].height),
+            width: Value(n.width),
+            height: Value(n.height),
+            kind: n.kind == MediaKind.image
+                ? const Value.absent()
+                : Value(n.kind),
+            durationMs: n.durationMs == null
+                ? const Value.absent()
+                : Value(n.durationMs),
+            posterFile: n.posterFile == null
+                ? const Value.absent()
+                : Value(n.posterFile),
           ),
         );
       } else {
@@ -235,6 +290,9 @@ extension EntityQueries on AppDatabase {
             imageFile: images[i].file,
             width: Value(images[i].width),
             height: Value(images[i].height),
+            kind: Value(images[i].kind),
+            durationMs: Value(images[i].durationMs),
+            posterFile: Value(images[i].posterFile),
             sortOrder: Value(i),
           ),
         );

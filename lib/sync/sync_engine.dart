@@ -315,18 +315,28 @@ class SyncEngine {
     final needed = <String>{};
     for (final r in await db.select(db.officialImages).get()) {
       needed.add(r.imageFile);
+      final poster = r.posterFile;
+      if (poster != null && poster.isNotEmpty) needed.add(poster);
     }
     for (final r in await db.select(db.fanArts).get()) {
       needed.add(r.imageFile);
+      final poster = r.posterFile;
+      if (poster != null && poster.isNotEmpty) needed.add(poster);
     }
     for (final r in await db.select(db.junkImages).get()) {
       needed.add(r.imageFile);
+      final poster = r.posterFile;
+      if (poster != null && poster.isNotEmpty) needed.add(poster);
     }
     for (final r in await db.select(db.materialImages).get()) {
       needed.add(r.imageFile);
+      final poster = r.posterFile;
+      if (poster != null && poster.isNotEmpty) needed.add(poster);
     }
     for (final r in await db.select(db.entityImages).get()) {
       needed.add(r.imageFile);
+      final poster = r.posterFile;
+      if (poster != null && poster.isNotEmpty) needed.add(poster);
     }
     for (final r in await db.select(db.yearReviewMonths).get()) {
       if (r.imageFile != null) needed.add(r.imageFile!);

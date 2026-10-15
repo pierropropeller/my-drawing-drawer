@@ -72,9 +72,7 @@ extension OshiQueries on AppDatabase {
             .get();
     return OshiRecordView(
       record: r,
-      images: [
-        for (final e in imageRows) ImageRef(e.imageFile, e.width, e.height),
-      ],
+      images: [for (final e in imageRows) entityImageRef(e)],
       tags: [for (final t in tagRows) t.readTable(tags)],
       group: group,
     );
@@ -236,6 +234,62 @@ extension OshiQueries on AppDatabase {
   Future<void> deleteOshiRecords(Iterable<String> ids) {
     final now = DateTime.now();
     return (update(oshiRecords)..where((o) => o.id.isIn(ids))).write(
+      OshiRecordsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
+  }
+
+  // ---- 多選批次操作（D-079）----
+
+  /// 多選的「分組」：把 [ids] 的推活紀錄一次移到 [groupId]（null＝不分組）。
+  ///
+  /// - [groupId] 必須是未刪除的推活分組（kind=oshi），且每一筆紀錄都在那個分組所屬的坑，
+  ///   否則丟 [ArgumentError] 並回滾（整批都不動）。
+  /// - 只有分組真的會改變的紀錄才更新 updatedAt（已經在目標分組的不動，避免無謂同步）；
+  ///   已刪除或不存在的 id 略過。分組隨紀錄文件同步，舊版 App 看得懂。
+  Future<void> setOshiGroupBatch(Iterable<String> ids, String? groupId) {
+    final list = ids.toSet().toList();
+    if (list.isEmpty) return Future.value();
+    return transaction(() async {
+      final rows = await (select(
+        oshiRecords,
+      )..where((o) => o.id.isIn(list) & o.deletedAt.isNull())).get();
+      if (rows.isEmpty) return;
+      if (groupId != null) {
+        final g =
+            await (select(officialGroups)..where(
+                  (x) =>
+                      x.id.equals(groupId) &
+                      x.kind.equals('oshi') &
+                      x.deletedAt.isNull(),
+                ))
+                .getSingleOrNull();
+        if (g == null || rows.any((r) => r.pitId != g.pitId)) {
+          throw ArgumentError.value(groupId, 'groupId', '不是這個坑的推活分組');
+        }
+      }
+      final changed = [
+        for (final r in rows)
+          if (r.groupId != groupId) r.id,
+      ];
+      if (changed.isEmpty) return;
+      await (update(oshiRecords)..where((o) => o.id.isIn(changed))).write(
+        OshiRecordsCompanion(
+          groupId: Value(groupId),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    });
+  }
+
+  /// 多選的「刪除」：軟刪除 [ids]（同 [deleteOshiRecords]，但略過已刪除的，不重複更新 updatedAt）。
+  /// 圖片列與 tag 關聯保留；若被刪的紀錄的圖是推活格的封面，封面讀取時自動退回最新一張。
+  Future<void> deleteOshiBatch(Iterable<String> ids) {
+    final list = ids.toSet().toList();
+    if (list.isEmpty) return Future.value();
+    final now = DateTime.now();
+    return (update(
+      oshiRecords,
+    )..where((o) => o.id.isIn(list) & o.deletedAt.isNull())).write(
       OshiRecordsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
     );
   }

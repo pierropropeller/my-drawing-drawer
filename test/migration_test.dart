@@ -374,6 +374,140 @@ void main() {
     await db.close();
     await dir.delete(recursive: true);
   });
+  // v9：坑內其餘四格的封面、所有放圖的表加媒體欄位（批次 10，D-080）。
+  for (var from = 1; from <= 5; from++) {
+    test('v$from → v9：新欄位有預設值、舊資料保留、格子封面與媒體 API 可用', () async {
+      final db = AppDatabase(
+        NativeDatabase.memory(setup: (raw) => _legacySchema(raw, from)),
+      );
+      final pit = await db.select(db.pits).getSingle();
+      expect(pit.draftCoverFile, isNull);
+      expect(pit.oshiCoverFile, isNull);
+      final o = await (db.select(
+        db.officialImages,
+      )..where((i) => i.id.equals('o1'))).getSingle();
+      expect(o.imageFile, 'o.png');
+      expect(
+        (o.kind, o.durationMs, o.posterFile),
+        (MediaKind.image, null, null),
+      );
+      for (final e in await db.select(db.entityImages).get()) {
+        expect(e.kind, MediaKind.image);
+      }
+      expect(await db.select(db.materialImages).get(), isEmpty);
+      // 新 API 可用
+      await db.addMaterials(MaterialCategory.pose, const [
+        NewImage(
+          file: 'v.mp4',
+          kind: MediaKind.video,
+          durationMs: 1500,
+          posterFile: 'v.jpg',
+        ),
+      ]);
+      final m = await db.select(db.materialImages).getSingle();
+      expect(
+        (m.kind, m.durationMs, m.posterFile),
+        (MediaKind.video, 1500, 'v.jpg'),
+      );
+      await db.setCellCover('p1', 'official', 'o1');
+      expect((await db.select(db.pits).getSingle()).officialCoverId, 'o1');
+      await db.close();
+    });
+  }
+
+  test('v8 → v9（用真實的 v8 結構：拆掉 v9 新欄位）：.gif 回填成 gif、其餘是 image、其他資料不動', () async {
+    final dir = await Directory.systemTemp.createTemp('mig_v8');
+    final file = File('${dir.path}/db.sqlite');
+    var db = AppDatabase(NativeDatabase(file));
+    final pitId = await db.createPit(name: '舊坑');
+    final groupId = (await db.watchGroups(pitId).first).first.id;
+    await db.addOfficial(pitId, groupId, const [
+      NewImage(file: 'a.png', width: 3, height: 4),
+      NewImage(file: 'b.GIF'),
+    ]);
+    await db.addFanArts(pitId, const [NewImage(file: 'f.gif')], author: '');
+    await db.addJunk(pitId, const [NewImage(file: 'j.jpg')]);
+    await db.addMaterials(MaterialCategory.sticker, const [
+      NewImage(file: 'm.gif'),
+    ]);
+    await db.saveIdea(
+      pitId: pitId,
+      title: '腦洞',
+      body: '',
+      images: const [
+        NewImage(file: 'i.gif'),
+        NewImage(file: 'i.png'),
+      ],
+      tagIds: const [],
+      draftIds: const [],
+      pieceIds: const [],
+    );
+    // 拆掉 v9 新增的欄位，還原成 v8 的結構。
+    for (final t in [
+      'official_images',
+      'fan_arts',
+      'junk_images',
+      'material_images',
+      'entity_images',
+    ]) {
+      for (final c in ['kind', 'duration_ms', 'poster_file']) {
+        await db.customStatement('ALTER TABLE $t DROP COLUMN $c');
+      }
+    }
+    for (final c in [
+      'draft_cover_file',
+      'idea_cover_file',
+      'piece_cover_file',
+      'oshi_cover_file',
+    ]) {
+      await db.customStatement('ALTER TABLE pits DROP COLUMN $c');
+    }
+    await db.customStatement('PRAGMA user_version = 8');
+    await db.close();
+
+    db = AppDatabase(NativeDatabase(file));
+    final kinds = {
+      for (final r in await db.select(db.officialImages).get())
+        r.imageFile: r.kind,
+    };
+    expect(kinds, {'a.png': MediaKind.image, 'b.GIF': MediaKind.gif});
+    expect((await db.select(db.fanArts).getSingle()).kind, MediaKind.gif);
+    expect((await db.select(db.junkImages).getSingle()).kind, MediaKind.image);
+    expect(
+      (await db.select(db.materialImages).getSingle()).kind,
+      MediaKind.gif,
+    );
+    final imgs = {
+      for (final r in await db.select(db.entityImages).get())
+        r.imageFile: r.kind,
+    };
+    expect(imgs, {'i.gif': MediaKind.gif, 'i.png': MediaKind.image});
+    // 其他資料不動
+    final a = (await db.select(db.officialImages).get()).firstWhere(
+      (r) => r.imageFile == 'a.png',
+    );
+    expect((a.width, a.height, a.posterFile, a.durationMs), (3, 4, null, null));
+    expect((await db.select(db.pits).getSingle()).draftCoverFile, isNull);
+    expect(
+      (await db.watchIdeaViews(pitId).first).single.images.first.isGif,
+      isTrue,
+    );
+    await db.close();
+    await dir.delete(recursive: true);
+  });
+
+  test('v9 遷移可以重複執行（欄位已存在）而不出錯', () async {
+    final dir = await Directory.systemTemp.createTemp('mig_v9_twice');
+    final file = File('${dir.path}/db.sqlite');
+    var db = AppDatabase(NativeDatabase(file));
+    final pitId = await db.createPit(name: '坑');
+    await db.customStatement('PRAGMA user_version = 8');
+    await db.close();
+    db = AppDatabase(NativeDatabase(file));
+    expect((await db.select(db.pits).getSingle()).id, pitId);
+    await db.close();
+    await dir.delete(recursive: true);
+  });
 }
 
 /// 建出第 [v] 版的舊資料庫結構並放入一筆種子資料。

@@ -15,6 +15,23 @@ mixin SyncColumns on Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 媒體種類（D-080，HANDOFF 3.13）。資料庫存的是名稱（`image`／`gif`／`video`）；新值只能加在最後。
+enum MediaKind { image, gif, video }
+
+/// 所有放圖的表共用的媒體欄位（D-080）：官方圖、同人圖、雜物、素材庫、腦洞／草稿／成圖／推活圖。
+/// 舊資料一律是 `image`（遷移時副檔名為 .gif 的回填成 `gif`），影片欄位為 null。
+mixin MediaColumns on Table {
+  TextColumn get kind =>
+      textEnum<MediaKind>().withDefault(const Constant('image'))();
+
+  /// 影片長度（毫秒）；只有影片有值，圖片與 GIF 為 null。
+  IntColumn get durationMs => integer().nullable()();
+
+  /// 影片第一格的截圖檔名（與 imageFile 同一個圖片資料夾，也同步）；
+  /// 影片剛匯入、尚未產生截圖時為 null。圖片與 GIF 不使用。
+  TextColumn get posterFile => text().nullable()();
+}
+
 enum GoalPeriod { year, month }
 
 enum GoalKind { idea, draft, piece }
@@ -35,6 +52,15 @@ class Pits extends Table with SyncColumns {
   /// 主頁坑卡片的封面是 [coverImageId]，由長按坑內頁的格子選擇。
   TextColumn get officialCoverId => text().nullable()();
   TextColumn get fanArtCoverId => text().nullable()();
+
+  /// 坑內頁其餘四格（草稿／腦洞／成圖／推活）各自的封面（批次 10）。
+  /// 存的是**圖片檔名**而不是圖片列 id：這幾種圖片列的 id 是各裝置自己產生的，不會同步，
+  /// 檔名則是跨裝置穩定的。長按該格的「選擇封面」設的是這裡；
+  /// 官方圖冊／好看同人圖兩格沿用上面兩個以圖片列 id 為準的欄位。
+  TextColumn get draftCoverFile => text().nullable()();
+  TextColumn get ideaCoverFile => text().nullable()();
+  TextColumn get pieceCoverFile => text().nullable()();
+  TextColumn get oshiCoverFile => text().nullable()();
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
 
   /// 編輯坑的「雜物」開關；開啟後坑內頁最底才出現雜物入口（D-034）。
@@ -50,7 +76,7 @@ class OfficialGroups extends Table with SyncColumns {
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }
 
-class OfficialImages extends Table with SyncColumns {
+class OfficialImages extends Table with SyncColumns, MediaColumns {
   TextColumn get pitId => text()();
   TextColumn get groupId => text()();
   TextColumn get imageFile => text()();
@@ -65,7 +91,7 @@ class OfficialImages extends Table with SyncColumns {
   BoolColumn get hidden => boolean().withDefault(const Constant(false))();
 }
 
-class FanArts extends Table with SyncColumns {
+class FanArts extends Table with SyncColumns, MediaColumns {
   TextColumn get pitId => text()();
   TextColumn get imageFile => text()();
   IntColumn get width => integer().withDefault(const Constant(0))();
@@ -85,7 +111,7 @@ class FanArts extends Table with SyncColumns {
 }
 
 /// 雜物（D-034）：純圖，不計入目標、不出現在時間軸、不能當封面、不參與搜尋。
-class JunkImages extends Table with SyncColumns {
+class JunkImages extends Table with SyncColumns, MediaColumns {
   TextColumn get pitId => text()();
   TextColumn get imageFile => text()();
   IntColumn get width => integer().withDefault(const Constant(0))();
@@ -105,7 +131,7 @@ enum MaterialCategory { clothing, pose, body, palette, scene, style, sticker }
 
 /// 素材庫（D-071，HANDOFF 3.12）：畫畫參考圖，不屬於任何坑，只有圖與分類，沒有任何文字欄位。
 /// 不計入目標、時間軸、搜尋、封面與坑統計。排序依 [createdAt]，新的在前。
-class MaterialImages extends Table with SyncColumns {
+class MaterialImages extends Table with SyncColumns, MediaColumns {
   TextColumn get imageFile => text()();
   IntColumn get width => integer().withDefault(const Constant(0))();
   IntColumn get height => integer().withDefault(const Constant(0))();
@@ -172,7 +198,7 @@ class OshiRecords extends Table with SyncColumns {
 }
 
 /// 腦洞／草稿／成圖／推活的多張圖片。
-class EntityImages extends Table with SyncColumns {
+class EntityImages extends Table with SyncColumns, MediaColumns {
   TextColumn get ownerType => textEnum<OwnerType>()();
   TextColumn get ownerId => text()();
   TextColumn get imageFile => text()();

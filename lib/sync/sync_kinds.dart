@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../data/album_queries.dart';
 import '../data/database.dart';
 import '../data/entity_queries.dart';
+import '../data/media.dart';
 
 /// 一種可同步的實體。每筆實體序列化成一份 JSON 文件；
 /// 連接關係、tag、圖片清單等「附屬資料」跟著擁有它的實體文件一起走：
@@ -61,12 +62,38 @@ Map<String, dynamic> withDefaults(
   return out;
 }
 
+/// 媒體欄位（D-080）的相容處理：
+/// - 舊版 App 的文件沒有 `kind`：依檔名副檔名推（.gif／影片副檔名），其餘＝圖片；
+/// - 較新版 App 的不認得種類（例如日後多了 audio）：同樣當作依副檔名推的結果，不丟例外；
+/// - `durationMs`／`posterFile` 缺 key＝null（drift 的 fromJson 對可空欄位缺 key 本來就給 null）。
+Map<String, dynamic> withMediaDefaults(
+  Map<String, dynamic> data, {
+  String fileKey = 'imageFile',
+}) {
+  final out = Map<String, dynamic>.of(data);
+  final raw = out['kind'];
+  if (!MediaKind.values.any((k) => k.name == raw)) {
+    out['kind'] = mediaKindFromExtension((out[fileKey] as String?) ?? '').name;
+  }
+  return out;
+}
+
+/// 文件引用到的媒體檔：原檔加影片截圖（有才算）。
+Set<String> _mediaFiles(Map<String, dynamic> data) => {
+  data['imageFile'] as String,
+  if ((data['posterFile'] as String?)?.isNotEmpty ?? false)
+    data['posterFile'] as String,
+};
+
 const _albumImageDefaults = <String, Object?>{'hidden': false};
 
-Map<String, dynamic> _albumImageJson(Map<String, dynamic> data) => withDefaults(
-  data,
-  {..._albumImageDefaults, 'imageKey': (Map<String, dynamic> d) => d['id']},
-);
+Map<String, dynamic> _albumImageJson(Map<String, dynamic> data) =>
+    withMediaDefaults(
+      withDefaults(data, {
+        ..._albumImageDefaults,
+        'imageKey': (Map<String, dynamic> d) => d['id'],
+      }),
+    );
 
 Future<List<String>> _tagIdsOf(
   AppDatabase db,
@@ -90,7 +117,14 @@ Future<List<Map<String, dynamic>>> _imagesOf(
             ..where((e) => e.ownerType.equalsValue(type) & e.ownerId.equals(id))
             ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
           .get())
-    {'file': r.imageFile, 'width': r.width, 'height': r.height},
+    {
+      'file': r.imageFile,
+      'width': r.width,
+      'height': r.height,
+      'kind': r.kind.name,
+      'durationMs': r.durationMs,
+      'posterFile': r.posterFile,
+    },
 ];
 
 List<NewImage> _newImages(Object? raw) => [
@@ -99,12 +133,23 @@ List<NewImage> _newImages(Object? raw) => [
       file: (m as Map<String, dynamic>)['file'] as String,
       width: m['width'] as int? ?? 0,
       height: m['height'] as int? ?? 0,
+      // 舊版文件沒有 kind：依副檔名推。
+      kind:
+          m['kind'] is String &&
+              MediaKind.values.any((k) => k.name == m['kind'])
+          ? MediaKindX.parse(m['kind'] as String)
+          : mediaKindFromExtension(m['file'] as String),
+      durationMs: m['durationMs'] as int?,
+      posterFile: m['posterFile'] as String?,
     ),
 ];
 
 Set<String> _entityImageFiles(Map<String, dynamic> data) => {
-  for (final m in (data['images'] as List<dynamic>? ?? const []))
+  for (final m in (data['images'] as List<dynamic>? ?? const [])) ...{
     (m as Map<String, dynamic>)['file'] as String,
+    if ((m['posterFile'] as String?)?.isNotEmpty ?? false)
+      m['posterFile'] as String,
+  },
 };
 
 class PitsKind extends SyncKind {
@@ -178,9 +223,7 @@ class OfficialKind extends SyncKind {
   }
 
   @override
-  Set<String> imageFiles(Map<String, dynamic> data) => {
-    data['imageFile'] as String,
-  };
+  Set<String> imageFiles(Map<String, dynamic> data) => _mediaFiles(data);
 }
 
 class FanArtKind extends SyncKind {
@@ -209,9 +252,7 @@ class FanArtKind extends SyncKind {
   }
 
   @override
-  Set<String> imageFiles(Map<String, dynamic> data) => {
-    data['imageFile'] as String,
-  };
+  Set<String> imageFiles(Map<String, dynamic> data) => _mediaFiles(data);
 }
 
 /// 雜物（D-034）。
@@ -234,9 +275,7 @@ class JunkKind extends SyncKind {
       .into(db.junkImages)
       .upsertFull(JunkImage.fromJson(_albumImageJson(data)));
   @override
-  Set<String> imageFiles(Map<String, dynamic> data) => {
-    data['imageFile'] as String,
-  };
+  Set<String> imageFiles(Map<String, dynamic> data) => _mediaFiles(data);
 }
 
 /// 素材庫（D-071）：一張圖一份文件；沒有 tag、沒有關聯。
@@ -264,14 +303,14 @@ class MaterialKind extends SyncKind {
     await db
         .into(db.materialImages)
         .upsertFull(
-          MaterialImage.fromJson(withDefaults(data, {'width': 0, 'height': 0})),
+          MaterialImage.fromJson(
+            withMediaDefaults(withDefaults(data, {'width': 0, 'height': 0})),
+          ),
         );
   }
 
   @override
-  Set<String> imageFiles(Map<String, dynamic> data) => {
-    data['imageFile'] as String,
-  };
+  Set<String> imageFiles(Map<String, dynamic> data) => _mediaFiles(data);
 }
 
 class TagsKind extends SyncKind {
