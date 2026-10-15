@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:exif/exif.dart';
 
+import '../../data/media.dart';
+
 /// 只留年月日。
 DateTime oshiDateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
@@ -48,7 +50,10 @@ Future<DateTime> guessOshiDate(String path, {DateTime? now}) async {
   DateTime? modified;
   try {
     final f = File(path);
-    exifAt = await exifDateTimeOriginal(await f.readAsBytes());
+    // 影片（D-080）不讀進記憶體找 EXIF，直接用檔案修改時間。
+    if (mediaKindFromExtension(path) != MediaKind.video) {
+      exifAt = await exifDateTimeOriginal(await f.readAsBytes());
+    }
     if (exifAt == null) modified = await f.lastModified();
   } catch (_) {
     // 檔案讀不到：用今天。
