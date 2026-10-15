@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../data/album_queries.dart';
 import '../../data/entity_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
@@ -65,13 +64,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
       if (v != null) {
         _title.text = v.draft.title ?? '';
         _body.text = v.draft.body ?? '';
-        _images.addAll(
-          v.images.map(
-            (e) => ImageItem.stored(
-              NewImage(file: e.file, width: e.width, height: e.height),
-            ),
-          ),
-        );
+        _images.addAll(v.images.map((e) => ImageItem.stored(e.toNewImage())));
         _tagIds = v.tags.map((e) => e.id).toList();
         _ideaIds = v.ideaIds;
         _pieceIds = v.pieceIds;

@@ -127,7 +127,8 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
           : context.l10n.albumTitleWithPit(pitName, context.l10n.pitsFanArt),
       counter: '${_index + 1} / ${_items.length}',
       controller: _controller,
-      files: [for (final i in _items) i.file],
+      media: [for (final i in _items) i.media],
+      currentIndex: _index,
       onPageChanged: (i) => setState(() => _index = i),
       info: Padding(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 14),

@@ -53,6 +53,9 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
         file: row.imageFile,
         width: row.width,
         height: row.height,
+        kind: row.kind,
+        durationMs: row.durationMs,
+        posterFile: row.posterFile,
       );
       _loaded = true;
     });

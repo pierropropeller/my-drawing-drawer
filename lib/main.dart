@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'share/share_inbox.dart';
+import 'state/providers.dart';
 import 'state/settings.dart';
 import 'theme/app_theme.dart';
 import 'ui/common/root_overlay_guard.dart';
@@ -17,9 +18,22 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
-      child: const HuaKengApp(),
+      child: const _PosterFixerHost(child: HuaKengApp()),
     ),
   );
+}
+
+/// 補影片截圖（D-080）：另一台裝置匯入的影片在本機還沒有 poster，啟動後與同步下載完成後在背景補。
+/// 放在 [main] 而不是 [HuaKengApp] 裡，是為了不影響直接 pump [HuaKengApp] 的測試（它們沒有圖庫）。
+class _PosterFixerHost extends ConsumerWidget {
+  const _PosterFixerHost({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(posterFixerProvider);
+    return child;
+  }
 }
 
 const appLocale = Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');

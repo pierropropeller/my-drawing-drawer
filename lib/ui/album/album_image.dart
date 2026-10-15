@@ -3,10 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/media.dart';
 import '../../state/providers.dart';
 import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
+import '../common/gif_image.dart';
+import '../common/media_source.dart';
 import '../common/svg_icon.dart';
 import '../sync/download_badge.dart';
 
@@ -24,6 +27,9 @@ class AlbumImage {
     this.groupName,
     this.groupId,
     this.createdAt,
+    this.mediaKind = MediaKind.image,
+    this.durationMs,
+    this.posterFile,
   });
 
   final String id;
@@ -42,6 +48,24 @@ class AlbumImage {
   /// 加入時間（預覽頁顯示「2026 / 09 / 21 加入」）。
   final DateTime? createdAt;
 
+  /// 媒體種類與影片資料（D-080，資料列的 `kind`／`durationMs`／`posterFile`）；預設是圖片。
+  /// 建構時**一定要帶**，否則影片會被當成圖片（列表、預覽、下載都靠它）。
+  final MediaKind mediaKind;
+  final int? durationMs;
+  final String? posterFile;
+
+  MediaSource get media => MediaSource(
+    file: file,
+    // 呼叫端漏帶 mediaKind 時，退而依副檔名判斷（.gif／影片副檔名），免得影片被當成圖片。
+    kind: mediaKind != MediaKind.image
+        ? mediaKind
+        : mediaKindFromExtension(file),
+    durationMs: durationMs,
+    poster: posterFile,
+    width: width,
+    height: height,
+  );
+
   bool get hasCaption =>
       (author ?? '').isNotEmpty || (groupName ?? '').isNotEmpty;
 
@@ -53,6 +77,10 @@ class AlbumImage {
 /// 本機還沒有這張圖（同步還沒下載完，D-052）時：底色佔位＋35% 淡色＋右下角下載角標
 /// （有進度＝確定進度環，排隊中＝轉圈）；下載完成自動換成圖片。蓋層不攔截點擊。
 /// 頭像這類不該出現角標的地方傳 [showDownloadBadge] = false。
+///
+/// GIF（D-080，副檔名 `.gif` 或 [isGif]）：預設 [animate] = false，只畫**第一格靜態圖**
+/// （封面、年度回顧、月曆格、表單縮圖都是這個）；要動的地方傳 `animate: true`，
+/// 此時只在畫面上才播（見 [GifImage]）。影片不要直接傳影片檔，請用 `media_widgets.dart` 的元件。
 class StoredImage extends ConsumerWidget {
   const StoredImage(
     this.file, {
@@ -61,9 +89,17 @@ class StoredImage extends ConsumerWidget {
     this.fit = BoxFit.cover,
     this.placeholderColor,
     this.showDownloadBadge = true,
+    this.animate = false,
+    this.isGif,
   });
 
   final String file;
+
+  /// GIF 要不要動（只對 GIF 有意義）。
+  final bool animate;
+
+  /// 明確指定是不是 GIF；null＝看副檔名。
+  final bool? isGif;
   final int? cacheWidth;
   final BoxFit fit;
 
@@ -85,14 +121,35 @@ class StoredImage extends ConsumerWidget {
         progress: status.progress,
       );
     }
+    Widget broken(BuildContext _, Object _, StackTrace? _) => ColoredBox(
+      color: t.chipBg,
+      child: Icon(Icons.broken_image_outlined, color: t.text4),
+    );
+    final gif = isGif ?? file.toLowerCase().endsWith('.gif');
+    if (gif) {
+      final f = store.fileOf(file);
+      return animate
+          ? GifImage(
+              file: f,
+              fit: fit,
+              cacheWidth: cacheWidth,
+              errorBuilder: broken,
+            )
+          : FirstFrameImage(
+              provider: ResizeImage.resizeIfNeeded(
+                cacheWidth,
+                null,
+                FileImage(f),
+              ),
+              fit: fit,
+              errorBuilder: broken,
+            );
+    }
     return Image.file(
       store.fileOf(file),
       fit: fit,
       cacheWidth: cacheWidth,
-      errorBuilder: (_, _, _) => ColoredBox(
-        color: t.chipBg,
-        child: Icon(Icons.broken_image_outlined, color: t.text4),
-      ),
+      errorBuilder: broken,
     );
   }
 }

@@ -1,6 +1,8 @@
 package io.molly.drawer
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -9,12 +11,13 @@ import android.webkit.MimeTypeMap
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
 
 /**
- * 從其他 App 分享圖片進來（D-053）。
+ * 從其他 App 分享圖片、GIF、影片進來（D-053、D-080）。
  *
  * 收到 ACTION_SEND / ACTION_SEND_MULTIPLE 後，把每個 content URI 複製進
  * `cacheDir/share_import/`（不保留外部 URI），再把檔案路徑交給 Dart：
@@ -23,6 +26,7 @@ import java.util.UUID
  */
 class MainActivity : FlutterActivity() {
     private var channel: MethodChannel? = null
+    private var mediaChannel: MethodChannel? = null
 
     // Dart 端是否已呼叫過 getInitialShare（之後的分享改用 onShare 推送）。
     private var dartReady = false
@@ -75,16 +79,120 @@ class MainActivity : FlutterActivity() {
             }
         }
         channel = ch
+
+        // 影片探測（D-080）：寬高、長度、第一格截圖，Dart 端見 lib/media/video_probe.dart。
+        val media = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            MEDIA_CHANNEL,
+        )
+        media.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "probeVideo" -> {
+                    val path = call.argument<String>("path")
+                    val maxSide = call.argument<Int>("maxSide") ?: 720
+                    if (path == null) {
+                        result.success(null)
+                    } else {
+                        // 解碼第一格可能要幾百毫秒，不卡 UI thread。
+                        Thread {
+                            val out = probeVideo(path, maxSide)
+                            runOnUiThread { result.success(out) }
+                        }.start()
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+        mediaChannel = media
+    }
+
+    /** 讀影片的寬高（套用旋轉）、長度與第一格 JPEG 截圖；失敗回 null。 */
+    private fun probeVideo(path: String, maxSide: Int): Map<String, Any?>? {
+        val mmr = MediaMetadataRetriever()
+        try {
+            mmr.setDataSource(path)
+            var w = mmr.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH,
+            )?.toIntOrNull() ?: 0
+            var h = mmr.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT,
+            )?.toIntOrNull() ?: 0
+            val rotation = mmr.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION,
+            )?.toIntOrNull() ?: 0
+            if (rotation == 90 || rotation == 270) {
+                val t = w
+                w = h
+                h = t
+            }
+            val duration = mmr.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_DURATION,
+            )?.toLongOrNull()
+            var bitmap: Bitmap? = null
+            try {
+                bitmap = if (Build.VERSION.SDK_INT >= 27 && w > 0 && h > 0) {
+                    val scale = minOf(1.0, maxSide.toDouble() / maxOf(w, h))
+                    mmr.getScaledFrameAtTime(
+                        0,
+                        MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+                        maxOf(1, Math.round(w * scale).toInt()),
+                        maxOf(1, Math.round(h * scale).toInt()),
+                    )
+                } else {
+                    mmr.getFrameAtTime(
+                        0,
+                        MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+                    )
+                }
+            } catch (_: Exception) {
+                // 取不到畫面就只回傳寬高與長度，之後再補截圖。
+            }
+            var poster: ByteArray? = null
+            if (bitmap != null) {
+                if (w == 0 || h == 0) {
+                    w = bitmap.width
+                    h = bitmap.height
+                }
+                val longest = maxOf(bitmap.width, bitmap.height)
+                if (longest > maxSide) {
+                    val s = maxSide.toDouble() / longest
+                    bitmap = Bitmap.createScaledBitmap(
+                        bitmap,
+                        maxOf(1, Math.round(bitmap.width * s).toInt()),
+                        maxOf(1, Math.round(bitmap.height * s).toInt()),
+                        true,
+                    )
+                }
+                val bytes = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, bytes)
+                poster = bytes.toByteArray()
+            }
+            return mapOf(
+                "width" to w,
+                "height" to h,
+                "durationMs" to duration?.toInt(),
+                "poster" to poster,
+            )
+        } catch (_: Exception) {
+            return null
+        } finally {
+            try {
+                mmr.release()
+            } catch (_: Exception) {
+            }
+        }
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
         channel?.setMethodCallHandler(null)
         channel = null
+        mediaChannel?.setMethodCallHandler(null)
+        mediaChannel = null
         dartReady = false
         super.cleanUpFlutterEngine(flutterEngine)
     }
 
-    /** 解析 intent；是圖片分享就在背景複製，完成後交給 Dart。處理過的 intent 會被清掉。 */
+    /** 解析 intent；是圖片／GIF／影片分享就在背景複製，完成後交給 Dart。處理過的 intent 會被清掉。 */
     private fun handleShareIntent(source: Intent?) {
         if (source == null) return
         val action = source.action
@@ -187,7 +295,7 @@ class MainActivity : FlutterActivity() {
         return out
     }
 
-    /** 由 MIME 或檔名推副檔名，都失敗就用 jpg。 */
+    /** 由 MIME 或檔名推副檔名（image/gif→gif、video/mp4→mp4…），都失敗就用 jpg。 */
     private fun extensionOf(uri: Uri): String {
         try {
             val mime = contentResolver.getType(uri)
@@ -226,5 +334,6 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val CHANNEL = "io.molly.drawer/share"
+        private const val MEDIA_CHANNEL = "io.molly.drawer/media"
     }
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../data/album_queries.dart';
 import '../../data/entity_queries.dart';
 import '../../data/payment.dart';
 import '../../l10n/l10n.dart';
@@ -122,13 +121,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
             : '';
         _currency = p.currency.isEmpty ? _currency : p.currency;
         _dueAt = p.dueAt;
-        _images.addAll(
-          v.images.map(
-            (e) => ImageItem.stored(
-              NewImage(file: e.file, width: e.width, height: e.height),
-            ),
-          ),
-        );
+        _images.addAll(v.images.map((e) => ImageItem.stored(e.toNewImage())));
         _links.addAll(v.links.map((l) => _LinkRow(l.url, l.platform)));
         _tagIds = v.tags.map((e) => e.id).toList();
         _ideaIds = v.ideaIds;

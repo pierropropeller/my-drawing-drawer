@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../data/entity_queries.dart';
 import '../../theme/tokens.dart';
-import '../album/album_image.dart';
 import '../entity/image_gallery_page.dart';
 import 'app_icons.dart';
+import 'media_widgets.dart';
 import 'svg_icon.dart';
 
 /// 詳情頁圖片框比例的上下限（D-073）：最扁 1.91:1（寬:高），最高 3:4。
@@ -68,9 +68,13 @@ class _DetailCarouselState extends State<DetailCarousel> {
     super.dispose();
   }
 
-  void _open(int i) => Navigator.of(context).push(
+  void _open(int i, {VideoStart? start}) => Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => ImageGalleryPage(images: widget.images, initialIndex: i),
+      builder: (_) => ImageGalleryPage(
+        images: widget.images,
+        initialIndex: i,
+        videoStart: start,
+      ),
     ),
   );
 
@@ -115,15 +119,31 @@ class _DetailCarouselState extends State<DetailCarousel> {
                         setState(() => _index = i);
                         widget.onPageChanged?.call(i);
                       },
-                      itemBuilder: (_, i) => GestureDetector(
-                        onTap: () => _open(i),
-                        child: StoredImage(
-                          images[i].file,
-                          fit: BoxFit.contain,
-                          cacheWidth: widget.cacheWidth,
-                          placeholderColor: letterbox,
-                        ),
-                      ),
+                      itemBuilder: (_, i) {
+                        final media = MediaSource.fromImageRef(images[i]);
+                        // 影片（D-080）：點一下是播放，不開全螢幕；全螢幕鍵才開預覽頁並接續播放。
+                        // 換頁（_index 變了）自動暫停。GIF 直接循環播放、不顯示標記。
+                        if (media.isVideo) {
+                          return MediaViewer(
+                            media,
+                            active: i == _index,
+                            placeholderColor: letterbox,
+                            onFullscreen: (pos, playing) => _open(
+                              i,
+                              start: VideoStart(pos, autoPlay: playing),
+                            ),
+                          );
+                        }
+                        return GestureDetector(
+                          onTap: () => _open(i),
+                          child: MediaViewer(
+                            media,
+                            active: i == _index,
+                            cacheWidth: widget.cacheWidth,
+                            placeholderColor: letterbox,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 if (multi)

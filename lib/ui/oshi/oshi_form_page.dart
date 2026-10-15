@@ -74,13 +74,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage>
       if (v != null) {
         _title.text = v.record.title ?? '';
         _desc.text = v.record.description ?? '';
-        _images.addAll(
-          v.images.map(
-            (e) => ImageItem.stored(
-              NewImage(file: e.file, width: e.width, height: e.height),
-            ),
-          ),
-        );
+        _images.addAll(v.images.map((e) => ImageItem.stored(e.toNewImage())));
         _tagIds = v.tags.map((e) => e.id).toList();
         _groupId = v.record.groupId;
         _date = oshiDateOnly(v.record.date);

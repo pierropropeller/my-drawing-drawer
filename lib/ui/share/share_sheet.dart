@@ -3,15 +3,18 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart' show XFile;
 
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
+import '../../data/media.dart';
 import '../../l10n/l10n.dart';
 import '../../state/settings.dart' show sharedPrefsProvider;
 import '../../share/share_inbox.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
+import '../album/image_picker_field.dart' show ImageItem, ImageItemThumb;
 import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
 import '../entity/entity_widgets.dart';
@@ -689,22 +692,29 @@ class _Thumbs extends StatelessWidget {
             child: SizedBox(
               width: 60,
               height: 60,
-              child: Image.file(
-                File(paths[i]),
-                key: ValueKey('shareThumb$i'),
-                fit: BoxFit.cover,
-                cacheWidth: 180,
-                errorBuilder: (_, _, _) => Container(
-                  color: t.chipBg,
-                  alignment: Alignment.center,
-                  child: SvgIcon(
-                    ShareIcons.img,
-                    size: 18,
-                    color: t.text4,
-                    strokeWidth: 1.5,
-                  ),
-                ),
-              ),
+              // GIF／影片（D-080）：靜態第一格＋小標；圖片維持原樣。
+              child: mediaKindFromExtension(paths[i]) != MediaKind.image
+                  ? ImageItemThumb(
+                      ImageItem.picked(XFile(paths[i])),
+                      key: ValueKey('shareThumb$i'),
+                      cacheWidth: 180,
+                    )
+                  : Image.file(
+                      File(paths[i]),
+                      key: ValueKey('shareThumb$i'),
+                      fit: BoxFit.cover,
+                      cacheWidth: 180,
+                      errorBuilder: (_, _, _) => Container(
+                        color: t.chipBg,
+                        alignment: Alignment.center,
+                        child: SvgIcon(
+                          ShareIcons.img,
+                          size: 18,
+                          color: t.text4,
+                          strokeWidth: 1.5,
+                        ),
+                      ),
+                    ),
             ),
           ),
         ),
