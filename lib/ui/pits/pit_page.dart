@@ -179,20 +179,6 @@ class PitPage extends ConsumerWidget {
                           children: [
                             Expanded(
                               child: _Cell(
-                                context.l10n.pitsDrafts,
-                                AppIcons.edit,
-                                t.draft,
-                                context.l10n.pitsCountDrafts(stats.drafts),
-                                side: side,
-                                file: covers.draft,
-                                onTap: () =>
-                                    _open(context, DraftListPage(pitId: pitId)),
-                                onLongPress: longPress(stats.drafts, 'draft'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _Cell(
                                 context.l10n.pitsIdeas,
                                 AppIcons.pitIdea,
                                 t.idea,
@@ -202,6 +188,20 @@ class PitPage extends ConsumerWidget {
                                 onTap: () =>
                                     _open(context, IdeaListPage(pitId: pitId)),
                                 onLongPress: longPress(stats.ideas, 'idea'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _Cell(
+                                context.l10n.pitsDrafts,
+                                AppIcons.edit,
+                                t.draft,
+                                context.l10n.pitsCountDrafts(stats.drafts),
+                                side: side,
+                                file: covers.draft,
+                                onTap: () =>
+                                    _open(context, DraftListPage(pitId: pitId)),
+                                onLongPress: longPress(stats.drafts, 'draft'),
                               ),
                             ),
                           ],

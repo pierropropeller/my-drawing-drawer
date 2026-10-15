@@ -123,10 +123,11 @@ void main() {
     expect(d.dy, i.dy);
     expect(p.dy, h.dy);
     expect(o.dy < d.dy && d.dy < p.dy, isTrue);
-    expect(o.dx, d.dx);
-    expect(d.dx, p.dx);
-    expect(f.dx, i.dx);
-    expect(i.dx, h.dx);
+    // D-074：第二列腦洞在左、草稿在右。
+    expect(o.dx, i.dx);
+    expect(i.dx, p.dx);
+    expect(f.dx, d.dx);
+    expect(d.dx, h.dx);
     expect(o.dx < f.dx, isTrue);
     // 列距相同＝格子是正方形（寬格已不存在）。
     expect((d.dy - o.dy), closeTo(p.dy - d.dy, 0.01));

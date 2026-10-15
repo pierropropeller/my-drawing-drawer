@@ -11,6 +11,7 @@ import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/state/providers.dart';
+import 'package:huakeng/ui/album/album_image.dart';
 import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/entity/connect_field.dart';
@@ -622,7 +623,7 @@ void main() {
   });
 
   group('tag 顯示規則與篩選（D-043）', () {
-    testWidgets('腦洞卡片顯示 tag，草稿卡片不顯示', (tester) async {
+    testWidgets('腦洞卡片與草稿卡片都顯示 tag（D-083 統一框架）', (tester) async {
       await newIdea('有 tag 的腦洞', tagIds: [tagA]);
       await newDraft(title: '有 tag 的草稿', tagIds: [tagA]);
       await show(tester, IdeaListPage(pitId: pitId));
@@ -631,7 +632,7 @@ void main() {
 
       await show(tester, DraftListPage(pitId: pitId));
       expect(find.text('有 tag 的草稿'), findsOneWidget);
-      expect(find.text('#角色1'), findsNothing);
+      expect(find.text('#角色1'), findsOneWidget);
       await unmount(tester);
     });
 
@@ -676,6 +677,88 @@ void main() {
       await tester.tap(find.bySemanticsLabel('九宮格'));
       await settle(tester);
       expect(find.text('3'), findsWidgets); // 多圖格右下角張數
+      expect(tester.takeException(), isNull);
+      await unmount(tester);
+    });
+
+    // D-083：版面只看內文；標題／關聯成圖標記／tag／關聯腦洞共用同一個框架。
+    Finder tiles() => find.descendant(
+      of: find.byType(DraftListCard),
+      matching: find.byType(StoredImage),
+    );
+
+    testWidgets('D-083：有內文＝小圖版（64px，最多 4 張，第 4 張 +N）', (tester) async {
+      await newDraft(body: '內文', images: 5);
+      await show(tester, DraftListPage(pitId: pitId));
+      expect(find.text('內文'), findsOneWidget);
+      expect(tiles(), findsNWidgets(4));
+      expect(find.text('+1'), findsOneWidget);
+      expect(tester.getSize(tiles().first), const Size(64, 64));
+      await unmount(tester);
+    });
+
+    testWidgets('D-083：沒有內文＝大圖版，不管有沒有標題／tag', (tester) async {
+      await newDraft(title: '有標題有 tag', images: 1, tagIds: [tagA]);
+      await show(tester, DraftListPage(pitId: pitId));
+      expect(tiles(), findsOneWidget);
+      expect(tester.getSize(tiles().first).height, 140);
+      expect(find.text('有標題有 tag'), findsOneWidget);
+      expect(find.text('#角色1'), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('D-083：大圖版 2 張靠左留空、3 張一排、5 張第三格 +2', (tester) async {
+      await newDraft(images: 2);
+      await show(tester, DraftListPage(pitId: pitId));
+      expect(tiles(), findsNWidgets(2));
+      final a = tester.getRect(tiles().at(0));
+      final b = tester.getRect(tiles().at(1));
+      expect(a.width, closeTo(a.height, 0.01));
+      expect(b.left - a.right, closeTo(4, 0.01));
+      final card = tester.getRect(find.byType(DraftListCard));
+      expect(b.right, lessThan(card.right - a.width / 2)); // 第三格留空
+      await unmount(tester);
+
+      await newDraft(images: 3);
+      await show(tester, DraftListPage(pitId: pitId));
+      expect(find.text('+0'), findsNothing);
+      expect(find.textContaining('+'), findsNothing);
+      await unmount(tester);
+
+      await newDraft(images: 5);
+      await show(tester, DraftListPage(pitId: pitId));
+      expect(find.text('+2'), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('D-083：右上「已孵 N 成圖」同腦洞卡；沒有標題也沒有標記時整行不顯示', (tester) async {
+      final pieceId = await newPiece('成圖甲');
+      await db.saveDraft(
+        pitId: pitId,
+        title: '有成圖',
+        images: const [NewImage(file: 'a.png')],
+        tagIds: const [],
+        ideaIds: const [],
+        pieceIds: [pieceId],
+      );
+      await db.saveDraft(
+        pitId: pitId,
+        images: const [NewImage(file: 'a.png')],
+        tagIds: const [],
+        ideaIds: const [],
+        pieceIds: [pieceId],
+      ); // 無標題但有標記：仍有頂行
+      await newDraft(images: 1); // 都沒有
+      await show(tester, DraftListPage(pitId: pitId));
+      expect(find.text('已孵 1 成圖'), findsNWidgets(2));
+      // 沒標題沒標記的卡片（頂行不顯示）比另外兩張矮。
+      final hs = [
+        for (var i = 0; i < 3; i++)
+          tester.getSize(find.byType(DraftListCard).at(i)).height,
+      ];
+      final shortest = hs.reduce((a, b) => a < b ? a : b);
+      expect(hs.where((h) => h == shortest).length, 1);
+      expect(hs.where((h) => h > shortest + 20).length, 2);
       expect(tester.takeException(), isNull);
       await unmount(tester);
     });
