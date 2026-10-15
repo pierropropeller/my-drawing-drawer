@@ -19,6 +19,9 @@ class _Src {
     required this.createdAt,
     this.author = '',
     this.source = '',
+    this.kind = MediaKind.image,
+    this.durationMs,
+    this.posterFile,
   });
   final String id;
   final String pitId;
@@ -31,6 +34,11 @@ class _Src {
   /// 只有同人圖來源列有（跨坑移動同人圖時一併帶過去）。
   final String author;
   final String source;
+
+  /// 媒體欄位（D-080）：跨格／跨坑移動時一併帶過去。
+  final MediaKind kind;
+  final int? durationMs;
+  final String? posterFile;
 }
 
 /// 目標格裡同一張圖（同 imageKey）的既有列。
@@ -69,6 +77,9 @@ extension JunkQueries on AppDatabase {
       imageFile: im.file,
       width: Value(im.width),
       height: Value(im.height),
+      kind: Value(im.kind),
+      durationMs: Value(im.durationMs),
+      posterFile: Value(im.posterFile),
       imageKey: Value(id),
     );
   }
@@ -272,6 +283,9 @@ extension JunkQueries on AppDatabase {
               r.height,
               r.imageKey,
               r.createdAt,
+              kind: r.kind,
+              durationMs: r.durationMs,
+              posterFile: r.posterFile,
             ),
           );
         }
@@ -296,6 +310,9 @@ extension JunkQueries on AppDatabase {
               r.createdAt,
               author: r.author,
               source: r.source,
+              kind: r.kind,
+              durationMs: r.durationMs,
+              posterFile: r.posterFile,
             ),
           );
         }
@@ -318,6 +335,9 @@ extension JunkQueries on AppDatabase {
               r.height,
               r.imageKey,
               r.createdAt,
+              kind: r.kind,
+              durationMs: r.durationMs,
+              posterFile: r.posterFile,
             ),
           );
         }
@@ -337,6 +357,9 @@ extension JunkQueries on AppDatabase {
     DateTime createdAt, {
     String author = '',
     String source = '',
+    MediaKind kind = MediaKind.image,
+    int? durationMs,
+    String? posterFile,
   }) => _Src(
     id: id,
     pitId: pitId,
@@ -347,6 +370,9 @@ extension JunkQueries on AppDatabase {
     createdAt: createdAt,
     author: author,
     source: source,
+    kind: kind,
+    durationMs: durationMs,
+    posterFile: posterFile,
   );
 
   /// 目標坑 [pitId] 的目標格裡同一張圖（同 imageKey）的既有列。
@@ -478,6 +504,9 @@ extension JunkQueries on AppDatabase {
             imageFile: src.file,
             width: Value(src.width),
             height: Value(src.height),
+            kind: Value(src.kind),
+            durationMs: Value(src.durationMs),
+            posterFile: Value(src.posterFile),
             imageKey: Value(src.key),
             createdAt: Value(src.createdAt),
             updatedAt: Value(now),
@@ -491,6 +520,9 @@ extension JunkQueries on AppDatabase {
             imageFile: src.file,
             width: Value(src.width),
             height: Value(src.height),
+            kind: Value(src.kind),
+            durationMs: Value(src.durationMs),
+            posterFile: Value(src.posterFile),
             author: Value(src.author),
             source: Value(src.source),
             groupId: Value(groupId),
@@ -507,6 +539,9 @@ extension JunkQueries on AppDatabase {
             imageFile: src.file,
             width: Value(src.width),
             height: Value(src.height),
+            kind: Value(src.kind),
+            durationMs: Value(src.durationMs),
+            posterFile: Value(src.posterFile),
             imageKey: Value(src.key),
             createdAt: Value(src.createdAt),
             updatedAt: Value(now),

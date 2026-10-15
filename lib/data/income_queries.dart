@@ -119,9 +119,7 @@ extension IncomeQueries on AppDatabase {
         entries.add(
           IncomeEntry(
             piece: p,
-            cover: im == null
-                ? null
-                : ImageRef(im.imageFile, im.width, im.height),
+            cover: im == null ? null : entityImageRef(im),
             payment: paymentStateOf(
               amount: p.amount,
               received: p.receivedAmount,

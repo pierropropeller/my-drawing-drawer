@@ -2,15 +2,47 @@ import 'package:drift/drift.dart';
 
 import 'database.dart';
 import 'junk_queries.dart';
+import 'media.dart';
 import 'entity_queries.dart' show watchAssembled;
 import 'tables.dart' show uuid;
 
 /// 匯入後待寫入資料庫的圖片。
 class NewImage {
-  const NewImage({required this.file, this.width = 0, this.height = 0});
+  const NewImage({
+    required this.file,
+    this.width = 0,
+    this.height = 0,
+    this.kind = MediaKind.image,
+    this.durationMs,
+    this.posterFile,
+  });
   final String file; // 相對於圖片資料夾的檔名
   final int width;
   final int height;
+
+  /// 媒體種類（D-080）；`ImageStore.import` 會依內容判斷。
+  final MediaKind kind;
+
+  /// 影片長度（毫秒）；只有影片。匯入後由 UI 探測再補上。
+  final int? durationMs;
+
+  /// 影片第一格截圖的檔名；尚未產生時為 null。
+  final String? posterFile;
+
+  NewImage copyWith({
+    int? width,
+    int? height,
+    MediaKind? kind,
+    int? durationMs,
+    String? posterFile,
+  }) => NewImage(
+    file: file,
+    width: width ?? this.width,
+    height: height ?? this.height,
+    kind: kind ?? this.kind,
+    durationMs: durationMs ?? this.durationMs,
+    posterFile: posterFile ?? this.posterFile,
+  );
 }
 
 /// 標籤與使用次數（TagManage 顯示）。
@@ -192,6 +224,9 @@ extension AlbumQueries on AppDatabase {
       imageFile: im.file,
       width: Value(im.width),
       height: Value(im.height),
+      kind: Value(im.kind),
+      durationMs: Value(im.durationMs),
+      posterFile: Value(im.posterFile),
       imageKey: Value(id),
     );
   }
@@ -275,6 +310,9 @@ extension AlbumQueries on AppDatabase {
             imageFile: im.file,
             width: Value(im.width),
             height: Value(im.height),
+            kind: Value(im.kind),
+            durationMs: Value(im.durationMs),
+            posterFile: Value(im.posterFile),
             author: Value(author),
             groupId: Value(groupId),
           ),
@@ -516,7 +554,8 @@ extension AlbumQueries on AppDatabase {
     );
   }
 
-  /// 以圖片 id 找出檔名（官方圖或同人圖）。找不到回傳 null。
+  /// 以圖片 id 找出封面用的檔名（官方圖、同人圖或腦洞／草稿／成圖的圖）。找不到回傳 null；
+  /// 影片回傳它的截圖（D-080，還沒有截圖＝null）。
   Future<String?> imageFileOf(String imageId) async {
     final o =
         await (select(officialImages)..where(
@@ -526,7 +565,7 @@ extension AlbumQueries on AppDatabase {
                   i.hidden.equals(false),
             ))
             .getSingleOrNull();
-    if (o != null) return o.imageFile;
+    if (o != null) return staticFileOf(o.kind, o.imageFile, o.posterFile);
     final f =
         await (select(fanArts)..where(
               (i) =>
@@ -535,18 +574,23 @@ extension AlbumQueries on AppDatabase {
                   i.hidden.equals(false),
             ))
             .getSingleOrNull();
-    if (f != null) return f.imageFile;
+    if (f != null) return staticFileOf(f.kind, f.imageFile, f.posterFile);
     final e =
         await (select(entityImages)
               ..where((x) => x.id.equals(imageId) & x.deletedAt.isNull()))
             .getSingleOrNull();
-    return e?.imageFile;
+    return e == null ? null : staticFileOf(e.kind, e.imageFile, e.posterFile);
   }
 }
 
-/// 坑內頁各格的封面（檔名）。
-/// 六格裡**推活格沒有封面**：設計稿（Pit／PitFilled）推活格始終是淡紫底＋icon，所以這裡沒有 oshi 欄位。
-/// 成圖格（D-058）：有成圖時是最新一張成圖（完成日期最晚）的第一張圖，否則 null（顯示 icon）。
+/// 坑內頁各格的封面（檔名；需要靜態圖，所以影片給的是它的截圖 poster）。
+///
+/// 每格優先用使用者在該格長按「選擇封面」挑的圖（[AppDatabase.setCellCover]），
+/// 挑的圖不存在了（已刪除、移到別格或別的坑）就退回該格最新的一張；格子是空的或只有還沒有截圖的影片＝null（顯示 icon）。
+/// - 官方圖冊／好看同人圖：最新＝更新時間最晚的一張。
+/// - 草稿／腦洞：最新一筆（日期最晚）的第一張圖。
+/// - 成圖（D-058）：最新一張成圖（完成日期最晚）的第一張圖。
+/// - 推活（批次 10）：最新一筆紀錄（日期最晚）的第一張圖。
 class CellCovers {
   const CellCovers({
     this.official,
@@ -554,146 +598,302 @@ class CellCovers {
     this.draft,
     this.idea,
     this.piece,
+    this.oshi,
   });
   final String? official;
   final String? fanArt;
   final String? draft;
   final String? idea;
   final String? piece;
+  final String? oshi;
 }
 
+/// 格子的種類字串（`setCellCover`／`coverCandidatesProvider` 的 kind）。
+const cellKinds = ['official', 'fan', 'draft', 'idea', 'piece', 'oshi'];
+
 extension CellCoverQueries on AppDatabase {
-  /// 官方圖冊／好看同人圖：優先用「設為封面」指定的圖，沒有就用最新一張；
-  /// 草稿／腦洞／成圖：最新一筆的第一張圖。
+  /// 各格目前顯示的封面，見 [CellCovers]。
   Stream<CellCovers> watchCellCovers(String pitId) {
     return watchAssembled(
       this,
-      {pits, officialImages, fanArts, drafts, ideas, pieces, entityImages},
+      {
+        pits,
+        officialImages,
+        fanArts,
+        drafts,
+        ideas,
+        pieces,
+        oshiRecords,
+        entityImages,
+      },
       () async {
         final pit = await (select(
           pits,
         )..where((p) => p.id.equals(pitId))).getSingleOrNull();
 
-        Future<String?> official() async {
-          final set = pit?.officialCoverId;
-          if (set != null) {
-            final f =
-                await (select(officialImages)..where(
-                      (i) =>
-                          i.id.equals(set) &
-                          i.deletedAt.isNull() &
-                          i.hidden.equals(false),
-                    ))
-                    .getSingleOrNull();
-            if (f != null) return f.imageFile;
+        // 官方圖冊／好看同人圖：列 id 為準。
+        Future<String?> album({
+          required String? chosenId,
+          required Future<List<String?>> Function() latest,
+          required Future<String?> Function(String id) chosen,
+        }) async {
+          if (chosenId != null) {
+            final f = await chosen(chosenId);
+            if (f != null) return f;
           }
-          return (await (select(officialImages)
-                    ..where(
-                      (i) =>
-                          i.pitId.equals(pitId) &
-                          i.deletedAt.isNull() &
-                          i.hidden.equals(false),
-                    )
-                    ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)])
-                    ..limit(1))
-                  .getSingleOrNull())
-              ?.imageFile;
-        }
-
-        Future<String?> fan() async {
-          final set = pit?.fanArtCoverId;
-          if (set != null) {
-            final f =
-                await (select(fanArts)..where(
-                      (i) =>
-                          i.id.equals(set) &
-                          i.deletedAt.isNull() &
-                          i.hidden.equals(false),
-                    ))
-                    .getSingleOrNull();
-            if (f != null) return f.imageFile;
-          }
-          return (await (select(fanArts)
-                    ..where(
-                      (i) =>
-                          i.pitId.equals(pitId) &
-                          i.deletedAt.isNull() &
-                          i.hidden.equals(false),
-                    )
-                    ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)])
-                    ..limit(1))
-                  .getSingleOrNull())
-              ?.imageFile;
-        }
-
-        Future<String?> firstImageOf(OwnerType type, List<String> ids) async {
-          for (final id in ids) {
-            final im =
-                await (select(entityImages)
-                      ..where(
-                        (e) =>
-                            e.ownerType.equalsValue(type) &
-                            e.ownerId.equals(id),
-                      )
-                      ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)])
-                      ..limit(1))
-                    .getSingleOrNull();
-            if (im != null) return im.imageFile;
+          for (final s in await latest()) {
+            if (s != null) return s;
           }
           return null;
         }
 
-        final draftIds =
-            (await (select(drafts)
+        final official = await album(
+          chosenId: pit?.officialCoverId,
+          chosen: (id) async {
+            final r =
+                await (select(officialImages)..where(
+                      (i) =>
+                          i.id.equals(id) &
+                          i.pitId.equals(pitId) &
+                          i.deletedAt.isNull() &
+                          i.hidden.equals(false),
+                    ))
+                    .getSingleOrNull();
+            return r == null
+                ? null
+                : staticFileOf(r.kind, r.imageFile, r.posterFile);
+          },
+          latest: () async => [
+            for (final r
+                in await (select(officialImages)
                       ..where(
-                        (d) => d.pitId.equals(pitId) & d.deletedAt.isNull(),
+                        (i) =>
+                            i.pitId.equals(pitId) &
+                            i.deletedAt.isNull() &
+                            i.hidden.equals(false),
                       )
-                      ..orderBy([
-                        (d) => OrderingTerm.desc(d.date),
-                        (d) => OrderingTerm.desc(d.createdAt),
-                      ]))
+                      ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
                     .get())
-                .map((d) => d.id)
-                .toList();
-        final ideaIds =
-            (await (select(ideas)
+              staticFileOf(r.kind, r.imageFile, r.posterFile),
+          ],
+        );
+        final fan = await album(
+          chosenId: pit?.fanArtCoverId,
+          chosen: (id) async {
+            final r =
+                await (select(fanArts)..where(
+                      (i) =>
+                          i.id.equals(id) &
+                          i.pitId.equals(pitId) &
+                          i.deletedAt.isNull() &
+                          i.hidden.equals(false),
+                    ))
+                    .getSingleOrNull();
+            return r == null
+                ? null
+                : staticFileOf(r.kind, r.imageFile, r.posterFile);
+          },
+          latest: () async => [
+            for (final r
+                in await (select(fanArts)
                       ..where(
-                        (d) => d.pitId.equals(pitId) & d.deletedAt.isNull(),
+                        (i) =>
+                            i.pitId.equals(pitId) &
+                            i.deletedAt.isNull() &
+                            i.hidden.equals(false),
                       )
-                      ..orderBy([
-                        (d) => OrderingTerm.desc(d.date),
-                        (d) => OrderingTerm.desc(d.createdAt),
-                      ]))
+                      ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
                     .get())
-                .map((d) => d.id)
-                .toList();
-        // 成圖格的封面＝最新一張成圖（完成日期最晚；D-058）的第一張圖。
-        final pieceIds =
-            (await (select(pieces)
+              staticFileOf(r.kind, r.imageFile, r.posterFile),
+          ],
+        );
+
+        // 草稿／腦洞／成圖／推活：存的是圖片檔名（見 Pits.draftCoverFile 的說明）。
+        Future<String?> entity(
+          OwnerType type,
+          List<String> ownerIds,
+          String? chosenFile,
+        ) async {
+          if (chosenFile != null && ownerIds.isNotEmpty) {
+            final rows =
+                await (select(entityImages)..where(
+                      (e) =>
+                          e.ownerType.equalsValue(type) &
+                          e.ownerId.isIn(ownerIds) &
+                          e.imageFile.equals(chosenFile) &
+                          e.deletedAt.isNull(),
+                    ))
+                    .get();
+            for (final r in rows) {
+              final s = staticFileOf(r.kind, r.imageFile, r.posterFile);
+              if (s != null) return s;
+            }
+          }
+          for (final id in ownerIds) {
+            final rows =
+                await (select(entityImages)
                       ..where(
-                        (d) => d.pitId.equals(pitId) & d.deletedAt.isNull(),
+                        (e) =>
+                            e.ownerType.equalsValue(type) &
+                            e.ownerId.equals(id) &
+                            e.deletedAt.isNull(),
                       )
-                      ..orderBy([
-                        (d) => OrderingTerm.desc(d.finishedAt),
-                        (d) => OrderingTerm.desc(d.createdAt),
-                      ]))
-                    .get())
-                .map((d) => d.id)
-                .toList();
+                      ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
+                    .get();
+            for (final r in rows) {
+              final s = staticFileOf(r.kind, r.imageFile, r.posterFile);
+              if (s != null) return s;
+            }
+          }
+          return null;
+        }
 
         return CellCovers(
-          official: await official(),
-          fanArt: await fan(),
-          draft: await firstImageOf(OwnerType.draft, draftIds),
-          idea: await firstImageOf(OwnerType.idea, ideaIds),
-          piece: await firstImageOf(OwnerType.piece, pieceIds),
+          official: official,
+          fanArt: fan,
+          draft: await entity(
+            OwnerType.draft,
+            await _draftOwnerIds(pitId),
+            pit?.draftCoverFile,
+          ),
+          idea: await entity(
+            OwnerType.idea,
+            await _ideaOwnerIds(pitId),
+            pit?.ideaCoverFile,
+          ),
+          piece: await entity(
+            OwnerType.piece,
+            await _pieceOwnerIds(pitId),
+            pit?.pieceCoverFile,
+          ),
+          oshi: await entity(
+            OwnerType.oshi,
+            await _oshiOwnerIds(pitId),
+            pit?.oshiCoverFile,
+          ),
         );
       },
     );
   }
+
+  // 各格的擁有者 id，順序＝該格「最新在前」。
+  Future<List<String>> _draftOwnerIds(String pitId) async => [
+    for (final d
+        in await (select(drafts)
+              ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
+              ..orderBy([
+                (d) => OrderingTerm.desc(d.date),
+                (d) => OrderingTerm.desc(d.createdAt),
+              ]))
+            .get())
+      d.id,
+  ];
+
+  Future<List<String>> _ideaOwnerIds(String pitId) async => [
+    for (final d
+        in await (select(ideas)
+              ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
+              ..orderBy([
+                (d) => OrderingTerm.desc(d.date),
+                (d) => OrderingTerm.desc(d.createdAt),
+              ]))
+            .get())
+      d.id,
+  ];
+
+  // 成圖格的封面＝最新一張成圖（完成日期最晚；D-058）。
+  Future<List<String>> _pieceOwnerIds(String pitId) async => [
+    for (final d
+        in await (select(pieces)
+              ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
+              ..orderBy([
+                (d) => OrderingTerm.desc(d.finishedAt),
+                (d) => OrderingTerm.desc(d.createdAt),
+              ]))
+            .get())
+      d.id,
+  ];
+
+  Future<List<String>> _oshiOwnerIds(String pitId) async => [
+    for (final d
+        in await (select(oshiRecords)
+              ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
+              ..orderBy([
+                (d) => OrderingTerm.desc(d.date),
+                (d) => OrderingTerm.desc(d.createdAt),
+                (d) => OrderingTerm.desc(const CustomExpression<int>('rowid')),
+              ]))
+            .get())
+      d.id,
+  ];
+
+  /// 設定「這一格」在坑內頁顯示的封面（長按格子→選擇封面）。
+  ///
+  /// - [kind]：`official`／`fan`／`draft`／`idea`／`piece`／`oshi`（見 [cellKinds]），其他值丟 [ArgumentError]。
+  /// - [imageId]：`coverCandidatesProvider((pitId, kind))` 給的候選圖 id；null＝清除（回到自動：該格最新一張）。
+  ///   不是這個坑這一格裡的圖（含已刪除、被移走）丟 [ArgumentError]。
+  /// - 官方圖冊／好看同人圖存圖片列 id（`Pits.officialCoverId`／`fanArtCoverId`，與預覽頁的「設為封面」是同一份）；
+  ///   草稿／腦洞／成圖／推活存圖片**檔名**（`Pits.draftCoverFile` 等），因為這些圖片列的 id 各裝置不同。
+  /// - 會更新坑的 updatedAt，所以跟著坑的文件同步。**不影響**主頁坑卡片的封面（`Pits.coverImageId`／[setCover]）。
+  Future<void> setCellCover(String pitId, String kind, String? imageId) async {
+    if (!cellKinds.contains(kind)) {
+      throw ArgumentError.value(kind, 'kind', '不是坑內頁的格子');
+    }
+    final now = Value(DateTime.now());
+    PitsCompanion companion(String? value) => switch (kind) {
+      'official' => PitsCompanion(
+        officialCoverId: Value(value),
+        updatedAt: now,
+      ),
+      'fan' => PitsCompanion(fanArtCoverId: Value(value), updatedAt: now),
+      'draft' => PitsCompanion(draftCoverFile: Value(value), updatedAt: now),
+      'idea' => PitsCompanion(ideaCoverFile: Value(value), updatedAt: now),
+      'piece' => PitsCompanion(pieceCoverFile: Value(value), updatedAt: now),
+      _ => PitsCompanion(oshiCoverFile: Value(value), updatedAt: now),
+    };
+
+    String? stored;
+    if (imageId != null) {
+      final cands = await _cellCandidates(pitId, kind);
+      final hit = cands.where((c) => c.id == imageId).firstOrNull;
+      if (hit == null) {
+        throw ArgumentError.value(imageId, 'imageId', '不是這個坑這一格裡的圖');
+      }
+      stored = (kind == 'official' || kind == 'fan') ? hit.id : hit.file;
+    }
+    await (update(
+      pits,
+    )..where((p) => p.id.equals(pitId))).write(companion(stored));
+  }
+
+  /// 目前這一格有沒有指定封面（供 UI 在選擇封面頁標出「目前的封面」）：
+  /// 回傳候選圖 id（官方／同人圖是列 id；其餘是第一個檔名相符的候選圖 id），沒有或已失效＝null。
+  Future<String?> chosenCellCoverId(String pitId, String kind) async {
+    final pit = await (select(
+      pits,
+    )..where((p) => p.id.equals(pitId))).getSingleOrNull();
+    if (pit == null) return null;
+    final cands = await _cellCandidates(pitId, kind);
+    switch (kind) {
+      case 'official':
+        return cands.where((c) => c.id == pit.officialCoverId).firstOrNull?.id;
+      case 'fan':
+        return cands.where((c) => c.id == pit.fanArtCoverId).firstOrNull?.id;
+      default:
+        final file = switch (kind) {
+          'draft' => pit.draftCoverFile,
+          'idea' => pit.ideaCoverFile,
+          'piece' => pit.pieceCoverFile,
+          'oshi' => pit.oshiCoverFile,
+          _ => throw ArgumentError.value(kind, 'kind', '不是坑內頁的格子'),
+        };
+        if (file == null) return null;
+        return cands.where((c) => c.file == file).firstOrNull?.id;
+    }
+  }
 }
 
-/// 可選作坑封面的圖。
+/// 可選作封面的圖（坑封面、各格封面）。
 class CoverCandidate {
   const CoverCandidate({
     required this.id,
@@ -701,6 +901,9 @@ class CoverCandidate {
     required this.width,
     required this.height,
     this.groupId,
+    this.kind = MediaKind.image,
+    this.durationMs,
+    this.poster,
   });
   final String id;
   final String file;
@@ -709,21 +912,52 @@ class CoverCandidate {
 
   /// 官方圖／同人圖所屬分組（選封面頁的分組篩選用）；其他種類為 null。
   final String? groupId;
+
+  /// 媒體種類（D-080）；影片的縮圖用 [poster]（可能是 null＝還沒有截圖）。
+  final MediaKind kind;
+  final int? durationMs;
+  final String? poster;
+
+  /// 縮圖／封面用的靜態圖檔名；影片還沒有截圖時為 null。
+  String? get staticFile => staticFileOf(kind, file, poster);
 }
 
 extension CoverCandidateQueries on AppDatabase {
   /// 列出「這一格」內的圖（長按坑內頁的格子進入選擇封面）。
-  /// [kind]：`official`／`fan`／`draft`／`idea`／`piece`；null＝全部。
+  /// [kind]：`official`／`fan`／`draft`／`idea`／`piece`／`oshi`；
+  /// null＝坑封面用的全部（官方、同人圖、草稿、腦洞、成圖；**不含推活**，推活不能當主頁的坑封面）。
   Stream<List<CoverCandidate>> watchCoverCandidates(
     String pitId, {
     String? kind,
   }) {
     return watchAssembled(
       this,
-      {officialImages, fanArts, drafts, ideas, pieces, entityImages},
+      {
+        officialImages,
+        fanArts,
+        drafts,
+        ideas,
+        pieces,
+        oshiRecords,
+        entityImages,
+      },
       () async {
-        final out = <CoverCandidate>[];
-        if (kind == null || kind == 'official') {
+        if (kind != null) return _cellCandidates(pitId, kind);
+        return [
+          for (final k in const ['official', 'fan', 'draft', 'idea', 'piece'])
+            ...await _cellCandidates(pitId, k),
+        ];
+      },
+    );
+  }
+
+  Future<List<CoverCandidate>> _cellCandidates(
+    String pitId,
+    String kind,
+  ) async {
+    switch (kind) {
+      case 'official':
+        return [
           for (final r
               in await (select(officialImages)
                     ..where(
@@ -733,19 +967,20 @@ extension CoverCandidateQueries on AppDatabase {
                           i.hidden.equals(false),
                     )
                     ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
-                  .get()) {
-            out.add(
-              CoverCandidate(
-                id: r.id,
-                file: r.imageFile,
-                width: r.width,
-                height: r.height,
-                groupId: r.groupId,
-              ),
-            );
-          }
-        }
-        if (kind == null || kind == 'fan') {
+                  .get())
+            CoverCandidate(
+              id: r.id,
+              file: r.imageFile,
+              width: r.width,
+              height: r.height,
+              groupId: r.groupId,
+              kind: r.kind,
+              durationMs: r.durationMs,
+              poster: r.posterFile,
+            ),
+        ];
+      case 'fan':
+        return [
           for (final r
               in await (select(fanArts)
                     ..where(
@@ -755,78 +990,80 @@ extension CoverCandidateQueries on AppDatabase {
                           i.hidden.equals(false),
                     )
                     ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
-                  .get()) {
-            out.add(
-              CoverCandidate(
-                id: r.id,
-                file: r.imageFile,
-                width: r.width,
-                height: r.height,
-                groupId: r.groupId,
-              ),
-            );
-          }
-        }
-        Future<void> entity(
-          String k,
-          OwnerType type,
-          List<String> ownerIds,
-        ) async {
-          if (kind != null && kind != k) return;
-          for (final id in ownerIds) {
-            for (final r
-                in await (select(entityImages)
-                      ..where(
-                        (e) =>
-                            e.ownerType.equalsValue(type) &
-                            e.ownerId.equals(id),
-                      )
-                      ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
-                    .get()) {
-              out.add(
-                CoverCandidate(
-                  id: r.id,
-                  file: r.imageFile,
-                  width: r.width,
-                  height: r.height,
-                ),
-              );
-            }
-          }
-        }
+                  .get())
+            CoverCandidate(
+              id: r.id,
+              file: r.imageFile,
+              width: r.width,
+              height: r.height,
+              groupId: r.groupId,
+              kind: r.kind,
+              durationMs: r.durationMs,
+              poster: r.posterFile,
+            ),
+        ];
+    }
 
-        await entity(
-          'draft',
-          OwnerType.draft,
-          (await (select(drafts)
-                    ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
-                    ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
-                  .get())
-              .map((d) => d.id)
-              .toList(),
+    final (type, owners) = switch (kind) {
+      'draft' => (OwnerType.draft, await _draftCandidateOwners(pitId)),
+      'idea' => (OwnerType.idea, await _ideaCandidateOwners(pitId)),
+      'piece' => (OwnerType.piece, await _pieceCandidateOwners(pitId)),
+      'oshi' => (OwnerType.oshi, await _oshiOwnerIds(pitId)),
+      _ => throw ArgumentError.value(kind, 'kind', '不是坑內頁的格子'),
+    };
+    final out = <CoverCandidate>[];
+    for (final id in owners) {
+      for (final r
+          in await (select(entityImages)
+                ..where(
+                  (e) =>
+                      e.ownerType.equalsValue(type) &
+                      e.ownerId.equals(id) &
+                      e.deletedAt.isNull(),
+                )
+                ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
+              .get()) {
+        out.add(
+          CoverCandidate(
+            id: r.id,
+            file: r.imageFile,
+            width: r.width,
+            height: r.height,
+            kind: r.kind,
+            durationMs: r.durationMs,
+            poster: r.posterFile,
+          ),
         );
-        await entity(
-          'idea',
-          OwnerType.idea,
-          (await (select(ideas)
-                    ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
-                    ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
-                  .get())
-              .map((d) => d.id)
-              .toList(),
-        );
-        await entity(
-          'piece',
-          OwnerType.piece,
-          (await (select(pieces)
-                    ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
-                    ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
-                  .get())
-              .map((d) => d.id)
-              .toList(),
-        );
-        return out;
-      },
-    );
+      }
+    }
+    return out;
   }
+
+  // 候選圖的擁有者順序沿用舊行為：更新時間新到舊。
+  Future<List<String>> _draftCandidateOwners(String pitId) async => [
+    for (final d
+        in await (select(drafts)
+              ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
+              ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+            .get())
+      d.id,
+  ];
+
+  Future<List<String>> _ideaCandidateOwners(String pitId) async => [
+    for (final d
+        in await (select(ideas)
+              ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
+              ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+            .get())
+      d.id,
+  ];
+
+  Future<List<String>> _pieceCandidateOwners(String pitId) async => [
+    for (final d
+        in await (select(pieces)
+              ..where((d) => d.pitId.equals(pitId) & d.deletedAt.isNull())
+              ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+            .get())
+      d.id,
+  ];
 }

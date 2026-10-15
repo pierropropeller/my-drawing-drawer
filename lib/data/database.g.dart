@@ -118,6 +118,50 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _draftCoverFileMeta = const VerificationMeta(
+    'draftCoverFile',
+  );
+  @override
+  late final GeneratedColumn<String> draftCoverFile = GeneratedColumn<String>(
+    'draft_cover_file',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ideaCoverFileMeta = const VerificationMeta(
+    'ideaCoverFile',
+  );
+  @override
+  late final GeneratedColumn<String> ideaCoverFile = GeneratedColumn<String>(
+    'idea_cover_file',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pieceCoverFileMeta = const VerificationMeta(
+    'pieceCoverFile',
+  );
+  @override
+  late final GeneratedColumn<String> pieceCoverFile = GeneratedColumn<String>(
+    'piece_cover_file',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _oshiCoverFileMeta = const VerificationMeta(
+    'oshiCoverFile',
+  );
+  @override
+  late final GeneratedColumn<String> oshiCoverFile = GeneratedColumn<String>(
+    'oshi_cover_file',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _archivedMeta = const VerificationMeta(
     'archived',
   );
@@ -160,6 +204,10 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
     coverImageId,
     officialCoverId,
     fanArtCoverId,
+    draftCoverFile,
+    ideaCoverFile,
+    pieceCoverFile,
+    oshiCoverFile,
     archived,
     junkEnabled,
   ];
@@ -246,6 +294,42 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
         ),
       );
     }
+    if (data.containsKey('draft_cover_file')) {
+      context.handle(
+        _draftCoverFileMeta,
+        draftCoverFile.isAcceptableOrUnknown(
+          data['draft_cover_file']!,
+          _draftCoverFileMeta,
+        ),
+      );
+    }
+    if (data.containsKey('idea_cover_file')) {
+      context.handle(
+        _ideaCoverFileMeta,
+        ideaCoverFile.isAcceptableOrUnknown(
+          data['idea_cover_file']!,
+          _ideaCoverFileMeta,
+        ),
+      );
+    }
+    if (data.containsKey('piece_cover_file')) {
+      context.handle(
+        _pieceCoverFileMeta,
+        pieceCoverFile.isAcceptableOrUnknown(
+          data['piece_cover_file']!,
+          _pieceCoverFileMeta,
+        ),
+      );
+    }
+    if (data.containsKey('oshi_cover_file')) {
+      context.handle(
+        _oshiCoverFileMeta,
+        oshiCoverFile.isAcceptableOrUnknown(
+          data['oshi_cover_file']!,
+          _oshiCoverFileMeta,
+        ),
+      );
+    }
     if (data.containsKey('archived')) {
       context.handle(
         _archivedMeta,
@@ -310,6 +394,22 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
         DriftSqlType.string,
         data['${effectivePrefix}fan_art_cover_id'],
       ),
+      draftCoverFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}draft_cover_file'],
+      ),
+      ideaCoverFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}idea_cover_file'],
+      ),
+      pieceCoverFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}piece_cover_file'],
+      ),
+      oshiCoverFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}oshi_cover_file'],
+      ),
       archived: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}archived'],
@@ -341,6 +441,15 @@ class Pit extends DataClass implements Insertable<Pit> {
   /// 主頁坑卡片的封面是 [coverImageId]，由長按坑內頁的格子選擇。
   final String? officialCoverId;
   final String? fanArtCoverId;
+
+  /// 坑內頁其餘四格（草稿／腦洞／成圖／推活）各自的封面（批次 10）。
+  /// 存的是**圖片檔名**而不是圖片列 id：這幾種圖片列的 id 是各裝置自己產生的，不會同步，
+  /// 檔名則是跨裝置穩定的。長按該格的「選擇封面」設的是這裡；
+  /// 官方圖冊／好看同人圖兩格沿用上面兩個以圖片列 id 為準的欄位。
+  final String? draftCoverFile;
+  final String? ideaCoverFile;
+  final String? pieceCoverFile;
+  final String? oshiCoverFile;
   final bool archived;
 
   /// 編輯坑的「雜物」開關；開啟後坑內頁最底才出現雜物入口（D-034）。
@@ -356,6 +465,10 @@ class Pit extends DataClass implements Insertable<Pit> {
     this.coverImageId,
     this.officialCoverId,
     this.fanArtCoverId,
+    this.draftCoverFile,
+    this.ideaCoverFile,
+    this.pieceCoverFile,
+    this.oshiCoverFile,
     required this.archived,
     required this.junkEnabled,
   });
@@ -381,6 +494,18 @@ class Pit extends DataClass implements Insertable<Pit> {
     }
     if (!nullToAbsent || fanArtCoverId != null) {
       map['fan_art_cover_id'] = Variable<String>(fanArtCoverId);
+    }
+    if (!nullToAbsent || draftCoverFile != null) {
+      map['draft_cover_file'] = Variable<String>(draftCoverFile);
+    }
+    if (!nullToAbsent || ideaCoverFile != null) {
+      map['idea_cover_file'] = Variable<String>(ideaCoverFile);
+    }
+    if (!nullToAbsent || pieceCoverFile != null) {
+      map['piece_cover_file'] = Variable<String>(pieceCoverFile);
+    }
+    if (!nullToAbsent || oshiCoverFile != null) {
+      map['oshi_cover_file'] = Variable<String>(oshiCoverFile);
     }
     map['archived'] = Variable<bool>(archived);
     map['junk_enabled'] = Variable<bool>(junkEnabled);
@@ -409,6 +534,18 @@ class Pit extends DataClass implements Insertable<Pit> {
       fanArtCoverId: fanArtCoverId == null && nullToAbsent
           ? const Value.absent()
           : Value(fanArtCoverId),
+      draftCoverFile: draftCoverFile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(draftCoverFile),
+      ideaCoverFile: ideaCoverFile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ideaCoverFile),
+      pieceCoverFile: pieceCoverFile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pieceCoverFile),
+      oshiCoverFile: oshiCoverFile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(oshiCoverFile),
       archived: Value(archived),
       junkEnabled: Value(junkEnabled),
     );
@@ -430,6 +567,10 @@ class Pit extends DataClass implements Insertable<Pit> {
       coverImageId: serializer.fromJson<String?>(json['coverImageId']),
       officialCoverId: serializer.fromJson<String?>(json['officialCoverId']),
       fanArtCoverId: serializer.fromJson<String?>(json['fanArtCoverId']),
+      draftCoverFile: serializer.fromJson<String?>(json['draftCoverFile']),
+      ideaCoverFile: serializer.fromJson<String?>(json['ideaCoverFile']),
+      pieceCoverFile: serializer.fromJson<String?>(json['pieceCoverFile']),
+      oshiCoverFile: serializer.fromJson<String?>(json['oshiCoverFile']),
       archived: serializer.fromJson<bool>(json['archived']),
       junkEnabled: serializer.fromJson<bool>(json['junkEnabled']),
     );
@@ -448,6 +589,10 @@ class Pit extends DataClass implements Insertable<Pit> {
       'coverImageId': serializer.toJson<String?>(coverImageId),
       'officialCoverId': serializer.toJson<String?>(officialCoverId),
       'fanArtCoverId': serializer.toJson<String?>(fanArtCoverId),
+      'draftCoverFile': serializer.toJson<String?>(draftCoverFile),
+      'ideaCoverFile': serializer.toJson<String?>(ideaCoverFile),
+      'pieceCoverFile': serializer.toJson<String?>(pieceCoverFile),
+      'oshiCoverFile': serializer.toJson<String?>(oshiCoverFile),
       'archived': serializer.toJson<bool>(archived),
       'junkEnabled': serializer.toJson<bool>(junkEnabled),
     };
@@ -464,6 +609,10 @@ class Pit extends DataClass implements Insertable<Pit> {
     Value<String?> coverImageId = const Value.absent(),
     Value<String?> officialCoverId = const Value.absent(),
     Value<String?> fanArtCoverId = const Value.absent(),
+    Value<String?> draftCoverFile = const Value.absent(),
+    Value<String?> ideaCoverFile = const Value.absent(),
+    Value<String?> pieceCoverFile = const Value.absent(),
+    Value<String?> oshiCoverFile = const Value.absent(),
     bool? archived,
     bool? junkEnabled,
   }) => Pit(
@@ -481,6 +630,18 @@ class Pit extends DataClass implements Insertable<Pit> {
     fanArtCoverId: fanArtCoverId.present
         ? fanArtCoverId.value
         : this.fanArtCoverId,
+    draftCoverFile: draftCoverFile.present
+        ? draftCoverFile.value
+        : this.draftCoverFile,
+    ideaCoverFile: ideaCoverFile.present
+        ? ideaCoverFile.value
+        : this.ideaCoverFile,
+    pieceCoverFile: pieceCoverFile.present
+        ? pieceCoverFile.value
+        : this.pieceCoverFile,
+    oshiCoverFile: oshiCoverFile.present
+        ? oshiCoverFile.value
+        : this.oshiCoverFile,
     archived: archived ?? this.archived,
     junkEnabled: junkEnabled ?? this.junkEnabled,
   );
@@ -504,6 +665,18 @@ class Pit extends DataClass implements Insertable<Pit> {
       fanArtCoverId: data.fanArtCoverId.present
           ? data.fanArtCoverId.value
           : this.fanArtCoverId,
+      draftCoverFile: data.draftCoverFile.present
+          ? data.draftCoverFile.value
+          : this.draftCoverFile,
+      ideaCoverFile: data.ideaCoverFile.present
+          ? data.ideaCoverFile.value
+          : this.ideaCoverFile,
+      pieceCoverFile: data.pieceCoverFile.present
+          ? data.pieceCoverFile.value
+          : this.pieceCoverFile,
+      oshiCoverFile: data.oshiCoverFile.present
+          ? data.oshiCoverFile.value
+          : this.oshiCoverFile,
       archived: data.archived.present ? data.archived.value : this.archived,
       junkEnabled: data.junkEnabled.present
           ? data.junkEnabled.value
@@ -524,6 +697,10 @@ class Pit extends DataClass implements Insertable<Pit> {
           ..write('coverImageId: $coverImageId, ')
           ..write('officialCoverId: $officialCoverId, ')
           ..write('fanArtCoverId: $fanArtCoverId, ')
+          ..write('draftCoverFile: $draftCoverFile, ')
+          ..write('ideaCoverFile: $ideaCoverFile, ')
+          ..write('pieceCoverFile: $pieceCoverFile, ')
+          ..write('oshiCoverFile: $oshiCoverFile, ')
           ..write('archived: $archived, ')
           ..write('junkEnabled: $junkEnabled')
           ..write(')'))
@@ -542,6 +719,10 @@ class Pit extends DataClass implements Insertable<Pit> {
     coverImageId,
     officialCoverId,
     fanArtCoverId,
+    draftCoverFile,
+    ideaCoverFile,
+    pieceCoverFile,
+    oshiCoverFile,
     archived,
     junkEnabled,
   );
@@ -559,6 +740,10 @@ class Pit extends DataClass implements Insertable<Pit> {
           other.coverImageId == this.coverImageId &&
           other.officialCoverId == this.officialCoverId &&
           other.fanArtCoverId == this.fanArtCoverId &&
+          other.draftCoverFile == this.draftCoverFile &&
+          other.ideaCoverFile == this.ideaCoverFile &&
+          other.pieceCoverFile == this.pieceCoverFile &&
+          other.oshiCoverFile == this.oshiCoverFile &&
           other.archived == this.archived &&
           other.junkEnabled == this.junkEnabled);
 }
@@ -574,6 +759,10 @@ class PitsCompanion extends UpdateCompanion<Pit> {
   final Value<String?> coverImageId;
   final Value<String?> officialCoverId;
   final Value<String?> fanArtCoverId;
+  final Value<String?> draftCoverFile;
+  final Value<String?> ideaCoverFile;
+  final Value<String?> pieceCoverFile;
+  final Value<String?> oshiCoverFile;
   final Value<bool> archived;
   final Value<bool> junkEnabled;
   final Value<int> rowid;
@@ -588,6 +777,10 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     this.coverImageId = const Value.absent(),
     this.officialCoverId = const Value.absent(),
     this.fanArtCoverId = const Value.absent(),
+    this.draftCoverFile = const Value.absent(),
+    this.ideaCoverFile = const Value.absent(),
+    this.pieceCoverFile = const Value.absent(),
+    this.oshiCoverFile = const Value.absent(),
     this.archived = const Value.absent(),
     this.junkEnabled = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -603,6 +796,10 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     this.coverImageId = const Value.absent(),
     this.officialCoverId = const Value.absent(),
     this.fanArtCoverId = const Value.absent(),
+    this.draftCoverFile = const Value.absent(),
+    this.ideaCoverFile = const Value.absent(),
+    this.pieceCoverFile = const Value.absent(),
+    this.oshiCoverFile = const Value.absent(),
     this.archived = const Value.absent(),
     this.junkEnabled = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -618,6 +815,10 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     Expression<String>? coverImageId,
     Expression<String>? officialCoverId,
     Expression<String>? fanArtCoverId,
+    Expression<String>? draftCoverFile,
+    Expression<String>? ideaCoverFile,
+    Expression<String>? pieceCoverFile,
+    Expression<String>? oshiCoverFile,
     Expression<bool>? archived,
     Expression<bool>? junkEnabled,
     Expression<int>? rowid,
@@ -633,6 +834,10 @@ class PitsCompanion extends UpdateCompanion<Pit> {
       if (coverImageId != null) 'cover_image_id': coverImageId,
       if (officialCoverId != null) 'official_cover_id': officialCoverId,
       if (fanArtCoverId != null) 'fan_art_cover_id': fanArtCoverId,
+      if (draftCoverFile != null) 'draft_cover_file': draftCoverFile,
+      if (ideaCoverFile != null) 'idea_cover_file': ideaCoverFile,
+      if (pieceCoverFile != null) 'piece_cover_file': pieceCoverFile,
+      if (oshiCoverFile != null) 'oshi_cover_file': oshiCoverFile,
       if (archived != null) 'archived': archived,
       if (junkEnabled != null) 'junk_enabled': junkEnabled,
       if (rowid != null) 'rowid': rowid,
@@ -650,6 +855,10 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     Value<String?>? coverImageId,
     Value<String?>? officialCoverId,
     Value<String?>? fanArtCoverId,
+    Value<String?>? draftCoverFile,
+    Value<String?>? ideaCoverFile,
+    Value<String?>? pieceCoverFile,
+    Value<String?>? oshiCoverFile,
     Value<bool>? archived,
     Value<bool>? junkEnabled,
     Value<int>? rowid,
@@ -665,6 +874,10 @@ class PitsCompanion extends UpdateCompanion<Pit> {
       coverImageId: coverImageId ?? this.coverImageId,
       officialCoverId: officialCoverId ?? this.officialCoverId,
       fanArtCoverId: fanArtCoverId ?? this.fanArtCoverId,
+      draftCoverFile: draftCoverFile ?? this.draftCoverFile,
+      ideaCoverFile: ideaCoverFile ?? this.ideaCoverFile,
+      pieceCoverFile: pieceCoverFile ?? this.pieceCoverFile,
+      oshiCoverFile: oshiCoverFile ?? this.oshiCoverFile,
       archived: archived ?? this.archived,
       junkEnabled: junkEnabled ?? this.junkEnabled,
       rowid: rowid ?? this.rowid,
@@ -704,6 +917,18 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     if (fanArtCoverId.present) {
       map['fan_art_cover_id'] = Variable<String>(fanArtCoverId.value);
     }
+    if (draftCoverFile.present) {
+      map['draft_cover_file'] = Variable<String>(draftCoverFile.value);
+    }
+    if (ideaCoverFile.present) {
+      map['idea_cover_file'] = Variable<String>(ideaCoverFile.value);
+    }
+    if (pieceCoverFile.present) {
+      map['piece_cover_file'] = Variable<String>(pieceCoverFile.value);
+    }
+    if (oshiCoverFile.present) {
+      map['oshi_cover_file'] = Variable<String>(oshiCoverFile.value);
+    }
     if (archived.present) {
       map['archived'] = Variable<bool>(archived.value);
     }
@@ -729,6 +954,10 @@ class PitsCompanion extends UpdateCompanion<Pit> {
           ..write('coverImageId: $coverImageId, ')
           ..write('officialCoverId: $officialCoverId, ')
           ..write('fanArtCoverId: $fanArtCoverId, ')
+          ..write('draftCoverFile: $draftCoverFile, ')
+          ..write('ideaCoverFile: $ideaCoverFile, ')
+          ..write('pieceCoverFile: $pieceCoverFile, ')
+          ..write('oshiCoverFile: $oshiCoverFile, ')
           ..write('archived: $archived, ')
           ..write('junkEnabled: $junkEnabled, ')
           ..write('rowid: $rowid')
@@ -1343,6 +1572,38 @@ class $OfficialImagesTable extends OfficialImages
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<MediaKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('image'),
+      ).withConverter<MediaKind>($OfficialImagesTable.$converterkind);
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _posterFileMeta = const VerificationMeta(
+    'posterFile',
+  );
+  @override
+  late final GeneratedColumn<String> posterFile = GeneratedColumn<String>(
+    'poster_file',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _pitIdMeta = const VerificationMeta('pitId');
   @override
   late final GeneratedColumn<String> pitId = GeneratedColumn<String>(
@@ -1426,6 +1687,9 @@ class $OfficialImagesTable extends OfficialImages
     updatedAt,
     deletedAt,
     deviceId,
+    kind,
+    durationMs,
+    posterFile,
     pitId,
     groupId,
     imageFile,
@@ -1471,6 +1735,18 @@ class $OfficialImagesTable extends OfficialImages
       context.handle(
         _deviceIdMeta,
         deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    if (data.containsKey('poster_file')) {
+      context.handle(
+        _posterFileMeta,
+        posterFile.isAcceptableOrUnknown(data['poster_file']!, _posterFileMeta),
       );
     }
     if (data.containsKey('pit_id')) {
@@ -1550,6 +1826,20 @@ class $OfficialImagesTable extends OfficialImages
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      kind: $OfficialImagesTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      posterFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}poster_file'],
+      ),
       pitId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}pit_id'],
@@ -1585,6 +1875,9 @@ class $OfficialImagesTable extends OfficialImages
   $OfficialImagesTable createAlias(String alias) {
     return $OfficialImagesTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<MediaKind, String, String> $converterkind =
+      const EnumNameConverter<MediaKind>(MediaKind.values);
 }
 
 class OfficialImage extends DataClass implements Insertable<OfficialImage> {
@@ -1593,6 +1886,14 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
   final DateTime updatedAt;
   final DateTime? deletedAt;
   final String deviceId;
+  final MediaKind kind;
+
+  /// 影片長度（毫秒）；只有影片有值，圖片與 GIF 為 null。
+  final int? durationMs;
+
+  /// 影片第一格的截圖檔名（與 imageFile 同一個圖片資料夾，也同步）；
+  /// 影片剛匯入、尚未產生截圖時為 null。圖片與 GIF 不使用。
+  final String? posterFile;
   final String pitId;
   final String groupId;
   final String imageFile;
@@ -1611,6 +1912,9 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
+    required this.kind,
+    this.durationMs,
+    this.posterFile,
     required this.pitId,
     required this.groupId,
     required this.imageFile,
@@ -1629,6 +1933,17 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['device_id'] = Variable<String>(deviceId);
+    {
+      map['kind'] = Variable<String>(
+        $OfficialImagesTable.$converterkind.toSql(kind),
+      );
+    }
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    if (!nullToAbsent || posterFile != null) {
+      map['poster_file'] = Variable<String>(posterFile);
+    }
     map['pit_id'] = Variable<String>(pitId);
     map['group_id'] = Variable<String>(groupId);
     map['image_file'] = Variable<String>(imageFile);
@@ -1648,6 +1963,13 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
           ? const Value.absent()
           : Value(deletedAt),
       deviceId: Value(deviceId),
+      kind: Value(kind),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
+      posterFile: posterFile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(posterFile),
       pitId: Value(pitId),
       groupId: Value(groupId),
       imageFile: Value(imageFile),
@@ -1669,6 +1991,11 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      kind: $OfficialImagesTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      posterFile: serializer.fromJson<String?>(json['posterFile']),
       pitId: serializer.fromJson<String>(json['pitId']),
       groupId: serializer.fromJson<String>(json['groupId']),
       imageFile: serializer.fromJson<String>(json['imageFile']),
@@ -1687,6 +2014,11 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'kind': serializer.toJson<String>(
+        $OfficialImagesTable.$converterkind.toJson(kind),
+      ),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'posterFile': serializer.toJson<String?>(posterFile),
       'pitId': serializer.toJson<String>(pitId),
       'groupId': serializer.toJson<String>(groupId),
       'imageFile': serializer.toJson<String>(imageFile),
@@ -1703,6 +2035,9 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
+    MediaKind? kind,
+    Value<int?> durationMs = const Value.absent(),
+    Value<String?> posterFile = const Value.absent(),
     String? pitId,
     String? groupId,
     String? imageFile,
@@ -1716,6 +2051,9 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
+    kind: kind ?? this.kind,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    posterFile: posterFile.present ? posterFile.value : this.posterFile,
     pitId: pitId ?? this.pitId,
     groupId: groupId ?? this.groupId,
     imageFile: imageFile ?? this.imageFile,
@@ -1731,6 +2069,13 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      posterFile: data.posterFile.present
+          ? data.posterFile.value
+          : this.posterFile,
       pitId: data.pitId.present ? data.pitId.value : this.pitId,
       groupId: data.groupId.present ? data.groupId.value : this.groupId,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
@@ -1749,6 +2094,9 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('kind: $kind, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('posterFile: $posterFile, ')
           ..write('pitId: $pitId, ')
           ..write('groupId: $groupId, ')
           ..write('imageFile: $imageFile, ')
@@ -1767,6 +2115,9 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     updatedAt,
     deletedAt,
     deviceId,
+    kind,
+    durationMs,
+    posterFile,
     pitId,
     groupId,
     imageFile,
@@ -1784,6 +2135,9 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
+          other.kind == this.kind &&
+          other.durationMs == this.durationMs &&
+          other.posterFile == this.posterFile &&
           other.pitId == this.pitId &&
           other.groupId == this.groupId &&
           other.imageFile == this.imageFile &&
@@ -1799,6 +2153,9 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
+  final Value<MediaKind> kind;
+  final Value<int?> durationMs;
+  final Value<String?> posterFile;
   final Value<String> pitId;
   final Value<String> groupId;
   final Value<String> imageFile;
@@ -1813,6 +2170,9 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.posterFile = const Value.absent(),
     this.pitId = const Value.absent(),
     this.groupId = const Value.absent(),
     this.imageFile = const Value.absent(),
@@ -1828,6 +2188,9 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.posterFile = const Value.absent(),
     required String pitId,
     required String groupId,
     required String imageFile,
@@ -1845,6 +2208,9 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
+    Expression<String>? kind,
+    Expression<int>? durationMs,
+    Expression<String>? posterFile,
     Expression<String>? pitId,
     Expression<String>? groupId,
     Expression<String>? imageFile,
@@ -1860,6 +2226,9 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (kind != null) 'kind': kind,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (posterFile != null) 'poster_file': posterFile,
       if (pitId != null) 'pit_id': pitId,
       if (groupId != null) 'group_id': groupId,
       if (imageFile != null) 'image_file': imageFile,
@@ -1877,6 +2246,9 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
+    Value<MediaKind>? kind,
+    Value<int?>? durationMs,
+    Value<String?>? posterFile,
     Value<String>? pitId,
     Value<String>? groupId,
     Value<String>? imageFile,
@@ -1892,6 +2264,9 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
+      kind: kind ?? this.kind,
+      durationMs: durationMs ?? this.durationMs,
+      posterFile: posterFile ?? this.posterFile,
       pitId: pitId ?? this.pitId,
       groupId: groupId ?? this.groupId,
       imageFile: imageFile ?? this.imageFile,
@@ -1920,6 +2295,17 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $OfficialImagesTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (posterFile.present) {
+      map['poster_file'] = Variable<String>(posterFile.value);
     }
     if (pitId.present) {
       map['pit_id'] = Variable<String>(pitId.value);
@@ -1956,6 +2342,9 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('kind: $kind, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('posterFile: $posterFile, ')
           ..write('pitId: $pitId, ')
           ..write('groupId: $groupId, ')
           ..write('imageFile: $imageFile, ')
@@ -2030,6 +2419,38 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<MediaKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('image'),
+      ).withConverter<MediaKind>($FanArtsTable.$converterkind);
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _posterFileMeta = const VerificationMeta(
+    'posterFile',
+  );
+  @override
+  late final GeneratedColumn<String> posterFile = GeneratedColumn<String>(
+    'poster_file',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _pitIdMeta = const VerificationMeta('pitId');
   @override
@@ -2134,6 +2555,9 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     updatedAt,
     deletedAt,
     deviceId,
+    kind,
+    durationMs,
+    posterFile,
     pitId,
     imageFile,
     width,
@@ -2181,6 +2605,18 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
       context.handle(
         _deviceIdMeta,
         deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    if (data.containsKey('poster_file')) {
+      context.handle(
+        _posterFileMeta,
+        posterFile.isAcceptableOrUnknown(data['poster_file']!, _posterFileMeta),
       );
     }
     if (data.containsKey('pit_id')) {
@@ -2270,6 +2706,20 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      kind: $FanArtsTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      posterFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}poster_file'],
+      ),
       pitId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}pit_id'],
@@ -2313,6 +2763,9 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
   $FanArtsTable createAlias(String alias) {
     return $FanArtsTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<MediaKind, String, String> $converterkind =
+      const EnumNameConverter<MediaKind>(MediaKind.values);
 }
 
 class FanArt extends DataClass implements Insertable<FanArt> {
@@ -2321,6 +2774,14 @@ class FanArt extends DataClass implements Insertable<FanArt> {
   final DateTime updatedAt;
   final DateTime? deletedAt;
   final String deviceId;
+  final MediaKind kind;
+
+  /// 影片長度（毫秒）；只有影片有值，圖片與 GIF 為 null。
+  final int? durationMs;
+
+  /// 影片第一格的截圖檔名（與 imageFile 同一個圖片資料夾，也同步）；
+  /// 影片剛匯入、尚未產生截圖時為 null。圖片與 GIF 不使用。
+  final String? posterFile;
   final String pitId;
   final String imageFile;
   final int width;
@@ -2343,6 +2804,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
+    required this.kind,
+    this.durationMs,
+    this.posterFile,
     required this.pitId,
     required this.imageFile,
     required this.width,
@@ -2363,6 +2827,15 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['device_id'] = Variable<String>(deviceId);
+    {
+      map['kind'] = Variable<String>($FanArtsTable.$converterkind.toSql(kind));
+    }
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    if (!nullToAbsent || posterFile != null) {
+      map['poster_file'] = Variable<String>(posterFile);
+    }
     map['pit_id'] = Variable<String>(pitId);
     map['image_file'] = Variable<String>(imageFile);
     map['width'] = Variable<int>(width);
@@ -2386,6 +2859,13 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           ? const Value.absent()
           : Value(deletedAt),
       deviceId: Value(deviceId),
+      kind: Value(kind),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
+      posterFile: posterFile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(posterFile),
       pitId: Value(pitId),
       imageFile: Value(imageFile),
       width: Value(width),
@@ -2411,6 +2891,11 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      kind: $FanArtsTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      posterFile: serializer.fromJson<String?>(json['posterFile']),
       pitId: serializer.fromJson<String>(json['pitId']),
       imageFile: serializer.fromJson<String>(json['imageFile']),
       width: serializer.fromJson<int>(json['width']),
@@ -2431,6 +2916,11 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'kind': serializer.toJson<String>(
+        $FanArtsTable.$converterkind.toJson(kind),
+      ),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'posterFile': serializer.toJson<String?>(posterFile),
       'pitId': serializer.toJson<String>(pitId),
       'imageFile': serializer.toJson<String>(imageFile),
       'width': serializer.toJson<int>(width),
@@ -2449,6 +2939,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
+    MediaKind? kind,
+    Value<int?> durationMs = const Value.absent(),
+    Value<String?> posterFile = const Value.absent(),
     String? pitId,
     String? imageFile,
     int? width,
@@ -2464,6 +2957,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
+    kind: kind ?? this.kind,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    posterFile: posterFile.present ? posterFile.value : this.posterFile,
     pitId: pitId ?? this.pitId,
     imageFile: imageFile ?? this.imageFile,
     width: width ?? this.width,
@@ -2481,6 +2977,13 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      posterFile: data.posterFile.present
+          ? data.posterFile.value
+          : this.posterFile,
       pitId: data.pitId.present ? data.pitId.value : this.pitId,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
       width: data.width.present ? data.width.value : this.width,
@@ -2501,6 +3004,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('kind: $kind, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('posterFile: $posterFile, ')
           ..write('pitId: $pitId, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
@@ -2521,6 +3027,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     updatedAt,
     deletedAt,
     deviceId,
+    kind,
+    durationMs,
+    posterFile,
     pitId,
     imageFile,
     width,
@@ -2540,6 +3049,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
+          other.kind == this.kind &&
+          other.durationMs == this.durationMs &&
+          other.posterFile == this.posterFile &&
           other.pitId == this.pitId &&
           other.imageFile == this.imageFile &&
           other.width == this.width &&
@@ -2557,6 +3069,9 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
+  final Value<MediaKind> kind;
+  final Value<int?> durationMs;
+  final Value<String?> posterFile;
   final Value<String> pitId;
   final Value<String> imageFile;
   final Value<int> width;
@@ -2573,6 +3088,9 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.posterFile = const Value.absent(),
     this.pitId = const Value.absent(),
     this.imageFile = const Value.absent(),
     this.width = const Value.absent(),
@@ -2590,6 +3108,9 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.posterFile = const Value.absent(),
     required String pitId,
     required String imageFile,
     this.width = const Value.absent(),
@@ -2608,6 +3129,9 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
+    Expression<String>? kind,
+    Expression<int>? durationMs,
+    Expression<String>? posterFile,
     Expression<String>? pitId,
     Expression<String>? imageFile,
     Expression<int>? width,
@@ -2625,6 +3149,9 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (kind != null) 'kind': kind,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (posterFile != null) 'poster_file': posterFile,
       if (pitId != null) 'pit_id': pitId,
       if (imageFile != null) 'image_file': imageFile,
       if (width != null) 'width': width,
@@ -2644,6 +3171,9 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
+    Value<MediaKind>? kind,
+    Value<int?>? durationMs,
+    Value<String?>? posterFile,
     Value<String>? pitId,
     Value<String>? imageFile,
     Value<int>? width,
@@ -2661,6 +3191,9 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
+      kind: kind ?? this.kind,
+      durationMs: durationMs ?? this.durationMs,
+      posterFile: posterFile ?? this.posterFile,
       pitId: pitId ?? this.pitId,
       imageFile: imageFile ?? this.imageFile,
       width: width ?? this.width,
@@ -2691,6 +3224,17 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $FanArtsTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (posterFile.present) {
+      map['poster_file'] = Variable<String>(posterFile.value);
     }
     if (pitId.present) {
       map['pit_id'] = Variable<String>(pitId.value);
@@ -2733,6 +3277,9 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('kind: $kind, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('posterFile: $posterFile, ')
           ..write('pitId: $pitId, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
@@ -2811,6 +3358,38 @@ class $JunkImagesTable extends JunkImages
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<MediaKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('image'),
+      ).withConverter<MediaKind>($JunkImagesTable.$converterkind);
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _posterFileMeta = const VerificationMeta(
+    'posterFile',
+  );
+  @override
+  late final GeneratedColumn<String> posterFile = GeneratedColumn<String>(
+    'poster_file',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _pitIdMeta = const VerificationMeta('pitId');
   @override
   late final GeneratedColumn<String> pitId = GeneratedColumn<String>(
@@ -2883,6 +3462,9 @@ class $JunkImagesTable extends JunkImages
     updatedAt,
     deletedAt,
     deviceId,
+    kind,
+    durationMs,
+    posterFile,
     pitId,
     imageFile,
     width,
@@ -2927,6 +3509,18 @@ class $JunkImagesTable extends JunkImages
       context.handle(
         _deviceIdMeta,
         deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    if (data.containsKey('poster_file')) {
+      context.handle(
+        _posterFileMeta,
+        posterFile.isAcceptableOrUnknown(data['poster_file']!, _posterFileMeta),
       );
     }
     if (data.containsKey('pit_id')) {
@@ -2998,6 +3592,20 @@ class $JunkImagesTable extends JunkImages
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      kind: $JunkImagesTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      posterFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}poster_file'],
+      ),
       pitId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}pit_id'],
@@ -3029,6 +3637,9 @@ class $JunkImagesTable extends JunkImages
   $JunkImagesTable createAlias(String alias) {
     return $JunkImagesTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<MediaKind, String, String> $converterkind =
+      const EnumNameConverter<MediaKind>(MediaKind.values);
 }
 
 class JunkImage extends DataClass implements Insertable<JunkImage> {
@@ -3037,6 +3648,14 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
   final DateTime updatedAt;
   final DateTime? deletedAt;
   final String deviceId;
+  final MediaKind kind;
+
+  /// 影片長度（毫秒）；只有影片有值，圖片與 GIF 為 null。
+  final int? durationMs;
+
+  /// 影片第一格的截圖檔名（與 imageFile 同一個圖片資料夾，也同步）；
+  /// 影片剛匯入、尚未產生截圖時為 null。圖片與 GIF 不使用。
+  final String? posterFile;
   final String pitId;
   final String imageFile;
   final int width;
@@ -3054,6 +3673,9 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
+    required this.kind,
+    this.durationMs,
+    this.posterFile,
     required this.pitId,
     required this.imageFile,
     required this.width,
@@ -3071,6 +3693,17 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['device_id'] = Variable<String>(deviceId);
+    {
+      map['kind'] = Variable<String>(
+        $JunkImagesTable.$converterkind.toSql(kind),
+      );
+    }
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    if (!nullToAbsent || posterFile != null) {
+      map['poster_file'] = Variable<String>(posterFile);
+    }
     map['pit_id'] = Variable<String>(pitId);
     map['image_file'] = Variable<String>(imageFile);
     map['width'] = Variable<int>(width);
@@ -3089,6 +3722,13 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
           ? const Value.absent()
           : Value(deletedAt),
       deviceId: Value(deviceId),
+      kind: Value(kind),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
+      posterFile: posterFile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(posterFile),
       pitId: Value(pitId),
       imageFile: Value(imageFile),
       width: Value(width),
@@ -3109,6 +3749,11 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      kind: $JunkImagesTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      posterFile: serializer.fromJson<String?>(json['posterFile']),
       pitId: serializer.fromJson<String>(json['pitId']),
       imageFile: serializer.fromJson<String>(json['imageFile']),
       width: serializer.fromJson<int>(json['width']),
@@ -3126,6 +3771,11 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'kind': serializer.toJson<String>(
+        $JunkImagesTable.$converterkind.toJson(kind),
+      ),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'posterFile': serializer.toJson<String?>(posterFile),
       'pitId': serializer.toJson<String>(pitId),
       'imageFile': serializer.toJson<String>(imageFile),
       'width': serializer.toJson<int>(width),
@@ -3141,6 +3791,9 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
+    MediaKind? kind,
+    Value<int?> durationMs = const Value.absent(),
+    Value<String?> posterFile = const Value.absent(),
     String? pitId,
     String? imageFile,
     int? width,
@@ -3153,6 +3806,9 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
+    kind: kind ?? this.kind,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    posterFile: posterFile.present ? posterFile.value : this.posterFile,
     pitId: pitId ?? this.pitId,
     imageFile: imageFile ?? this.imageFile,
     width: width ?? this.width,
@@ -3167,6 +3823,13 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      posterFile: data.posterFile.present
+          ? data.posterFile.value
+          : this.posterFile,
       pitId: data.pitId.present ? data.pitId.value : this.pitId,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
       width: data.width.present ? data.width.value : this.width,
@@ -3184,6 +3847,9 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('kind: $kind, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('posterFile: $posterFile, ')
           ..write('pitId: $pitId, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
@@ -3201,6 +3867,9 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
     updatedAt,
     deletedAt,
     deviceId,
+    kind,
+    durationMs,
+    posterFile,
     pitId,
     imageFile,
     width,
@@ -3217,6 +3886,9 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
+          other.kind == this.kind &&
+          other.durationMs == this.durationMs &&
+          other.posterFile == this.posterFile &&
           other.pitId == this.pitId &&
           other.imageFile == this.imageFile &&
           other.width == this.width &&
@@ -3231,6 +3903,9 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
+  final Value<MediaKind> kind;
+  final Value<int?> durationMs;
+  final Value<String?> posterFile;
   final Value<String> pitId;
   final Value<String> imageFile;
   final Value<int> width;
@@ -3244,6 +3919,9 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.posterFile = const Value.absent(),
     this.pitId = const Value.absent(),
     this.imageFile = const Value.absent(),
     this.width = const Value.absent(),
@@ -3258,6 +3936,9 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.posterFile = const Value.absent(),
     required String pitId,
     required String imageFile,
     this.width = const Value.absent(),
@@ -3273,6 +3954,9 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
+    Expression<String>? kind,
+    Expression<int>? durationMs,
+    Expression<String>? posterFile,
     Expression<String>? pitId,
     Expression<String>? imageFile,
     Expression<int>? width,
@@ -3287,6 +3971,9 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (kind != null) 'kind': kind,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (posterFile != null) 'poster_file': posterFile,
       if (pitId != null) 'pit_id': pitId,
       if (imageFile != null) 'image_file': imageFile,
       if (width != null) 'width': width,
@@ -3303,6 +3990,9 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
+    Value<MediaKind>? kind,
+    Value<int?>? durationMs,
+    Value<String?>? posterFile,
     Value<String>? pitId,
     Value<String>? imageFile,
     Value<int>? width,
@@ -3317,6 +4007,9 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
+      kind: kind ?? this.kind,
+      durationMs: durationMs ?? this.durationMs,
+      posterFile: posterFile ?? this.posterFile,
       pitId: pitId ?? this.pitId,
       imageFile: imageFile ?? this.imageFile,
       width: width ?? this.width,
@@ -3344,6 +4037,17 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $JunkImagesTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (posterFile.present) {
+      map['poster_file'] = Variable<String>(posterFile.value);
     }
     if (pitId.present) {
       map['pit_id'] = Variable<String>(pitId.value);
@@ -3377,6 +4081,9 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('kind: $kind, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('posterFile: $posterFile, ')
           ..write('pitId: $pitId, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
@@ -6638,6 +7345,38 @@ class $MaterialImagesTable extends MaterialImages
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<MediaKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('image'),
+      ).withConverter<MediaKind>($MaterialImagesTable.$converterkind);
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _posterFileMeta = const VerificationMeta(
+    'posterFile',
+  );
+  @override
+  late final GeneratedColumn<String> posterFile = GeneratedColumn<String>(
+    'poster_file',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _imageFileMeta = const VerificationMeta(
     'imageFile',
   );
@@ -6685,6 +7424,9 @@ class $MaterialImagesTable extends MaterialImages
     updatedAt,
     deletedAt,
     deviceId,
+    kind,
+    durationMs,
+    posterFile,
     imageFile,
     width,
     height,
@@ -6727,6 +7469,18 @@ class $MaterialImagesTable extends MaterialImages
       context.handle(
         _deviceIdMeta,
         deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    if (data.containsKey('poster_file')) {
+      context.handle(
+        _posterFileMeta,
+        posterFile.isAcceptableOrUnknown(data['poster_file']!, _posterFileMeta),
       );
     }
     if (data.containsKey('image_file')) {
@@ -6778,6 +7532,20 @@ class $MaterialImagesTable extends MaterialImages
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      kind: $MaterialImagesTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      posterFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}poster_file'],
+      ),
       imageFile: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}image_file'],
@@ -6804,6 +7572,8 @@ class $MaterialImagesTable extends MaterialImages
     return $MaterialImagesTable(attachedDatabase, alias);
   }
 
+  static JsonTypeConverter2<MediaKind, String, String> $converterkind =
+      const EnumNameConverter<MediaKind>(MediaKind.values);
   static JsonTypeConverter2<MaterialCategory, String, String>
   $convertercategory = const EnumNameConverter<MaterialCategory>(
     MaterialCategory.values,
@@ -6816,6 +7586,14 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
   final DateTime updatedAt;
   final DateTime? deletedAt;
   final String deviceId;
+  final MediaKind kind;
+
+  /// 影片長度（毫秒）；只有影片有值，圖片與 GIF 為 null。
+  final int? durationMs;
+
+  /// 影片第一格的截圖檔名（與 imageFile 同一個圖片資料夾，也同步）；
+  /// 影片剛匯入、尚未產生截圖時為 null。圖片與 GIF 不使用。
+  final String? posterFile;
   final String imageFile;
   final int width;
   final int height;
@@ -6826,6 +7604,9 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
+    required this.kind,
+    this.durationMs,
+    this.posterFile,
     required this.imageFile,
     required this.width,
     required this.height,
@@ -6841,6 +7622,17 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['device_id'] = Variable<String>(deviceId);
+    {
+      map['kind'] = Variable<String>(
+        $MaterialImagesTable.$converterkind.toSql(kind),
+      );
+    }
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    if (!nullToAbsent || posterFile != null) {
+      map['poster_file'] = Variable<String>(posterFile);
+    }
     map['image_file'] = Variable<String>(imageFile);
     map['width'] = Variable<int>(width);
     map['height'] = Variable<int>(height);
@@ -6861,6 +7653,13 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
           ? const Value.absent()
           : Value(deletedAt),
       deviceId: Value(deviceId),
+      kind: Value(kind),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
+      posterFile: posterFile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(posterFile),
       imageFile: Value(imageFile),
       width: Value(width),
       height: Value(height),
@@ -6879,6 +7678,11 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      kind: $MaterialImagesTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      posterFile: serializer.fromJson<String?>(json['posterFile']),
       imageFile: serializer.fromJson<String>(json['imageFile']),
       width: serializer.fromJson<int>(json['width']),
       height: serializer.fromJson<int>(json['height']),
@@ -6896,6 +7700,11 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'kind': serializer.toJson<String>(
+        $MaterialImagesTable.$converterkind.toJson(kind),
+      ),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'posterFile': serializer.toJson<String?>(posterFile),
       'imageFile': serializer.toJson<String>(imageFile),
       'width': serializer.toJson<int>(width),
       'height': serializer.toJson<int>(height),
@@ -6911,6 +7720,9 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
+    MediaKind? kind,
+    Value<int?> durationMs = const Value.absent(),
+    Value<String?> posterFile = const Value.absent(),
     String? imageFile,
     int? width,
     int? height,
@@ -6921,6 +7733,9 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
+    kind: kind ?? this.kind,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    posterFile: posterFile.present ? posterFile.value : this.posterFile,
     imageFile: imageFile ?? this.imageFile,
     width: width ?? this.width,
     height: height ?? this.height,
@@ -6933,6 +7748,13 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      posterFile: data.posterFile.present
+          ? data.posterFile.value
+          : this.posterFile,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
       width: data.width.present ? data.width.value : this.width,
       height: data.height.present ? data.height.value : this.height,
@@ -6948,6 +7770,9 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('kind: $kind, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('posterFile: $posterFile, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
           ..write('height: $height, ')
@@ -6963,6 +7788,9 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
     updatedAt,
     deletedAt,
     deviceId,
+    kind,
+    durationMs,
+    posterFile,
     imageFile,
     width,
     height,
@@ -6977,6 +7805,9 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
+          other.kind == this.kind &&
+          other.durationMs == this.durationMs &&
+          other.posterFile == this.posterFile &&
           other.imageFile == this.imageFile &&
           other.width == this.width &&
           other.height == this.height &&
@@ -6989,6 +7820,9 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
+  final Value<MediaKind> kind;
+  final Value<int?> durationMs;
+  final Value<String?> posterFile;
   final Value<String> imageFile;
   final Value<int> width;
   final Value<int> height;
@@ -7000,6 +7834,9 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.posterFile = const Value.absent(),
     this.imageFile = const Value.absent(),
     this.width = const Value.absent(),
     this.height = const Value.absent(),
@@ -7012,6 +7849,9 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.posterFile = const Value.absent(),
     required String imageFile,
     this.width = const Value.absent(),
     this.height = const Value.absent(),
@@ -7025,6 +7865,9 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
+    Expression<String>? kind,
+    Expression<int>? durationMs,
+    Expression<String>? posterFile,
     Expression<String>? imageFile,
     Expression<int>? width,
     Expression<int>? height,
@@ -7037,6 +7880,9 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (kind != null) 'kind': kind,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (posterFile != null) 'poster_file': posterFile,
       if (imageFile != null) 'image_file': imageFile,
       if (width != null) 'width': width,
       if (height != null) 'height': height,
@@ -7051,6 +7897,9 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
+    Value<MediaKind>? kind,
+    Value<int?>? durationMs,
+    Value<String?>? posterFile,
     Value<String>? imageFile,
     Value<int>? width,
     Value<int>? height,
@@ -7063,6 +7912,9 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
+      kind: kind ?? this.kind,
+      durationMs: durationMs ?? this.durationMs,
+      posterFile: posterFile ?? this.posterFile,
       imageFile: imageFile ?? this.imageFile,
       width: width ?? this.width,
       height: height ?? this.height,
@@ -7088,6 +7940,17 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $MaterialImagesTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (posterFile.present) {
+      map['poster_file'] = Variable<String>(posterFile.value);
     }
     if (imageFile.present) {
       map['image_file'] = Variable<String>(imageFile.value);
@@ -7117,6 +7980,9 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('kind: $kind, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('posterFile: $posterFile, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
           ..write('height: $height, ')
@@ -7191,6 +8057,38 @@ class $EntityImagesTable extends EntityImages
     defaultValue: const Constant(''),
   );
   @override
+  late final GeneratedColumnWithTypeConverter<MediaKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('image'),
+      ).withConverter<MediaKind>($EntityImagesTable.$converterkind);
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _posterFileMeta = const VerificationMeta(
+    'posterFile',
+  );
+  @override
+  late final GeneratedColumn<String> posterFile = GeneratedColumn<String>(
+    'poster_file',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
   late final GeneratedColumnWithTypeConverter<OwnerType, String> ownerType =
       GeneratedColumn<String>(
         'owner_type',
@@ -7260,6 +8158,9 @@ class $EntityImagesTable extends EntityImages
     updatedAt,
     deletedAt,
     deviceId,
+    kind,
+    durationMs,
+    posterFile,
     ownerType,
     ownerId,
     imageFile,
@@ -7304,6 +8205,18 @@ class $EntityImagesTable extends EntityImages
       context.handle(
         _deviceIdMeta,
         deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    if (data.containsKey('poster_file')) {
+      context.handle(
+        _posterFileMeta,
+        posterFile.isAcceptableOrUnknown(data['poster_file']!, _posterFileMeta),
       );
     }
     if (data.containsKey('owner_id')) {
@@ -7369,6 +8282,20 @@ class $EntityImagesTable extends EntityImages
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      kind: $EntityImagesTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      posterFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}poster_file'],
+      ),
       ownerType: $EntityImagesTable.$converterownerType.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -7403,6 +8330,8 @@ class $EntityImagesTable extends EntityImages
     return $EntityImagesTable(attachedDatabase, alias);
   }
 
+  static JsonTypeConverter2<MediaKind, String, String> $converterkind =
+      const EnumNameConverter<MediaKind>(MediaKind.values);
   static JsonTypeConverter2<OwnerType, String, String> $converterownerType =
       const EnumNameConverter<OwnerType>(OwnerType.values);
 }
@@ -7413,6 +8342,14 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
   final DateTime updatedAt;
   final DateTime? deletedAt;
   final String deviceId;
+  final MediaKind kind;
+
+  /// 影片長度（毫秒）；只有影片有值，圖片與 GIF 為 null。
+  final int? durationMs;
+
+  /// 影片第一格的截圖檔名（與 imageFile 同一個圖片資料夾，也同步）；
+  /// 影片剛匯入、尚未產生截圖時為 null。圖片與 GIF 不使用。
+  final String? posterFile;
   final OwnerType ownerType;
   final String ownerId;
   final String imageFile;
@@ -7425,6 +8362,9 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
+    required this.kind,
+    this.durationMs,
+    this.posterFile,
     required this.ownerType,
     required this.ownerId,
     required this.imageFile,
@@ -7442,6 +8382,17 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['device_id'] = Variable<String>(deviceId);
+    {
+      map['kind'] = Variable<String>(
+        $EntityImagesTable.$converterkind.toSql(kind),
+      );
+    }
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    if (!nullToAbsent || posterFile != null) {
+      map['poster_file'] = Variable<String>(posterFile);
+    }
     {
       map['owner_type'] = Variable<String>(
         $EntityImagesTable.$converterownerType.toSql(ownerType),
@@ -7464,6 +8415,13 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
           ? const Value.absent()
           : Value(deletedAt),
       deviceId: Value(deviceId),
+      kind: Value(kind),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
+      posterFile: posterFile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(posterFile),
       ownerType: Value(ownerType),
       ownerId: Value(ownerId),
       imageFile: Value(imageFile),
@@ -7484,6 +8442,11 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      kind: $EntityImagesTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      posterFile: serializer.fromJson<String?>(json['posterFile']),
       ownerType: $EntityImagesTable.$converterownerType.fromJson(
         serializer.fromJson<String>(json['ownerType']),
       ),
@@ -7503,6 +8466,11 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'kind': serializer.toJson<String>(
+        $EntityImagesTable.$converterkind.toJson(kind),
+      ),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'posterFile': serializer.toJson<String?>(posterFile),
       'ownerType': serializer.toJson<String>(
         $EntityImagesTable.$converterownerType.toJson(ownerType),
       ),
@@ -7520,6 +8488,9 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
+    MediaKind? kind,
+    Value<int?> durationMs = const Value.absent(),
+    Value<String?> posterFile = const Value.absent(),
     OwnerType? ownerType,
     String? ownerId,
     String? imageFile,
@@ -7532,6 +8503,9 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
+    kind: kind ?? this.kind,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    posterFile: posterFile.present ? posterFile.value : this.posterFile,
     ownerType: ownerType ?? this.ownerType,
     ownerId: ownerId ?? this.ownerId,
     imageFile: imageFile ?? this.imageFile,
@@ -7546,6 +8520,13 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      posterFile: data.posterFile.present
+          ? data.posterFile.value
+          : this.posterFile,
       ownerType: data.ownerType.present ? data.ownerType.value : this.ownerType,
       ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
@@ -7563,6 +8544,9 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('kind: $kind, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('posterFile: $posterFile, ')
           ..write('ownerType: $ownerType, ')
           ..write('ownerId: $ownerId, ')
           ..write('imageFile: $imageFile, ')
@@ -7580,6 +8564,9 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     updatedAt,
     deletedAt,
     deviceId,
+    kind,
+    durationMs,
+    posterFile,
     ownerType,
     ownerId,
     imageFile,
@@ -7596,6 +8583,9 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
+          other.kind == this.kind &&
+          other.durationMs == this.durationMs &&
+          other.posterFile == this.posterFile &&
           other.ownerType == this.ownerType &&
           other.ownerId == this.ownerId &&
           other.imageFile == this.imageFile &&
@@ -7610,6 +8600,9 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
+  final Value<MediaKind> kind;
+  final Value<int?> durationMs;
+  final Value<String?> posterFile;
   final Value<OwnerType> ownerType;
   final Value<String> ownerId;
   final Value<String> imageFile;
@@ -7623,6 +8616,9 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.posterFile = const Value.absent(),
     this.ownerType = const Value.absent(),
     this.ownerId = const Value.absent(),
     this.imageFile = const Value.absent(),
@@ -7637,6 +8633,9 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.posterFile = const Value.absent(),
     required OwnerType ownerType,
     required String ownerId,
     required String imageFile,
@@ -7653,6 +8652,9 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
+    Expression<String>? kind,
+    Expression<int>? durationMs,
+    Expression<String>? posterFile,
     Expression<String>? ownerType,
     Expression<String>? ownerId,
     Expression<String>? imageFile,
@@ -7667,6 +8669,9 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (kind != null) 'kind': kind,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (posterFile != null) 'poster_file': posterFile,
       if (ownerType != null) 'owner_type': ownerType,
       if (ownerId != null) 'owner_id': ownerId,
       if (imageFile != null) 'image_file': imageFile,
@@ -7683,6 +8688,9 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
+    Value<MediaKind>? kind,
+    Value<int?>? durationMs,
+    Value<String?>? posterFile,
     Value<OwnerType>? ownerType,
     Value<String>? ownerId,
     Value<String>? imageFile,
@@ -7697,6 +8705,9 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
+      kind: kind ?? this.kind,
+      durationMs: durationMs ?? this.durationMs,
+      posterFile: posterFile ?? this.posterFile,
       ownerType: ownerType ?? this.ownerType,
       ownerId: ownerId ?? this.ownerId,
       imageFile: imageFile ?? this.imageFile,
@@ -7724,6 +8735,17 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $EntityImagesTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (posterFile.present) {
+      map['poster_file'] = Variable<String>(posterFile.value);
     }
     if (ownerType.present) {
       map['owner_type'] = Variable<String>(
@@ -7759,6 +8781,9 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('kind: $kind, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('posterFile: $posterFile, ')
           ..write('ownerType: $ownerType, ')
           ..write('ownerId: $ownerId, ')
           ..write('imageFile: $imageFile, ')
@@ -11430,6 +12455,10 @@ typedef $$PitsTableCreateCompanionBuilder = PitsCompanion Function({
   Value<String?> coverImageId,
   Value<String?> officialCoverId,
   Value<String?> fanArtCoverId,
+  Value<String?> draftCoverFile,
+  Value<String?> ideaCoverFile,
+  Value<String?> pieceCoverFile,
+  Value<String?> oshiCoverFile,
   Value<bool> archived,
   Value<bool> junkEnabled,
   Value<int> rowid,
@@ -11445,6 +12474,10 @@ typedef $$PitsTableUpdateCompanionBuilder = PitsCompanion Function({
   Value<String?> coverImageId,
   Value<String?> officialCoverId,
   Value<String?> fanArtCoverId,
+  Value<String?> draftCoverFile,
+  Value<String?> ideaCoverFile,
+  Value<String?> pieceCoverFile,
+  Value<String?> oshiCoverFile,
   Value<bool> archived,
   Value<bool> junkEnabled,
   Value<int> rowid,
@@ -11505,6 +12538,26 @@ class $$PitsTableFilterComposer extends Composer<_$AppDatabase, $PitsTable> {
 
   ColumnFilters<String> get fanArtCoverId => $composableBuilder(
     column: $table.fanArtCoverId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get draftCoverFile => $composableBuilder(
+    column: $table.draftCoverFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ideaCoverFile => $composableBuilder(
+    column: $table.ideaCoverFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pieceCoverFile => $composableBuilder(
+    column: $table.pieceCoverFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get oshiCoverFile => $composableBuilder(
+    column: $table.oshiCoverFile,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11577,6 +12630,26 @@ class $$PitsTableOrderingComposer extends Composer<_$AppDatabase, $PitsTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get draftCoverFile => $composableBuilder(
+    column: $table.draftCoverFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ideaCoverFile => $composableBuilder(
+    column: $table.ideaCoverFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pieceCoverFile => $composableBuilder(
+    column: $table.pieceCoverFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get oshiCoverFile => $composableBuilder(
+    column: $table.oshiCoverFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get archived => $composableBuilder(
     column: $table.archived,
     builder: (column) => ColumnOrderings(column),
@@ -11635,6 +12708,26 @@ class $$PitsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get draftCoverFile => $composableBuilder(
+    column: $table.draftCoverFile,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get ideaCoverFile => $composableBuilder(
+    column: $table.ideaCoverFile,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get pieceCoverFile => $composableBuilder(
+    column: $table.pieceCoverFile,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get oshiCoverFile => $composableBuilder(
+    column: $table.oshiCoverFile,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get archived =>
       $composableBuilder(column: $table.archived, builder: (column) => column);
 
@@ -11682,6 +12775,10 @@ class $$PitsTableTableManager
                 Value<String?> coverImageId = const Value.absent(),
                 Value<String?> officialCoverId = const Value.absent(),
                 Value<String?> fanArtCoverId = const Value.absent(),
+                Value<String?> draftCoverFile = const Value.absent(),
+                Value<String?> ideaCoverFile = const Value.absent(),
+                Value<String?> pieceCoverFile = const Value.absent(),
+                Value<String?> oshiCoverFile = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
                 Value<bool> junkEnabled = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -11696,6 +12793,10 @@ class $$PitsTableTableManager
                 coverImageId: coverImageId,
                 officialCoverId: officialCoverId,
                 fanArtCoverId: fanArtCoverId,
+                draftCoverFile: draftCoverFile,
+                ideaCoverFile: ideaCoverFile,
+                pieceCoverFile: pieceCoverFile,
+                oshiCoverFile: oshiCoverFile,
                 archived: archived,
                 junkEnabled: junkEnabled,
                 rowid: rowid,
@@ -11712,6 +12813,10 @@ class $$PitsTableTableManager
                 Value<String?> coverImageId = const Value.absent(),
                 Value<String?> officialCoverId = const Value.absent(),
                 Value<String?> fanArtCoverId = const Value.absent(),
+                Value<String?> draftCoverFile = const Value.absent(),
+                Value<String?> ideaCoverFile = const Value.absent(),
+                Value<String?> pieceCoverFile = const Value.absent(),
+                Value<String?> oshiCoverFile = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
                 Value<bool> junkEnabled = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -11726,6 +12831,10 @@ class $$PitsTableTableManager
                 coverImageId: coverImageId,
                 officialCoverId: officialCoverId,
                 fanArtCoverId: fanArtCoverId,
+                draftCoverFile: draftCoverFile,
+                ideaCoverFile: ideaCoverFile,
+                pieceCoverFile: pieceCoverFile,
+                oshiCoverFile: oshiCoverFile,
                 archived: archived,
                 junkEnabled: junkEnabled,
                 rowid: rowid,
@@ -12051,6 +13160,9 @@ typedef $$OfficialImagesTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<MediaKind> kind,
+      Value<int?> durationMs,
+      Value<String?> posterFile,
       required String pitId,
       required String groupId,
       required String imageFile,
@@ -12067,6 +13179,9 @@ typedef $$OfficialImagesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<MediaKind> kind,
+      Value<int?> durationMs,
+      Value<String?> posterFile,
       Value<String> pitId,
       Value<String> groupId,
       Value<String> imageFile,
@@ -12108,6 +13223,22 @@ class $$OfficialImagesTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<MediaKind, MediaKind, String> get kind =>
+      $composableBuilder(
+        column: $table.kind,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12181,6 +13312,21 @@ class $$OfficialImagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get pitId => $composableBuilder(
     column: $table.pitId,
     builder: (column) => ColumnOrderings(column),
@@ -12240,6 +13386,19 @@ class $$OfficialImagesTableAnnotationComposer
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<MediaKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get pitId =>
       $composableBuilder(column: $table.pitId, builder: (column) => column);
@@ -12301,6 +13460,9 @@ class $$OfficialImagesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<MediaKind> kind = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> posterFile = const Value.absent(),
                 Value<String> pitId = const Value.absent(),
                 Value<String> groupId = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
@@ -12315,6 +13477,9 @@ class $$OfficialImagesTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                kind: kind,
+                durationMs: durationMs,
+                posterFile: posterFile,
                 pitId: pitId,
                 groupId: groupId,
                 imageFile: imageFile,
@@ -12331,6 +13496,9 @@ class $$OfficialImagesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<MediaKind> kind = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> posterFile = const Value.absent(),
                 required String pitId,
                 required String groupId,
                 required String imageFile,
@@ -12345,6 +13513,9 @@ class $$OfficialImagesTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                kind: kind,
+                durationMs: durationMs,
+                posterFile: posterFile,
                 pitId: pitId,
                 groupId: groupId,
                 imageFile: imageFile,
@@ -12394,6 +13565,9 @@ typedef $$FanArtsTableCreateCompanionBuilder = FanArtsCompanion Function({
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<String> deviceId,
+  Value<MediaKind> kind,
+  Value<int?> durationMs,
+  Value<String?> posterFile,
   required String pitId,
   required String imageFile,
   Value<int> width,
@@ -12411,6 +13585,9 @@ typedef $$FanArtsTableUpdateCompanionBuilder = FanArtsCompanion Function({
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<String> deviceId,
+  Value<MediaKind> kind,
+  Value<int?> durationMs,
+  Value<String?> posterFile,
   Value<String> pitId,
   Value<String> imageFile,
   Value<int> width,
@@ -12454,6 +13631,22 @@ class $$FanArtsTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<MediaKind, MediaKind, String> get kind =>
+      $composableBuilder(
+        column: $table.kind,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12537,6 +13730,21 @@ class $$FanArtsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get pitId => $composableBuilder(
     column: $table.pitId,
     builder: (column) => ColumnOrderings(column),
@@ -12607,6 +13815,19 @@ class $$FanArtsTableAnnotationComposer
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
 
+  GeneratedColumnWithTypeConverter<MediaKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get pitId =>
       $composableBuilder(column: $table.pitId, builder: (column) => column);
 
@@ -12668,6 +13889,9 @@ class $$FanArtsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<MediaKind> kind = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> posterFile = const Value.absent(),
                 Value<String> pitId = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
                 Value<int> width = const Value.absent(),
@@ -12684,6 +13908,9 @@ class $$FanArtsTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                kind: kind,
+                durationMs: durationMs,
+                posterFile: posterFile,
                 pitId: pitId,
                 imageFile: imageFile,
                 width: width,
@@ -12702,6 +13929,9 @@ class $$FanArtsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<MediaKind> kind = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> posterFile = const Value.absent(),
                 required String pitId,
                 required String imageFile,
                 Value<int> width = const Value.absent(),
@@ -12718,6 +13948,9 @@ class $$FanArtsTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                kind: kind,
+                durationMs: durationMs,
+                posterFile: posterFile,
                 pitId: pitId,
                 imageFile: imageFile,
                 width: width,
@@ -12766,6 +13999,9 @@ typedef $$JunkImagesTableCreateCompanionBuilder = JunkImagesCompanion Function({
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<String> deviceId,
+  Value<MediaKind> kind,
+  Value<int?> durationMs,
+  Value<String?> posterFile,
   required String pitId,
   required String imageFile,
   Value<int> width,
@@ -12780,6 +14016,9 @@ typedef $$JunkImagesTableUpdateCompanionBuilder = JunkImagesCompanion Function({
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<String> deviceId,
+  Value<MediaKind> kind,
+  Value<int?> durationMs,
+  Value<String?> posterFile,
   Value<String> pitId,
   Value<String> imageFile,
   Value<int> width,
@@ -12820,6 +14059,22 @@ class $$JunkImagesTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<MediaKind, MediaKind, String> get kind =>
+      $composableBuilder(
+        column: $table.kind,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12888,6 +14143,21 @@ class $$JunkImagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get pitId => $composableBuilder(
     column: $table.pitId,
     builder: (column) => ColumnOrderings(column),
@@ -12942,6 +14212,19 @@ class $$JunkImagesTableAnnotationComposer
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<MediaKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get pitId =>
       $composableBuilder(column: $table.pitId, builder: (column) => column);
@@ -12998,6 +14281,9 @@ class $$JunkImagesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<MediaKind> kind = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> posterFile = const Value.absent(),
                 Value<String> pitId = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
                 Value<int> width = const Value.absent(),
@@ -13011,6 +14297,9 @@ class $$JunkImagesTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                kind: kind,
+                durationMs: durationMs,
+                posterFile: posterFile,
                 pitId: pitId,
                 imageFile: imageFile,
                 width: width,
@@ -13026,6 +14315,9 @@ class $$JunkImagesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<MediaKind> kind = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> posterFile = const Value.absent(),
                 required String pitId,
                 required String imageFile,
                 Value<int> width = const Value.absent(),
@@ -13039,6 +14331,9 @@ class $$JunkImagesTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                kind: kind,
+                durationMs: durationMs,
+                posterFile: posterFile,
                 pitId: pitId,
                 imageFile: imageFile,
                 width: width,
@@ -14658,6 +15953,9 @@ typedef $$MaterialImagesTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<MediaKind> kind,
+      Value<int?> durationMs,
+      Value<String?> posterFile,
       required String imageFile,
       Value<int> width,
       Value<int> height,
@@ -14671,6 +15969,9 @@ typedef $$MaterialImagesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<MediaKind> kind,
+      Value<int?> durationMs,
+      Value<String?> posterFile,
       Value<String> imageFile,
       Value<int> width,
       Value<int> height,
@@ -14709,6 +16010,22 @@ class $$MaterialImagesTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<MediaKind, MediaKind, String> get kind =>
+      $composableBuilder(
+        column: $table.kind,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14768,6 +16085,21 @@ class $$MaterialImagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get imageFile => $composableBuilder(
     column: $table.imageFile,
     builder: (column) => ColumnOrderings(column),
@@ -14812,6 +16144,19 @@ class $$MaterialImagesTableAnnotationComposer
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<MediaKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get imageFile =>
       $composableBuilder(column: $table.imageFile, builder: (column) => column);
@@ -14864,6 +16209,9 @@ class $$MaterialImagesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<MediaKind> kind = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> posterFile = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
                 Value<int> width = const Value.absent(),
                 Value<int> height = const Value.absent(),
@@ -14875,6 +16223,9 @@ class $$MaterialImagesTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                kind: kind,
+                durationMs: durationMs,
+                posterFile: posterFile,
                 imageFile: imageFile,
                 width: width,
                 height: height,
@@ -14888,6 +16239,9 @@ class $$MaterialImagesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<MediaKind> kind = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> posterFile = const Value.absent(),
                 required String imageFile,
                 Value<int> width = const Value.absent(),
                 Value<int> height = const Value.absent(),
@@ -14899,6 +16253,9 @@ class $$MaterialImagesTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                kind: kind,
+                durationMs: durationMs,
+                posterFile: posterFile,
                 imageFile: imageFile,
                 width: width,
                 height: height,
@@ -14946,6 +16303,9 @@ typedef $$EntityImagesTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<MediaKind> kind,
+      Value<int?> durationMs,
+      Value<String?> posterFile,
       required OwnerType ownerType,
       required String ownerId,
       required String imageFile,
@@ -14961,6 +16321,9 @@ typedef $$EntityImagesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<MediaKind> kind,
+      Value<int?> durationMs,
+      Value<String?> posterFile,
       Value<OwnerType> ownerType,
       Value<String> ownerId,
       Value<String> imageFile,
@@ -15001,6 +16364,22 @@ class $$EntityImagesTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<MediaKind, MediaKind, String> get kind =>
+      $composableBuilder(
+        column: $table.kind,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15070,6 +16449,21 @@ class $$EntityImagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get ownerType => $composableBuilder(
     column: $table.ownerType,
     builder: (column) => ColumnOrderings(column),
@@ -15124,6 +16518,19 @@ class $$EntityImagesTableAnnotationComposer
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<MediaKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get posterFile => $composableBuilder(
+    column: $table.posterFile,
+    builder: (column) => column,
+  );
 
   GeneratedColumnWithTypeConverter<OwnerType, String> get ownerType =>
       $composableBuilder(column: $table.ownerType, builder: (column) => column);
@@ -15180,6 +16587,9 @@ class $$EntityImagesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<MediaKind> kind = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> posterFile = const Value.absent(),
                 Value<OwnerType> ownerType = const Value.absent(),
                 Value<String> ownerId = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
@@ -15193,6 +16603,9 @@ class $$EntityImagesTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                kind: kind,
+                durationMs: durationMs,
+                posterFile: posterFile,
                 ownerType: ownerType,
                 ownerId: ownerId,
                 imageFile: imageFile,
@@ -15208,6 +16621,9 @@ class $$EntityImagesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<MediaKind> kind = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> posterFile = const Value.absent(),
                 required OwnerType ownerType,
                 required String ownerId,
                 required String imageFile,
@@ -15221,6 +16637,9 @@ class $$EntityImagesTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                kind: kind,
+                durationMs: durationMs,
+                posterFile: posterFile,
                 ownerType: ownerType,
                 ownerId: ownerId,
                 imageFile: imageFile,

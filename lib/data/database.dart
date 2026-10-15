@@ -4,7 +4,13 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'tables.dart';
 
 export 'tables.dart'
-    show GoalKind, GoalPeriod, MaterialCategory, OwnerType, TagTarget;
+    show
+        GoalKind,
+        GoalPeriod,
+        MaterialCategory,
+        MediaKind,
+        OwnerType,
+        TagTarget;
 
 part 'database.g.dart';
 
@@ -39,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -79,8 +85,79 @@ class AppDatabase extends _$AppDatabase {
         // v8：素材庫（D-071）。全新的表，沒有舊資料要回填。
         await m.createTable(materialImages);
       }
+      if (from < 9) {
+        await _migrateV9(m);
+      }
     },
   );
+
+  /// v9：坑內其餘四格的封面（Pits 四欄）、所有放圖的表加媒體欄位（kind／durationMs／posterFile，D-080）。
+  /// 每個欄位先確認存在與否再加（較舊版本的遷移若是整張建表，已經帶有新欄位）。
+  /// 既有圖片一律是 `image`；副檔名是 .gif 的回填成 `gif`，讓升級後 GIF 馬上能播放。
+  Future<void> _migrateV9(Migrator m) async {
+    Future<Set<String>> columnsOf(String table) async => {
+      for (final r in await customSelect('PRAGMA table_info($table)').get())
+        r.read<String>('name'),
+    };
+
+    Future<void> ensure(
+      TableInfo<Table, dynamic> table,
+      List<GeneratedColumn> cols,
+    ) async {
+      final have = await columnsOf(table.actualTableName);
+      if (have.isEmpty) {
+        await m.createTable(table);
+        return;
+      }
+      for (final c in cols) {
+        if (!have.contains(c.$name)) await m.addColumn(table, c);
+      }
+    }
+
+    await ensure(pits, [
+      pits.draftCoverFile,
+      pits.ideaCoverFile,
+      pits.pieceCoverFile,
+      pits.oshiCoverFile,
+    ]);
+    await ensure(officialImages, [
+      officialImages.kind,
+      officialImages.durationMs,
+      officialImages.posterFile,
+    ]);
+    await ensure(fanArts, [
+      fanArts.kind,
+      fanArts.durationMs,
+      fanArts.posterFile,
+    ]);
+    await ensure(junkImages, [
+      junkImages.kind,
+      junkImages.durationMs,
+      junkImages.posterFile,
+    ]);
+    await ensure(materialImages, [
+      materialImages.kind,
+      materialImages.durationMs,
+      materialImages.posterFile,
+    ]);
+    await ensure(entityImages, [
+      entityImages.kind,
+      entityImages.durationMs,
+      entityImages.posterFile,
+    ]);
+    // 不改 updated_at：每台裝置各自升級都會得到同樣的結果，不需要同步。
+    for (final t in [
+      'official_images',
+      'fan_arts',
+      'junk_images',
+      'material_images',
+      'entity_images',
+    ]) {
+      await customStatement(
+        "UPDATE $t SET kind = 'gif' WHERE kind = 'image' AND lower(image_file) LIKE '%.gif'",
+      );
+    }
+  }
 
   /// v7：推活（OshiRecords 表＋每個既有坑補三個預設推活分組）、
   /// 腦洞／草稿的 `date`（回填成 createdAt，D-070）。

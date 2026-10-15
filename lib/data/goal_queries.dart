@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import 'database.dart';
 import 'entity_queries.dart';
+import 'media.dart';
 
 class GoalView {
   const GoalView({
@@ -57,6 +58,7 @@ class TimelineItem {
     required this.title,
     this.file,
     this.files = const [],
+    this.media = const [],
     this.text = '',
     this.tagNames = const [],
     this.actualLikes = 0,
@@ -72,6 +74,9 @@ class TimelineItem {
 
   /// 所有圖片（時間軸顯示縮圖列）。
   final List<String> files;
+
+  /// 全部圖片的媒體資訊（D-080：種類、影片長度、截圖）；[files] 是其中拿得到靜態圖的檔名。
+  final List<ImageRef> media;
 
   /// 內文（腦洞顯示）。
   final String text;
@@ -333,17 +338,24 @@ extension GoalQueries on AppDatabase {
               .get();
       final out = <int, String>{};
       for (final p in rows) {
-        final im =
+        // 月曆格要靜態圖：影片用截圖，沒有截圖的影片跳過、改用下一張。
+        final ims =
             await (select(entityImages)
                   ..where(
                     (e) =>
                         e.ownerType.equalsValue(OwnerType.piece) &
-                        e.ownerId.equals(p.id),
+                        e.ownerId.equals(p.id) &
+                        e.deletedAt.isNull(),
                   )
-                  ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)])
-                  ..limit(1))
-                .getSingleOrNull();
-        if (im != null) out[p.finishedAt.day] = im.imageFile; // 後面的覆蓋前面＝最晚一張
+                  ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
+                .get();
+        for (final im in ims) {
+          final f = staticFileOf(im.kind, im.imageFile, im.posterFile);
+          if (f != null) {
+            out[p.finishedAt.day] = f; // 後面的覆蓋前面＝最晚一張
+            break;
+          }
+        }
       }
       return out;
     });
@@ -399,15 +411,21 @@ extension GoalQueries on AppDatabase {
     List<Draft> draftsList = const [],
     List<Piece> piecesList = const [],
   }) async {
-    Future<List<String>> images(OwnerType t, String id) async =>
+    Future<List<ImageRef>> media(OwnerType t, String id) async =>
         (await (select(entityImages)
                   ..where(
                     (e) => e.ownerType.equalsValue(t) & e.ownerId.equals(id),
                   )
                   ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
                 .get())
-            .map((e) => e.imageFile)
+            .map(entityImageRef)
             .toList();
+
+    // 縮圖要靜態圖：影片用截圖（沒有截圖的影片先不列縮圖，仍在 media 裡）。
+    List<String> images(List<ImageRef> refs) => [
+      for (final r in refs)
+        if (r.staticFile != null) r.staticFile!,
+    ];
 
     Future<List<String>> tagNames(TagTarget t, String id) async {
       final q =
@@ -424,7 +442,8 @@ extension GoalQueries on AppDatabase {
 
     final items = <TimelineItem>[];
     for (final i in ideasList) {
-      final files = await images(OwnerType.idea, i.id);
+      final refs = await media(OwnerType.idea, i.id);
+      final files = images(refs);
       items.add(
         TimelineItem(
           kind: GoalKind.idea,
@@ -434,13 +453,15 @@ extension GoalQueries on AppDatabase {
           title: i.title,
           file: files.isEmpty ? null : files.first,
           files: files,
+          media: refs,
           text: i.body,
           tagNames: await tagNames(TagTarget.idea, i.id),
         ),
       );
     }
     for (final d in draftsList) {
-      final files = await images(OwnerType.draft, d.id);
+      final refs = await media(OwnerType.draft, d.id);
+      final files = images(refs);
       items.add(
         TimelineItem(
           kind: GoalKind.draft,
@@ -450,12 +471,14 @@ extension GoalQueries on AppDatabase {
           title: d.title ?? '',
           file: files.isEmpty ? null : files.first,
           files: files,
+          media: refs,
           tagNames: await tagNames(TagTarget.draft, d.id),
         ),
       );
     }
     for (final p in piecesList) {
-      final files = await images(OwnerType.piece, p.id);
+      final refs = await media(OwnerType.piece, p.id);
+      final files = images(refs);
       items.add(
         TimelineItem(
           kind: GoalKind.piece,
@@ -465,6 +488,7 @@ extension GoalQueries on AppDatabase {
           title: p.title,
           file: files.isEmpty ? null : files.first,
           files: files,
+          media: refs,
           tagNames: await tagNames(TagTarget.piece, p.id),
           actualLikes: p.actualLikes,
           targetLikes: p.targetLikes,
@@ -500,7 +524,8 @@ extension GoalQueries on AppDatabase {
                 ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
               .get();
       for (final im in ims) {
-        out.putIfAbsent(p.finishedAt.month, () => []).add(im.imageFile);
+        final f = staticFileOf(im.kind, im.imageFile, im.posterFile);
+        if (f != null) out.putIfAbsent(p.finishedAt.month, () => []).add(f);
       }
     }
     return out;
@@ -593,7 +618,8 @@ extension GoalQueries on AppDatabase {
             .get();
     final out = <int, List<ReviewMonthPiece>>{};
     for (final p in rows) {
-      final first =
+      // 年度回顧要靜態圖：影片用截圖，沒有截圖的影片跳過。
+      final candidates =
           await (select(entityImages)
                 ..where(
                   (e) =>
@@ -601,9 +627,17 @@ extension GoalQueries on AppDatabase {
                       e.ownerId.equals(p.id) &
                       e.deletedAt.isNull(),
                 )
-                ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)])
-                ..limit(1))
-              .getSingleOrNull();
+                ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
+              .get();
+      EntityImage? first;
+      String? firstFile;
+      for (final c in candidates) {
+        firstFile = staticFileOf(c.kind, c.imageFile, c.posterFile);
+        if (firstFile != null) {
+          first = c;
+          break;
+        }
+      }
       if (first == null) continue;
       out
           .putIfAbsent(p.finishedAt.month, () => [])
@@ -611,7 +645,7 @@ extension GoalQueries on AppDatabase {
             ReviewMonthPiece(
               pieceId: p.id,
               title: p.title,
-              file: first.imageFile,
+              file: firstFile!,
               width: first.width,
               height: first.height,
               actualLikes: p.actualLikes,

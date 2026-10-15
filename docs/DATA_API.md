@@ -594,3 +594,147 @@ Provider：`timelineRevisionProvider`（`StreamProvider<int>`）。分頁查詢�
 ## 5. 刻意的行為改變
 
 - 無（既有測試沒有需要更新的）。`AppDatabase.schemaVersion = 8`。
+
+
+# 批次 10 資料層（D-079 推活多選、D-080 影片／GIF、坑內格子各自的封面）— schema v9
+
+資料層純 Dart、沒有新增任何 pubspec 套件（影片探測／截圖／播放由 UI 負責，見下方「給 UI 的銜接」）。
+
+## 1. Schema v9 與遷移
+
+`AppDatabase.schemaVersion = 9`。`_migrateV9`（v1～v8 都能升上來，可重複執行）：
+
+- **Pits** 加四個可空欄位：`draftCoverFile`、`ideaCoverFile`、`pieceCoverFile`、`oshiCoverFile`（見第 2 節）。
+- **五張放圖的表**（`OfficialImages`、`FanArts`、`JunkImages`、`MaterialImages`、`EntityImages`——後者涵蓋腦洞／草稿／成圖／推活的圖）
+  都加了 `MediaColumns`：
+  `kind`（`MediaKind`，存名稱 `image`／`gif`／`video`，預設 `'image'`）、`durationMs`（int?，只有影片）、`posterFile`（String?，影片截圖檔名）。
+- 既有資料：一律 `image`；**副檔名是 .gif 的回填成 `gif`**（讓升級後 GIF 馬上能播；不動 updatedAt，每台裝置各自升級得到同樣結果，不需同步）。
+- 每個欄位加之前先檢查是否已存在（舊版的遷移若是整張建表，已帶新欄位）。
+- 測試：`test/migration_test.dart`（v1～v5 fixture 升到 v9、真實 v8 結構拆欄位後升級、重複執行）。
+  v6～v8 的 fixture 本身缺少 `junk_enabled` 等欄位（既有測試的舊限制），所以不拿它們讀 `pits`。
+
+## 2. 坑內六格各自的封面 — `album_queries.dart`
+
+**需求**：長按坑內頁的某一格＝選「這一格」在坑內頁顯示的封面；推活格也有封面。
+**坑封面（主頁卡片）完全不變**：`Pits.coverImageId`、`setCover(pitId, imageId)`、編輯坑的「更換封面」、`watchCoverCandidates(pitId)`（kind 為 null）都沿用。
+
+```dart
+Future<void>    setCellCover(String pitId, String kind, String? imageId);
+Future<String?> chosenCellCoverId(String pitId, String kind);   // 目前指定且仍有效的候選圖 id
+const cellKinds = ['official','fan','draft','idea','piece','oshi'];
+
+class CellCovers { String? official, fanArt, draft, idea, piece, oshi; }   // 新增 oshi
+Stream<CellCovers> watchCellCovers(String pitId);
+Stream<List<CoverCandidate>> watchCoverCandidates(String pitId, {String? kind});   // kind 可為 'oshi'
+// provider：cellCoversProvider(pitId)、coverCandidatesProvider((pitId, kind))（沿用，kind 'oshi' 直接可用）
+```
+
+- **儲存（自行判斷，見回報）**：官方圖冊／好看同人圖沿用既有的 `Pits.officialCoverId`／`fanArtCoverId`（存**圖片列 id**；
+  預覽頁的「設為封面」`setOfficialCover`／`setFanArtCover` 設的就是同一份）。草稿／腦洞／成圖／推活是**新欄位存圖片檔名**
+  （`draftCoverFile` 等），因為 `EntityImages` 的列 id 是各裝置自己產生的、不會同步，檔名才是跨裝置穩定的。
+  欄位跟著**坑的文件**同步（`PitsKind`），setCellCover 會更新坑的 updatedAt。
+- `setCellCover`：`imageId` 必須是 `watchCoverCandidates(pitId, kind: kind)` 給的候選圖 id（這個坑、這一格、未刪除、未被移走），
+  否則 `ArgumentError`（`kind` 不在 `cellKinds` 也是）；null＝清除（回到自動）。
+- **有效性與退回**：`watchCellCovers` 每次都重新驗證——指定的圖不存在／已刪除／被移到別格或別坑／所屬紀錄已刪除／圖片已從紀錄拿掉，
+  就**自動退回該格最新一張**（圖又回來就恢復，因為設定值沒被清掉）。
+  「最新」：官方／同人圖＝updatedAt 最晚；草稿／腦洞＝最新一筆（date）的第一張；成圖＝最新成圖（finishedAt）的第一張；
+  **推活＝最新一筆（date，同日 createdAt）的第一張**。格子沒有可顯示的圖＝null（顯示 icon）。
+- 候選圖（`CoverCandidate`）新增 `kind`／`durationMs`／`poster`／`staticFile`；entity 圖現在會排除已軟刪除的列
+  （舊版沒排除，屬 bug）。`kind: 'oshi'` ＝坑內每一筆**未刪除**推活紀錄的每一張圖（紀錄日期新到舊，紀錄內依 sortOrder）。
+  `kind == null`（坑封面用）**不含推活**。
+- 覆蓋範圍外：UI 的 `CoverPickPage` 長按格子目前呼叫的是 `setCover`——要改成 `setCellCover(pitId, kind, id)`，並用
+  `chosenCellCoverId` 標出目前封面（UI 工程師的事）。
+
+## 3. 媒體（D-080）— `media.dart`、`image_store.dart`、`media_queries.dart`
+
+```dart
+enum MediaKind { image, gif, video }            // tables.dart，經 database.dart 匯出
+MediaKind mediaKindFromBytes(List<int> head)?    // magic bytes；認不出 null
+MediaKind mediaKindFromExtension(String name)    // 不認得＝image
+MediaKind detectMediaKind(String name, List<int> head)   // 內容優先，再看副檔名
+extension MediaKindX on MediaKind { isImage/isGif/isVideo/needsPoster; static MediaKind parse(String?) }
+String? staticFileOf(MediaKind kind, String file, String? posterFile)  // 靜態圖：影片＝poster（沒有＝null）
+```
+
+- 判斷規則：GIF＝`GIF87a`／`GIF89a`；影片＝ISO 基礎媒體檔（`ftyp`，**排除 heic/heix/mif1/avif 等圖片 brand**；涵蓋 mp4／mov／m4v／3gp）、
+  舊式 QuickTime（`moov`／`mdat`／`wide`／`free`）、EBML（webm／mkv）；JPEG／PNG／WebP／BMP＝圖片。
+  副檔名（影片：mp4 mov m4v webm 3gp 3gpp mkv；gif）只在內容認不出來時才用。`MediaKindX.parse` 對不認得的字串（較新版 App 的新種類）回 `image`。
+
+### NewImage / ImageRef
+```dart
+NewImage({required file, width=0, height=0, MediaKind kind=image, int? durationMs, String? posterFile});  // + copyWith
+ImageRef(file, width, height, {kind=image, durationMs, poster});   // isVideo / isGif / staticFile / toNewImage()
+ImageRef entityImageRef(EntityImage r);
+```
+- 所有 `addOfficial`／`addFanArts`／`addJunk`／`addMaterials`／`saveIdea`／`saveDraft`／`savePiece`／`saveOshiRecord` 的 `NewImage` 都會存 kind／durationMs／posterFile；
+  跨格、跨坑移動（`moveAlbumImages`）也會帶過去。
+- 腦洞／草稿／成圖／推活的 `ImageRef` 現在帶 kind／durationMs／poster。官方圖／同人圖／雜物／素材庫讀的是 drift 資料列，
+  欄位直接是 `row.kind`／`row.durationMs`／`row.posterFile`。
+- **`replaceEntityImages`（編輯表單送回舊圖）**：舊圖只帶檔名與寬高時，媒體欄位**不會被洗掉**——只有新資料有資訊
+  （`kind != image`、`durationMs`／`posterFile` 非 null）才覆寫。表單也可以直接用 `ref.toNewImage()` 原樣送回。
+- **需要靜態圖的地方已改用 `staticFileOf`**（影片用截圖、沒截圖的影片跳過改選下一張）：`watchCellCovers`、`imageFileOf`（坑封面）、
+  `watchMonthCovers`（月曆格）、`pieceImagesByMonth`／年度回顧候選（`ReviewMonthPiece.file`）、`TimelineItem.files`／`file`。
+  `TimelineItem` 新增 `media: List<ImageRef>`（完整媒體資訊，含影片）。`IncomeEntry.cover` 是 `ImageRef`，請用 `cover.staticFile`。
+
+### ImageStore
+```dart
+Future<NewImage> import(XFile source);                       // 判斷 kind；原檔照搬不轉檔
+Future<NewImage> importMedia(XFile source, {int? width, int? height, int? durationMs, Uint8List? posterBytes, String posterExt = 'jpg'});
+Future<String>   savePoster(Uint8List bytes, {String ext = 'jpg'});   // 截圖存成獨立檔，回傳檔名
+```
+- `import` 先看內容再看副檔名；副檔名保留（無或 >6 字元時：圖片 `.jpg`、GIF `.gif`、影片 `.mp4`）。圖片與 GIF 讀寬高（GIF 取第一格）；
+  副檔名是影片的檔案先讀開頭判斷、再以**串流複製**（不整個讀進記憶體；沒有副檔名的影片才會整個讀進記憶體），寬高 0、`durationMs`／`posterFile` null。
+- UI 探測影片（寬高、長度、第一格）後可一次用 `importMedia(...)` 帶入；或先 `import`、之後補：
+
+```dart
+Future<void> setMediaMeta(String file, {int? width, int? height, int? durationMs, String? posterFile});   // media_queries.dart
+Future<List<String>> videosWithoutPoster();    // 還沒有截圖的影片檔名（未刪除、去重）
+```
+  `setMediaMeta` 更新**所有**用到該檔名的列，並更新列（或所屬紀錄）的 updatedAt，下次同步才會把新欄位與截圖送出。
+  副作用：官方圖／同人圖列的 updatedAt 變新（排序上會浮到「最新」）。
+
+### 同步（向後相容）
+- 文件欄位：官方／同人圖／雜物／素材庫文件多 `kind`／`durationMs`／`posterFile`；腦洞／草稿／成圖／推活文件的 `images[]` 每項多這三個鍵；
+  坑文件多四個格子封面欄位。**`formatVersion` 沒有提高**。
+- 舊版 App：讀不認得的鍵會忽略（drift 的 `fromJson` 本來就是這樣）；它不知道截圖，所以不下載截圖檔——影片在舊版看起來是一個圖片檔。
+  注意：舊版重新上傳文件時不帶新欄位（last-write-wins），可能把影片資訊／格子封面清掉；新版收到沒有 `kind` 的文件時
+  **依副檔名推**（.gif→gif、影片副檔名→video，其餘 image），不認得的 `kind` 字串同樣處理，所以不丟例外、不會把 GIF 變回靜態圖；
+  缺 `posterFile`／`durationMs` 就是 null（`videosWithoutPoster()` 可重新補）。
+- 檔案：截圖與原檔一樣是 `images__<檔名>`，進同一份傳輸計畫（`imageFiles(data)` 回傳原檔＋截圖）、進度、缺檔補下載（`_referencedImages` 包含 posterFile）。
+  影片上傳目前仍是整檔讀進記憶體再送（沿用圖片的路徑）；大影片的串流上傳與「只在 Wi-Fi 上傳」開關（〔待評估〕）尚未做。
+- 測試：`test/batch10_sync_test.dart`。
+
+## 4. 推活多選（D-079）— `oshi_queries.dart`、`batch_tag_queries.dart`
+
+```dart
+Future<void> setOshiGroupBatch(Iterable<String> ids, String? groupId);   // null＝不分組
+Future<void> deleteOshiBatch(Iterable<String> ids);                      // 軟刪除
+
+// 批量 tag 的通用版（舊的 AlbumCell 版本保留，行為不變，內部改為呼叫這組）
+Future<List<TagCoverageEntry>>         tagCoverageFor(TagTarget target, Iterable<String> ids);
+Stream<List<TagCoverageEntry>>         watchTagCoverageFor(TagTarget target, Iterable<String> ids);
+Future<List<String>>                   applyBatchTagsFor(TagTarget target, Iterable<String> ids,
+    {addTagIds, removeTagIds, newTagNames});
+```
+- `target` 支援 `official`／`fanArt`／`oshi`（推活時 `ids` 是**推活紀錄 id**）；其他丟 `ArgumentError`。語意與 D-060 完全相同
+  （none／some／all 三態、`#` 前綴去掉、新 tag 同名重用、同坑檢查、錯誤整批回滾）；有實際變動的推活紀錄更新 updatedAt（tag 隨紀錄文件同步）。
+- `setOshiGroupBatch`：`groupId` 必須是**未刪除的推活分組（kind=oshi），且每筆紀錄都屬於同一個坑**，否則 `ArgumentError`、整批不動；
+  只有分組真的改變的紀錄更新 updatedAt（已在目標分組的不動）；已刪除／不存在的 id 略過；空清單無事。
+- `deleteOshiBatch`：同 `deleteOshiRecords`，但只處理未刪除的（不重複蓋 updatedAt）。圖片與 tag 關聯保留；被刪紀錄的圖若是推活格封面，封面自動退回。
+- 多選畫面的資料來源仍是 `watchOshiRecords`；全選／已選 N 筆是 UI 狀態。
+- 測試：`test/batch10_test.dart`。
+
+## 5. 刻意的行為改變
+
+- `CellCovers` 多一個 `oshi`（舊程式不受影響，建構子參數都是具名可省略）；`watchCellCovers` 現在也驗證官方／同人圖封面屬於這個坑。
+- `watchCoverCandidates`／格子封面不再列出已軟刪除的 entity 圖（舊版會列，屬 bug）。
+- `applyBatchTags`／`tagCoverage` 改為薄包裝（`async`，不支援的格子仍以失敗的 Future 丟 `ArgumentError`）。
+- 既有測試沒有需要更新的。`AppDatabase.schemaVersion = 9`。
+
+## 6. 給 UI 的銜接
+
+- 影片寬高／長度／第一格截圖需要原生外掛（video_player／影片縮圖）：匯入後呼叫 `importMedia(..., durationMs:, posterBytes:)`，
+  或 `import` 後再 `setMediaMeta`；App 啟動／同步後可用 `videosWithoutPoster()` 補產生（另一台匯入、本機還沒有截圖時）。
+- 要顯示縮圖／封面一律用 `ImageRef.staticFile`／`CoverCandidate.staticFile`／`staticFileOf`；GIF 的 `staticFile` 是檔案本身（Flutter 解碼出第一格；
+  列表要播放才用 `Image.file` 的動畫）。
+- 既有 UI 表單用 `NewImage(file:, width:, height:)` 重建舊圖時不會破壞媒體欄位（見 `replaceEntityImages`），但新圖請用 `import`／`importMedia` 的回傳值。

@@ -38,7 +38,7 @@ class TagCoverageEntry {
   bool get tapAdds => coverage != TagCoverage.all;
 }
 
-/// 官方圖冊、好看同人圖多選後的批量 tag（D-060）。
+/// 官方圖冊、好看同人圖多選後的批量 tag（D-060）；推活多選（D-079）用 `...For(TagTarget.oshi, ids)` 版本。
 extension BatchTagQueries on AppDatabase {
   TagTarget _batchTarget(AlbumCell cell) => switch (cell) {
     AlbumCell.official => TagTarget.official,
@@ -46,11 +46,14 @@ extension BatchTagQueries on AppDatabase {
     AlbumCell.junk => throw ArgumentError.value(cell, 'cell', '雜物沒有 tag'),
   };
 
-  /// 選取的圖（目前可見、未刪除）的 id → pitId。
-  Future<Map<String, String>> _pitsOf(AlbumCell cell, List<String> ids) async {
+  /// 選取的項目（目前可見、未刪除）的 id → pitId。[ids] 是官方圖／同人圖的圖片列 id，或推活紀錄 id。
+  Future<Map<String, String>> _pitsOf(
+    TagTarget target,
+    List<String> ids,
+  ) async {
     if (ids.isEmpty) return {};
-    return switch (cell) {
-      AlbumCell.official => {
+    return switch (target) {
+      TagTarget.official => {
         for (final r
             in await (select(officialImages)..where(
                   (i) =>
@@ -61,7 +64,7 @@ extension BatchTagQueries on AppDatabase {
                 .get())
           r.id: r.pitId,
       },
-      AlbumCell.fan => {
+      TagTarget.fanArt => {
         for (final r
             in await (select(fanArts)..where(
                   (i) =>
@@ -72,7 +75,13 @@ extension BatchTagQueries on AppDatabase {
                 .get())
           r.id: r.pitId,
       },
-      AlbumCell.junk => throw ArgumentError.value(cell, 'cell', '雜物沒有 tag'),
+      TagTarget.oshi => {
+        for (final r in await (select(
+          oshiRecords,
+        )..where((i) => i.id.isIn(ids) & i.deletedAt.isNull())).get())
+          r.id: r.pitId,
+      },
+      _ => throw ArgumentError.value(target, 'target', '這種項目不支援批量 tag'),
     };
   }
 
@@ -90,10 +99,15 @@ extension BatchTagQueries on AppDatabase {
   Future<List<TagCoverageEntry>> tagCoverage(
     AlbumCell cell,
     Iterable<String> ids,
+  ) async => tagCoverageFor(_batchTarget(cell), ids);
+
+  /// [tagCoverage] 的通用版：[target] 可以是 `official`／`fanArt`／`oshi`（D-079，[ids] 是推活紀錄 id）。
+  Future<List<TagCoverageEntry>> tagCoverageFor(
+    TagTarget target,
+    Iterable<String> ids,
   ) async {
-    final target = _batchTarget(cell);
     final idList = ids.toSet().toList();
-    final pitOf = await _pitsOf(cell, idList);
+    final pitOf = await _pitsOf(target, idList);
     final pitId = await _singlePit(pitOf);
     if (pitId == null) return const [];
     final total = pitOf.length;
@@ -130,6 +144,11 @@ extension BatchTagQueries on AppDatabase {
   Stream<List<TagCoverageEntry>> watchTagCoverage(
     AlbumCell cell,
     Iterable<String> ids,
+  ) => watchTagCoverageFor(_batchTarget(cell), ids);
+
+  Stream<List<TagCoverageEntry>> watchTagCoverageFor(
+    TagTarget target,
+    Iterable<String> ids,
   ) {
     final idList = ids.toList();
     return watchAssembled(this, {
@@ -137,7 +156,8 @@ extension BatchTagQueries on AppDatabase {
       tagLinks,
       officialImages,
       fanArts,
-    }, () => tagCoverage(cell, idList));
+      oshiRecords,
+    }, () => tagCoverageFor(target, idList));
   }
 
   /// 一次套用 sheet 裡的所有變更（按「完成」時呼叫），全部在同一個 transaction：
@@ -153,11 +173,26 @@ extension BatchTagQueries on AppDatabase {
     Iterable<String> addTagIds = const [],
     Iterable<String> removeTagIds = const [],
     Iterable<String> newTagNames = const [],
+  }) async => applyBatchTagsFor(
+    _batchTarget(cell),
+    ids,
+    addTagIds: addTagIds,
+    removeTagIds: removeTagIds,
+    newTagNames: newTagNames,
+  );
+
+  /// [applyBatchTags] 的通用版（D-079 推活多選的 tag sheet 用 `TagTarget.oshi`，[ids] 是推活紀錄 id）；
+  /// 規則相同。推活紀錄有實際變動時更新該紀錄的 updatedAt（tag 隨紀錄文件同步）。
+  Future<List<String>> applyBatchTagsFor(
+    TagTarget target,
+    Iterable<String> ids, {
+    Iterable<String> addTagIds = const [],
+    Iterable<String> removeTagIds = const [],
+    Iterable<String> newTagNames = const [],
   }) {
     final idList = ids.toSet().toList();
     return transaction(() async {
-      final target = _batchTarget(cell);
-      final pitOf = await _pitsOf(cell, idList);
+      final pitOf = await _pitsOf(target, idList);
       final pitId = await _singlePit(pitOf);
       if (pitId == null) return <String>[];
 
@@ -229,13 +264,18 @@ extension BatchTagQueries on AppDatabase {
 
       if (changed.isNotEmpty) {
         final now = DateTime.now();
-        if (cell == AlbumCell.official) {
-          await (update(officialImages)..where((i) => i.id.isIn(changed)))
-              .write(OfficialImagesCompanion(updatedAt: Value(now)));
-        } else {
-          await (update(fanArts)..where((i) => i.id.isIn(changed))).write(
-            FanArtsCompanion(updatedAt: Value(now)),
-          );
+        switch (target) {
+          case TagTarget.official:
+            await (update(officialImages)..where((i) => i.id.isIn(changed)))
+                .write(OfficialImagesCompanion(updatedAt: Value(now)));
+          case TagTarget.oshi:
+            await (update(oshiRecords)..where((i) => i.id.isIn(changed))).write(
+              OshiRecordsCompanion(updatedAt: Value(now)),
+            );
+          default:
+            await (update(fanArts)..where((i) => i.id.isIn(changed))).write(
+              FanArtsCompanion(updatedAt: Value(now)),
+            );
         }
       }
       return created;
