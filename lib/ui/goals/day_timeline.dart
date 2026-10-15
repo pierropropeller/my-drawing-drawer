@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
@@ -12,7 +13,9 @@ import '../../theme/tokens.dart';
 import '../common/timeline.dart';
 
 /// 日頁的連續時間軸（D-072）：新到舊分頁載入，捲到底載下一頁；
-/// 月份標題（月份＋該月項數）與日期欄照 artboard `Day` 內嵌在清單裡（不吸頂）。
+/// 月份標題（月份＋該月項數）捲動時置頂（D-077）：下一個月的標題捲上來時把它推走，置頂時加淡陰影。
+/// 因為清單用 center 錨點往上下兩邊長（往上那半的 sliver 是反向的，pinned 沒辦法用），
+/// 置頂標題改成疊在清單上的浮層：捲動後量測畫面上第一列與下一個月標題的位置，算出浮層位移。
 ///
 /// 跳到某天（[DayTimelineState.jumpToDay]）：用 CustomScrollView 的 center 當錨點，
 /// 錨點那天放在 offset 0（視窗頂端），比它新的項目放在往上長的 sliver。
@@ -59,6 +62,15 @@ class _EntryRow extends _Row {
 class DayTimelineState extends ConsumerState<DayTimeline> {
   final _scroll = ScrollController();
   final _centerKey = GlobalKey();
+  final _stackKey = GlobalKey();
+
+  /// 目前畫面上每一列（rows 的索引）→ 量測用的探針。
+  final Map<int, _RowProbeState> _probes = {};
+
+  /// 置頂浮層的狀態；null＝不顯示（第一個標題還在原位）。
+  final _sticky = ValueNotifier<_Sticky?>(null);
+  List<_Row> _lastRows = const [];
+  bool _stickyQueued = false;
 
   List<TimelineItem> _items = const [];
   bool _hasMore = false;
@@ -79,12 +91,14 @@ class DayTimelineState extends ConsumerState<DayTimeline> {
   @override
   void initState() {
     super.initState();
+    _scroll.addListener(_queueSticky);
     jumpToDay(widget.initialDay ?? DateTime.now());
   }
 
   @override
   void dispose() {
     _scroll.dispose();
+    _sticky.dispose();
     super.dispose();
   }
 
@@ -217,18 +231,97 @@ class DayTimelineState extends ConsumerState<DayTimeline> {
     return idx;
   }
 
-  Widget _tile(BuildContext context, _Row r) => switch (r) {
-    _HeaderRow() => TimelineSectionHeader(
-      title: context.l10n.oshiMonthHeader(r.year, r.month),
-      count: context.l10n.oshiCountItems(r.count),
-    ),
-    _EntryRow() => TimelineRowTile(
-      key: ValueKey('timeline-${r.entry.id}'),
-      entry: r.entry,
-      showDate: r.showDate,
-      line: r.line,
-    ),
-  };
+  Widget _tile(BuildContext context, _Row r, int index) {
+    final tile = switch (r) {
+      _HeaderRow() => TimelineSectionHeader(
+        title: context.l10n.oshiMonthHeader(r.year, r.month),
+        count: context.l10n.oshiCountItems(r.count),
+      ),
+      _EntryRow() => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: TimelineRowTile(
+          key: ValueKey('timeline-${r.entry.id}'),
+          entry: r.entry,
+          showDate: r.showDate,
+          line: r.line,
+        ),
+      ),
+    };
+    return _RowProbe(index: index, registry: _probes, child: tile);
+  }
+
+  void _queueSticky() {
+    if (_stickyQueued) return;
+    _stickyQueued = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _stickyQueued = false;
+      if (mounted) _updateSticky();
+    });
+    SchedulerBinding.instance.scheduleFrame();
+  }
+
+  /// 量測並更新置頂浮層：
+  /// 畫面上第一列（下緣在視窗內的最前面一列）所屬的月份＝目前月份；
+  /// 第一列就是還在原位的標題時不顯示浮層；下一個月的標題頂到浮層時把浮層往上推。
+  void _updateSticky() {
+    final stack = _stackKey.currentContext?.findRenderObject();
+    final rows = _lastRows;
+    if (stack is! RenderBox || !stack.attached || rows.isEmpty) {
+      _sticky.value = null;
+      return;
+    }
+    double? top(_RowProbeState p) {
+      final o = p.context.findRenderObject();
+      if (o is! RenderBox || !o.attached || !o.hasSize) return null;
+      return o.localToGlobal(Offset.zero, ancestor: stack).dy;
+    }
+
+    int? first;
+    double firstTop = 0;
+    for (final e in _probes.entries) {
+      final y = top(e.value);
+      if (y == null || e.key >= rows.length) continue;
+      final h = (e.value.context.findRenderObject() as RenderBox).size.height;
+      if (y + h <= 0.5) continue;
+      if (first == null || e.key < first) {
+        first = e.key;
+        firstTop = y;
+      }
+    }
+    if (first == null) {
+      _sticky.value = null;
+      return;
+    }
+    final r = rows[first];
+    if (r is _HeaderRow && firstTop >= -0.5) {
+      _sticky.value = null;
+      return;
+    }
+    final (year, month, count) = switch (r) {
+      _HeaderRow() => (r.year, r.month, r.count),
+      _EntryRow() => (
+        r.entry.date.year,
+        r.entry.date.month,
+        _monthCount(r.entry.date),
+      ),
+    };
+    var dy = 0.0;
+    for (var j = first + 1; j < rows.length; j++) {
+      if (rows[j] is! _HeaderRow) continue;
+      final p = _probes[j];
+      final y = p == null ? null : top(p);
+      if (y != null) dy = math.min(0, y - kTimelineHeaderHeight);
+      break;
+    }
+    final next = _Sticky(year, month, count, dy);
+    if (_sticky.value != next) _sticky.value = next;
+  }
+
+  int _monthCount(DateTime d) =>
+      _counts[DateTime(d.year, d.month)] ??
+      _items
+          .where((x) => x.time.year == d.year && x.time.month == d.month)
+          .length;
 
   @override
   Widget build(BuildContext context) {
@@ -250,38 +343,128 @@ class DayTimelineState extends ConsumerState<DayTimeline> {
       );
     }
     final rows = _rows(context);
+    _lastRows = rows;
+    _queueSticky();
     final split = _splitOf(rows);
-    const side = EdgeInsets.symmetric(horizontal: 20);
-    return CustomScrollView(
-      controller: _scroll,
-      center: _centerKey,
-      slivers: [
-        const SliverToBoxAdapter(child: SizedBox(height: 4)),
-        // 比錨點新的列：index 0 貼著錨點、往上長。
-        SliverPadding(
-          padding: side,
-          sliver: SliverList.builder(
-            itemCount: split,
-            itemBuilder: (c, i) => _tile(c, rows[split - 1 - i]),
+    return Stack(
+      key: _stackKey,
+      children: [
+        Positioned.fill(
+          // 錨點若是月份中間的一天（上面沒有緊貼的月份標題），把它放在置頂標題的下方，
+          // 才不會被浮層蓋住。
+          child: LayoutBuilder(
+            builder: (context, box) => CustomScrollView(
+              controller: _scroll,
+              center: _centerKey,
+              anchor: split > 0 && rows[split] is _EntryRow && box.maxHeight > 0
+                  ? kTimelineHeaderHeight / box.maxHeight
+                  : 0,
+              slivers: [
+                // 比錨點新的列：index 0 貼著錨點、往上長。
+                SliverList.builder(
+                  itemCount: split,
+                  itemBuilder: (c, i) =>
+                      _tile(c, rows[split - 1 - i], split - 1 - i),
+                ),
+                SliverList.builder(
+                  key: _centerKey,
+                  itemCount: rows.length - split,
+                  itemBuilder: (c, i) {
+                    if (rows.length - split - i <= 5 && _hasMore) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _loadMore();
+                      });
+                    }
+                    return _tile(c, rows[split + i], split + i);
+                  },
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 96)),
+              ],
+            ),
           ),
         ),
-        SliverPadding(
-          key: _centerKey,
-          padding: side,
-          sliver: SliverList.builder(
-            itemCount: rows.length - split,
-            itemBuilder: (c, i) {
-              if (rows.length - split - i <= 5 && _hasMore) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) _loadMore();
-                });
-              }
-              return _tile(c, rows[split + i]);
-            },
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: IgnorePointer(
+            child: ValueListenableBuilder<_Sticky?>(
+              valueListenable: _sticky,
+              builder: (c, v, _) => v == null
+                  ? const SizedBox.shrink()
+                  : Transform.translate(
+                      offset: Offset(0, v.dy),
+                      child: TimelineSectionHeader(
+                        key: const ValueKey('day-sticky-header'),
+                        title: c.l10n.oshiMonthHeader(v.year, v.month),
+                        count: c.l10n.oshiCountItems(v.count),
+                        stuck: true,
+                      ),
+                    ),
+            ),
           ),
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 96)),
       ],
     );
   }
+}
+
+/// 置頂浮層的內容：哪個月、該月項數、被下一個標題推開的位移（<=0）。
+class _Sticky {
+  const _Sticky(this.year, this.month, this.count, this.dy);
+  final int year, month, count;
+  final double dy;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _Sticky &&
+      other.year == year &&
+      other.month == month &&
+      other.count == count &&
+      other.dy == dy;
+  @override
+  int get hashCode => Object.hash(year, month, count, dy);
+}
+
+/// 登記自己在 rows 裡的位置，讓 [DayTimelineState] 能量測畫面上各列的座標。
+class _RowProbe extends StatefulWidget {
+  const _RowProbe({
+    required this.index,
+    required this.registry,
+    required this.child,
+  });
+  final int index;
+  final Map<int, _RowProbeState> registry;
+  final Widget child;
+
+  @override
+  State<_RowProbe> createState() => _RowProbeState();
+}
+
+class _RowProbeState extends State<_RowProbe> {
+  @override
+  void initState() {
+    super.initState();
+    widget.registry[widget.index] = this;
+  }
+
+  @override
+  void didUpdateWidget(_RowProbe old) {
+    super.didUpdateWidget(old);
+    if (identical(old.registry[old.index], this)) {
+      old.registry.remove(old.index);
+    }
+    widget.registry[widget.index] = this;
+  }
+
+  @override
+  void dispose() {
+    if (identical(widget.registry[widget.index], this)) {
+      widget.registry.remove(widget.index);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
