@@ -148,10 +148,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                             TextFormField(
                               controller: _title,
                               style: const TextStyle(fontSize: 15),
-                              decoration: entityFieldDecoration(
-                                context,
-                                context.l10n.ideaFormTitleHint,
-                              ),
+                              decoration: entityFieldDecoration(context, ''),
                               validator: (v) => (v == null || v.trim().isEmpty)
                                   ? context.l10n.entityTitleRequired
                                   : null,
@@ -166,10 +163,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                                 fontSize: 15,
                                 height: 1.55,
                               ),
-                              decoration: entityFieldDecoration(
-                                context,
-                                context.l10n.ideaFormBodyHint,
-                              ),
+                              decoration: entityFieldDecoration(context, ''),
                             ),
                             const SizedBox(height: 16),
                             FormLabel(context.l10n.ideaFormImages),
