@@ -773,12 +773,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ideaFormTitleEdit => '編輯腦洞';
 
   @override
-  String get ideaFormTitleHint => '用一句話記下想法';
-
-  @override
-  String get ideaFormBodyHint => '文字版的圖 —— 想畫什麼、哪個場景、什麼感覺…';
-
-  @override
   String get ideaFormImages => '配圖';
 
   @override
@@ -1416,6 +1410,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get oshiGroupDeleteBody => '組內的紀錄會變成沒有分組。';
+
+  @override
+  String oshiSelectedCount(int count) {
+    return '已選 $count 筆';
+  }
+
+  @override
+  String get oshiNoGroup => '不分組';
+
+  @override
+  String oshiDeleteSelectedTitle(int count) {
+    return '刪除 $count 筆紀錄？';
+  }
 
   @override
   String get pitsCellOshi => '推活';

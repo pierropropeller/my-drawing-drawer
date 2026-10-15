@@ -1455,18 +1455,6 @@ abstract class AppLocalizations {
   /// **'編輯腦洞'**
   String get ideaFormTitleEdit;
 
-  /// No description provided for @ideaFormTitleHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'用一句話記下想法'**
-  String get ideaFormTitleHint;
-
-  /// No description provided for @ideaFormBodyHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'文字版的圖 —— 想畫什麼、哪個場景、什麼感覺…'**
-  String get ideaFormBodyHint;
-
   /// No description provided for @ideaFormImages.
   ///
   /// In zh, this message translates to:
@@ -2594,6 +2582,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'組內的紀錄會變成沒有分組。'**
   String get oshiGroupDeleteBody;
+
+  /// No description provided for @oshiSelectedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選 {count} 筆'**
+  String oshiSelectedCount(int count);
+
+  /// No description provided for @oshiNoGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'不分組'**
+  String get oshiNoGroup;
+
+  /// No description provided for @oshiDeleteSelectedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除 {count} 筆紀錄？'**
+  String oshiDeleteSelectedTitle(int count);
 
   /// No description provided for @pitsCellOshi.
   ///

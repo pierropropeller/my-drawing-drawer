@@ -554,8 +554,6 @@
   },
   "ideaFormTitleNew": "新增腦洞",
   "ideaFormTitleEdit": "編輯腦洞",
-  "ideaFormTitleHint": "用一句話記下想法",
-  "ideaFormBodyHint": "文字版的圖 —— 想畫什麼、哪個場景、什麼感覺…",
   "ideaFormImages": "配圖",
   "ideaFormCreate": "建立腦洞",
   "draftFormMissingImage": "請至少新增一張圖片",
@@ -936,6 +934,23 @@
   "oshiDeleteTitle": "刪除這筆紀錄？",
   "oshiGroupHint": "分組只用於推活，拖曳可調整次序",
   "oshiGroupDeleteBody": "組內的紀錄會變成沒有分組。",
+  "oshiSelectedCount": "已選 {count} 筆",
+  "@oshiSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "oshiNoGroup": "不分組",
+  "oshiDeleteSelectedTitle": "刪除 {count} 筆紀錄？",
+  "@oshiDeleteSelectedTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pitsCellOshi": "推活",
   "pitsCellOshiCount": "{count} 筆",
   "@pitsCellOshiCount": {
