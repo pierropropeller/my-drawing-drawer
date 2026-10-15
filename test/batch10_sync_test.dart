@@ -7,7 +7,6 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
-import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/data/junk_queries.dart';
 import 'package:huakeng/data/material_queries.dart';

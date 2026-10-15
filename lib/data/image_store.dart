@@ -80,7 +80,20 @@ class ImageStore {
   }) async {
     await dir.create(recursive: true);
     final srcName = source.path.isNotEmpty ? source.path : source.name;
-    final kind = detectMediaKind(srcName, await _readHead(source));
+    // 副檔名說是影片的才先讀開頭、再串流複製（不整個讀進記憶體）；
+    // 其餘（圖片、GIF、沒有副檔名）整個讀進來，種類由內容判斷——步驟越少越好，
+    // 也讓表單測試裡有限的非同步等待夠用。
+    Uint8List? bytes;
+    late final MediaKind kind;
+    if (mediaKindFromExtension(srcName) == MediaKind.video) {
+      kind = detectMediaKind(srcName, await _readHead(source));
+    } else {
+      bytes = await source.readAsBytes();
+      kind = detectMediaKind(
+        srcName,
+        bytes.length > 32 ? bytes.sublist(0, 32) : bytes,
+      );
+    }
     var ext = p.extension(srcName).toLowerCase();
     if (ext.isEmpty || ext.length > 6) {
       ext = switch (kind) {
@@ -91,7 +104,7 @@ class ImageStore {
     }
     final name = '${const Uuid().v4()}$ext';
     var w = 0, h = 0;
-    if (kind == MediaKind.video) {
+    if (bytes == null) {
       final sink = fileOf(name).openWrite();
       try {
         await sink.addStream(source.openRead());
@@ -99,17 +112,18 @@ class ImageStore {
         await sink.close();
       }
     } else {
-      final bytes = await source.readAsBytes();
       await fileOf(name).writeAsBytes(bytes, flush: true);
-      try {
-        final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
-        final desc = await ui.ImageDescriptor.encoded(buffer);
-        w = desc.width;
-        h = desc.height;
-        desc.dispose();
-        buffer.dispose();
-      } catch (_) {
-        // 讀不到尺寸就當作未知，瀑布流改用方形。
+      if (kind != MediaKind.video) {
+        try {
+          final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+          final desc = await ui.ImageDescriptor.encoded(buffer);
+          w = desc.width;
+          h = desc.height;
+          desc.dispose();
+          buffer.dispose();
+        } catch (_) {
+          // 讀不到尺寸就當作未知，瀑布流改用方形。
+        }
       }
     }
     String? poster;

@@ -683,7 +683,7 @@ Future<NewImage> importMedia(XFile source, {int? width, int? height, int? durati
 Future<String>   savePoster(Uint8List bytes, {String ext = 'jpg'});   // 截圖存成獨立檔，回傳檔名
 ```
 - `import` 先看內容再看副檔名；副檔名保留（無或 >6 字元時：圖片 `.jpg`、GIF `.gif`、影片 `.mp4`）。圖片與 GIF 讀寬高（GIF 取第一格）；
-  影片以**串流複製**（不整個讀進記憶體），寬高 0、`durationMs`／`posterFile` null。
+  副檔名是影片的檔案先讀開頭判斷、再以**串流複製**（不整個讀進記憶體；沒有副檔名的影片才會整個讀進記憶體），寬高 0、`durationMs`／`posterFile` null。
 - UI 探測影片（寬高、長度、第一格）後可一次用 `importMedia(...)` 帶入；或先 `import`、之後補：
 
 ```dart
