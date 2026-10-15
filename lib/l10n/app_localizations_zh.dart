@@ -1425,6 +1425,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String pitcoverCellSet(String label) {
+    return '已設為「$label」的封面';
+  }
+
+  @override
   String get pitsCellOshi => '推活';
 
   @override

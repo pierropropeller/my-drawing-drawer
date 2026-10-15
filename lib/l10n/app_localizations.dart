@@ -2601,6 +2601,12 @@ abstract class AppLocalizations {
   /// **'刪除 {count} 筆紀錄？'**
   String oshiDeleteSelectedTitle(int count);
 
+  /// No description provided for @pitcoverCellSet.
+  ///
+  /// In zh, this message translates to:
+  /// **'已設為「{label}」的封面'**
+  String pitcoverCellSet(String label);
+
   /// No description provided for @pitsCellOshi.
   ///
   /// In zh, this message translates to:
