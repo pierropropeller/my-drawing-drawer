@@ -21,10 +21,17 @@ import 'package:flutter/scheduler.dart';
 
 /// 追蹤最上層 Navigator 上（首頁以外）的路由。掛在 `MaterialApp.navigatorObservers`。
 class RootOverlayTracker extends NavigatorObserver {
-  final Set<Route<dynamic>> _routes = <Route<dynamic>>{};
+  final List<Route<dynamic>> _routes = <Route<dynamic>>[];
 
   /// 最上層 Navigator 上首頁以外的路由數量。
   final ValueNotifier<int> depth = ValueNotifier<int>(0);
+
+  /// [route] 之上（較晚推入）是否還有最上層路由。不在最上層 Navigator 的頁面（分頁裡的頁面）
+  /// 只要有任何最上層路由就算被蓋住；最上層 Navigator 自己的頁面只看排在它後面的。
+  bool coveredBy(Route<dynamic> route) {
+    final i = _routes.indexOf(route);
+    return i < 0 ? _routes.isNotEmpty : i < _routes.length - 1;
+  }
 
   void _publish() {
     final phase = SchedulerBinding.instance.schedulerPhase;
@@ -141,13 +148,14 @@ class RootOverlayGuardTransitionsBuilder extends PageTransitionsBuilder {
     context,
     animation,
     secondaryAnimation,
-    _BackGuard(child: child),
+    _BackGuard(route: route, child: child),
   );
 }
 
 class _BackGuard extends StatelessWidget {
-  const _BackGuard({required this.child});
+  const _BackGuard({required this.route, required this.child});
 
+  final Route<dynamic> route;
   final Widget child;
 
   @override
@@ -158,7 +166,7 @@ class _BackGuard extends StatelessWidget {
     if (tracker == null) return _scope(active, child);
     return ValueListenableBuilder<int>(
       valueListenable: tracker.depth,
-      builder: (_, depth, _) => _scope(active && depth == 0, child),
+      builder: (_, _, _) => _scope(active && !tracker.coveredBy(route), child),
       child: child,
     );
   }
