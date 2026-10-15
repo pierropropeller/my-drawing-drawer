@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../ui/common/root_overlay_guard.dart';
 import 'tokens.dart';
 
 /// [useGoogleFonts] 僅供測試關閉（測試環境不能下載字型）。
@@ -45,6 +46,10 @@ ThemeData buildTheme(
     scaffoldBackgroundColor: t.ground,
     textTheme: textTheme,
     dividerColor: t.border,
+    // Android 預設的預測式返回轉場，外面包返回護欄（sheet 開著時返回只關 sheet）。
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {TargetPlatform.android: RootOverlayGuardTransitionsBuilder()},
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: t.ground,
       foregroundColor: t.ink,
