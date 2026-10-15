@@ -7,6 +7,7 @@ import '../theme/tokens.dart';
 import '../state/settings.dart';
 import '../sync/sync_driver.dart';
 import 'common/nav_bar_hidden.dart';
+import 'common/root_overlay_guard.dart';
 import 'goals/goals_page.dart';
 import '../l10n/l10n.dart';
 import 'login/welcome_page.dart';
@@ -117,10 +118,13 @@ class _AppShellState extends ConsumerState<AppShell> {
           index: _index,
           children: [
             for (var i = 0; i < _tabs.length; i++)
-              Navigator(
-                key: _navKeys[i],
-                onGenerateRoute: (_) =>
-                    MaterialPageRoute<void>(builder: (_) => _root(i)),
+              TabBackScope(
+                active: i == _index,
+                child: Navigator(
+                  key: _navKeys[i],
+                  onGenerateRoute: (_) =>
+                      MaterialPageRoute<void>(builder: (_) => _root(i)),
+                ),
               ),
           ],
         ),

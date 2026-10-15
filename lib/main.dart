@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'share/share_inbox.dart';
 import 'state/settings.dart';
 import 'theme/app_theme.dart';
+import 'ui/common/root_overlay_guard.dart';
 import 'ui/shell.dart';
 
 Future<void> main() async {
@@ -33,25 +34,28 @@ class HuaKengApp extends ConsumerWidget {
     final accent = ref.watch(settingsProvider.select((s) => s.accent));
     // 啟動時就開始接收分享（冷啟動的初始分享、執行中的新分享）。
     ref.watch(shareInboxProvider);
-    return MaterialApp(
-      onGenerateTitle: (_) => appName,
-      // 目前只有繁體中文；English 之後補 app_en.arb 再開放（D-040）。
-      locale: appLocale,
-      supportedLocales: const [appLocale],
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(
-        Brightness.light,
-        useGoogleFonts: useGoogleFonts,
-        accent: accent,
+    return RootOverlayHost(
+      builder: (context, overlayTracker) => MaterialApp(
+        navigatorObservers: [overlayTracker],
+        onGenerateTitle: (_) => appName,
+        // 目前只有繁體中文；English 之後補 app_en.arb 再開放（D-040）。
+        locale: appLocale,
+        supportedLocales: const [appLocale],
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(
+          Brightness.light,
+          useGoogleFonts: useGoogleFonts,
+          accent: accent,
+        ),
+        darkTheme: buildTheme(
+          Brightness.dark,
+          useGoogleFonts: useGoogleFonts,
+          accent: accent,
+        ),
+        themeMode: ref.watch(themeModeProvider),
+        home: const AppShell(),
       ),
-      darkTheme: buildTheme(
-        Brightness.dark,
-        useGoogleFonts: useGoogleFonts,
-        accent: accent,
-      ),
-      themeMode: ref.watch(themeModeProvider),
-      home: const AppShell(),
     );
   }
 }
