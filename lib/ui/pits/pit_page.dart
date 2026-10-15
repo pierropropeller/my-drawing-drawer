@@ -23,7 +23,7 @@ import 'pits_icons.dart';
 
 /// 坑內頁（Pit／PitFilled／PitDark，D-058）：六格正方形（2 欄 3 列）：官方圖冊、好看同人圖／
 /// 我的草稿、我的腦洞／我的成圖、推活；文字（名稱＋數量）在格子下方。
-/// 格內有封面圖時，整格鋪滿真實圖片（取代 icon）；推活格沒有封面。排序固定。
+/// 格內有封面圖時，整格鋪滿真實圖片（取代 icon）；推活格同樣有封面（指定或最新一張）。排序固定。
 class PitPage extends ConsumerWidget {
   const PitPage({super.key, required this.pitId});
   final String pitId;
@@ -237,8 +237,9 @@ class PitPage extends ConsumerWidget {
                                 context.tokens.oshi,
                                 context.l10n.pitsCellOshiCount(stats.oshi),
                                 side: side,
-                                // 推活格沒有封面，也不能長按。
+                                file: covers.oshi,
                                 onTap: () => openOshiList(context, pitId),
+                                onLongPress: longPress(stats.oshi, 'oshi'),
                               ),
                             ),
                           ],
