@@ -9,10 +9,13 @@ abstract final class OshiIcons {
       '<path d="M7 4v16"/><circle cx="7" cy="8" r="1.8" fill="currentColor" stroke="none"/>'
       '<circle cx="7" cy="16" r="1.8" fill="currentColor" stroke="none"/><path d="M11 8h9M11 16h9"/>';
 
-  /// 佈局切換：網格（OshiGrid 標題列）。
+  /// 佈局切換：九宮格（OshiGrid 標題列，3×3，線寬 1.7；同草稿的九宮格 icon）。
   static const layoutGrid =
-      '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/>'
-      '<rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>';
+      '<rect x="3.5" y="3.5" width="5" height="5" rx="1"/><rect x="9.5" y="3.5" width="5" height="5" rx="1"/>'
+      '<rect x="15.5" y="3.5" width="5" height="5" rx="1"/><rect x="3.5" y="9.5" width="5" height="5" rx="1"/>'
+      '<rect x="9.5" y="9.5" width="5" height="5" rx="1"/><rect x="15.5" y="9.5" width="5" height="5" rx="1"/>'
+      '<rect x="3.5" y="15.5" width="5" height="5" rx="1"/><rect x="9.5" y="15.5" width="5" height="5" rx="1"/>'
+      '<rect x="15.5" y="15.5" width="5" height="5" rx="1"/>';
 
   /// 日期欄右側的日曆（OshiNew）。
   static const calendar =

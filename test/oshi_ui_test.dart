@@ -318,7 +318,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('網格：日期＋分組標籤（沒分組只有日期）、切換並記住選擇', (tester) async {
+    testWidgets('九宮格：沒有任何文字、貼邊 3 欄、間距 2px、切換並記住選擇', (tester) async {
       await tester.runAsync(() async {
         await rec(
           date: DateTime(2026, 10, 5),
@@ -328,13 +328,26 @@ void main() {
         await rec(date: DateTime(2026, 9, 3));
       });
       await show(tester, OshiListPage(pitId: pitId));
-      await tester.tap(find.bySemanticsLabel('網格'));
+      await tester.tap(find.bySemanticsLabel('九宮格'));
       await settle(tester);
-      expect(find.text('10/05'), findsOneWidget);
-      expect(find.text('09/03'), findsOneWidget);
-      // 分組標籤只出現在有分組的那張（pills 的「線下照片」＋圖下標籤）。
-      expect(find.text('線下照片'), findsNWidgets(2));
+      // 圖下沒有日期、分組標籤（D-066 的標籤在九宮格不顯示）；「線下照片」只剩 pills 一個。
+      expect(find.text('10/05'), findsNothing);
+      expect(find.text('09/03'), findsNothing);
+      expect(find.text('線下照片'), findsOneWidget);
+      // 多張圖的那格右下角有張數。
       expect(find.text('2'), findsOneWidget);
+      // 一排 3 格正方形、貼邊、間距 2px。
+      final cells = find.byWidgetPredicate(
+        (w) =>
+            w.key is ValueKey &&
+            '${(w.key as ValueKey).value}'.startsWith('oshi-grid-'),
+      );
+      expect(cells, findsNWidgets(2));
+      final r0 = tester.getRect(cells.at(0)), r1 = tester.getRect(cells.at(1));
+      expect(r0.width, closeTo(r0.height, 0.01));
+      expect(r0.left, 0);
+      expect(r1.left - r0.right, 2);
+      expect(r0.width, closeTo((360 - 4) / 3, 0.5));
       expect(prefs.getString('oshiLayout'), 'grid');
       await unmount(tester);
 
@@ -344,7 +357,7 @@ void main() {
         OshiListPage(pitId: pitId),
         initialPrefs: {'oshiLayout': 'grid'},
       );
-      expect(find.text('10/05'), findsOneWidget);
+      expect(find.text('2026 年 10 月'), findsNothing);
       await tester.tap(find.bySemanticsLabel('時間軸'));
       await settle(tester);
       expect(find.text('2026 年 10 月'), findsOneWidget);
@@ -399,7 +412,7 @@ void main() {
         );
       });
       await show(tester, OshiListPage(pitId: pitId), dark: true);
-      await tester.tap(find.bySemanticsLabel('網格'));
+      await tester.tap(find.bySemanticsLabel('九宮格'));
       await settle(tester);
       expect(tester.takeException(), isNull);
       await unmount(tester);

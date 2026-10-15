@@ -12,6 +12,9 @@ String oshiMd(DateTime d) =>
 TimelineEntry oshiTimelineEntry(
   OshiRecordView v, {
   required VoidCallback onTap,
+  VoidCallback? onLongPress,
+  bool? selected,
+  GlobalKey? cardKey,
 }) => TimelineEntry(
   id: v.record.id,
   date: v.date,
@@ -21,6 +24,9 @@ TimelineEntry oshiTimelineEntry(
   imageFile: v.cover.file,
   imageCount: v.images.length,
   tags: [for (final t in v.tags) t.name],
+  onLongPress: onLongPress,
+  selected: selected,
+  cardKey: cardKey,
 );
 
 /// 分組小標（網格圖下方、詳情頁以外的地方）：淡紫底、紫字 11.5/600。

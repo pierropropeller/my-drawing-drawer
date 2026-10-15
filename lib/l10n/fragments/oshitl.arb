@@ -1,0 +1,7 @@
+{
+  "oshiSelectedCount": "已選 {count} 筆",
+  "@oshiSelectedCount": { "placeholders": { "count": { "type": "int" } } },
+  "oshiNoGroup": "不分組",
+  "oshiDeleteSelectedTitle": "刪除 {count} 筆紀錄？",
+  "@oshiDeleteSelectedTitle": { "placeholders": { "count": { "type": "int" } } }
+}

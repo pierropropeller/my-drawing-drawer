@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/batch_tag_queries.dart';
+import '../../data/database.dart';
 import '../../data/junk_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
@@ -39,16 +41,43 @@ Future<bool?> showBatchTagSheet(
   );
 }
 
+/// 不是 [AlbumCell] 的對象（推活）用的接法：自己提供三態的來源、套用與張數文字。
+class BatchTagBackend {
+  const BatchTagBackend({
+    required this.watch,
+    required this.apply,
+    required this.countText,
+  });
+  final Stream<List<TagCoverageEntry>> Function(
+    AppDatabase db,
+    List<String> ids,
+  )
+  watch;
+  final Future<void> Function(
+    AppDatabase db,
+    List<String> ids, {
+    required List<String> add,
+    required List<String> remove,
+    required List<String> newNames,
+  })
+  apply;
+  final String Function(AppLocalizations l, int count) countText;
+}
+
 class BatchTagSheet extends ConsumerStatefulWidget {
   const BatchTagSheet({
     super.key,
     required this.pitId,
-    required this.cell,
+    this.cell,
+    this.backend,
     required this.ids,
-  });
+  }) : assert(cell != null || backend != null);
 
   final String pitId;
-  final AlbumCell cell;
+  final AlbumCell? cell;
+
+  /// 有值就改用它（推活）；否則照 [cell]。
+  final BatchTagBackend? backend;
   final List<String> ids;
 
   @override
@@ -63,6 +92,27 @@ class _BatchTagSheetState extends ConsumerState<BatchTagSheet> {
   final List<String> _newNames = [];
 
   bool _busy = false;
+
+  /// [BatchTagBackend] 的即時資料。
+  StreamSubscription<List<TagCoverageEntry>>? _sub;
+  List<TagCoverageEntry> _backendEntries = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    final b = widget.backend;
+    if (b != null) {
+      _sub = b.watch(ref.read(databaseProvider), widget.ids).listen((v) {
+        if (mounted) setState(() => _backendEntries = v);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
 
   TagCoverage _shown(TagCoverageEntry e) => switch (_ops[e.tag.id]) {
     true => TagCoverage.all,
@@ -103,9 +153,17 @@ class _BatchTagSheetState extends ConsumerState<BatchTagSheet> {
         if (_ops[e.tag.id] == false) e.tag.id,
     ];
     final changed = add.isNotEmpty || remove.isNotEmpty || _newNames.isNotEmpty;
-    if (changed) {
+    if (changed && widget.backend != null) {
+      await widget.backend!.apply(
+        db,
+        widget.ids,
+        add: add,
+        remove: remove,
+        newNames: _newNames,
+      );
+    } else if (changed) {
       await db.applyBatchTags(
-        widget.cell,
+        widget.cell!,
         widget.ids,
         addTagIds: add,
         removeTagIds: remove,
@@ -121,8 +179,9 @@ class _BatchTagSheetState extends ConsumerState<BatchTagSheet> {
     final l = context.l10n;
     final media = MediaQuery.of(context);
     final key = ([...widget.ids]..sort()).join(',');
-    final entries =
-        ref.watch(tagCoverageProvider((widget.cell, key))).value ?? const [];
+    final entries = widget.backend != null
+        ? _backendEntries
+        : ref.watch(tagCoverageProvider((widget.cell!, key))).value ?? const [];
     return Padding(
       padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
       child: ConstrainedBox(
@@ -152,7 +211,8 @@ class _BatchTagSheetState extends ConsumerState<BatchTagSheet> {
                         ),
                       ),
                       Text(
-                        l.commonCountImages(widget.ids.length),
+                        widget.backend?.countText(l, widget.ids.length) ??
+                            l.commonCountImages(widget.ids.length),
                         style: TextStyle(fontSize: 12.5, color: t.text3),
                       ),
                     ],

@@ -27,6 +27,7 @@ class TimelineEntry {
     this.extra,
     this.selected,
     this.onLongPress,
+    this.cardKey,
   });
 
   final String id;
@@ -63,6 +64,9 @@ class TimelineEntry {
 
   /// 長按（進入多選）。
   final VoidCallback? onLongPress;
+
+  /// 掛在卡片上的 key（拖曳多選用它量卡片的位置，D-081）。
+  final GlobalKey? cardKey;
 }
 
 /// 一個月份分段（段首「2026 年 10 月」＋數量）。
@@ -388,6 +392,7 @@ class _EntryCard extends StatelessWidget {
       onLongPress: entry.onLongPress,
       behavior: HitTestBehavior.opaque,
       child: Container(
+        key: entry.cardKey,
         // 多選時右側留出勾選圈的位置；選中＝2px 主色框（1px 邊＋1px 外擴）。
         padding: EdgeInsets.fromLTRB(10, 10, sel == null ? 10 : 40, 10),
         decoration: BoxDecoration(
