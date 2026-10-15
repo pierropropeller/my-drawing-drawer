@@ -5,9 +5,10 @@ import '../../data/database.dart';
 import '../../data/entity_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
-import '../album/album_image.dart';
 import '../album/image_picker_field.dart';
 import '../common/app_icons.dart';
+import '../common/media_widgets.dart';
+import '../common/media_mini.dart';
 import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
 import '../common/reorder_tile.dart';
@@ -372,7 +373,13 @@ class ThumbSquare extends StatelessWidget {
       borderRadius: BorderRadius.circular(radius),
       child: images.isEmpty
           ? ImagePlaceholder(color: placeholder)
-          : StoredImage(images.first.file, cacheWidth: 400),
+          : (size != null && size! < 96)
+          ? MiniMediaThumb(
+              MediaSource.fromImageRef(images.first),
+              cacheWidth: 400,
+              inset: 5,
+            )
+          : MediaThumb(MediaSource.fromImageRef(images.first), cacheWidth: 400),
     );
     return GestureDetector(
       onTap: onTap,

@@ -82,6 +82,9 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
           groupName: names[r.groupId],
           groupId: r.groupId,
           createdAt: r.createdAt,
+          mediaKind: r.kind,
+          durationMs: r.durationMs,
+          posterFile: r.posterFile,
         ),
     ];
     return AlbumView(

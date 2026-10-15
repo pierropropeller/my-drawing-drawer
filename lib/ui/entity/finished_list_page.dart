@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../data/entity_queries.dart';
+import '../../data/media.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
-import '../album/album_image.dart';
 import '../common/app_icons.dart';
+import '../common/media_widgets.dart';
 import '../common/empty_state.dart';
 import '../common/svg_icon.dart';
 import '../search/tag_filter_bar.dart';
@@ -252,10 +253,19 @@ class _ModeToggle extends StatelessWidget {
 }
 
 /// 圖片或圖片佔位（分類底色＋圖片 glyph）。
-Widget _pieceImage(BuildContext context, PieceView v, {double glyph = 26}) {
+Widget _pieceImage(
+  BuildContext context,
+  PieceView v, {
+  double glyph = 26,
+  double badgeInset = 7,
+}) {
   final t = context.tokens;
   if (v.images.isNotEmpty) {
-    return StoredImage(v.images.first.file, cacheWidth: 500);
+    return MediaThumb(
+      MediaSource.fromImageRef(v.images.first),
+      cacheWidth: 500,
+      badgeInset: badgeInset,
+    );
   }
   return ColoredBox(
     color: t.piece.bg,
@@ -365,11 +375,16 @@ class _NineTile extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _pieceImage(context, view, glyph: 22),
+              _pieceImage(context, view, glyph: 22, badgeInset: 5),
               if (view.piece.isPublished)
                 Positioned(
                   left: 5,
-                  bottom: 5,
+                  // 第一張是 GIF／影片時，左下角已有媒體標記，愛心列疊在它上面。
+                  bottom:
+                      (view.images.isNotEmpty &&
+                          !view.images.first.kind.isImage)
+                      ? 29
+                      : 5,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 5,

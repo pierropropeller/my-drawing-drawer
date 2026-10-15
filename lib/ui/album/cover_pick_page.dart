@@ -6,10 +6,10 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
+import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import 'album_actions.dart';
-import 'album_image.dart';
 
 /// 選擇封面：長按坑內頁的某一格進入（[kind] 非 null），只列出該格內的圖，點一下即設為「這一格」
 /// 的封面（`setCellCover`）；[kind] 為 null（編輯坑的「更換封面」）則設為坑的封面（`setCover`）。
@@ -183,8 +183,13 @@ class _CoverPickPageState extends ConsumerState<CoverPickPage>
                                   borderRadius: BorderRadius.circular(
                                     Radii.image,
                                   ),
-                                  child: StoredImage(
-                                    shown[i].file,
+                                  child: StaticMediaImage(
+                                    MediaSource(
+                                      file: shown[i].file,
+                                      kind: shown[i].kind,
+                                      durationMs: shown[i].durationMs,
+                                      poster: shown[i].poster,
+                                    ),
                                     cacheWidth: 300,
                                   ),
                                 ),

@@ -187,7 +187,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
                                   title: i.idea.title,
                                   file: i.images.isEmpty
                                       ? null
-                                      : i.images.first.file,
+                                      : i.images.first.staticFile,
                                   imageCount: i.images.length,
                                   date: i.idea.date,
                                 ),
@@ -206,7 +206,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
                                   title: p.piece.title,
                                   file: p.images.isEmpty
                                       ? null
-                                      : p.images.first.file,
+                                      : p.images.first.staticFile,
                                   imageCount: p.images.length,
                                   date: p.piece.finishedAt,
                                 ),

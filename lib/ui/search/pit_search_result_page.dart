@@ -8,6 +8,7 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../album/fan_art_preview_page.dart';
+import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../entity/draft_detail_page.dart';
@@ -141,7 +142,7 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
         _ImageSection(
           title: context.l10n.searchCategoryPiece,
           total: res.pieces.total,
-          files: [for (final v in res.pieces.items) v.images.firstOrNull?.file],
+          media: [for (final v in res.pieces.items) _firstMedia(v.images)],
           more: res.pieces.more,
           onTap: (i) => _push(
             PieceDetailPage(
@@ -168,13 +169,16 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
             groupName: names[f.groupId],
             groupId: f.groupId,
             createdAt: f.createdAt,
+            mediaKind: f.kind,
+            durationMs: f.durationMs,
+            posterFile: f.posterFile,
           ),
       ];
       section(
         _ImageSection(
           title: context.l10n.pitsFanArt,
           total: res.fanArts.total,
-          files: [for (final f in res.fanArts.items) f.imageFile],
+          media: [for (final a in items) a.media],
           more: res.fanArts.more,
           onTap: (i) => _push(
             FanArtPreviewPage(
@@ -193,7 +197,9 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
         _ImageSection(
           title: context.l10n.pitSearchCategoryOshi,
           total: res.oshi.total,
-          files: [for (final v in res.oshi.items) v.cover.file],
+          media: [
+            for (final v in res.oshi.items) MediaSource.fromImageRef(v.cover),
+          ],
           more: res.oshi.more,
           onTap: (i) => openOshiDetail(
             context,
@@ -210,7 +216,7 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
         _ImageSection(
           title: context.l10n.searchCategoryDraft,
           total: res.drafts.total,
-          files: [for (final v in res.drafts.items) v.images.firstOrNull?.file],
+          media: [for (final v in res.drafts.items) _firstMedia(v.images)],
           more: res.drafts.more,
           onTap: (i) => _push(
             DraftDetailPage(
@@ -367,6 +373,9 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+MediaSource? _firstMedia(List<ImageRef> images) =>
+    images.isEmpty ? null : MediaSource.fromImageRef(images.first);
+
 /// 圖片類的一段：草稿多圖卡樣式，一排 3 格正方形、間距 4、外框圓角 10；
 /// 超過 3 筆時第 3 格蓋深色層寫「+N」，點它進該格列表。
 /// 少於 3 筆（D-061，PitSearchFew）：照實際張數放、不補空格、不顯示「+N」，每張各自圓角 10。
@@ -374,7 +383,7 @@ class _ImageSection extends StatelessWidget {
   const _ImageSection({
     required this.title,
     required this.total,
-    required this.files,
+    required this.media,
     required this.more,
     required this.onTap,
     required this.onMore,
@@ -382,8 +391,8 @@ class _ImageSection extends StatelessWidget {
   final String title;
   final int total;
 
-  /// 前 3 筆的縮圖檔名（null＝沒有圖，顯示佔位）。
-  final List<String?> files;
+  /// 前 3 筆的第一張媒體（null＝沒有圖，顯示佔位；GIF 循環、影片 poster＋標記，D-080）。
+  final List<MediaSource?> media;
   final int more;
   final ValueChanged<int> onTap;
   final VoidCallback onMore;
@@ -391,7 +400,7 @@ class _ImageSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget cell(int i) {
-      final file = files[i];
+      final m = media[i];
       final isMore = more > 0 && i == 2;
       return AspectRatio(
         aspectRatio: 1,
@@ -400,9 +409,9 @@ class _ImageSection extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              file == null
+              m == null
                   ? const ImagePlaceholder()
-                  : StoredImage(file, cacheWidth: 300),
+                  : MediaThumb(m, cacheWidth: 300),
               if (isMore)
                 Container(
                   color: const Color(0x802B2622),
@@ -423,13 +432,13 @@ class _ImageSection extends StatelessWidget {
     }
 
     // 不滿 3 張：每張自己切圓角，空位留白（格寬仍是 1/3）。
-    final few = files.length < 3;
+    final few = media.length < 3;
     final row = Row(
       spacing: 4,
       children: [
         for (var i = 0; i < 3; i++)
           Expanded(
-            child: i < files.length
+            child: i < media.length
                 ? (few
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(10),

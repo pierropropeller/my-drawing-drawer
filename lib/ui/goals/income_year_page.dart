@@ -254,7 +254,7 @@ class _EntryRow extends StatelessWidget {
               height: 44,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: entry.cover == null
+                child: entry.cover?.staticFile == null
                     ? ColoredBox(
                         color: t.chipBg,
                         child: Center(
@@ -266,7 +266,7 @@ class _EntryRow extends StatelessWidget {
                           ),
                         ),
                       )
-                    : StoredImage(entry.cover!.file, cacheWidth: 150),
+                    : StoredImage(entry.cover!.staticFile!, cacheWidth: 150),
               ),
             ),
             Expanded(

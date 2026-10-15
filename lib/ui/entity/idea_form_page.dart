@@ -186,7 +186,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                                     title: d.draft.title ?? '',
                                     file: d.images.isEmpty
                                         ? null
-                                        : d.images.first.file,
+                                        : d.images.first.staticFile,
                                     imageCount: d.images.length,
                                     date: d.draft.date,
                                   ),
@@ -205,7 +205,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                                     title: p.piece.title,
                                     file: p.images.isEmpty
                                         ? null
-                                        : p.images.first.file,
+                                        : p.images.first.staticFile,
                                     imageCount: p.images.length,
                                     date: p.piece.finishedAt,
                                   ),

@@ -6,8 +6,9 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
-import '../album/album_image.dart';
 import '../common/app_icons.dart';
+import '../common/media_widgets.dart';
+import '../common/media_mini.dart';
 import '../common/detail_carousel.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
@@ -303,7 +304,10 @@ class _ImageStageState extends State<_ImageStage> {
                           ? Border.all(color: t.accent, width: 2)
                           : null,
                     ),
-                    child: StoredImage(images[i].file, cacheWidth: 200),
+                    child: MiniMediaThumb(
+                      MediaSource.fromImageRef(images[i]),
+                      cacheWidth: 200,
+                    ),
                   ),
                 ),
               ),

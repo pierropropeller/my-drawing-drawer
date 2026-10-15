@@ -62,6 +62,9 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
           groupName: names[r.groupId],
           groupId: r.groupId,
           createdAt: r.createdAt,
+          mediaKind: r.kind,
+          durationMs: r.durationMs,
+          posterFile: r.posterFile,
         ),
     ];
     return AlbumView(

@@ -6,6 +6,7 @@ import '../../data/database.dart';
 import '../../data/entity_queries.dart' show ImageRef;
 import '../../data/material_queries.dart';
 import '../../l10n/l10n.dart';
+import '../../media/media_import.dart';
 import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
@@ -15,6 +16,7 @@ import '../album/album_image.dart';
 import '../album/album_view.dart' show ChipRow;
 import '../album/image_masonry.dart' show SelectMark, SquareGrid;
 import '../common/drag_select.dart';
+import '../common/media_widgets.dart';
 import '../common/app_icons.dart';
 import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
@@ -89,6 +91,9 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
         height: r.height,
         kind: AlbumKind.junk,
         createdAt: r.createdAt,
+        mediaKind: r.kind,
+        durationMs: r.durationMs,
+        posterFile: r.posterFile,
       ),
   ];
 
@@ -124,7 +129,15 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
       MaterialPageRoute<void>(
         builder: (_) => ImageGalleryPage(
           images: [
-            for (final r in rows) ImageRef(r.imageFile, r.width, r.height),
+            for (final r in rows)
+              ImageRef(
+                r.imageFile,
+                r.width,
+                r.height,
+                kind: r.kind,
+                durationMs: r.durationMs,
+                poster: r.posterFile,
+              ),
           ],
           initialIndex: i,
         ),
@@ -147,7 +160,7 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
       if (category == null || !mounted) return;
     }
     final store = await ref.read(imageStoreProvider.future);
-    final images = [for (final f in picked) await store.import(f)];
+    final images = [for (final f in picked) await importPickedMedia(store, f)];
     await ref.read(databaseProvider).addMaterials(category, images);
     if (mounted) showSnack(context, context.l10n.shareAdded, success: true);
   }
@@ -445,7 +458,18 @@ class _Masonry extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(Radii.image),
-                  child: StoredImage(r.imageFile, cacheWidth: 500),
+                  child: MediaThumb(
+                    MediaSource.row(
+                      file: r.imageFile,
+                      kind: r.kind,
+                      durationMs: r.durationMs,
+                      posterFile: r.posterFile,
+                      width: r.width,
+                      height: r.height,
+                    ),
+                    cacheWidth: 500,
+                    badgeInset: 7,
+                  ),
                 ),
                 if (isSelected)
                   DecoratedBox(

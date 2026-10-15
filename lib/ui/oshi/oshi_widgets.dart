@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/oshi_queries.dart';
 import '../../theme/tokens.dart';
+import '../common/media_source.dart';
 import '../common/timeline.dart';
 
 /// 兩位數月/日（網格圖下的日期，設計稿 `10/05`）。
@@ -22,6 +23,7 @@ TimelineEntry oshiTimelineEntry(
   title: v.record.title,
   description: v.record.description ?? '',
   imageFile: v.cover.file,
+  media: MediaSource.fromImageRef(v.cover),
   imageCount: v.images.length,
   tags: [for (final t in v.tags) t.name],
   onLongPress: onLongPress,

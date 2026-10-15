@@ -6,8 +6,8 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
-import '../album/album_image.dart';
 import '../common/app_icons.dart';
+import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import 'draft_detail_page.dart';
@@ -153,8 +153,8 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
                                       borderRadius: BorderRadius.circular(
                                         Radii.image,
                                       ),
-                                      child: StoredImage(
-                                        v.images[i].file,
+                                      child: MediaThumb(
+                                        MediaSource.fromImageRef(v.images[i]),
                                         cacheWidth: 400,
                                       ),
                                     ),

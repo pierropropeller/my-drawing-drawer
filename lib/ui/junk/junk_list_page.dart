@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/album_queries.dart';
 import '../../data/junk_queries.dart';
 import '../../l10n/l10n.dart';
+import '../../media/media_import.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_icons.dart';
@@ -22,7 +23,9 @@ class JunkListPage extends ConsumerWidget {
     final picked = await ref.read(imagePickerProvider)();
     if (picked.isEmpty) return;
     final store = await ref.read(imageStoreProvider.future);
-    final imported = <NewImage>[for (final f in picked) await store.import(f)];
+    final imported = <NewImage>[
+      for (final f in picked) await importPickedMedia(store, f),
+    ];
     await ref.read(databaseProvider).addJunk(pitId, imported);
   }
 
@@ -40,6 +43,9 @@ class JunkListPage extends ConsumerWidget {
           height: r.height,
           kind: AlbumKind.junk,
           createdAt: r.createdAt,
+          mediaKind: r.kind,
+          durationMs: r.durationMs,
+          posterFile: r.posterFile,
         ),
     ];
     return AlbumView(

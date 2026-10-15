@@ -6,13 +6,13 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
-import '../album/album_image.dart';
 import '../album/album_actions.dart' show confirmDelete;
 import '../album/album_view.dart' show ChipRow, ChipRowManageButton;
 import '../album/image_masonry.dart' show SelectMark;
 import '../album/group_manage_page.dart';
 import '../common/drag_select.dart';
 import '../common/empty_state.dart';
+import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
@@ -409,14 +409,11 @@ class _OshiGrid extends StatelessWidget {
               key: ValueKey('oshi-grid-${v.record.id}'),
               fit: StackFit.expand,
               children: [
-                StoredImage(v.cover.file, cacheWidth: 400),
-                // 左下角的影片／GIF 標記留給 D-080。
-                if (v.images.length > 1)
-                  Positioned(
-                    right: 5,
-                    bottom: 5,
-                    child: CountBadge(v.images.length),
-                  ),
+                MediaThumb(
+                  MediaSource.fromImageRef(v.cover),
+                  cacheWidth: 400,
+                  count: v.images.length,
+                ),
                 if (picked)
                   DecoratedBox(
                     decoration: BoxDecoration(

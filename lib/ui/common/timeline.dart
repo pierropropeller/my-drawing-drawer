@@ -5,6 +5,8 @@ import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../entity/entity_widgets.dart';
 import 'drag_select.dart';
+import 'media_mini.dart';
+import 'media_source.dart';
 import 'app_icons.dart';
 import 'svg_icon.dart';
 
@@ -20,6 +22,7 @@ class TimelineEntry {
     this.title,
     this.description = '',
     this.imageFile,
+    this.media,
     this.imageCount = 0,
     this.kindLabel,
     this.kindColor,
@@ -46,6 +49,9 @@ class TimelineEntry {
 
   /// 首張圖；沒有就顯示佔位格。
   final String? imageFile;
+
+  /// 首張圖的媒體資訊（D-080：GIF 循環、影片 poster＋小標）；有給就優先於 [imageFile]。
+  final MediaSource? media;
 
   /// 圖片總數；超過 1 張時首圖右下角顯示圓形數字。
   final int imageCount;
@@ -445,8 +451,10 @@ class _EntryCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: entry.imageFile == null
+                child: (entry.imageFile == null && entry.media == null)
                     ? const ImagePlaceholder(iconSize: 22)
+                    : entry.media != null
+                    ? MiniMediaThumb(entry.media!, cacheWidth: 300, inset: 5)
                     : StoredImage(entry.imageFile!, cacheWidth: 300),
               ),
               if (entry.imageCount > 1)

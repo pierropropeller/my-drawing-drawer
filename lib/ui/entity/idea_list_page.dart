@@ -6,8 +6,9 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
-import '../album/album_image.dart';
 import '../common/app_icons.dart';
+import '../common/media_widgets.dart';
+import '../common/media_mini.dart';
 import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
@@ -371,7 +372,10 @@ class _IdeaCard extends StatelessWidget {
                         width: 54,
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(9),
-                          child: StoredImage(im.file, cacheWidth: 200),
+                          child: MiniMediaThumb(
+                            MediaSource.fromImageRef(im),
+                            cacheWidth: 200,
+                          ),
                         ),
                       ),
                     ),

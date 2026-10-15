@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/image_location.dart';
+import '../../data/media.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
+import '../common/media_widgets.dart';
 import '../common/svg_icon.dart';
 import 'sync_colors.dart';
 import 'sync_icons.dart';
@@ -247,11 +249,14 @@ class _TransferRow extends ConsumerWidget {
             child: SizedBox(
               width: 44,
               height: 44,
-              child: StoredImage(
-                x.file,
-                cacheWidth: 150,
-                showDownloadBadge: false,
-              ),
+              // 影片原檔不能當圖片解碼，傳輸清單裡直接用佔位（它的截圖是另一筆 jpg 傳輸）。
+              child: mediaKindFromExtension(x.file).isVideo
+                  ? const MediaPlaceholder()
+                  : StoredImage(
+                      x.file,
+                      cacheWidth: 150,
+                      showDownloadBadge: false,
+                    ),
             ),
           ),
           const SizedBox(width: 12),

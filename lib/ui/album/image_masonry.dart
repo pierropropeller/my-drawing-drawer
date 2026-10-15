@@ -4,6 +4,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/drag_select.dart';
+import '../common/media_widgets.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import 'album_image.dart';
@@ -89,7 +90,7 @@ class _Tile extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(Radii.image),
-            child: StoredImage(image.file, cacheWidth: 500),
+            child: MediaThumb(image.media, cacheWidth: 500, badgeInset: 7),
           ),
           if (isSelected)
             DecoratedBox(
@@ -171,7 +172,7 @@ class SquareGrid extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              StoredImage(im.file, cacheWidth: 400),
+              MediaThumb(im.media, cacheWidth: 400),
               if (isSelected)
                 DecoratedBox(
                   decoration: BoxDecoration(

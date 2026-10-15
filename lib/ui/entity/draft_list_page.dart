@@ -5,8 +5,9 @@ import '../../data/entity_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
-import '../album/album_image.dart';
 import '../common/app_icons.dart';
+import '../common/media_widgets.dart';
+import '../common/media_mini.dart';
 import '../common/empty_state.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
@@ -247,9 +248,11 @@ class _GridCell extends StatelessWidget {
         children: [
           imgs.isEmpty
               ? const ImagePlaceholder()
-              : StoredImage(imgs.first.file, cacheWidth: 400),
-          if (imgs.length > 1)
-            Positioned(right: 5, bottom: 5, child: CountBadge(imgs.length)),
+              : MediaThumb(
+                  MediaSource.fromImageRef(imgs.first),
+                  cacheWidth: 400,
+                  count: imgs.length,
+                ),
         ],
       ),
     );
@@ -356,7 +359,10 @@ class DraftListCard extends StatelessWidget {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        StoredImage(shown[i].file, cacheWidth: 300),
+                        MiniMediaThumb(
+                          MediaSource.fromImageRef(shown[i]),
+                          cacheWidth: 300,
+                        ),
                         if (i == 3 && extra > 0)
                           MoreOverlay(extra, fontSize: 15),
                       ],
@@ -387,7 +393,11 @@ class DraftListCard extends StatelessWidget {
           width: double.infinity,
           child: imgs.isEmpty
               ? const ImagePlaceholder(iconSize: 26)
-              : StoredImage(imgs.first.file, cacheWidth: 900),
+              : MediaThumb(
+                  MediaSource.fromImageRef(imgs.first),
+                  cacheWidth: 900,
+                  badgeInset: 7,
+                ),
         ),
       );
     }
@@ -409,7 +419,10 @@ class DraftListCard extends StatelessWidget {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        StoredImage(shown[i].file, cacheWidth: 400),
+                        MediaThumb(
+                          MediaSource.fromImageRef(shown[i]),
+                          cacheWidth: 400,
+                        ),
                         if (i == 2 && extra > 0) MoreOverlay(extra),
                       ],
                     ),

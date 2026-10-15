@@ -535,7 +535,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                                   title: i.idea.title,
                                   file: i.images.isEmpty
                                       ? null
-                                      : i.images.first.file,
+                                      : i.images.first.staticFile,
                                 ),
                             ],
                             selected: _ideaIds,
@@ -552,7 +552,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                                   title: d.draft.title ?? '',
                                   file: d.images.isEmpty
                                       ? null
-                                      : d.images.first.file,
+                                      : d.images.first.staticFile,
                                   imageCount: d.images.length,
                                   date: d.draft.date,
                                 ),

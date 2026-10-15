@@ -7,6 +7,7 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
+import '../common/media_source.dart';
 import '../common/svg_icon.dart';
 import '../common/timeline.dart';
 import 'day_add_sheet.dart';
@@ -83,6 +84,14 @@ class _DayPageState extends ConsumerState<DayPage> {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
   }
 
+  /// 時間軸縮圖用的第一張（GIF 循環、影片用 poster＋小標）；影片還沒有 poster 的跳過，與 [TimelineItem.file] 一致。
+  MediaSource? _firstMedia(TimelineItem item) {
+    for (final m in item.media) {
+      if (m.staticFile != null) return MediaSource.fromImageRef(m);
+    }
+    return null;
+  }
+
   /// 共用時間軸的一筆（D-063）：分類標籤＋時間、標題、內文、tag；成圖多一個紅心互動量。
   TimelineEntry _entryOf(BuildContext context, TimelineItem item) {
     final t = context.tokens;
@@ -103,6 +112,7 @@ class _DayPageState extends ConsumerState<DayPage> {
       title: item.title.isEmpty ? context.l10n.goalsUntitled : item.title,
       description: item.text,
       imageFile: item.file,
+      media: _firstMedia(item),
       imageCount: item.files.length,
       tags: item.tagNames,
       extra: item.kind == GoalKind.piece
