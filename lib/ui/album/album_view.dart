@@ -225,12 +225,25 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     _selected.add(im.id);
   });
 
+  /// 長按＋拖曳連續多選（D-081）：收到完整的已選 index，放手時一個都沒有才離開多選。
+  void _dragSelect(Set<int> idx, bool finished) => setState(() {
+    final imgs = widget.images;
+    _selected
+      ..clear()
+      ..addAll([
+        for (final i in idx)
+          if (i < imgs.length) imgs[i].id,
+      ]);
+    _selecting = !finished || _selected.isNotEmpty;
+  });
+
   Widget _grid() => widget.squares
       ? SquareGrid(
           images: widget.images,
           selecting: _selecting,
           selected: _selected,
           onLongPress: _longPress,
+          onDragSelect: _dragSelect,
           onTap: _open,
         )
       : ImageMasonry(
@@ -238,6 +251,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
           selecting: _selecting,
           selected: _selected,
           onLongPress: _longPress,
+          onDragSelect: _dragSelect,
           onTap: _open,
         );
 
