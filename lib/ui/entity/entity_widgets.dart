@@ -678,75 +678,69 @@ class FormImageGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (var i = 0; i < items.length; i++)
-          ReorderTile(
-            index: i,
-            size: size,
-            onReorder: onReorder,
-            child: SizedBox(
-              width: size,
-              height: size,
-              child: Stack(
-                clipBehavior: Clip.none,
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(Radii.image),
-                    child: items[i].picked != null
-                        ? Image.file(
-                            File(items[i].picked!.path),
-                            cacheWidth: 300,
-                            fit: BoxFit.cover,
-                          )
-                        : StoredImage(items[i].stored!.file, cacheWidth: 300),
-                  ),
-                  // D-018：22px 深色圓、2px 底色描邊，凸出縮圖右上角 6px。
-                  Positioned(
-                    top: -6,
-                    right: -6,
-                    child: Semantics(
-                      button: true,
-                      label: context.l10n.entityRemoveImage,
-                      child: GestureDetector(
-                        onTap: () => onRemove(i),
-                        child: Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            color: context.tokens.ink,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: context.tokens.ground,
-                              width: 2,
-                            ),
-                          ),
-                          child: Center(
-                            child: SvgIcon(
-                              AppIcons.closeX,
-                              size: 11,
-                              strokeWidth: 3,
-                              color: context.tokens.ground,
-                            ),
-                          ),
+    return ReorderableImageGrid(
+      count: items.length,
+      size: size,
+      onReorder: onReorder,
+      itemBuilder: (context, i, hide) => SizedBox(
+        width: size,
+        height: size,
+        child: Stack(
+          clipBehavior: Clip.none,
+          fit: StackFit.expand,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(Radii.image),
+              child: items[i].picked != null
+                  ? Image.file(
+                      File(items[i].picked!.path),
+                      cacheWidth: 300,
+                      fit: BoxFit.cover,
+                    )
+                  : StoredImage(items[i].stored!.file, cacheWidth: 300),
+            ),
+            // D-018：22px 深色圓、2px 底色描邊，凸出縮圖右上角 6px。
+            if (!hide)
+              Positioned(
+                top: -6,
+                right: -6,
+                child: Semantics(
+                  button: true,
+                  label: context.l10n.entityRemoveImage,
+                  child: GestureDetector(
+                    onTap: () => onRemove(i),
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: context.tokens.ink,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: context.tokens.ground,
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: SvgIcon(
+                          AppIcons.closeX,
+                          size: 11,
+                          strokeWidth: 3,
+                          color: context.tokens.ground,
                         ),
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        DashedAddTile(
-          size: size,
-          onTap: onAdd,
-          semanticLabel: context.l10n.entityAddImage,
-          iconSize: 24,
+          ],
         ),
-      ],
+      ),
+      trailing: DashedAddTile(
+        size: size,
+        onTap: onAdd,
+        semanticLabel: context.l10n.entityAddImage,
+        iconSize: 24,
+      ),
     );
   }
 }

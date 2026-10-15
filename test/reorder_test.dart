@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/l10n/app_localizations.dart';
 import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/ui/album/image_picker_field.dart';
+import 'package:huakeng/ui/common/dashed_box.dart';
 import 'package:huakeng/ui/common/reorder_tile.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -30,10 +31,17 @@ void main() {
     expect(l, [4, 2, 3, 1]);
   });
 
-  testWidgets('表單圖片格：長按拖到另一張上可改順序', (tester) async {
+  Finder removeButtons() => find.byWidgetPredicate(
+    (w) => w is Semantics && w.properties.button == true,
+  );
+
+  Future<(List<ImageItem>, List<String>, Directory)> pumpField(
+    WidgetTester tester, {
+    int n = 3,
+  }) async {
     final tmp = Directory.systemTemp.createTempSync('reorder');
     final items = [
-      for (var i = 0; i < 3; i++)
+      for (var i = 0; i < n; i++)
         ImageItem.picked(
           XFile((File('${tmp.path}/$i.png')..writeAsBytesSync(_png1x1)).path),
         ),
@@ -48,11 +56,17 @@ void main() {
             supportedLocales: AppLocalizations.supportedLocales,
             locale: const Locale('zh'),
             home: Scaffold(
-              body: ImagePickerField(
-                items: items,
-                onAdd: null,
-                onRemove: (_) {},
-                onReorder: (a, b) => setState(() => moveListItem(items, a, b)),
+              body: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  ImagePickerField(
+                    items: items,
+                    onAdd: () {},
+                    onRemove: (_) {},
+                    onReorder: (a, b) =>
+                        setState(() => moveListItem(items, a, b)),
+                  ),
+                ],
               ),
             ),
           ),
@@ -60,20 +74,106 @@ void main() {
       ),
     );
     await tester.pump();
-    final tiles = find.byType(ReorderTile);
-    expect(tiles, findsNWidgets(3));
-    final from = tester.getCenter(tiles.at(0));
-    final to = tester.getCenter(tiles.at(2));
-    final g = await tester.startGesture(from);
-    await tester.pump(const Duration(milliseconds: 600));
-    await g.moveTo(to, timeStamp: const Duration(milliseconds: 700));
-    await tester.pump();
+    return (items, paths, tmp);
+  }
+
+  // 第 i 格的中心（84px 格、間距 8、左邊距 20；一排塞得下就都在第一排）。
+  Offset cell(WidgetTester tester, int i) {
+    final origin = tester.getTopLeft(find.byType(ReorderableImageGrid));
+    return origin + Offset((i % 4) * 92 + 42, (i ~/ 4) * 92 + 42);
+  }
+
+  testWidgets('長按浮起：× 全隱藏、原位變虛線空位，放手後 × 回來', (tester) async {
+    final (items, paths, tmp) = await pumpField(tester);
+    expect(removeButtons(), findsNWidgets(3));
+    final dashedBefore = find.byType(DashedBox).evaluate().length;
+    final g = await tester.startGesture(cell(tester, 0));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(removeButtons(), findsNothing);
+    expect(find.byType(DashedBox).evaluate().length, dashedBefore + 1);
     await g.up();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(removeButtons(), findsNWidgets(3));
+    expect([for (final i in items) i.picked!.path], paths);
+    tmp.deleteSync(recursive: true);
+  });
+
+  testWidgets('拖到另一格：其他圖讓位，放手後順序改變', (tester) async {
+    final (items, paths, tmp) = await pumpField(tester);
+    final g = await tester.startGesture(cell(tester, 0));
+    await tester.pump(const Duration(milliseconds: 400));
+    await g.moveTo(cell(tester, 2));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    // 讓位完成：原本第 2、3 張往前滑一格。
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('tile1'))).dx,
+      tester.getTopLeft(find.byType(ReorderableImageGrid)).dx,
+    );
+    await g.up();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
     expect(
       [for (final i in items) i.picked!.path],
       [paths[1], paths[2], paths[0]],
     );
+    tmp.deleteSync(recursive: true);
+  });
+
+  testWidgets('拖到「＋」格＝排到最後；＋ 不可拖', (tester) async {
+    final (items, paths, tmp) = await pumpField(tester);
+    final g = await tester.startGesture(cell(tester, 0));
+    await tester.pump(const Duration(milliseconds: 400));
+    await g.moveTo(cell(tester, 3)); // ＋ 在第 4 格
+    await tester.pump(const Duration(milliseconds: 300));
+    await g.up();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(
+      [for (final i in items) i.picked!.path],
+      [paths[1], paths[2], paths[0]],
+    );
+    // 長按「＋」：什麼都不會發生。
+    final p = await tester.startGesture(cell(tester, 3));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(DashedBox).evaluate().length, 1);
+    await p.up();
+    await tester.pump();
+    tmp.deleteSync(recursive: true);
+  });
+
+  testWidgets('拖到格子範圍外＝排到最後；原地放手順序不變', (tester) async {
+    final (items, paths, tmp) = await pumpField(tester);
+    var g = await tester.startGesture(cell(tester, 0));
+    await tester.pump(const Duration(milliseconds: 400));
+    await g.moveTo(cell(tester, 0) + const Offset(0, 160));
+    await tester.pump(const Duration(milliseconds: 300));
+    await g.up();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(
+      [for (final i in items) i.picked!.path],
+      [paths[1], paths[2], paths[0]],
+    );
+    g = await tester.startGesture(cell(tester, 1));
+    await tester.pump(const Duration(milliseconds: 400));
+    await g.up();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(
+      [for (final i in items) i.picked!.path],
+      [paths[1], paths[2], paths[0]],
+    );
+    tmp.deleteSync(recursive: true);
+  });
+
+  testWidgets('點 × 仍可移除、不會觸發拖曳', (tester) async {
+    final (_, _, tmp) = await pumpField(tester);
+    await tester.tap(removeButtons().first);
+    await tester.pump();
+    expect(find.byType(DashedBox).evaluate().length, 1);
     tmp.deleteSync(recursive: true);
   });
 }

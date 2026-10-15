@@ -317,71 +317,65 @@ class PieceImageGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (var i = 0; i < items.length; i++)
-          ReorderTile(
-            index: i,
-            size: size,
-            onReorder: onReorder,
-            child: SizedBox(
-              width: size,
-              height: size,
-              child: Stack(
-                clipBehavior: Clip.none,
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(Radii.image),
-                    child: items[i].picked != null
-                        ? Image.file(
-                            File(items[i].picked!.path),
-                            cacheWidth: 300,
-                            fit: BoxFit.cover,
-                          )
-                        : StoredImage(items[i].stored!.file, cacheWidth: 300),
-                  ),
-                  Positioned(
-                    top: -6,
-                    right: -6,
-                    child: Semantics(
-                      button: true,
-                      label: context.l10n.entityRemoveImage,
-                      child: GestureDetector(
-                        onTap: () => onRemove(i),
-                        child: Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            color: t.ink,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: t.ground, width: 2),
-                          ),
-                          child: Center(
-                            child: SvgIcon(
-                              AppIcons.closeX,
-                              size: 11,
-                              strokeWidth: 3,
-                              color: t.ground,
-                            ),
-                          ),
+    return ReorderableImageGrid(
+      count: items.length,
+      size: size,
+      onReorder: onReorder,
+      itemBuilder: (context, i, hide) => SizedBox(
+        width: size,
+        height: size,
+        child: Stack(
+          clipBehavior: Clip.none,
+          fit: StackFit.expand,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(Radii.image),
+              child: items[i].picked != null
+                  ? Image.file(
+                      File(items[i].picked!.path),
+                      cacheWidth: 300,
+                      fit: BoxFit.cover,
+                    )
+                  : StoredImage(items[i].stored!.file, cacheWidth: 300),
+            ),
+            if (!hide)
+              Positioned(
+                top: -6,
+                right: -6,
+                child: Semantics(
+                  button: true,
+                  label: context.l10n.entityRemoveImage,
+                  child: GestureDetector(
+                    onTap: () => onRemove(i),
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: t.ink,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: t.ground, width: 2),
+                      ),
+                      child: Center(
+                        child: SvgIcon(
+                          AppIcons.closeX,
+                          size: 11,
+                          strokeWidth: 3,
+                          color: t.ground,
                         ),
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        DashedAddTile(
-          size: size,
-          onTap: onAdd,
-          semanticLabel: context.l10n.pieceAddImage,
-          iconSize: 26,
+          ],
         ),
-      ],
+      ),
+      trailing: DashedAddTile(
+        size: size,
+        onTap: onAdd,
+        semanticLabel: context.l10n.pieceAddImage,
+        iconSize: 26,
+      ),
     );
   }
 }

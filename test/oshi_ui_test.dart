@@ -18,6 +18,7 @@ import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/common/timeline.dart';
 import 'package:huakeng/ui/oshi/oshi_date_guess.dart';
 import 'package:huakeng/ui/oshi/oshi_detail_page.dart';
+import 'package:huakeng/ui/album/group_manage_page.dart';
 import 'package:huakeng/ui/oshi/oshi_form_page.dart';
 import 'package:huakeng/ui/oshi/oshi_list_page.dart';
 import 'package:huakeng/ui/search/tag_filter_bar.dart';
@@ -479,6 +480,17 @@ void main() {
       await tester.pump();
       expect(find.text('請先選擇圖片'), findsOneWidget);
       expect(await db.watchOshiRecords(pitId).first, isEmpty);
+      await unmount(tester);
+    });
+
+    testWidgets('「分組」旁的「管理」開啟推活分組管理頁（D-076）', (tester) async {
+      final img = png('manage.png');
+      await show(tester, OshiFormPage(pitId: pitId, initialImages: [img.path]));
+      await tester.ensureVisible(find.text('管理').first);
+      await tester.tap(find.text('管理').first);
+      await settle(tester);
+      final page = tester.widget<GroupManagePage>(find.byType(GroupManagePage));
+      expect(page.kind, 'oshi');
       await unmount(tester);
     });
 

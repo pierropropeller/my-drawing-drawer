@@ -8,6 +8,7 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
+import '../album/group_manage_page.dart';
 import '../album/image_picker_field.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
@@ -217,7 +218,45 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage>
                             decoration: entityFieldDecoration(context, ''),
                           ),
                           const SizedBox(height: 16),
-                          FormLabel(context.l10n.albumGroupLabel),
+                          // 「分組」標題右邊的「管理」（D-076，同 tag 欄）。
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(2, 0, 2, 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    context.l10n.albumGroupLabel,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: context.tokens.text2,
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => GroupManagePage(
+                                        pitId: widget.pitId,
+                                        kind: 'oshi',
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    context.l10n.commonManage,
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: context.tokens.piece.fg,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
