@@ -18,6 +18,8 @@ import '../data/material_queries.dart';
 import '../data/oshi_queries.dart';
 import '../data/search_queries.dart';
 import '../data/timeline_queries.dart';
+import '../media/media_import.dart';
+import '../media/video_probe.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -43,11 +45,26 @@ final imageStoreProvider = FutureProvider<ImageStore>((ref) async {
   return ImageStore(Directory(p.join(base.path, 'images')));
 });
 
-/// 相簿選圖。獨立成 provider 方便測試時替換。
+/// 相簿選圖／影片／GIF（D-080，系統的媒體選擇器）。獨立成 provider 方便測試時替換。
+/// 選到的檔案請用 `importPickedMedia` 匯入，不要直接 `store.import`。
 final imagePickerProvider = Provider<Future<List<XFile>> Function()>(
   (ref) =>
-      () => ImagePicker().pickMultiImage(),
+      () => ImagePicker().pickMultipleMedia(),
 );
+
+/// 背景補影片截圖（D-080）：啟動時與影片檔寫入後（匯入、同步下載完成）跑，由 App 根 widget 監看。
+/// 圖庫還沒準備好時是 null。
+final posterFixerProvider = Provider<PosterFixer?>((ref) {
+  final store = ref.watch(imageStoreProvider).value;
+  if (store == null) return null;
+  final fixer = PosterFixer(
+    ref.watch(databaseProvider),
+    store,
+    probe: ref.watch(videoProbeProvider),
+  )..start();
+  ref.onDispose(fixer.dispose);
+  return fixer;
+});
 
 /// 分組：key＝(坑 id, 種類)，種類為 `official`（官方圖冊）、`fan`（好看同人圖）或 `oshi`（推活）。
 final groupsProvider =

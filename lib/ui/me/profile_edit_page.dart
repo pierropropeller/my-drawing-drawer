@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/media.dart';
 import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
@@ -44,7 +45,10 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage>
 
   Future<void> _pickAvatar() async {
     try {
-      final picked = await ref.read(imagePickerProvider)();
+      // 選擇器現在也列出影片（D-080）；頭像只收圖片與 GIF（GIF 以第一格顯示）。
+      final picked = (await ref.read(imagePickerProvider)())
+          .where((f) => mediaKindFromExtension(f.path) != MediaKind.video)
+          .toList();
       if (picked.isEmpty) return;
       final store = await ref.read(imageStoreProvider.future);
       final im = await store.import(picked.first);

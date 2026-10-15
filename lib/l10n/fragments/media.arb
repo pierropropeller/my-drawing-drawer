@@ -1,0 +1,11 @@
+{
+  "mediaBadgeGif": "GIF",
+  "mediaPlay": "播放",
+  "mediaPause": "暫停",
+  "mediaMute": "靜音",
+  "mediaUnmute": "取消靜音",
+  "mediaFullscreen": "全螢幕",
+  "mediaExitFullscreen": "結束全螢幕",
+  "mediaSeekBar": "播放進度",
+  "mediaVideoError": "無法播放這個影片"
+}

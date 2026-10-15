@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -691,13 +689,7 @@ class FormImageGrid extends ConsumerWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(Radii.image),
-              child: items[i].picked != null
-                  ? Image.file(
-                      File(items[i].picked!.path),
-                      cacheWidth: 300,
-                      fit: BoxFit.cover,
-                    )
-                  : StoredImage(items[i].stored!.file, cacheWidth: 300),
+              child: ImageItemThumb(items[i], cacheWidth: 300),
             ),
             // D-018：22px 深色圓、2px 底色描邊，凸出縮圖右上角 6px。
             if (!hide)

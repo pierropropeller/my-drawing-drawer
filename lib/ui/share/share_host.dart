@@ -9,6 +9,7 @@ import '../../data/album_queries.dart';
 import '../../data/junk_queries.dart';
 import '../../data/material_queries.dart';
 import '../../l10n/l10n.dart';
+import '../../media/media_import.dart';
 import '../../share/share_inbox.dart';
 import '../../state/providers.dart';
 import '../album/album_actions.dart';
@@ -133,7 +134,7 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     final images = <NewImage>[];
     for (final path in paths) {
       try {
-        images.add(await store.import(XFile(path)));
+        images.add(await importPickedMedia(store, XFile(path)));
       } catch (_) {
         // 讀不到的檔案略過。
       }
@@ -177,7 +178,7 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     final images = <NewImage>[];
     for (final path in paths) {
       try {
-        images.add(await store.import(XFile(path)));
+        images.add(await importPickedMedia(store, XFile(path)));
       } catch (_) {
         // 讀不到的檔案略過。
       }

@@ -9,10 +9,13 @@ import '../../data/image_store.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
+import '../../data/media.dart';
+import '../../media/media_import.dart';
+import '../../media/video_probe.dart';
 import '../common/dashed_box.dart';
+import '../common/media_widgets.dart';
 import '../common/reorder_tile.dart';
 import '../common/svg_icon.dart';
-import 'album_image.dart';
 
 /// 表單裡的一張圖：剛從相簿選的（[picked]）或已存在 App 內的（[stored]）。
 class ImageItem {
@@ -22,15 +25,96 @@ class ImageItem {
   final XFile? picked;
   final NewImage? stored;
 
-  /// 匯入新選的圖，已存在的直接沿用。
+  /// 匯入新選的圖／GIF／影片，已存在的直接沿用。
   Future<NewImage> resolve(ImageStore store) async =>
-      stored ?? await store.import(picked!);
+      stored ?? await importPickedMedia(store, picked!);
 }
 
 Future<List<NewImage>> resolveImages(
   ImageStore store,
   List<ImageItem> items,
 ) async => [for (final i in items) await i.resolve(store)];
+
+/// 表單縮圖（D-080）：圖片＝圖片、GIF＝靜態第一格＋「GIF」小標、影片＝第一格截圖＋「▶ 長度」小標。
+/// 剛選的影片還沒匯入，這裡臨時向原生要一張截圖（同一個檔案只問一次）。
+class ImageItemThumb extends ConsumerWidget {
+  const ImageItemThumb(this.item, {super.key, this.cacheWidth = 300});
+  final ImageItem item;
+  final int cacheWidth;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stored = item.stored;
+    if (stored != null) {
+      return MediaThumb(
+        MediaSource.fromNewImage(stored),
+        cacheWidth: cacheWidth,
+        animate: false,
+      );
+    }
+    final path = item.picked!.path;
+    switch (mediaKindFromExtension(path)) {
+      case MediaKind.video:
+        return _PickedVideoThumb(path, probe: ref.watch(videoProbeProvider));
+      case MediaKind.gif:
+        return Stack(
+          fit: StackFit.passthrough,
+          children: [
+            FirstFrameImage(
+              provider: ResizeImage.resizeIfNeeded(
+                cacheWidth,
+                null,
+                FileImage(File(path)),
+              ),
+            ),
+            const Positioned(left: 5, bottom: 5, child: MediaBadgeGif()),
+          ],
+        );
+      case MediaKind.image:
+        return Image.file(
+          File(path),
+          cacheWidth: cacheWidth,
+          fit: BoxFit.cover,
+        );
+    }
+  }
+}
+
+final _pickedVideoMeta = <String, Future<VideoMeta?>>{};
+
+class _PickedVideoThumb extends StatelessWidget {
+  const _PickedVideoThumb(this.path, {required this.probe});
+  final String path;
+  final VideoProbe probe;
+
+  @override
+  Widget build(BuildContext context) {
+    final future = _pickedVideoMeta.putIfAbsent(
+      path,
+      () => probe.probe(path, maxPosterSide: 300),
+    );
+    return FutureBuilder<VideoMeta?>(
+      future: future,
+      builder: (context, snap) {
+        final meta = snap.data;
+        return Stack(
+          fit: StackFit.passthrough,
+          children: [
+            if (meta != null && meta.hasPoster)
+              Image.memory(meta.poster!, fit: BoxFit.cover)
+            else
+              const MediaPlaceholder(),
+            Positioned(
+              left: 5,
+              bottom: 5,
+              child: MediaBadgeVideo(durationMs: meta?.durationMs),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
 
 /// 表單頂部的多張圖選擇區：84×84 縮圖（可移除）＋虛線「＋」格，自動換行。
 class ImagePickerField extends ConsumerWidget {
@@ -68,13 +152,7 @@ class ImagePickerField extends ConsumerWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(Radii.image),
-              child: items[i].picked != null
-                  ? Image.file(
-                      File(items[i].picked!.path),
-                      cacheWidth: 300,
-                      fit: BoxFit.cover,
-                    )
-                  : StoredImage(items[i].stored!.file, cacheWidth: 300),
+              child: ImageItemThumb(items[i], cacheWidth: 300),
             ),
             if (!hide)
               Positioned(

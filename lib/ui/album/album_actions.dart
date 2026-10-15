@@ -111,7 +111,7 @@ Future<String?> promptText(
 /// 固定英文，不跟隨 App 顯示名稱的在地化。
 const downloadAlbumName = 'Drawer';
 
-/// 儲存到系統相簿。回傳成功張數。
+/// 儲存到系統相簿（圖片、GIF、影片都存原檔）。回傳成功張數。
 Future<int> downloadImages(WidgetRef ref, Iterable<AlbumImage> images) async {
   final store = await ref.read(imageStoreProvider.future);
   if (!await Gal.hasAccess()) {
@@ -120,7 +120,13 @@ Future<int> downloadImages(WidgetRef ref, Iterable<AlbumImage> images) async {
   var ok = 0;
   for (final im in images) {
     try {
-      await Gal.putImage(store.fileOf(im.file).path, album: downloadAlbumName);
+      // 存原檔（不轉檔）。影片用 putVideo；兩者都放進同一個 `Drawer` 相簿（Pictures/Drawer）。
+      final path = store.fileOf(im.file).path;
+      if (im.media.isVideo) {
+        await Gal.putVideo(path, album: downloadAlbumName);
+      } else {
+        await Gal.putImage(path, album: downloadAlbumName);
+      }
       ok++;
     } catch (_) {}
   }

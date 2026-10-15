@@ -1,11 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../../data/payment.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
-import '../album/album_image.dart';
 import '../album/image_picker_field.dart';
 import '../common/app_icons.dart';
 import '../common/app_switch.dart';
@@ -330,13 +327,7 @@ class PieceImageGrid extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(Radii.image),
-              child: items[i].picked != null
-                  ? Image.file(
-                      File(items[i].picked!.path),
-                      cacheWidth: 300,
-                      fit: BoxFit.cover,
-                    )
-                  : StoredImage(items[i].stored!.file, cacheWidth: 300),
+              child: ImageItemThumb(items[i], cacheWidth: 300),
             ),
             if (!hide)
               Positioned(

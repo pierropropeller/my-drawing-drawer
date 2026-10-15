@@ -6,6 +6,7 @@ import '../../l10n/l10n.dart';
 import '../album/album_actions.dart';
 import '../album/album_image.dart';
 import '../common/app_icons.dart';
+import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 
@@ -15,9 +16,13 @@ class ImageGalleryPage extends ConsumerStatefulWidget {
     super.key,
     required this.images,
     this.initialIndex = 0,
+    this.videoStart,
   });
   final List<ImageRef> images;
   final int initialIndex;
+
+  /// 從詳情頁按影片的全螢幕鍵進來時，接續播放的位置（只套用在 [initialIndex] 那一頁）。
+  final VideoStart? videoStart;
 
   @override
   ConsumerState<ImageGalleryPage> createState() => _ImageGalleryPageState();
@@ -36,6 +41,9 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage>
       width: im.width,
       height: im.height,
       kind: AlbumKind.official,
+      mediaKind: im.kind,
+      durationMs: im.durationMs,
+      posterFile: im.poster,
     );
   }
 
@@ -112,14 +120,12 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage>
                 controller: _controller,
                 itemCount: widget.images.length,
                 onPageChanged: (i) => setState(() => _index = i),
-                itemBuilder: (_, i) => InteractiveViewer(
-                  maxScale: 5,
-                  child: SizedBox.expand(
-                    child: StoredImage(
-                      widget.images[i].file,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
+                // 圖片與 GIF 可縮放；影片用自己的控制列（D-080），換頁自動暫停。
+                itemBuilder: (_, i) => MediaViewer(
+                  MediaSource.fromImageRef(widget.images[i]),
+                  active: i == _index,
+                  zoomable: true,
+                  start: i == widget.initialIndex ? widget.videoStart : null,
                 ),
               ),
             ),

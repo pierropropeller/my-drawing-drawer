@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/l10n.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
-import 'album_image.dart';
+import '../common/media_widgets.dart';
 
 /// 預覽頁固定深色（ImagePreview／FanArtPreview 設計稿），不隨主題變化。
 abstract final class PreviewPalette {
@@ -47,7 +47,8 @@ class PreviewShell extends StatelessWidget {
     required this.title,
     required this.counter,
     required this.controller,
-    required this.files,
+    required this.media,
+    required this.currentIndex,
     required this.onPageChanged,
     required this.info,
     required this.actions,
@@ -56,7 +57,12 @@ class PreviewShell extends StatelessWidget {
   final String title;
   final String counter;
   final PageController controller;
-  final List<String> files;
+
+  /// 每一頁的媒體（圖片／GIF／影片，D-080）。
+  final List<MediaSource> media;
+
+  /// 目前顯示的頁；其他頁的影片會自動暫停、GIF 停止。
+  final int currentIndex;
   final ValueChanged<int> onPageChanged;
   final Widget info;
   final List<PreviewAction> actions;
@@ -117,13 +123,13 @@ class PreviewShell extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: PageView.builder(
                   controller: controller,
-                  itemCount: files.length,
+                  itemCount: media.length,
                   onPageChanged: onPageChanged,
-                  itemBuilder: (_, i) => InteractiveViewer(
-                    maxScale: 5,
-                    child: SizedBox.expand(
-                      child: StoredImage(files[i], fit: BoxFit.contain),
-                    ),
+                  // 圖片與 GIF 可縮放；影片用自己的控制列（同詳情頁），不縮放。
+                  itemBuilder: (_, i) => MediaViewer(
+                    media[i],
+                    active: i == currentIndex,
+                    zoomable: true,
                   ),
                 ),
               ),
