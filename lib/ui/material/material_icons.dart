@@ -8,12 +8,13 @@ abstract final class MaterialLibIcons {
       '<rect x="13" y="4" width="7" height="5" rx="1.5"/>'
       '<rect x="13" y="11" width="7" height="9" rx="1.5"/>';
 
-  /// 版面切換：九宮格（線寬 1.8）。
+  /// 版面切換：九宮格（3×3，同草稿的九宮格 icon，D-078）。
   static const layoutGrid =
-      '<rect x="4" y="4" width="7" height="7" rx="1.5"/>'
-      '<rect x="13" y="4" width="7" height="7" rx="1.5"/>'
-      '<rect x="4" y="13" width="7" height="7" rx="1.5"/>'
-      '<rect x="13" y="13" width="7" height="7" rx="1.5"/>';
+      '<rect x="3.5" y="3.5" width="5" height="5" rx="1"/><rect x="9.5" y="3.5" width="5" height="5" rx="1"/>'
+      '<rect x="15.5" y="3.5" width="5" height="5" rx="1"/><rect x="3.5" y="9.5" width="5" height="5" rx="1"/>'
+      '<rect x="9.5" y="9.5" width="5" height="5" rx="1"/><rect x="15.5" y="9.5" width="5" height="5" rx="1"/>'
+      '<rect x="3.5" y="15.5" width="5" height="5" rx="1"/><rect x="9.5" y="15.5" width="5" height="5" rx="1"/>'
+      '<rect x="15.5" y="15.5" width="5" height="5" rx="1"/>';
 
   /// 「我的」的素材庫卡（相簿，線寬 1.7）。
   static const library =

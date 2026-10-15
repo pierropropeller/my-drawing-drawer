@@ -102,6 +102,10 @@ void main() {
     body: DayTimeline(key: key, entryOf: entryOf, pageSize: pageSize),
   );
 
+  /// 沒建出來，或整個被擋在置頂月份標題後面（看不到）。
+  bool hiddenAbove(WidgetTester tester, Finder f) =>
+      !tester.any(f) || tester.getBottomLeft(f).dy <= kTimelineHeaderHeight;
+
   Future<void> unmount(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));
@@ -170,7 +174,7 @@ void main() {
     // 2025-01-10 ＝ d09
     expect(find.text('d09'), findsOneWidget);
     expect(tester.getTopLeft(find.text('d09')).dy, lessThan(200));
-    expect(find.text('d10'), findsNothing); // 在視窗上方
+    expect(hiddenAbove(tester, find.text('d10')), isTrue); // 在視窗上方
     await tester.drag(find.byType(CustomScrollView), const Offset(0, 300));
     await settle(tester);
     expect(find.text('d10'), findsOneWidget);
@@ -240,7 +244,7 @@ void main() {
       await draft('昨天的', DateTime(now.year, now.month, now.day - 1, 9));
     });
     await show(tester, timeline());
-    expect(find.text('明天的'), findsNothing);
+    expect(hiddenAbove(tester, find.text('明天的')), isTrue);
     expect(tester.getTopLeft(find.text('今天的')).dy, lessThan(200));
     await tester.drag(find.byType(CustomScrollView), const Offset(0, 400));
     await settle(tester);

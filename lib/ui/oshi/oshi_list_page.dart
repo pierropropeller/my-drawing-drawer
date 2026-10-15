@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../data/oshi_queries.dart';
 import '../../l10n/l10n.dart';
@@ -8,9 +7,12 @@ import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
-import '../album/album_view.dart';
+import '../album/album_actions.dart' show confirmDelete;
+import '../album/album_view.dart' show ChipRow, ChipRowManageButton;
+import '../album/image_masonry.dart' show SelectMark;
 import '../album/group_manage_page.dart';
 import '../common/empty_state.dart';
+import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import '../common/timeline.dart';
@@ -19,7 +21,11 @@ import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
 import 'oshi_detail_page.dart';
 import 'oshi_form_page.dart';
+import 'oshi_group_sheet.dart';
 import 'oshi_icons.dart';
+import 'oshi_select_actions.dart';
+import 'oshi_select_bar.dart';
+import 'oshi_selection.dart';
 import 'oshi_widgets.dart';
 
 /// 推活的兩種佈局，記在本機設定（跟裝置走）。
@@ -38,9 +44,15 @@ class OshiListPage extends ConsumerStatefulWidget {
   ConsumerState<OshiListPage> createState() => _OshiListPageState();
 }
 
-class _OshiListPageState extends ConsumerState<OshiListPage> {
+class _OshiListPageState extends ConsumerState<OshiListPage>
+    with HidesNavBar<OshiListPage> {
+  // 瀏覽時有導覽列；進入多選才隱藏（build 時依 _sel.active 同步）。
+  @override
+  bool get hidesNavBarOnOpen => false;
+
   String? _groupId;
   late OshiLayout _layout = _readLayout();
+  final _sel = OshiSelection();
 
   OshiLayout _readLayout() {
     final prefs = ref.read(sharedPrefsProvider);
@@ -52,8 +64,19 @@ class _OshiListPageState extends ConsumerState<OshiListPage> {
   @override
   void initState() {
     super.initState();
+    _sel.addListener(_onSelection);
     // 從舊版同步進來的坑沒有推活分組，進來時補一次預設分組（只在從沒有過時才建立）。
     ref.read(databaseProvider).ensureOshiGroups(widget.pitId);
+  }
+
+  void _onSelection() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _sel.dispose();
+    super.dispose();
   }
 
   void _setLayout(OshiLayout v) {
@@ -76,6 +99,61 @@ class _OshiListPageState extends ConsumerState<OshiListPage> {
         ),
       ),
     );
+  }
+
+  /// 點一筆：多選中＝切換選取；否則開詳情。
+  void _tap(OshiRecordView v) {
+    if (_sel.active) {
+      _sel.toggle(v.record.id);
+    } else {
+      _open(v);
+    }
+  }
+
+  void _longPress(OshiRecordView v) {
+    if (!_sel.isSelected(v.record.id)) _sel.begin(v.record.id);
+  }
+
+  List<OshiRecordView> _picked(List<OshiRecordView> views) => [
+    for (final v in views)
+      if (_sel.isSelected(v.record.id)) v,
+  ];
+
+  Future<void> _group(List<OshiRecordView> picked) async {
+    if (picked.isEmpty) return;
+    final common = commonOshiGroup(picked);
+    final choice = await showOshiGroupSheet(
+      context,
+      pitId: widget.pitId,
+      count: picked.length,
+      initial: common.uniform ? OshiGroupChoice(common.groupId) : null,
+    );
+    if (choice == null || !mounted) return;
+    await OshiSelectActions(ref.read(databaseProvider))
+        .setGroup(picked.map((v) => v.record.id), choice.groupId);
+    if (mounted) _sel.exit();
+  }
+
+  Future<void> _tag(List<OshiRecordView> picked) async {
+    if (picked.isEmpty) return;
+    final applied = await showOshiTagSheet(
+      context,
+      pitId: widget.pitId,
+      ids: [for (final v in picked) v.record.id],
+    );
+    if (applied == true && mounted) _sel.exit();
+  }
+
+  Future<void> _delete(List<OshiRecordView> picked) async {
+    if (picked.isEmpty) return;
+    final ok = await confirmDelete(
+      context,
+      title: context.l10n.oshiDeleteSelectedTitle(picked.length),
+    );
+    if (!ok || !mounted) return;
+    await OshiSelectActions(ref.read(databaseProvider))
+        .delete(picked.map((v) => v.record.id));
+    if (mounted) _sel.exit();
   }
 
   void _open(OshiRecordView v) => Navigator.of(context).push(
@@ -108,74 +186,117 @@ class _OshiListPageState extends ConsumerState<OshiListPage> {
     final title = pitName == null
         ? context.l10n.oshiTitle
         : context.l10n.albumTitleWithPit(pitName, context.l10n.oshiTitle);
-    return Scaffold(
-      floatingActionButton: fullyEmpty
-          ? null
-          : EntityFab(
-              label: context.l10n.oshiAddRecord,
-              onPressed: () => _add(groupId),
-            ),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            SubPageHeader(
-              title: title,
-              gap: 4,
-              trailing: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: Text(
-                    context.l10n.oshiCountRecords(total),
-                    style: TextStyle(color: t.text3, fontSize: 12),
+    _sel.updateOrder([for (final v in views) v.record.id]);
+    final selecting = _sel.active;
+    setNavBarHidden(selecting);
+    final picked = _picked(views);
+    return PopScope(
+      canPop: !selecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _sel.exit();
+      },
+      child: Scaffold(
+        floatingActionButton: (fullyEmpty || selecting)
+            ? null
+            : EntityFab(
+                label: context.l10n.oshiAddRecord,
+                onPressed: () => _add(groupId),
+              ),
+        bottomNavigationBar: selecting
+            ? OshiSelectBar(
+                onGroup: () => _group(picked),
+                onTag: () => _tag(picked),
+                onDelete: () => _delete(picked),
+              )
+            : null,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              if (selecting)
+                OshiSelectHeader(
+                  count: picked.length,
+                  allSelected: _sel.allSelected,
+                  onExit: _sel.exit,
+                  onToggleAll: () =>
+                      _sel.allSelected ? _sel.exit() : _sel.selectAll(),
+                )
+              else
+                SubPageHeader(
+                  title: title,
+                  gap: 4,
+                  trailing: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Text(
+                        context.l10n.oshiCountRecords(total),
+                        style: TextStyle(color: t.text3, fontSize: 12),
+                      ),
+                    ),
+                    _LayoutToggle(layout: _layout, onChanged: _setLayout),
+                    SearchIconButton(pitId: widget.pitId),
+                  ],
+                ),
+              if (!fullyEmpty) ...[
+                if (filtered)
+                  TagFilterBar(
+                    pitId: widget.pitId,
+                    kind: TaggedKind.oshi,
+                    tagId: widget.tagId!,
+                    countText: context.l10n.oshiCountRecords(views.length),
                   ),
-                ),
-                _LayoutToggle(layout: _layout, onChanged: _setLayout),
-                SearchIconButton(pitId: widget.pitId),
-              ],
-            ),
-            if (!fullyEmpty) ...[
-              if (filtered)
-                TagFilterBar(
-                  pitId: widget.pitId,
-                  kind: TaggedKind.oshi,
-                  tagId: widget.tagId!,
-                  countText: context.l10n.oshiCountRecords(views.length),
-                ),
-              ChipRow(
-                options: [for (final g in groups) (g.id, g.name)],
-                selected: groupId,
-                onSelected: (v) => setState(() => _groupId = v),
-                trailing: ChipRowManageButton(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          GroupManagePage(pitId: widget.pitId, kind: 'oshi'),
+                // 多選時分組 pills 隱藏（OshiSelect）。
+                if (!selecting)
+                  ChipRow(
+                    options: [for (final g in groups) (g.id, g.name)],
+                    selected: groupId,
+                    onSelected: (v) => setState(() => _groupId = v),
+                    trailing: ChipRowManageButton(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => GroupManagePage(
+                            pitId: widget.pitId,
+                            kind: 'oshi',
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+              ],
+              Expanded(
+                child: views.isEmpty
+                    ? EmptyState(
+                        svg: OshiIcons.star,
+                        text: context.l10n.oshiEmpty,
+                        color: t.oshi,
+                        actionLabel: context.l10n.oshiEmptyAction,
+                        onAction: () => _add(groupId),
+                      )
+                    : _layout == OshiLayout.timeline
+                    ? TimelineView(
+                        entries: [
+                          for (final v in views)
+                            oshiTimelineEntry(
+                              v,
+                              onTap: () => _tap(v),
+                              onLongPress: () => _longPress(v),
+                              selected: selecting
+                                  ? _sel.isSelected(v.record.id)
+                                  : null,
+                              cardKey: _sel.keyOf(v.record.id),
+                            ),
+                        ],
+                        countLabel: context.l10n.oshiCountRecords,
+                      )
+                    : _OshiGrid(
+                        views: views,
+                        selection: _sel,
+                        onTap: _tap,
+                        onLongPress: _longPress,
+                      ),
               ),
             ],
-            Expanded(
-              child: views.isEmpty
-                  ? EmptyState(
-                      svg: OshiIcons.star,
-                      text: context.l10n.oshiEmpty,
-                      color: t.oshi,
-                      actionLabel: context.l10n.oshiEmptyAction,
-                      onAction: () => _add(groupId),
-                    )
-                  : _layout == OshiLayout.timeline
-                  ? TimelineView(
-                      entries: [
-                        for (final v in views)
-                          oshiTimelineEntry(v, onTap: () => _open(v)),
-                      ],
-                      countLabel: context.l10n.oshiCountRecords,
-                    )
-                  : _OshiGrid(views: views, onTap: _open),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -210,7 +331,7 @@ class _LayoutToggle extends StatelessWidget {
               child: SvgIcon(
                 icon,
                 size: 18,
-                strokeWidth: 1.8,
+                strokeWidth: icon == OshiIcons.layoutGrid ? 1.7 : 1.8,
                 color: on ? t.ground : t.text3,
               ),
             ),
@@ -238,7 +359,7 @@ class _LayoutToggle extends StatelessWidget {
           seg(
             OshiLayout.grid,
             OshiIcons.layoutGrid,
-            context.l10n.oshiLayoutGrid,
+            context.l10n.pieceViewNine,
           ),
         ],
       ),
@@ -246,71 +367,67 @@ class _LayoutToggle extends StatelessWidget {
   }
 }
 
-/// 網格（OshiGrid）：兩欄瀑布流，圖下一行＝左日期、右分組小標；多張圖右下圓形數字。
+/// 九宮格（OshiGrid，D-078）：同草稿／雜物／素材庫的九宮格——一排 3 格正方形、貼邊、間距 2px、
+/// 沒有圓角、圖下沒有字；多張圖右下角張數。多選時右上角勾選圈，選中加 2px 主色框（D-079）。
 class _OshiGrid extends StatelessWidget {
-  const _OshiGrid({required this.views, required this.onTap});
+  const _OshiGrid({
+    required this.views,
+    required this.selection,
+    required this.onTap,
+    required this.onLongPress,
+  });
   final List<OshiRecordView> views;
+  final OshiSelection selection;
   final void Function(OshiRecordView v) onTap;
+  final void Function(OshiRecordView v) onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    return MasonryGridView.count(
-      padding: const EdgeInsets.fromLTRB(20, 2, 20, 96),
-      crossAxisCount: columnsForWidth(MediaQuery.sizeOf(context).width),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
+    final selecting = selection.active;
+    return GridView.builder(
+      padding: const EdgeInsets.only(top: 8, bottom: 96),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columnsForWidth(
+          MediaQuery.sizeOf(context).width,
+          phone: 3,
+        ),
+        mainAxisSpacing: 2,
+        crossAxisSpacing: 2,
+      ),
       itemCount: views.length,
       itemBuilder: (_, i) {
         final v = views[i];
-        final im = v.cover;
-        final aspect = (im.width > 0 && im.height > 0)
-            ? im.width / im.height
-            : 1.0;
+        final picked = selection.isSelected(v.record.id);
         return GestureDetector(
-          key: ValueKey('oshi-grid-${v.record.id}'),
+          key: selection.keyOf(v.record.id),
           onTap: () => onTap(v),
+          onLongPress: () => onLongPress(v),
           behavior: HitTestBehavior.opaque,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          child: Stack(
+            key: ValueKey('oshi-grid-${v.record.id}'),
+            fit: StackFit.expand,
             children: [
-              AspectRatio(
-                aspectRatio: aspect.clamp(0.4, 2.5),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(Radii.image),
-                      child: StoredImage(im.file, cacheWidth: 500),
-                    ),
-                    if (v.images.length > 1)
-                      Positioned(
-                        right: 5,
-                        bottom: 5,
-                        child: RoundCountBadge(v.images.length),
-                      ),
-                  ],
+              StoredImage(v.cover.file, cacheWidth: 400),
+              // 左下角的影片／GIF 標記留給 D-080。
+              if (v.images.length > 1)
+                Positioned(
+                  right: 5,
+                  bottom: 5,
+                  child: CountBadge(v.images.length),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(2, 7, 2, 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        oshiMd(v.date),
-                        maxLines: 1,
-                        style: TextStyle(color: t.text2, fontSize: 12.5),
-                      ),
-                    ),
-                    if (v.group != null) ...[
-                      const SizedBox(width: 6),
-                      OshiGroupTag(v.group!.name),
-                    ],
-                  ],
+              if (picked)
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: t.accent, width: 2),
+                  ),
                 ),
-              ),
+              if (selecting)
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: SelectMark(selected: picked),
+                ),
             ],
           ),
         );
