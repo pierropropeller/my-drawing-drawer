@@ -1305,6 +1305,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get materialShareDestLabel => '加入到哪裡';
 
   @override
+  String get mediaBadgeGif => 'GIF';
+
+  @override
+  String get mediaPlay => '播放';
+
+  @override
+  String get mediaPause => '暫停';
+
+  @override
+  String get mediaMute => '靜音';
+
+  @override
+  String get mediaUnmute => '取消靜音';
+
+  @override
+  String get mediaFullscreen => '全螢幕';
+
+  @override
+  String get mediaExitFullscreen => '結束全螢幕';
+
+  @override
+  String get mediaSeekBar => '播放進度';
+
+  @override
+  String get mediaVideoError => '無法播放這個影片';
+
+  @override
   String get moveReviewPitLabel => '坑';
 
   @override

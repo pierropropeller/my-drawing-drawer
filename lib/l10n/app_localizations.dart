@@ -2397,6 +2397,60 @@ abstract class AppLocalizations {
   /// **'加入到哪裡'**
   String get materialShareDestLabel;
 
+  /// No description provided for @mediaBadgeGif.
+  ///
+  /// In zh, this message translates to:
+  /// **'GIF'**
+  String get mediaBadgeGif;
+
+  /// No description provided for @mediaPlay.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放'**
+  String get mediaPlay;
+
+  /// No description provided for @mediaPause.
+  ///
+  /// In zh, this message translates to:
+  /// **'暫停'**
+  String get mediaPause;
+
+  /// No description provided for @mediaMute.
+  ///
+  /// In zh, this message translates to:
+  /// **'靜音'**
+  String get mediaMute;
+
+  /// No description provided for @mediaUnmute.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消靜音'**
+  String get mediaUnmute;
+
+  /// No description provided for @mediaFullscreen.
+  ///
+  /// In zh, this message translates to:
+  /// **'全螢幕'**
+  String get mediaFullscreen;
+
+  /// No description provided for @mediaExitFullscreen.
+  ///
+  /// In zh, this message translates to:
+  /// **'結束全螢幕'**
+  String get mediaExitFullscreen;
+
+  /// No description provided for @mediaSeekBar.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放進度'**
+  String get mediaSeekBar;
+
+  /// No description provided for @mediaVideoError.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法播放這個影片'**
+  String get mediaVideoError;
+
   /// No description provided for @moveReviewPitLabel.
   ///
   /// In zh, this message translates to:
