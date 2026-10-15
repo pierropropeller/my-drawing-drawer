@@ -3,6 +3,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
+import '../common/drag_select.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import 'album_image.dart';
@@ -14,6 +15,7 @@ class ImageMasonry extends StatelessWidget {
     required this.images,
     required this.onTap,
     this.onLongPress,
+    this.onDragSelect,
     this.selecting = false,
     this.selected = const {},
     this.padding = const EdgeInsets.fromLTRB(20, 2, 20, 96),
@@ -22,13 +24,17 @@ class ImageMasonry extends StatelessWidget {
   final List<AlbumImage> images;
   final void Function(AlbumImage image, int index) onTap;
   final void Function(AlbumImage image)? onLongPress;
+
+  /// 長按＋拖曳連續多選（D-081）。有給就由 [DragSelectArea] 接管長按（忽略 [onLongPress]）。
+  final void Function(Set<int> indices, bool finished)? onDragSelect;
   final bool selecting;
   final Set<String> selected;
   final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
-    return MasonryGridView.count(
+    final drag = onDragSelect;
+    final grid = MasonryGridView.count(
       padding: padding,
       crossAxisCount: columnsForWidth(MediaQuery.sizeOf(context).width),
       mainAxisSpacing: 12,
@@ -36,14 +42,24 @@ class ImageMasonry extends StatelessWidget {
       itemCount: images.length,
       itemBuilder: (_, i) {
         final im = images[i];
-        return _Tile(
+        final tile = _Tile(
           image: im,
           selecting: selecting,
           isSelected: selected.contains(im.id),
           onTap: () => onTap(im, i),
-          onLongPress: onLongPress == null ? null : () => onLongPress!(im),
+          onLongPress: onLongPress == null || drag != null
+              ? null
+              : () => onLongPress!(im),
         );
+        return drag == null ? tile : DragSelectItem(index: i, child: tile);
       },
+    );
+    if (drag == null) return grid;
+    return DragSelectArea(
+      itemCount: images.length,
+      isSelected: (i) => selected.contains(images[i].id),
+      onChanged: drag,
+      child: grid,
     );
   }
 }
@@ -113,6 +129,7 @@ class SquareGrid extends StatelessWidget {
     required this.images,
     required this.onTap,
     this.onLongPress,
+    this.onDragSelect,
     this.selecting = false,
     this.selected = const {},
     this.padding = const EdgeInsets.fromLTRB(0, 6, 0, 96),
@@ -121,6 +138,9 @@ class SquareGrid extends StatelessWidget {
   final List<AlbumImage> images;
   final void Function(AlbumImage image, int index) onTap;
   final void Function(AlbumImage image)? onLongPress;
+
+  /// 長按＋拖曳連續多選（D-081）。有給就由 [DragSelectArea] 接管長按（忽略 [onLongPress]）。
+  final void Function(Set<int> indices, bool finished)? onDragSelect;
   final bool selecting;
   final Set<String> selected;
   final EdgeInsets padding;
@@ -128,7 +148,8 @@ class SquareGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    return GridView.builder(
+    final drag = onDragSelect;
+    final grid = GridView.builder(
       padding: padding,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columnsForWidth(
@@ -142,9 +163,11 @@ class SquareGrid extends StatelessWidget {
       itemBuilder: (_, i) {
         final im = images[i];
         final isSelected = selected.contains(im.id);
-        return GestureDetector(
+        final cell = GestureDetector(
           onTap: () => onTap(im, i),
-          onLongPress: onLongPress == null ? null : () => onLongPress!(im),
+          onLongPress: onLongPress == null || drag != null
+              ? null
+              : () => onLongPress!(im),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -164,7 +187,15 @@ class SquareGrid extends StatelessWidget {
             ],
           ),
         );
+        return drag == null ? cell : DragSelectItem(index: i, child: cell);
       },
+    );
+    if (drag == null) return grid;
+    return DragSelectArea(
+      itemCount: images.length,
+      isSelected: (i) => selected.contains(images[i].id),
+      onChanged: drag,
+      child: grid,
     );
   }
 }

@@ -14,6 +14,7 @@ import '../album/album_icons.dart';
 import '../album/album_image.dart';
 import '../album/album_view.dart' show ChipRow;
 import '../album/image_masonry.dart' show SelectMark, SquareGrid;
+import '../common/drag_select.dart';
 import '../common/app_icons.dart';
 import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
@@ -95,6 +96,18 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
     if (!_selected.remove(id)) _selected.add(id);
     if (_selected.isEmpty) _selecting = false;
   });
+
+  /// 長按＋拖曳連續多選（D-081）。
+  void _dragSelect(List<MaterialImage> rows, Set<int> idx, bool finished) =>
+      setState(() {
+        _selected
+          ..clear()
+          ..addAll([
+            for (final i in idx)
+              if (i < rows.length) rows[i].id,
+          ]);
+        _selecting = !finished || _selected.isNotEmpty;
+      });
 
   void _longPress(String id) => setState(() {
     _selecting = true;
@@ -376,13 +389,14 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
                       selected: _selected,
                       padding: const EdgeInsets.fromLTRB(0, 2, 0, 96),
                       onLongPress: (im) => _longPress(im.id),
+                      onDragSelect: (idx, done) => _dragSelect(rows, idx, done),
                       onTap: (im, i) => _open(rows, i),
                     )
                   : _Masonry(
                       rows: rows,
                       selecting: _selecting,
                       selected: _selected,
-                      onLongPress: _longPress,
+                      onDragSelect: (idx, done) => _dragSelect(rows, idx, done),
                       onTap: (i) => _open(rows, i),
                     ),
             ),
@@ -399,19 +413,19 @@ class _Masonry extends StatelessWidget {
     required this.rows,
     required this.selecting,
     required this.selected,
-    required this.onLongPress,
+    required this.onDragSelect,
     required this.onTap,
   });
   final List<MaterialImage> rows;
   final bool selecting;
   final Set<String> selected;
-  final void Function(String id) onLongPress;
+  final void Function(Set<int> indices, bool finished) onDragSelect;
   final void Function(int index) onTap;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    return MasonryGridView.count(
+    final grid = MasonryGridView.count(
       padding: const EdgeInsets.fromLTRB(20, 2, 20, 96),
       crossAxisCount: columnsForWidth(MediaQuery.sizeOf(context).width),
       mainAxisSpacing: 8,
@@ -421,10 +435,9 @@ class _Masonry extends StatelessWidget {
         final r = rows[i];
         final isSelected = selected.contains(r.id);
         final aspect = (r.width > 0 && r.height > 0) ? r.width / r.height : 1.0;
-        return GestureDetector(
+        final tile = GestureDetector(
           key: ValueKey('material-${r.id}'),
           onTap: () => onTap(i),
-          onLongPress: () => onLongPress(r.id),
           child: AspectRatio(
             aspectRatio: aspect.clamp(0.4, 2.5),
             child: Stack(
@@ -451,7 +464,14 @@ class _Masonry extends StatelessWidget {
             ),
           ),
         );
+        return DragSelectItem(index: i, child: tile);
       },
+    );
+    return DragSelectArea(
+      itemCount: rows.length,
+      isSelected: (i) => selected.contains(rows[i].id),
+      onChanged: onDragSelect,
+      child: grid,
     );
   }
 }
