@@ -4,6 +4,7 @@ import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../entity/entity_widgets.dart';
+import 'drag_select.dart';
 import 'app_icons.dart';
 import 'svg_icon.dart';
 
@@ -28,6 +29,7 @@ class TimelineEntry {
     this.selected,
     this.onLongPress,
     this.cardKey,
+    this.dragIndex,
   });
 
   final String id;
@@ -67,6 +69,10 @@ class TimelineEntry {
 
   /// 掛在卡片上的 key（拖曳多選用它量卡片的位置，D-081）。
   final GlobalKey? cardKey;
+
+  /// 拖曳連續多選（D-081）：卡片在整份列表（分段攤平後）的連續 index；
+  /// 非 null 時卡片會向最近的 [DragSelectArea] 登記。
+  final int? dragIndex;
 }
 
 /// 一個月份分段（段首「2026 年 10 月」＋數量）。
@@ -387,7 +393,7 @@ class _EntryCard extends StatelessWidget {
     final t = context.tokens;
     final sel = entry.selected;
     final picked = sel == true;
-    return GestureDetector(
+    final card = GestureDetector(
       onTap: entry.onTap,
       onLongPress: entry.onLongPress,
       behavior: HitTestBehavior.opaque,
@@ -420,6 +426,8 @@ class _EntryCard extends StatelessWidget {
         ),
       ),
     );
+    final i = entry.dragIndex;
+    return i == null ? card : DragSelectItem(index: i, child: card);
   }
 
   Widget _cardBody(BuildContext context) {

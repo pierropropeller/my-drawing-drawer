@@ -8,13 +8,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/image_store.dart';
-import 'package:huakeng/data/oshi_extra_queries.dart';
 import 'package:huakeng/data/oshi_queries.dart';
 import 'package:huakeng/l10n/l10n.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/state/settings.dart';
 import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
+import 'package:huakeng/ui/common/drag_select.dart';
 import 'package:huakeng/ui/common/timeline.dart';
 import 'package:huakeng/ui/oshi/oshi_list_page.dart';
 import 'package:huakeng/ui/oshi/oshi_selection.dart';
@@ -325,6 +325,122 @@ void main() {
     });
   });
 
+  /// 長按後不放手（先等長按成立），回傳手勢。
+  Future<TestGesture> holdAt(WidgetTester tester, Offset p) async {
+    final g = await tester.startGesture(p);
+    await tester.pump(const Duration(milliseconds: 600));
+    return g;
+  }
+
+  Future<void> release(WidgetTester tester, TestGesture g) async {
+    await g.up();
+    await settle(tester);
+  }
+
+  group('拖曳連續多選（D-081）', () {
+    testWidgets('時間軸：長按甲拖到丙（跨月份）→ 三筆都選；拖回乙只剩甲乙', (tester) async {
+      await seed(tester);
+      await show(tester);
+      final g = await holdAt(tester, tester.getCenter(card('甲')));
+      expect(find.text('已選 1 筆'), findsOneWidget);
+      await g.moveTo(tester.getCenter(card('丙')));
+      await tester.pump();
+      expect(find.text('已選 3 筆'), findsOneWidget);
+      await g.moveTo(tester.getCenter(card('乙')));
+      await tester.pump();
+      expect(find.text('已選 2 筆'), findsOneWidget);
+      await release(tester, g);
+      // 放手後維持多選，點卡片仍可切換。
+      expect(find.text('已選 2 筆'), findsOneWidget);
+      expect(navBarHiddenCount.value, greaterThan(0));
+      await tester.tap(card('丙'));
+      await settle(tester);
+      expect(find.text('已選 3 筆'), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('時間軸：起點是已選 → 連續取消；全部取消放手＝離開多選', (tester) async {
+      await seed(tester);
+      await show(tester);
+      await longPress(tester, card('甲'));
+      await tester.tap(card('乙'));
+      await tester.tap(card('丙'));
+      await settle(tester);
+      expect(find.text('已選 3 筆'), findsOneWidget);
+      // 從乙開始往下拖＝取消乙、丙，甲不受影響。
+      var g = await holdAt(tester, tester.getCenter(card('乙')));
+      await g.moveTo(tester.getCenter(card('丙')));
+      await tester.pump();
+      expect(find.text('已選 1 筆'), findsOneWidget);
+      await release(tester, g);
+      // 再從甲取消到最後一筆 → 全空，放手後離開多選。
+      g = await holdAt(tester, tester.getCenter(card('甲')));
+      expect(find.text('已選 0 筆'), findsOneWidget); // 拖曳中仍在多選
+      await release(tester, g);
+      expect(find.text('全選'), findsNothing);
+      expect(navBarHiddenCount.value, 0);
+      await unmount(tester);
+    });
+
+    testWidgets('九宮格：長按拖過格子連續選取（左→右、上→下），間隙沿用上一格', (tester) async {
+      await seed(tester);
+      await show(tester, prefsInit: {'oshiLayout': 'grid'});
+      final ga = find.byKey(ValueKey('oshi-grid-$a'));
+      final gc = find.byKey(ValueKey('oshi-grid-$c'));
+      final g = await holdAt(tester, tester.getCenter(ga));
+      await g.moveTo(tester.getCenter(gc));
+      await tester.pump();
+      expect(find.text('已選 3 筆'), findsOneWidget);
+      await release(tester, g);
+      expect(find.text('已選 3 筆'), findsOneWidget);
+      // 從已選的乙取消到丙。
+      final g2 = await holdAt(
+        tester,
+        tester.getCenter(find.byKey(ValueKey('oshi-grid-$b'))),
+      );
+      await g2.moveTo(tester.getCenter(gc));
+      await tester.pump();
+      expect(find.text('已選 1 筆'), findsOneWidget);
+      await release(tester, g2);
+      await unmount(tester);
+    });
+
+    testWidgets('時間軸：貼著下緣自動捲動，月份標題不是項目，繼續往下選', (tester) async {
+      await tester.runAsync(() async {
+        for (var i = 0; i < 40; i++) {
+          await rec(
+            DateTime(2026, 12, 28).subtract(Duration(days: i * 4)),
+            'r$i',
+          );
+        }
+      });
+      await show(tester);
+      expect(find.byType(DragSelectArea), findsOneWidget);
+      final scrollable = Scrollable.of(tester.element(find.text('r0')));
+      expect(scrollable.position.pixels, 0);
+      final g = await holdAt(tester, tester.getCenter(find.text('r0')));
+      final area = tester.getRect(find.byType(DragSelectArea));
+      await g.moveTo(Offset(area.center.dx, area.bottom - 8));
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(scrollable.position.pixels, greaterThan(200));
+      final n = int.parse(
+        RegExp(r'已選 (\d+) 筆')
+            .firstMatch(
+              tester
+                  .widgetList<Text>(find.textContaining('已選'))
+                  .map((t) => t.data!)
+                  .first,
+            )!
+            .group(1)!,
+      );
+      expect(n, greaterThan(8));
+      await release(tester, g);
+      await unmount(tester);
+    });
+  });
+
   group('OshiSelection', () {
     test('begin／toggle／selectAll／exit', () {
       final s = OshiSelection()..updateOrder(['1', '2', '3']);
@@ -353,7 +469,20 @@ void main() {
       expect(s.ids, {'2', '3', '4', '5'});
       s.setRange('3', '5', select: false);
       expect(s.ids, {'2'});
-      expect(s.keyOf('2'), same(s.keyOf('2')));
+      s.dispose();
+    });
+
+    test('applyIndices：index 對應 order；拖曳中允許暫時為空，放手才離開', () {
+      final s = OshiSelection()..updateOrder(['1', '2', '3']);
+      s.applyIndices({0, 2}, finished: false);
+      expect(s.ids, {'1', '3'});
+      expect(s.active, isTrue);
+      s.applyIndices({}, finished: false);
+      expect(s.active, isTrue);
+      s.applyIndices({}, finished: true);
+      expect(s.active, isFalse);
+      s.applyIndices({1, 9}, finished: true); // 超出範圍略過
+      expect(s.ids, {'2'});
       s.dispose();
     });
 
@@ -367,21 +496,6 @@ void main() {
       expect(s.active, isFalse);
       await Future<void>.delayed(Duration.zero);
       s.dispose();
-    });
-  });
-
-  group('資料轉接（OshiExtraQueries）', () {
-    test('oshiSetGroupLoop：別的坑的分組丟 ArgumentError 並回滾', () async {
-      final other = await db.createPit(name: '坑B');
-      final og = await db.watchGroups(other, kind: 'oshi').first;
-      final id = await rec(DateTime(2026, 10, 1), 'x', groupId: groups[0].id);
-      expect(
-        () => db.oshiSetGroupLoop([id], og.first.id),
-        throwsA(isA<ArgumentError>()),
-      );
-      expect((await db.getOshiRecord(id))!.record.groupId, groups[0].id);
-      await db.oshiSetGroupLoop([id], null);
-      expect((await db.getOshiRecord(id))!.record.groupId, isNull);
     });
   });
 }

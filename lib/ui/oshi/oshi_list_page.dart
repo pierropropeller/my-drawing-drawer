@@ -11,6 +11,7 @@ import '../album/album_actions.dart' show confirmDelete;
 import '../album/album_view.dart' show ChipRow, ChipRowManageButton;
 import '../album/image_masonry.dart' show SelectMark;
 import '../album/group_manage_page.dart';
+import '../common/drag_select.dart';
 import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
@@ -108,10 +109,6 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
     } else {
       _open(v);
     }
-  }
-
-  void _longPress(OshiRecordView v) {
-    if (!_sel.isSelected(v.record.id)) _sel.begin(v.record.id);
   }
 
   List<OshiRecordView> _picked(List<OshiRecordView> views) => [
@@ -272,27 +269,33 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
                         actionLabel: context.l10n.oshiEmptyAction,
                         onAction: () => _add(groupId),
                       )
-                    : _layout == OshiLayout.timeline
-                    ? TimelineView(
-                        entries: [
-                          for (final v in views)
-                            oshiTimelineEntry(
-                              v,
-                              onTap: () => _tap(v),
-                              onLongPress: () => _longPress(v),
-                              selected: selecting
-                                  ? _sel.isSelected(v.record.id)
-                                  : null,
-                              cardKey: _sel.keyOf(v.record.id),
-                            ),
-                        ],
-                        countLabel: context.l10n.oshiCountRecords,
-                      )
-                    : _OshiGrid(
-                        views: views,
-                        selection: _sel,
-                        onTap: _tap,
-                        onLongPress: _longPress,
+                    // 長按＋拖曳連續多選（D-081）：index ＝ views 的順序
+                    // （時間軸分段攤平後與 views 同序；月份標題不是項目）。
+                    : DragSelectArea(
+                        itemCount: views.length,
+                        isSelected: (i) => _sel.isSelected(views[i].record.id),
+                        onChanged: (idx, finished) =>
+                            _sel.applyIndices(idx, finished: finished),
+                        child: _layout == OshiLayout.timeline
+                            ? TimelineView(
+                                entries: [
+                                  for (var i = 0; i < views.length; i++)
+                                    oshiTimelineEntry(
+                                      views[i],
+                                      onTap: () => _tap(views[i]),
+                                      selected: selecting
+                                          ? _sel.isSelected(views[i].record.id)
+                                          : null,
+                                      dragIndex: i,
+                                    ),
+                                ],
+                                countLabel: context.l10n.oshiCountRecords,
+                              )
+                            : _OshiGrid(
+                                views: views,
+                                selection: _sel,
+                                onTap: _tap,
+                              ),
                       ),
               ),
             ],
@@ -374,12 +377,10 @@ class _OshiGrid extends StatelessWidget {
     required this.views,
     required this.selection,
     required this.onTap,
-    required this.onLongPress,
   });
   final List<OshiRecordView> views;
   final OshiSelection selection;
   final void Function(OshiRecordView v) onTap;
-  final void Function(OshiRecordView v) onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -399,36 +400,37 @@ class _OshiGrid extends StatelessWidget {
       itemBuilder: (_, i) {
         final v = views[i];
         final picked = selection.isSelected(v.record.id);
-        return GestureDetector(
-          key: selection.keyOf(v.record.id),
-          onTap: () => onTap(v),
-          onLongPress: () => onLongPress(v),
-          behavior: HitTestBehavior.opaque,
-          child: Stack(
-            key: ValueKey('oshi-grid-${v.record.id}'),
-            fit: StackFit.expand,
-            children: [
-              StoredImage(v.cover.file, cacheWidth: 400),
-              // 左下角的影片／GIF 標記留給 D-080。
-              if (v.images.length > 1)
-                Positioned(
-                  right: 5,
-                  bottom: 5,
-                  child: CountBadge(v.images.length),
-                ),
-              if (picked)
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: t.accent, width: 2),
+        return DragSelectItem(
+          index: i,
+          child: GestureDetector(
+            onTap: () => onTap(v),
+            behavior: HitTestBehavior.opaque,
+            child: Stack(
+              key: ValueKey('oshi-grid-${v.record.id}'),
+              fit: StackFit.expand,
+              children: [
+                StoredImage(v.cover.file, cacheWidth: 400),
+                // 左下角的影片／GIF 標記留給 D-080。
+                if (v.images.length > 1)
+                  Positioned(
+                    right: 5,
+                    bottom: 5,
+                    child: CountBadge(v.images.length),
                   ),
-                ),
-              if (selecting)
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: SelectMark(selected: picked),
-                ),
-            ],
+                if (picked)
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: t.accent, width: 2),
+                    ),
+                  ),
+                if (selecting)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: SelectMark(selected: picked),
+                  ),
+              ],
+            ),
           ),
         );
       },

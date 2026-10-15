@@ -1,34 +1,26 @@
+import '../../data/batch_tag_queries.dart';
 import '../../data/database.dart';
-import '../../data/oshi_extra_queries.dart';
 import '../../data/oshi_queries.dart';
 import '../album/tag_batch_sheet.dart' show BatchTagBackend;
 
-/// 推活多選的資料動作（D-079）。UI 只透過這一層呼叫資料層。
-///
-/// 資料層工程師的批次 API（`setOshiGroupBatch(ids, groupId?)`、`deleteOshiBatch(ids)`）
-/// 還沒進來，目前先用現有查詢實作（[AppDatabase.oshiSetGroupLoop]、[AppDatabase.deleteOshiRecords]，
-/// 都是單一 transaction／單一 update）。整合時只要把 [setGroup]、[delete] 兩個方法的本體換成正式 API，
-/// 並刪掉 `lib/data/oshi_extra_queries.dart` 的 `oshiSetGroupLoop`。
+/// 推活多選的資料動作（D-079）。UI 只透過這一層呼叫資料層的批次 API。
 class OshiSelectActions {
   const OshiSelectActions(this.db);
   final AppDatabase db;
 
   /// 把 [ids] 移到 [groupId]（null＝不分組）。
   Future<void> setGroup(Iterable<String> ids, String? groupId) =>
-      db.oshiSetGroupLoop(
-        ids,
-        groupId,
-      ); // TODO(integrator): db.setOshiGroupBatch(ids, groupId)
+      db.setOshiGroupBatch(ids, groupId);
 
   /// 刪除（軟刪除）。
-  Future<void> delete(Iterable<String> ids) =>
-      db.deleteOshiRecords(ids); // TODO(integrator): db.deleteOshiBatch(ids)
+  Future<void> delete(Iterable<String> ids) => db.deleteOshiBatch(ids);
 
-  /// tag sheet 的接法：推活沒有 AlbumCell，三態與套用走 [OshiExtraQueries]。
+  /// tag sheet 的接法：推活沒有 AlbumCell，走通用版批次 tag（`TagTarget.oshi`）。
   static final tagBackend = BatchTagBackend(
-    watch: (db, ids) => db.watchOshiTagCoverage(ids),
+    watch: (db, ids) => db.watchTagCoverageFor(TagTarget.oshi, ids),
     apply: (db, ids, {required add, required remove, required newNames}) =>
-        db.applyOshiBatchTags(
+        db.applyBatchTagsFor(
+          TagTarget.oshi,
           ids,
           addTagIds: add,
           removeTagIds: remove,

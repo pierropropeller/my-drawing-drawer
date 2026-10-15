@@ -2,10 +2,12 @@ import 'package:flutter/widgets.dart';
 
 /// 推活多選的選取狀態（D-079）。
 ///
-/// 給拖曳連續多選（D-081）預留的接口：
-/// - [order]：目前列表上所有紀錄 id，照畫面順序（左→右、上→下 / 新→舊），每次 build 由頁面更新；
-/// - [keyOf]：每一筆（時間軸卡片／九宮格的格子）的 [GlobalKey]，量位置用；
-/// - [setRange]／[ids]：把起點到終點之間的紀錄一次選中（或取消）。
+/// 選取狀態的唯一來源。拖曳連續多選（D-081）由 `DragSelectArea` 負責手勢與命中，
+/// 這裡只做 index ↔ id 的對應：
+/// - [order]：目前列表上所有紀錄 id，照畫面順序（時間軸＝攤平後的新→舊、九宮格＝左→右上→下），
+///   每次 build 由頁面更新；`DragSelectItem.index` ＝ 該紀錄在 [order] 的位置；
+/// - [applyIndices]：把拖曳給的完整 index 集合套回 id 集合；
+/// - [setRange]：起點到終點之間的紀錄一次選中（或取消）。
 class OshiSelection extends ChangeNotifier {
   /// 是否在多選模式（選到 0 筆時自動離開）。
   bool get active => _active;
@@ -17,7 +19,6 @@ class OshiSelection extends ChangeNotifier {
   List<String> get order => _order;
   List<String> _order = const [];
 
-  final Map<String, GlobalKey> _keys = {};
   bool _disposed = false;
 
   @override
@@ -30,7 +31,6 @@ class OshiSelection extends ChangeNotifier {
   void updateOrder(List<String> order) {
     _order = order;
     final alive = order.toSet();
-    _keys.removeWhere((k, _) => !alive.contains(k));
     final before = ids.length;
     ids.retainAll(alive);
     if (ids.length != before && _active) {
@@ -41,9 +41,6 @@ class OshiSelection extends ChangeNotifier {
       });
     }
   }
-
-  GlobalKey keyOf(String id) =>
-      _keys.putIfAbsent(id, () => GlobalKey(debugLabel: 'oshi-$id'));
 
   bool isSelected(String id) => ids.contains(id);
 
@@ -79,6 +76,19 @@ class OshiSelection extends ChangeNotifier {
       select ? ids.add(id) : ids.remove(id);
     }
     _active = ids.isNotEmpty;
+    notifyListeners();
+  }
+
+  /// 拖曳連續多選：[indices] 是完整的已選 index 集合（對應 [order]）。
+  /// 拖曳進行中（[finished]＝false）即使暫時一筆都沒有也維持多選；放手時一筆都沒有才離開。
+  void applyIndices(Set<int> indices, {required bool finished}) {
+    ids
+      ..clear()
+      ..addAll([
+        for (final i in indices)
+          if (i >= 0 && i < _order.length) _order[i],
+      ]);
+    _active = !finished || ids.isNotEmpty;
     notifyListeners();
   }
 

@@ -14,7 +14,7 @@ TimelineEntry oshiTimelineEntry(
   required VoidCallback onTap,
   VoidCallback? onLongPress,
   bool? selected,
-  GlobalKey? cardKey,
+  int? dragIndex,
 }) => TimelineEntry(
   id: v.record.id,
   date: v.date,
@@ -26,7 +26,7 @@ TimelineEntry oshiTimelineEntry(
   tags: [for (final t in v.tags) t.name],
   onLongPress: onLongPress,
   selected: selected,
-  cardKey: cardKey,
+  dragIndex: dragIndex,
 );
 
 /// 分組小標（網格圖下方、詳情頁以外的地方）：淡紫底、紫字 11.5/600。
