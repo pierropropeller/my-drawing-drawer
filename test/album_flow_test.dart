@@ -37,7 +37,7 @@ void main() {
           imageStoreProvider.overrideWith(
             (ref) async => ImageStore(Directory('${tmp.path}/images')),
           ),
-          imagePickerProvider.overrideWithValue(() async => [XFile(src.path)]),
+          imagePickerProvider.overrideWithValue((_) async => [XFile(src.path)]),
         ],
         child: const HuaKengApp(useGoogleFonts: false),
       ),

@@ -46,7 +46,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage>
   Future<void> _pickAvatar() async {
     try {
       // 選擇器現在也列出影片（D-080）；頭像只收圖片與 GIF（GIF 以第一格顯示）。
-      final picked = (await ref.read(imagePickerProvider)())
+      final picked = (await ref.read(avatarPickerProvider)(context))
           .where((f) => mediaKindFromExtension(f.path) != MediaKind.video)
           .toList();
       if (picked.isEmpty) return;

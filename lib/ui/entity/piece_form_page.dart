@@ -458,7 +458,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                             onAdd: () async {
                               final picked = await ref.read(
                                 imagePickerProvider,
-                              )();
+                              )(context);
                               if (picked.isNotEmpty) {
                                 setState(
                                   () => _images.addAll(

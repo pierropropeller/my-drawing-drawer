@@ -56,7 +56,7 @@ void main() {
       (ref) async => ImageStore(Directory('${tmp.path}/images')),
     ),
     imagePickerProvider.overrideWithValue(
-      () async => [XFile('${tmp.path}/pick.png')],
+      (_) async => [XFile('${tmp.path}/pick.png')],
     ),
   ];
 

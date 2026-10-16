@@ -43,7 +43,7 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
 
   /// 新增：先打開相簿選圖，選好再進入新增頁。
   Future<void> _add() async {
-    final picked = await ref.read(imagePickerProvider)();
+    final picked = await ref.read(imagePickerProvider)(context);
     if (picked.isEmpty || !mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(

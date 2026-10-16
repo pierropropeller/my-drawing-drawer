@@ -105,7 +105,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage>
   }
 
   Future<void> _addImages() async {
-    final picked = await ref.read(imagePickerProvider)();
+    final picked = await ref.read(imagePickerProvider)(context);
     if (picked.isEmpty || !mounted) return;
     setState(() => _images.addAll(picked.map(ImageItem.picked)));
     _syncDate();

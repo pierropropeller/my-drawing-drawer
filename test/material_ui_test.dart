@@ -68,7 +68,7 @@ void main() {
     imageStoreProvider.overrideWith(
       (ref) async => ImageStore(Directory('${tmp.path}/images')),
     ),
-    imagePickerProvider.overrideWithValue(() async => pick),
+    imagePickerProvider.overrideWithValue((_) async => pick),
   ];
 
   Future<void> showPage(
