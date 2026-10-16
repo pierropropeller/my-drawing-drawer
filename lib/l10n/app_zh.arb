@@ -952,6 +952,7 @@
     }
   },
   "oshiNoGroup": "不分組",
+  "oshiPillUngrouped": "無分組",
   "oshiDeleteSelectedTitle": "刪除 {count} 筆紀錄？",
   "@oshiDeleteSelectedTitle": {
     "placeholders": {

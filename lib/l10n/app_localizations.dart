@@ -2649,6 +2649,12 @@ abstract class AppLocalizations {
   /// **'不分組'**
   String get oshiNoGroup;
 
+  /// No description provided for @oshiPillUngrouped.
+  ///
+  /// In zh, this message translates to:
+  /// **'無分組'**
+  String get oshiPillUngrouped;
+
   /// No description provided for @oshiDeleteSelectedTitle.
   ///
   /// In zh, this message translates to:

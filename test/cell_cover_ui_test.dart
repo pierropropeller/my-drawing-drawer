@@ -86,7 +86,10 @@ void main() {
     await db.saveOshiRecord(
       pitId: pitId,
       date: DateTime(2026, 5, 1),
-      images: const [NewImage(file: 'old1.png'), NewImage(file: 'old2.png')],
+      images: const [
+        NewImage(file: 'old1.png'),
+        NewImage(file: 'old2.png'),
+      ],
     );
     await db.saveOshiRecord(
       pitId: pitId,
@@ -126,7 +129,10 @@ void main() {
     await tester.runAsync(() async {
       await db.saveDraft(
         pitId: pitId,
-        images: const [NewImage(file: 'd1.png'), NewImage(file: 'd2.png')],
+        images: const [
+          NewImage(file: 'd1.png'),
+          NewImage(file: 'd2.png'),
+        ],
         tagIds: const [],
         ideaIds: const [],
       );

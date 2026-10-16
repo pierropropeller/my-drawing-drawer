@@ -1447,6 +1447,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get oshiNoGroup => '不分組';
 
   @override
+  String get oshiPillUngrouped => '無分組';
+
+  @override
   String oshiDeleteSelectedTitle(int count) {
     return '刪除 $count 筆紀錄？';
   }

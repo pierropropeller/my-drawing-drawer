@@ -170,7 +170,17 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
     final groups =
         ref.watch(groupsProvider((widget.pitId, 'oshi'))).value ?? const [];
     // 篩選中的分組被刪除時退回「全部」。
-    final groupId = groups.any((g) => g.id == _groupId) ? _groupId : null;
+    final counts =
+        ref.watch(oshiGroupCountsProvider(widget.pitId)).value ?? const {};
+    // 「無分組」pill：有分組的和沒分組的紀錄同時存在才出現，放在最後。
+    final showUngrouped =
+        (counts[null] ?? 0) > 0 &&
+        counts.entries.any((e) => e.key != null && e.value > 0);
+    final groupId =
+        groups.any((g) => g.id == _groupId) ||
+            (showUngrouped && _groupId == oshiUngroupedFilter)
+        ? _groupId
+        : null;
     final filtered = widget.tagId != null;
     // 標題列一律顯示全部筆數；篩選時符合的筆數在篩選列。
     final total = ref.watch(pitStatsProvider(widget.pitId)).value?.oshi ?? 0;
@@ -245,7 +255,11 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
                 // 多選時分組 pills 隱藏（OshiSelect）。
                 if (!selecting)
                   ChipRow(
-                    options: [for (final g in groups) (g.id, g.name)],
+                    options: [
+                      for (final g in groups) (g.id, g.name),
+                      if (showUngrouped)
+                        (oshiUngroupedFilter, context.l10n.oshiPillUngrouped),
+                    ],
                     selected: groupId,
                     onSelected: (v) => setState(() => _groupId = v),
                     trailing: ChipRowManageButton(

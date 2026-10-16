@@ -4,6 +4,9 @@ import 'album_queries.dart';
 import 'database.dart';
 import 'entity_queries.dart';
 
+/// 列表篩選用的假分組 id：代表「無分組」。
+const oshiUngroupedFilter = '__ungrouped__';
+
 /// 一筆推活紀錄與它的圖片、分組、tag（D-057／D-062，HANDOFF 3.11）。
 class OshiRecordView {
   const OshiRecordView({
@@ -92,6 +95,7 @@ extension OshiQueries on AppDatabase {
   /// [groupId]：只看某個分組；[tagId]：只看有某個 tag 的（兩者可並用；
   /// 搜尋結果「+N」與詳情頁點 tag 用 [tagId]，D-065）。
   /// 按月份分段、段首「N 筆」是 UI 的事（資料已依日期排好）。
+  /// [groupId] 傳 [oshiUngroupedFilter]＝只看沒有分組的紀錄。
   Stream<List<OshiRecordView>> watchOshiRecords(
     String pitId, {
     String? groupId,
@@ -106,6 +110,8 @@ extension OshiQueries on AppDatabase {
                       o.deletedAt.isNull() &
                       (groupId == null
                           ? const Constant(true)
+                          : groupId == oshiUngroupedFilter
+                          ? o.groupId.isNull()
                           : o.groupId.equals(groupId)) &
                       (tagId == null
                           ? const Constant(true)

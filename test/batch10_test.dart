@@ -731,6 +731,23 @@ void main() {
       },
     );
 
+    test('watchOshiRecords：oshiUngroupedFilter 只列沒有分組的紀錄', () async {
+      final groups = await db.watchGroups(pitId, kind: 'oshi').first;
+      final a = await oshi('a.png', group: groups[0].id);
+      final b = await oshi('b.png');
+      final c = await oshi('c.png');
+      final ungrouped = await db
+          .watchOshiRecords(pitId, groupId: oshiUngroupedFilter)
+          .first;
+      expect(ungrouped.map((v) => v.record.id).toSet(), {b, c});
+      final grouped = await db
+          .watchOshiRecords(pitId, groupId: groups[0].id)
+          .first;
+      expect(grouped.map((v) => v.record.id), [a]);
+      final counts = await db.watchOshiGroupCounts(pitId).first;
+      expect(counts[null], 2);
+    });
+
     test('deleteOshiBatch：軟刪除、列表與筆數排除、已刪的不重複更新', () async {
       final a = await oshi('a.png');
       final b = await oshi('b.png');

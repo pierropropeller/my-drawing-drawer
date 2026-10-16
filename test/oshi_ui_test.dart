@@ -312,9 +312,24 @@ void main() {
       expect(find.text('十連出貨'), findsOneWidget);
       expect(find.text('一週年展・現場'), findsNothing);
       expect(find.text('痛包完成'), findsNothing);
+      // 有分組也有沒分組的紀錄：「無分組」pill 出現在最後。
+      expect(
+        tester.getTopLeft(find.text('無分組')).dx,
+        greaterThan(tester.getTopLeft(find.text('對話記錄')).dx),
+      );
+      await tester.ensureVisible(find.text('無分組'));
+      await tester.pump();
+      await tester.tap(find.text('無分組'));
+      await settle(tester);
+      expect(find.text('痛包完成'), findsOneWidget);
+      expect(find.text('十連出貨'), findsNothing);
+      expect(find.text('一週年展・現場'), findsNothing);
+      await tester.ensureVisible(find.text('全部'));
+      await tester.pump();
       await tester.tap(find.text('全部'));
       await settle(tester);
       expect(find.text('痛包完成'), findsOneWidget);
+      expect(find.text('十連出貨'), findsOneWidget);
       expect(navBarHiddenCount.value, 0);
       await unmount(tester);
     });
