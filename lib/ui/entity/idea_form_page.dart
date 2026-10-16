@@ -103,7 +103,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
   }
 
   Future<void> _addImages() async {
-    final picked = await ref.read(imagePickerProvider)();
+    final picked = await ref.read(imagePickerProvider)(context);
     if (picked.isNotEmpty) {
       setState(() => _images.addAll(picked.map(ImageItem.picked)));
     }

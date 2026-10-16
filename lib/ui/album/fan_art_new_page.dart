@@ -47,7 +47,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
   }
 
   Future<void> _pick() async {
-    final picked = await ref.read(imagePickerProvider)();
+    final picked = await ref.read(imagePickerProvider)(context);
     if (picked.isNotEmpty) {
       setState(() => _files.addAll(picked.map(ImageItem.picked)));
     }

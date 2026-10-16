@@ -78,7 +78,7 @@ void main() {
           imageStoreProvider.overrideWith(
             (ref) async => ImageStore(Directory('${dir.path}/images')),
           ),
-          imagePickerProvider.overrideWithValue(() async => pick),
+          imagePickerProvider.overrideWithValue((_) async => pick),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,

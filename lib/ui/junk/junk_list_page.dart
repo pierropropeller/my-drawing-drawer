@@ -20,7 +20,7 @@ class JunkListPage extends ConsumerWidget {
 
   /// 新增：開相簿選圖，直接加入雜物（雜物沒有分組、作者、tag，不需要表單）。
   Future<void> _add(BuildContext context, WidgetRef ref) async {
-    final picked = await ref.read(imagePickerProvider)();
+    final picked = await ref.read(imagePickerProvider)(context);
     if (picked.isEmpty) return;
     final store = await ref.read(imageStoreProvider.future);
     final imported = <NewImage>[

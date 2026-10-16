@@ -57,6 +57,7 @@ dependencies:
   package_info_plus: ^10.2.2
   exif: ^3.3.0
   video_player: ^2.14.1
+  photo_manager: ^3.12.0
 
 dev_dependencies:
   flutter_test:

@@ -147,7 +147,7 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
 
   /// 加圖：開相簿選圖；在分類下預設歸該分類，在「全部」下先選分類。
   Future<void> _add() async {
-    final picked = await ref.read(imagePickerProvider)();
+    final picked = await ref.read(imagePickerProvider)(context);
     if (picked.isEmpty || !mounted) return;
     var category = _category;
     if (category == null) {

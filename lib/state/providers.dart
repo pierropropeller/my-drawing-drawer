@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/widgets.dart' show BuildContext;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -18,8 +19,11 @@ import '../data/material_queries.dart';
 import '../data/oshi_queries.dart';
 import '../data/search_queries.dart';
 import '../data/timeline_queries.dart';
+import '../media/gallery_repository.dart';
 import '../media/media_import.dart';
+import '../media/photo_manager_gallery.dart';
 import '../media/video_probe.dart';
+import '../ui/picker/image_picker_sheet.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -45,12 +49,39 @@ final imageStoreProvider = FutureProvider<ImageStore>((ref) async {
   return ImageStore(Directory(p.join(base.path, 'images')));
 });
 
-/// 相簿選圖／影片／GIF（D-080，系統的媒體選擇器）。獨立成 provider 方便測試時替換。
-/// 選到的檔案請用 `importPickedMedia` 匯入，不要直接 `store.import`。
-final imagePickerProvider = Provider<Future<List<XFile>> Function()>(
-  (ref) =>
-      () => ImagePicker().pickMultipleMedia(),
+/// 讀手機相簿（D-084 自家圖片選擇器）。測試時換成假的，不需要外掛。
+final galleryRepositoryProvider = Provider<GalleryRepository>(
+  (ref) => PhotoManagerGallery(),
 );
+
+/// 相簿選圖／影片／GIF（D-080、D-084：自家的選擇器，不再用系統選擇器）。
+/// 傳入 context 才能開 bottom sheet；使用者關閉（✕、撳外面、返回）回傳空清單。
+/// 獨立成 provider 方便測試時替換：`imagePickerProvider.overrideWithValue((_) async => files)`。
+/// 選到的檔案請用 `importPickedMedia` 匯入，不要直接 `store.import`。
+final imagePickerProvider =
+    Provider<Future<List<XFile>> Function(BuildContext context)>(
+      (ref) =>
+          (context) async =>
+              await showAppImagePicker(
+                context,
+                repository: ref.read(galleryRepositoryProvider),
+              ) ??
+              const [],
+    );
+
+/// 頭像用的選圖：只列圖片、單選。同樣獨立成 provider 方便測試替換。
+final avatarPickerProvider =
+    Provider<Future<List<XFile>> Function(BuildContext context)>(
+      (ref) =>
+          (context) async =>
+              await showAppImagePicker(
+                context,
+                repository: ref.read(galleryRepositoryProvider),
+                single: true,
+                imagesOnly: true,
+              ) ??
+              const [],
+    );
 
 /// 背景補影片截圖（D-080）：啟動時與影片檔寫入後（匯入、同步下載完成）跑，由 App 根 widget 監看。
 /// 圖庫還沒準備好時是 null。
