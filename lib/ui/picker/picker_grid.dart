@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show SchedulerPhase;
 
 import '../../l10n/l10n.dart';
 import '../../media/gallery_repository.dart';
@@ -512,8 +514,9 @@ class _Cell extends StatelessWidget {
   }
 }
 
-/// 右邊可拖的快速捲動條：閒置時是一條細細的半透明把手；拖動時變主色，旁邊顯示
-/// 「2025 年 3 月」泡泡，放手才跳到該處。
+/// 右邊的快速捲動條。平常隱藏；列表一開始捲動（手指滑動、fling、拖捲動條）就淡入，
+/// 並在旁邊顯示「2026 年 6 月」泡泡；停止捲動約 1 秒後一起淡出。拖動把手時變主色、
+/// 每次拖動更新都立刻 `jumpTo`，列表跟著手指即時捲動。
 class _FastScroller extends StatefulWidget {
   const _FastScroller({
     required this.scroll,
@@ -530,7 +533,34 @@ class _FastScroller extends StatefulWidget {
 }
 
 class _FastScrollerState extends State<_FastScroller> {
+  static const Duration _hideDelay = Duration(seconds: 1);
+
   double? _dragFraction;
+  bool _active = false; // 最近 1 秒內列表有在捲動
+  double _lastPixels = 0;
+  Timer? _hideTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.scroll.addListener(_onScroll);
+  }
+
+  @override
+  void didUpdateWidget(_FastScroller old) {
+    super.didUpdateWidget(old);
+    if (old.scroll != widget.scroll) {
+      old.scroll.removeListener(_onScroll);
+      widget.scroll.addListener(_onScroll);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.scroll.removeListener(_onScroll);
+    _hideTimer?.cancel();
+    super.dispose();
+  }
 
   ScrollPosition? get _pos =>
       widget.scroll.positions.isNotEmpty ? widget.scroll.position : null;
@@ -538,6 +568,32 @@ class _FastScrollerState extends State<_FastScroller> {
   double _fractionOf(ScrollPosition p) {
     final max = p.maxScrollExtent;
     return max <= 0 ? 0 : (p.pixels / max).clamp(0.0, 1.0);
+  }
+
+  // 只有捲動量真的變了才算「在捲動」（拉動 sheet 本身不會改 pixels）。
+  void _onScroll() {
+    final p = _pos;
+    if (p == null || !p.hasPixels) return;
+    if (p.pixels == _lastPixels) return;
+    _lastPixels = p.pixels;
+    _poke();
+  }
+
+  void _poke() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(_hideDelay, () {
+      if (mounted && _dragFraction == null) setState(() => _active = false);
+    });
+    if (!_active) {
+      if (WidgetsBinding.instance.schedulerPhase ==
+          SchedulerPhase.persistentCallbacks) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() => _active = true);
+        });
+      } else {
+        setState(() => _active = true);
+      }
+    }
   }
 
   @override
@@ -559,81 +615,90 @@ class _FastScrollerState extends State<_FastScroller> {
               }
               if (p.maxScrollExtent <= 0) return const SizedBox.shrink();
               final dragging = _dragFraction != null;
+              final visible = dragging || _active;
               final h = dragging ? 52.0 : 44.0;
               final frac = _dragFraction ?? _fractionOf(p);
               final top = frac * math.max(0, track - h);
               DateTime? date;
-              if (dragging) date = widget.dateAt(frac * p.maxScrollExtent);
+              if (visible) date = widget.dateAt(frac * p.maxScrollExtent);
               final l = context.l10n;
               return Stack(
                 children: [
-                  // 拖曳的觸控範圍（右緣 28px 寬）。
+                  // 拖曳的觸控範圍（右緣 28px 寬）。隱藏時不接觸控，免得擋住一般捲動。
                   Positioned(
                     right: 0,
                     top: 0,
                     bottom: 0,
                     width: 28,
-                    child: GestureDetector(
-                      key: const ValueKey('picker-fast-scroll'),
-                      behavior: HitTestBehavior.translucent,
-                      onVerticalDragStart: (d) =>
-                          _update(d.localPosition.dy, track),
-                      onVerticalDragUpdate: (d) =>
-                          _update(d.localPosition.dy, track),
-                      onVerticalDragEnd: (_) => _finish(),
-                      onVerticalDragCancel: _finish,
+                    child: IgnorePointer(
+                      ignoring: !visible,
+                      child: GestureDetector(
+                        key: const ValueKey('picker-fast-scroll'),
+                        behavior: HitTestBehavior.translucent,
+                        onVerticalDragStart: (d) =>
+                            _update(d.localPosition.dy, track),
+                        onVerticalDragUpdate: (d) =>
+                            _update(d.localPosition.dy, track),
+                        onVerticalDragEnd: (_) => _finish(),
+                        onVerticalDragCancel: _finish,
+                      ),
                     ),
                   ),
                   Positioned(
                     right: dragging ? 16 : 2,
                     top: top,
                     child: IgnorePointer(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (dragging && date != null) ...[
-                            Container(
-                              key: const ValueKey('picker-scrub-bubble'),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: kPickerInk,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x80000000),
-                                    blurRadius: 12,
-                                    offset: Offset(0, 4),
+                      child: AnimatedOpacity(
+                        key: const ValueKey('picker-scroll-bar'),
+                        opacity: visible ? 1 : 0,
+                        duration: const Duration(milliseconds: 250),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (visible && date != null) ...[
+                              Container(
+                                key: const ValueKey('picker-scrub-bubble'),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: kPickerInk,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x80000000),
+                                      blurRadius: 12,
+                                      offset: Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  l.oshiMonthHeader(date.year, date.month),
+                                  style: const TextStyle(
+                                    color: kPickerBg,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                ],
+                                ),
                               ),
-                              child: Text(
-                                l.oshiMonthHeader(date.year, date.month),
-                                style: const TextStyle(
-                                  color: kPickerBg,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
+                              const SizedBox(width: 8),
+                            ],
+                            Container(
+                              key: const ValueKey('picker-scroll-thumb'),
+                              width: dragging ? 8 : 6,
+                              height: h,
+                              decoration: BoxDecoration(
+                                color: dragging
+                                    ? widget.accent
+                                    : const Color(0x66F2ECE4),
+                                borderRadius: BorderRadius.circular(
+                                  dragging ? 4 : 3,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
                           ],
-                          Container(
-                            key: const ValueKey('picker-scroll-thumb'),
-                            width: dragging ? 8 : 6,
-                            height: h,
-                            decoration: BoxDecoration(
-                              color: dragging
-                                  ? widget.accent
-                                  : const Color(0x66F2ECE4),
-                              borderRadius: BorderRadius.circular(
-                                dragging ? 4 : 3,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -646,16 +711,25 @@ class _FastScrollerState extends State<_FastScroller> {
     );
   }
 
+  // 拖動中：每次更新都直接 jumpTo（列高是算好的固定值，位置 = 比例 x 最大捲動量）。
   void _update(double y, double track) {
-    final h = 52.0;
+    const h = 52.0;
     final f = ((y - h / 2) / math.max(1, track - h)).clamp(0.0, 1.0);
     setState(() => _dragFraction = f);
+    final p = _pos;
+    if (p != null && p.hasContentDimensions) {
+      p.jumpTo(f * p.maxScrollExtent);
+      _lastPixels = p.pixels;
+    }
+    _poke();
   }
 
   void _finish() {
-    final f = _dragFraction;
-    final p = _pos;
-    setState(() => _dragFraction = null);
-    if (f != null && p != null) p.jumpTo(f * p.maxScrollExtent);
+    if (_dragFraction == null) return;
+    setState(() {
+      _dragFraction = null;
+      _active = true; // 放手後再停留約 1 秒才淡出
+    });
+    _poke();
   }
 }
