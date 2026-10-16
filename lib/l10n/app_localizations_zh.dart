@@ -1455,6 +1455,71 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get pickerTitle => '選擇圖片';
+
+  @override
+  String get pickerAlbumAll => '全部';
+
+  @override
+  String get pickerAlbumScreenshots => '截圖';
+
+  @override
+  String get pickerAlbumCamera => '相機';
+
+  @override
+  String pickerDayToday(String date) {
+    return '今天 · $date';
+  }
+
+  @override
+  String pickerDayYesterday(String date) {
+    return '昨天 · $date';
+  }
+
+  @override
+  String pickerDate(int month, int day, String weekday) {
+    return '$month月$day日 $weekday';
+  }
+
+  @override
+  String pickerDateWithYear(int year, int month, int day, String weekday) {
+    return '$year年$month月$day日 $weekday';
+  }
+
+  @override
+  String pickerDayCount(int count) {
+    return '$count 張';
+  }
+
+  @override
+  String get pickerSelectDay => '選取整天';
+
+  @override
+  String pickerNext(int count) {
+    return '下一步（$count）';
+  }
+
+  @override
+  String get pickerLimitedNotice => '只開放了部分相片';
+
+  @override
+  String get pickerManagePermission => '管理權限';
+
+  @override
+  String get pickerDeniedMessage => '需要「讀取相片和影片」的權限，才能從相簿選擇圖片';
+
+  @override
+  String get pickerOpenSettings => '去設定';
+
+  @override
+  String get pickerEmpty => '這裡沒有相片';
+
+  @override
+  String pickerUnselectThumb(int number) {
+    return '取消選取第 $number 張';
+  }
+
+  @override
   String pitcoverCellSet(String label) {
     return '已設為「$label」的封面';
   }

@@ -961,6 +961,87 @@
       }
     }
   },
+  "pickerTitle": "選擇圖片",
+  "pickerAlbumAll": "全部",
+  "pickerAlbumScreenshots": "截圖",
+  "pickerAlbumCamera": "相機",
+  "pickerDayToday": "今天 · {date}",
+  "@pickerDayToday": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "pickerDayYesterday": "昨天 · {date}",
+  "@pickerDayYesterday": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "pickerDate": "{month}月{day}日 {weekday}",
+  "@pickerDate": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      },
+      "weekday": {
+        "type": "String"
+      }
+    }
+  },
+  "pickerDateWithYear": "{year}年{month}月{day}日 {weekday}",
+  "@pickerDateWithYear": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      },
+      "weekday": {
+        "type": "String"
+      }
+    }
+  },
+  "pickerDayCount": "{count} 張",
+  "@pickerDayCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pickerSelectDay": "選取整天",
+  "pickerNext": "下一步（{count}）",
+  "@pickerNext": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pickerLimitedNotice": "只開放了部分相片",
+  "pickerManagePermission": "管理權限",
+  "pickerDeniedMessage": "需要「讀取相片和影片」的權限，才能從相簿選擇圖片",
+  "pickerOpenSettings": "去設定",
+  "pickerEmpty": "這裡沒有相片",
+  "pickerUnselectThumb": "取消選取第 {number} 張",
+  "@pickerUnselectThumb": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
   "pitcoverCellSet": "已設為「{label}」的封面",
   "@pitcoverCellSet": {
     "placeholders": {

@@ -2661,6 +2661,108 @@ abstract class AppLocalizations {
   /// **'刪除 {count} 筆紀錄？'**
   String oshiDeleteSelectedTitle(int count);
 
+  /// No description provided for @pickerTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇圖片'**
+  String get pickerTitle;
+
+  /// No description provided for @pickerAlbumAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部'**
+  String get pickerAlbumAll;
+
+  /// No description provided for @pickerAlbumScreenshots.
+  ///
+  /// In zh, this message translates to:
+  /// **'截圖'**
+  String get pickerAlbumScreenshots;
+
+  /// No description provided for @pickerAlbumCamera.
+  ///
+  /// In zh, this message translates to:
+  /// **'相機'**
+  String get pickerAlbumCamera;
+
+  /// No description provided for @pickerDayToday.
+  ///
+  /// In zh, this message translates to:
+  /// **'今天 · {date}'**
+  String pickerDayToday(String date);
+
+  /// No description provided for @pickerDayYesterday.
+  ///
+  /// In zh, this message translates to:
+  /// **'昨天 · {date}'**
+  String pickerDayYesterday(String date);
+
+  /// No description provided for @pickerDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'{month}月{day}日 {weekday}'**
+  String pickerDate(int month, int day, String weekday);
+
+  /// No description provided for @pickerDateWithYear.
+  ///
+  /// In zh, this message translates to:
+  /// **'{year}年{month}月{day}日 {weekday}'**
+  String pickerDateWithYear(int year, int month, int day, String weekday);
+
+  /// No description provided for @pickerDayCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張'**
+  String pickerDayCount(int count);
+
+  /// No description provided for @pickerSelectDay.
+  ///
+  /// In zh, this message translates to:
+  /// **'選取整天'**
+  String get pickerSelectDay;
+
+  /// No description provided for @pickerNext.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一步（{count}）'**
+  String pickerNext(int count);
+
+  /// No description provided for @pickerLimitedNotice.
+  ///
+  /// In zh, this message translates to:
+  /// **'只開放了部分相片'**
+  String get pickerLimitedNotice;
+
+  /// No description provided for @pickerManagePermission.
+  ///
+  /// In zh, this message translates to:
+  /// **'管理權限'**
+  String get pickerManagePermission;
+
+  /// No description provided for @pickerDeniedMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'需要「讀取相片和影片」的權限，才能從相簿選擇圖片'**
+  String get pickerDeniedMessage;
+
+  /// No description provided for @pickerOpenSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'去設定'**
+  String get pickerOpenSettings;
+
+  /// No description provided for @pickerEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'這裡沒有相片'**
+  String get pickerEmpty;
+
+  /// No description provided for @pickerUnselectThumb.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消選取第 {number} 張'**
+  String pickerUnselectThumb(int number);
+
   /// No description provided for @pitcoverCellSet.
   ///
   /// In zh, this message translates to:
