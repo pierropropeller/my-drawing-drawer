@@ -90,6 +90,12 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     String? groupId;
     while (true) {
       if (!mounted) return;
+      // 分享進來要接手畫面：先關掉最上層還開著的 bottom sheet／對話框
+      // （例如選圖器），否則它會蓋住之後開出來的新增頁。
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).popUntil((r) => r is! PopupRoute);
       final choice = await showShareSheet(
         context,
         paths: paths,

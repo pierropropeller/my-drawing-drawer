@@ -194,6 +194,25 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('App 裡已開著 bottom sheet（如選圖器）時收到分享：先關掉它，再顯示「加入到」', (tester) async {
+    await pumpApp(tester, FakeShareChannel());
+    final ctx = tester.element(find.byType(Scaffold).first);
+    // ignore: unawaited_futures
+    showModalBottomSheet<void>(
+      context: ctx,
+      useRootNavigator: true,
+      builder: (_) => const SizedBox(height: 300, child: Text('假選圖器')),
+    );
+    await settle(tester);
+    expect(find.text('假選圖器'), findsOneWidget);
+
+    channel.push(sharedFiles(1));
+    await settle(tester);
+    expect(find.text('假選圖器'), findsNothing);
+    expect(find.byType(ShareSheet), findsOneWidget);
+    await unmount(tester);
+  });
+
   testWidgets('好看同人圖：作者留空、沒有出處', (tester) async {
     await pumpApp(tester, FakeShareChannel(initial: sharedFiles(2)));
     await tapIn(tester, '坑B');
