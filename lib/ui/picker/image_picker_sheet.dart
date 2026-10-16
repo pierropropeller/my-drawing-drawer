@@ -28,6 +28,13 @@ Future<List<XFile>?> showAppImagePicker(
   bool imagesOnly = false,
   DateTime Function()? now,
 }) {
+  // showModalBottomSheet 會把 sheet 內的 MediaQuery 頂部 padding 清成 0（useSafeArea:false），
+  // 所以狀態列高度要在 route 外面（根 Navigator 的 context）先量好再傳進去。
+  final outer = Navigator.of(context, rootNavigator: true).context;
+  final statusBar = math.max(
+    MediaQuery.paddingOf(outer).top,
+    MediaQuery.viewPaddingOf(outer).top,
+  );
   return showModalBottomSheet<List<XFile>>(
     context: context,
     useRootNavigator: true, // 要蓋住底部導覽列
@@ -41,6 +48,7 @@ Future<List<XFile>?> showAppImagePicker(
       single: single,
       imagesOnly: imagesOnly,
       now: now,
+      statusBarHeight: statusBar,
     ),
   );
 }
@@ -53,12 +61,16 @@ class ImagePickerSheet extends StatefulWidget {
     this.single = false,
     this.imagesOnly = false,
     this.now,
+    this.statusBarHeight,
   });
 
   final GalleryRepository repository;
   final bool single;
   final bool imagesOnly;
   final DateTime Function()? now;
+
+  /// 狀態列高度；沒給就讀環境的 MediaQuery（modal route 內會被清掉，所以 [showAppImagePicker] 會傳）。
+  final double? statusBarHeight;
 
   @override
   State<ImagePickerSheet> createState() => _ImagePickerSheetState();
@@ -76,7 +88,7 @@ class _ImagePickerSheetState extends State<ImagePickerSheet>
   );
   late final ThumbLoader _loader = ThumbLoader(widget.repository);
   final DraggableScrollableController _sheet = DraggableScrollableController();
-  final ValueNotifier<bool> _full = ValueNotifier(false);
+  final ValueNotifier<double> _extent = ValueNotifier(_half);
 
   @override
   void initState() {
@@ -97,7 +109,7 @@ class _ImagePickerSheetState extends State<ImagePickerSheet>
     _c.dispose();
     _loader.dispose();
     _sheet.dispose();
-    _full.dispose();
+    _extent.dispose();
     super.dispose();
   }
 
@@ -143,7 +155,7 @@ class _ImagePickerSheetState extends State<ImagePickerSheet>
     final accent = context.tokens.accent;
     return NotificationListener<DraggableScrollableNotification>(
       onNotification: (n) {
-        _full.value = n.extent >= 0.85;
+        _extent.value = n.extent;
         return false;
       },
       child: DraggableScrollableSheet(
@@ -154,14 +166,20 @@ class _ImagePickerSheetState extends State<ImagePickerSheet>
         maxChildSize: 1,
         snap: true,
         snapSizes: const [_half, 1],
-        builder: (context, scroll) => ValueListenableBuilder<bool>(
-          valueListenable: _full,
-          builder: (context, full, _) => _SheetBody(
+        builder: (context, scroll) => ValueListenableBuilder<double>(
+          valueListenable: _extent,
+          builder: (context, extent, _) => _SheetBody(
             controller: _c,
             loader: _loader,
             scroll: scroll,
             accent: accent,
-            full: full,
+            extent: extent,
+            statusBarHeight:
+                widget.statusBarHeight ??
+                math.max(
+                  MediaQuery.paddingOf(context).top,
+                  MediaQuery.viewPaddingOf(context).top,
+                ),
             onClose: () => Navigator.of(context).maybePop(),
             onNext: _next,
             onHeaderDrag: _headerDrag,
@@ -179,7 +197,8 @@ class _SheetBody extends StatelessWidget {
     required this.loader,
     required this.scroll,
     required this.accent,
-    required this.full,
+    required this.extent,
+    required this.statusBarHeight,
     required this.onClose,
     required this.onNext,
     required this.onHeaderDrag,
@@ -190,11 +209,16 @@ class _SheetBody extends StatelessWidget {
   final ThumbLoader loader;
   final ScrollController scroll;
   final Color accent;
-  final bool full;
+
+  /// sheet 目前高度（佔螢幕比例，0.6～1）。
+  final double extent;
+  final double statusBarHeight;
   final VoidCallback onClose;
   final VoidCallback onNext;
   final GestureDragUpdateCallback onHeaderDrag;
   final GestureDragEndCallback onHeaderDragEnd;
+
+  bool get full => extent >= 0.85;
 
   @override
   Widget build(BuildContext context) {
@@ -225,13 +249,20 @@ class _SheetBody extends StatelessWidget {
 
   Widget _content(BuildContext context) {
     final denied = controller.isDenied;
+    // sheet 上緣若進到狀態列範圍，內容要往下讓出重疊的部分：半開 = 0，
+    // 越拉越高越大，全螢幕 = 狀態列高度。背景仍延伸到狀態列後面。
+    final screenH = MediaQuery.sizeOf(context).height;
+    final topInset = math.max(0.0, statusBarHeight - (1 - extent) * screenH);
     return Column(
       children: [
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onVerticalDragUpdate: onHeaderDrag,
           onVerticalDragEnd: onHeaderDragEnd,
-          child: full ? _FullHeader(onClose: onClose) : const _HalfHeader(),
+          child: Padding(
+            padding: EdgeInsets.only(top: topInset),
+            child: full ? _FullHeader(onClose: onClose) : const _HalfHeader(),
+          ),
         ),
         if (!denied && controller.albums.isNotEmpty)
           _Pills(controller: controller),
@@ -303,9 +334,8 @@ class _FullHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final top = math.max(MediaQuery.paddingOf(context).top, 22.0);
     return Padding(
-      padding: EdgeInsets.fromLTRB(14, top, 14, 8),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
       child: Row(
         children: [
           GestureDetector(

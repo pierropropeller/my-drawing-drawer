@@ -487,8 +487,7 @@ void main() {
     expect(result, isNull);
   });
 
-  testWidgets('快速捲動：拖動顯示月份泡泡，放手才跳過去', (tester) async {
-    phone(tester);
+  FakeGallery longGallery() {
     final items = <GalleryItem>[
       for (var d = 0; d < 120; d++)
         for (var k = 0; k < 4; k++)
@@ -497,7 +496,7 @@ void main() {
             DateTime(2026, 10, 16).subtract(Duration(days: d, hours: k)),
           ),
     ];
-    final g = FakeGallery(
+    return FakeGallery(
       albums: [
         GalleryAlbum(
           id: 'all',
@@ -508,39 +507,162 @@ void main() {
       ],
       items: {'all': items},
     );
+  }
+
+  Future<ScrollableState> openLong(WidgetTester tester) async {
+    phone(tester);
     await tester.pumpWidget(
       _app(
         Scaffold(
-          body: ImagePickerSheet(repository: g, now: () => _now),
+          body: ImagePickerSheet(repository: longGallery(), now: () => _now),
         ),
       ),
     );
     await _settle(tester, 1000);
+    // 半開時往上滑會先拉高 sheet 而不是捲列表；先拉到全螢幕（此時列表還沒捲過）。
+    await tester.fling(
+      find.byKey(const ValueKey('picker-handle')),
+      const Offset(0, -400),
+      2000,
+      warnIfMissed: false,
+    );
+    await _settle(tester, 1000);
+    expect(find.byKey(const ValueKey('picker-close')), findsOneWidget);
+    return tester.state<ScrollableState>(find.byType(Scrollable).last);
+  }
+
+  final scrollBar = find.byKey(const ValueKey('picker-scroll-bar'));
+  final bubbleFinder = find.byKey(const ValueKey('picker-scrub-bubble'));
+  double barOpacity(WidgetTester t) =>
+      t.widget<AnimatedOpacity>(scrollBar).opacity;
+
+  testWidgets('快速捲動條：沒捲動前隱藏；捲動時出現（含月份泡泡），停止約 1 秒後淡出', (tester) async {
+    final scrollable = await openLong(tester);
+    // 還沒捲動：看不到捲動條也沒有泡泡。
+    expect(barOpacity(tester), 0);
+    expect(bubbleFinder, findsNothing);
+    // 手指滑動列表（不是拖捲動條）。
+    final g = await tester.startGesture(const Offset(150, 350));
+    await g.moveBy(const Offset(0, -200));
+    await tester.pump(const Duration(milliseconds: 50));
+    await g.moveBy(const Offset(0, -200));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(scrollable.position.pixels, greaterThan(100));
+    expect(barOpacity(tester), 1);
+    expect(bubbleFinder, findsOneWidget);
+    final bubble = tester.widget<Text>(
+      find.descendant(of: bubbleFinder, matching: find.byType(Text)),
+    );
+    expect(bubble.data, matches(RegExp(r'^\d{4} 年 \d{1,2} 月$')));
+    await g.up();
+    await _settle(tester, 500);
+    expect(barOpacity(tester), 1); // 停止不到 1 秒還在
+    await _settle(tester, 1500);
+    expect(barOpacity(tester), 0);
+    expect(bubbleFinder, findsNothing);
+  });
+
+  testWidgets('快速捲動條：拖動時列表即時跟著捲（放手前就變動），泡泡即時更新', (tester) async {
+    final scrollable = await openLong(tester);
     final scroller = find.byKey(const ValueKey('picker-fast-scroll'));
-    expect(scroller, findsOneWidget);
+    // 隱藏時不吃觸控；先捲一下它才出現。
+    await tester.fling(
+      find.byType(CustomScrollView),
+      const Offset(0, -150),
+      300,
+    );
+    await _settle(tester, 300);
+    expect(barOpacity(tester), 1);
+    scrollable.position.jumpTo(0);
+    await _settle(tester, 100);
     final box = tester.getRect(scroller);
     final gesture = await tester.startGesture(
       Offset(box.center.dx, box.top + 20),
     );
     await gesture.moveTo(Offset(box.center.dx, box.center.dy));
     await tester.pump();
-    expect(find.byKey(const ValueKey('picker-scrub-bubble')), findsOneWidget);
-    final bubble = tester.widget<Text>(
-      find.descendant(
-        of: find.byKey(const ValueKey('picker-scrub-bubble')),
-        matching: find.byType(Text),
+    expect(bubbleFinder, findsOneWidget);
+    final mid = scrollable.position.pixels;
+    // 放手前列表已經到位：約在中間。
+    expect(mid, greaterThan(100));
+    expect(mid / scrollable.position.maxScrollExtent, closeTo(0.5, 0.05));
+    String label() => tester
+        .widget<Text>(
+          find.descendant(of: bubbleFinder, matching: find.byType(Text)),
+        )
+        .data!;
+    final midLabel = label();
+    expect(midLabel, matches(RegExp(r'^\d{4} 年 \d{1,2} 月$')));
+    // 繼續往下拖：offset 繼續增加、泡泡跟著變。
+    await gesture.moveTo(Offset(box.center.dx, box.bottom - 40));
+    await tester.pump();
+    expect(scrollable.position.pixels, greaterThan(mid));
+    expect(label(), isNot(midLabel));
+    await gesture.up();
+    await tester.pump();
+    final end = scrollable.position.pixels;
+    await _settle(tester, 300);
+    expect(scrollable.position.pixels, end); // 放手不再另外跳
+    // 放手後捲動條與泡泡再停留約 1 秒，之後一起消失。
+    expect(barOpacity(tester), 1);
+    await _settle(tester, 1500);
+    expect(barOpacity(tester), 0);
+    expect(bubbleFinder, findsNothing);
+  });
+
+  testWidgets('全螢幕：標題列整個在狀態列（padding.top=40）下方；背景仍延伸到最上', (tester) async {
+    phone(tester);
+    final g = longGallery();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildTheme(Brightness.light, useGoogleFonts: false),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('zh'),
+        // 模擬 edge-to-edge 的狀態列高度。
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            padding: const EdgeInsets.only(top: 40),
+            viewPadding: const EdgeInsets.only(top: 40),
+          ),
+          child: child!,
+        ),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () =>
+                  showAppImagePicker(context, repository: g, now: () => _now),
+              child: const Text('open'),
+            ),
+          ),
+        ),
       ),
     );
-    expect(bubble.data, matches(RegExp(r'^\d{4} 年 \d{1,2} 月$')));
-    // 放手前沒有跳。
-    final scrollable = tester.state<ScrollableState>(
-      find.byType(Scrollable).last,
+    await tester.tap(find.text('open'));
+    await _settle(tester, 1000);
+    // 半開：把手在 sheet 上緣之下，不碰狀態列。
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('picker-handle'))).dy,
+      greaterThanOrEqualTo(40),
     );
-    expect(scrollable.position.pixels, 0);
-    await gesture.up();
-    await _settle(tester);
-    expect(scrollable.position.pixels, greaterThan(100));
-    expect(find.byKey(const ValueKey('picker-scrub-bubble')), findsNothing);
+    await tester.fling(
+      find.byType(CustomScrollView),
+      const Offset(0, -400),
+      1500,
+    );
+    await _settle(tester, 1000);
+    final close = find.byKey(const ValueKey('picker-close'));
+    expect(close, findsOneWidget);
+    expect(tester.getTopLeft(close).dy, greaterThanOrEqualTo(40));
+    expect(tester.getTopLeft(find.text('選擇圖片')).dy, greaterThanOrEqualTo(40));
+    // 底色（Material）從螢幕最上緣開始。
+    final sheet = find.ancestor(
+      of: close,
+      matching: find.byWidgetPredicate(
+        (w) => w is Material && w.color == const Color(0xFF121110),
+      ),
+    );
+    expect(tester.getTopLeft(sheet.first).dy, 0);
   });
 
   test('控制器：整天選取與拖曳順序（純邏輯）', () async {
