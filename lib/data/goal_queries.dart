@@ -127,6 +127,9 @@ extension GoalQueries on AppDatabase {
       return tagIds.every(have.contains);
     }
 
+    // 封存坑的內容不計入目標（D-088）。
+    final archived = await archivedPitIds();
+
     var n = 0;
     switch (g.kind) {
       case GoalKind.idea:
@@ -142,6 +145,7 @@ extension GoalQueries on AppDatabase {
                 ))
                 .get();
         for (final r in rows) {
+          if (archived.contains(r.pitId)) continue;
           if (await hasAllTags(TagTarget.idea, r.id)) n++;
         }
       case GoalKind.draft:
@@ -157,6 +161,7 @@ extension GoalQueries on AppDatabase {
                 ))
                 .get();
         for (final r in rows) {
+          if (archived.contains(r.pitId)) continue;
           if (await hasAllTags(TagTarget.draft, r.id)) n++;
         }
       case GoalKind.piece:
@@ -179,6 +184,7 @@ extension GoalQueries on AppDatabase {
                 ))
                 .get();
         for (final r in rows) {
+          if (archived.contains(r.pitId)) continue;
           if (await hasAllTags(TagTarget.piece, r.id)) n++;
         }
     }

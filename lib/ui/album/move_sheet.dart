@@ -100,14 +100,29 @@ class _MoveSheetState extends ConsumerState<MoveSheet> {
 
   bool get _crossPit => _pitId != widget.pitId;
 
-  /// 換坑：分組／出處屬於舊的坑，一律清掉；目標坑沒開雜物就退回官方圖冊。
-  void _pickPit(String id, bool junkEnabled) => setState(() {
-    if (id == _pitId) return;
-    _pitId = id;
+  /// 目標坑開著的格子（D-088）：淺坑只開放它開啟的格子；雜物還要看雜物開關，
+  /// 本來就在雜物裡、且留在原坑時照舊列出。
+  bool _cellOpen(Pit? pit, AlbumCell c) => switch (c) {
+    AlbumCell.official => pit?.sectionOpen(PitSectionKey.official) ?? true,
+    AlbumCell.fan => pit?.sectionOpen(PitSectionKey.fan) ?? true,
+    AlbumCell.junk =>
+      pit?.sectionOpen(PitSectionKey.junk) == true ||
+          (widget.from == AlbumCell.junk && !_crossPit),
+  };
+
+  /// 換坑：分組／出處屬於舊的坑，一律清掉；目標坑沒開的格子（雜物沒開、淺坑沒開官方圖冊…）就退回第一個開著的格子。
+  void _pickPit(Pit p) => setState(() {
+    if (p.id == _pitId) return;
+    _pitId = p.id;
     _officialGroup = null;
     _fanGroup = null;
-    final junkOk = junkEnabled || (widget.from == AlbumCell.junk && !_crossPit);
-    if (_cell == AlbumCell.junk && !junkOk) _cell = AlbumCell.official;
+    if (!_cellOpen(p, _cell)) {
+      _cell = [
+        AlbumCell.official,
+        AlbumCell.fan,
+        AlbumCell.junk,
+      ].firstWhere((c) => _cellOpen(p, c), orElse: () => _cell);
+    }
   });
 
   @override
@@ -115,8 +130,8 @@ class _MoveSheetState extends ConsumerState<MoveSheet> {
     final t = context.tokens;
     final pit = ref.watch(pitProvider(_pitId)).value;
     final current = ref.watch(pitProvider(widget.pitId)).value;
-    // 未封存的坑；目前所在的坑就算已封存也要列出（預設選它）。
-    final pits = [...?ref.watch(pitsProvider(false)).value];
+    // 現坑＋淺坑（封存坑不列，D-088）；目前所在的坑就算已封存也要列出（預設選它）。
+    final pits = [...?ref.watch(selectablePitsProvider).value];
     if (current != null && !pits.any((p) => p.id == current.id)) {
       pits.insert(0, current);
     }
@@ -129,17 +144,15 @@ class _MoveSheetState extends ConsumerState<MoveSheet> {
     // 同一格內只能換分組／出處；沒有選分組就沒事可做。
     // 跨坑時同一格也能移（官方→官方、雜物→雜物），不需要先選分組。
     final canDone =
-        _crossPit ||
-        _cell != widget.from ||
-        (_cell != AlbumCell.junk && group != null);
+        _cellOpen(pit, _cell) &&
+        (_crossPit ||
+            _cell != widget.from ||
+            (_cell != AlbumCell.junk && group != null));
     // 目標坑沒開雜物時不列出（入口也不會出現），免得圖移進去就找不到；
     // 本來就在雜物裡、且留在原坑時照舊列出。
     final cells = [
-      AlbumCell.official,
-      AlbumCell.fan,
-      if (pit?.junkEnabled == true ||
-          (widget.from == AlbumCell.junk && !_crossPit))
-        AlbumCell.junk,
+      for (final c in AlbumCell.values)
+        if (_cellOpen(pit, c)) c,
     ];
     return SafeArea(
       child: SingleChildScrollView(
@@ -166,11 +179,7 @@ class _MoveSheetState extends ConsumerState<MoveSheet> {
               ),
             ),
             const _SectionLabel(bottom: 8),
-            _PitChips(
-              pits: pits,
-              selected: _pitId,
-              onSelected: (p) => _pickPit(p.id, p.junkEnabled),
-            ),
+            _PitChips(pits: pits, selected: _pitId, onSelected: _pickPit),
             const SizedBox(height: 14),
             const _SectionLabel(position: true),
             for (final c in cells)

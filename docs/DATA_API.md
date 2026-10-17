@@ -36,8 +36,8 @@ Future<void> moveAlbumImages({
 ```
 
 坑：
-- `createPit({name, description, bool junkEnabled = false})`
-- `updatePit(id, {name, description, archived, bool? junkEnabled})` — `junkEnabled` 不傳＝不變。
+- `createPit({name, description, bool junkEnabled = false})`（批次 14 起另有 `status`／`enabledSections`／`coverFile`，見「批次 14」）
+- `updatePit(id, {name, description, archived, bool? junkEnabled})` — `junkEnabled` 不傳＝不變。（批次 14：`archived` 只是相容參數，新程式用 `status`，見「批次 14」）
 - `PitStats.junk`：雜物數（**只有 `pit.junkEnabled` 時才顯示**）。**不計入** `PitStats.imageCount`。
 - `deletePit` 會把坑內雜物一併軟刪除。
 
@@ -753,3 +753,72 @@ Future<void>                         deleteRefViewState(String imageFile);
 ```
 - 遷移 v9 → v10：`createTable(refViewStates)`，無舊資料要回填。`AppDatabase.schemaVersion = 10`。
 - UI 端的暫存與 debounce 存檔見 `lib/ui/reference/ref_view_store.dart`；測試 `test/reference/ref_view_db_test.dart`。
+
+## 批次 14：淺坑／封存坑（D-088，schema v11）
+
+檔案：`lib/data/tables.dart`（`PitStatus`、`PitSectionKey`、`Pits` 新欄位）、`lib/data/pit_status_queries.dart`
+（`PitX`、`PitStatusQueries`、`PitSectionHasContent`；`database.dart` 已 export）。測試：`test/pit_status_test.dart`、`test/migration_test.dart`（v1～v10 → v11）。
+
+### 資料模型
+```dart
+enum PitStatus { active, shallow, archived }                               // 資料庫存名稱
+enum PitSectionKey { official, fan, idea, draft, piece, oshi, junk }       // 格子；名稱同 setCellCover 的 kind 字串
+Pit.status            // PitStatus，預設 active（取代 archived bool）
+Pit.enabledSections   // Set<PitSectionKey>，只對淺坑有意義；text 欄位存逗號分隔名稱（'official,fan'），預設空＝全關
+Pit.coverFile         // String?  淺坑自己的封面（從相簿直接選的圖檔名）；有值時優先於 coverImageId
+```
+- `Pit` 擴充（`PitX`）：`isActive`／`isShallow`／`isArchived`、`archived`（相容讀法＝封存）、
+  `openSections`（淺坑＝`enabledSections`；現坑／封存坑＝六格＋雜物開關開著時的 `junk`）、`sectionOpen(PitSectionKey)`。
+- **`junkEnabled` 與淺坑的 `junk` 格保持一致**（寫入時一起更新；舊版 App 只認得 `junkEnabled`），所以既有的 `pit.junkEnabled` 判斷對淺坑照樣正確。
+- `coverFile`：`setPitCoverFile(pitId, file?)` 設定；`setCover`（現坑從坑內挑封面）會把它清掉。`coverFileProvider` 先看 `coverFile` 再看 `coverImageId`。檔案隨坑文件同步（上傳／下載）。
+
+### 遷移 v10 → v11
+`status`／`enabled_sections`／`cover_file` 三欄新增；`archived = 1` → `status = 'archived'`，其餘 `'active'`；舊的 `archived` 欄位以重建資料表移除
+（其餘欄位原樣搬過去）。任何舊版本（v1～v10）升上來都走同一條路（缺的欄位一律補上），可重複執行。不改 `updated_at`（各裝置各自升級結果相同）。
+
+### 同步（kind `pits`，向下相容）
+- 寫出：文件 = `Pit.toJson()`（含 `status`、`enabledSections`、`coverFile`）**另加相容的 `archived`（bool，＝封存坑）**。舊版 App 忽略不認得的欄位，仍讀得到 `archived`。
+- 讀入：沒有 `status`（舊版 App 的文件）或 `status` 認不得（未來的新類型）→ 由 `archived` 推（true→封存，false→現坑）。
+  例外：本機是淺坑、而文件 `archived == false` 且沒有 `status`（舊版 App 只是改了名稱等）→ **保留淺坑與格子設定**。
+- `enabledSections` 缺 key → 空集合。
+
+### 清單與選擇清單
+```dart
+Stream<List<Pit>> watchPitsByStatus(Set<PitStatus> statuses);   // 依最後更新排序；主頁三個分頁各用一個
+Stream<List<Pit>> watchSelectablePits();                        // 現坑＋淺坑，不含封存坑
+Future<Set<String>> archivedPitIds();
+watchPits({required bool archived})                             // 相容：true＝封存坑，false＝現坑（不含淺坑）
+```
+Providers：`pitsByStatusProvider(PitStatus)`、`selectablePitsProvider`（分享匯入、圖片移動、新增目標、日頁新增的坑清單用它）、`pitsProvider(bool)`（相容）、
+`pitCoverPickerProvider`（淺坑封面的單張選圖，預設同頭像選圖器）。
+- 分享匯入／圖片移動：淺坑列出，但只開放它開啟的格子（`pit.sectionOpen(...)`）；封存坑不列。
+- 目標：`GoalView.progress` **不計封存坑的內容**（腦洞／摸魚／成圖）；新增目標的坑選擇不列封存坑。淺坑照常計入。
+
+### 轉換與格子開關
+```dart
+Future<void> setPitStatus(String pitId, PitStatus status,
+    {Set<PitSectionKey>? enabledSections, bool? junkEnabled, bool deleteClosedContent = false});
+Future<void> setPitSectionEnabled(String pitId, PitSectionKey section, bool enabled, {bool deleteContent = false});
+Future<void> savePit(String id, {required String name, String? description, PitStatus? status,
+    Set<PitSectionKey>? enabledSections, bool? junkEnabled, bool deleteClosedContent = false});   // 編輯坑一次存檔
+Future<void> updatePit(...)   // 舊簽名保留（archived 相容參數）＋ status／enabledSections／deleteClosedContent，委派給 savePit
+Future<String> createPit({..., PitStatus status = active, Set<PitSectionKey> enabledSections = const {}, String? coverFile});
+```
+轉換規則：
+- **淺坑→坑**：六格全開，資料保留；`enabledSections` 清空；雜物沿用淺坑的雜物格（`junkEnabled`）。
+- **坑→淺坑**：沒給 `enabledSections` 時，預設 = 有資料的格子（雜物開關開著也算）。
+- **任何→封存**：資料全保留（不刪、不隱藏列），只是從選擇清單、目標進度排除；淺坑封存時 `enabledSections` 保留，封存→淺坑還原；現坑封存沒有格子設定（轉淺坑時依資料推）。可再轉回任何類型。
+- **關閉有內容的格子**（`setPitSectionEnabled(..., false)`，或轉成淺坑時某個原本開著、現在關掉的格子有內容）：
+  內容**軟刪除**（沿用 `deleteOfficial`／`deleteFanArts`／`deleteJunk`／`deleteIdeas`／`deleteDrafts`／`deletePieces`／`deleteOshiRecords`，連帶清格子封面）；
+  沒帶 `deleteContent`／`deleteClosedContent: true` 就丟 `PitSectionHasContent(counts)`、**整個操作不生效**。UI 先彈確認框，同意後帶旗標。
+  官方圖冊的分組（結構）不刪。
+- 非淺坑呼叫 `setPitSectionEnabled`：只有 `junk` 可以（等同雜物開關，**不刪內容**）；其他丟 `ArgumentError`。
+- 所有寫入都更新 `updatedAt`，隨坑文件同步；刪除的內容列是軟刪除，會同步出去。
+
+### 計數（確認框文字用）
+```dart
+Future<int> sectionContentCount(String pitId, PitSectionKey section);        // 未刪除、未隱藏
+Future<Map<PitSectionKey, int>> sectionContentCounts(String pitId);          // 只列 > 0 的
+```
+單位：official／fan／junk＝圖片張數；idea＝腦洞數；draft＝摸魚數；piece＝成圖數；oshi＝推活筆數。
+確認框：「格子入面的 N 張圖（或 N 個腦洞／摸魚…）會一併刪除，無法復原」。

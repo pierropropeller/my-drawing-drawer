@@ -21,6 +21,7 @@ import 'pit_edit_page.dart';
 import 'pit_junk_entry.dart';
 import 'pit_oshi_entry.dart';
 import 'pit_page.dart';
+import 'pit_type_widgets.dart' show ShallowBadge, ShallowEmptyState;
 import 'pits_icons.dart';
 
 /// iPad 版坑內頁（≥600）。
@@ -128,12 +129,19 @@ class PitPageTablet extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            pit.name,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleLarge
-                ?.copyWith(fontSize: 30, fontWeight: FontWeight.w700),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  pit.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontSize: 30, fontWeight: FontWeight.w700),
+                ),
+              ),
+              if (pit.isShallow) const ShallowBadge(),
+            ],
           ),
           if (desc != null && desc.isNotEmpty)
             Padding(
@@ -162,8 +170,9 @@ class PitPageTablet extends ConsumerWidget {
       ),
     ];
 
-    final cells = <_Tile>[
+    final allCells = <_Tile>[
       _Tile(
+        sectionKey: PitSectionKey.official,
         label: l.pitsOfficial,
         count: l.commonCountImages(stats.official),
         svg: AppIcons.pitOfficial,
@@ -173,6 +182,7 @@ class PitPageTablet extends ConsumerWidget {
         onLongPress: longPress(stats.official, 'official'),
       ),
       _Tile(
+        sectionKey: PitSectionKey.fan,
         label: l.pitsFanArt,
         count: l.commonCountImages(stats.fanArts),
         svg: AppIcons.pitFanArt,
@@ -182,6 +192,7 @@ class PitPageTablet extends ConsumerWidget {
         onLongPress: longPress(stats.fanArts, 'fan'),
       ),
       _Tile(
+        sectionKey: PitSectionKey.idea,
         label: l.pitsIdeas,
         count: l.pitsCountIdeas(stats.ideas),
         svg: AppIcons.pitIdea,
@@ -191,6 +202,7 @@ class PitPageTablet extends ConsumerWidget {
         onLongPress: longPress(stats.ideas, 'idea'),
       ),
       _Tile(
+        sectionKey: PitSectionKey.draft,
         label: l.pitsDrafts,
         count: l.pitsCountDrafts(stats.drafts),
         svg: AppIcons.edit,
@@ -200,6 +212,7 @@ class PitPageTablet extends ConsumerWidget {
         onLongPress: longPress(stats.drafts, 'draft'),
       ),
       _Tile(
+        sectionKey: PitSectionKey.piece,
         label: l.pitsPieces,
         count: l.commonCountImages(stats.pieces),
         svg: stats.pieces == 0 ? AppIcons.pitPieceEmpty : AppIcons.image,
@@ -210,6 +223,7 @@ class PitPageTablet extends ConsumerWidget {
         onLongPress: longPress(stats.pieces, 'piece'),
       ),
       _Tile(
+        sectionKey: PitSectionKey.oshi,
         label: l.pitsCellOshi,
         count: l.pitsCellOshiCount(stats.oshi),
         svg: PitsIcons.oshi,
@@ -219,6 +233,13 @@ class PitPageTablet extends ConsumerWidget {
         onLongPress: longPress(stats.oshi, 'oshi'),
       ),
     ];
+    // 淺坑只顯示開啟的格子。
+    final cells = [
+      for (final c in allCells)
+        if (pit.sectionOpen(c.sectionKey)) c,
+    ];
+    final showJunk = pit.junkEnabled;
+    final emptyShallow = pit.isShallow && cells.isEmpty && !showJunk;
     final cols = wide ? 3 : 2;
     final aspect = wide ? 4 / 3 : 16 / 10;
     final gapX = wide ? 22.0 : 20.0;
@@ -364,8 +385,16 @@ class PitPageTablet extends ConsumerWidget {
               ),
             ],
             SizedBox(height: wide ? 30 : 26),
+            // 淺坑一個格子都沒開（也沒有雜物）：空白狀態（PitShallowEmpty）。
+            if (emptyShallow)
+              SizedBox(
+                height: 360,
+                child: ShallowEmptyState(
+                  onOpen: () => openPitEdit(context, pit),
+                ),
+              ),
             ...rows,
-            if (pit.junkEnabled)
+            if (showJunk)
               PitJunkEntryRow(
                 count: stats.junk,
                 onTap: () => openJunk(context, pitId),
@@ -380,6 +409,7 @@ class PitPageTablet extends ConsumerWidget {
 /// 一格：封面（或 icon）鋪滿 [aspect] 比例的圓角方塊，下方名稱＋數量。
 class _Tile {
   const _Tile({
+    required this.sectionKey,
     required this.label,
     required this.count,
     required this.svg,
@@ -389,6 +419,7 @@ class _Tile {
     this.onLongPress,
     this.placeholder = false,
   });
+  final PitSectionKey sectionKey;
   final String label;
   final String count;
   final String svg;

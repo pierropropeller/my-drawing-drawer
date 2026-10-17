@@ -216,11 +216,11 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final pits = ref.watch(pitsProvider(false)).value ?? const [];
-    final archived = ref.watch(pitsProvider(true)).value ?? const [];
-    final allPits = [...pits, ...archived];
+    // 選擇清單：現坑＋淺坑，不含封存坑（D-088）。編輯舊目標時，已封存的坑仍顯示名稱。
+    final pits = ref.watch(selectablePitsProvider).value ?? const <Pit>[];
+    final archived = ref.watch(pitsProvider(true)).value ?? const <Pit>[];
     Pit? pit;
-    for (final p in allPits) {
+    for (final p in [...pits, ...archived]) {
       if (p.id == _pitId) pit = p;
     }
     final pitTags = _pitId == null
@@ -343,7 +343,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
           DashedAddChip(
             semanticLabel: l.goalsPickPit,
             label: l.commonSelect,
-            onTap: () => _pickPit(allPits),
+            onTap: () => _pickPit(pits),
           ),
         ],
       ),

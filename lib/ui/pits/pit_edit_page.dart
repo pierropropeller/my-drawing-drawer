@@ -10,12 +10,12 @@ import '../album/album_image.dart';
 import '../album/cover_pick_page.dart';
 import '../common/adaptive_modal.dart';
 import '../common/app_icons.dart';
-import '../common/app_switch.dart';
 import '../common/dashed_box.dart';
 import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import 'pit_form.dart';
+import 'pit_type_widgets.dart';
 
 /// 編輯坑的單一入口：視窗 ≥840 開置中 modal（PitEdit，860×690，縮到不超出視窗），
 /// 較窄開整頁（手機版）。刪除坑後會回到主頁（越過坑內頁）。
@@ -55,12 +55,105 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
   final _form = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.pit.name);
   late final _desc = TextEditingController(text: widget.pit.description ?? '');
-  late bool _archived = widget.pit.archived;
-  late bool _junk = widget.pit.junkEnabled;
+  late PitStatus _status = widget.pit.status;
+
+  /// 淺坑開啟的格子（編輯中的版本）。非淺坑時是「轉成淺坑時的預設」，見 [_setStatus]。
+  late Set<PitSectionKey> _sections = {
+    if (widget.pit.isShallow || widget.pit.enabledSections.isNotEmpty)
+      ...widget.pit.enabledSections
+    else if (widget.pit.junkEnabled)
+      PitSectionKey.junk,
+  };
+
+  /// 現坑的雜物開關（淺坑時雜物併入 [_sections]）。
+  late bool _junk = widget.pit.isShallow
+      ? widget.pit.enabledSections.contains(PitSectionKey.junk)
+      : widget.pit.junkEnabled;
+
+  /// 各格子目前的內容數量（關閉格子時決定要不要彈確認框）。
+  Map<PitSectionKey, int> _counts = const {};
+  late final Future<void> _countsLoaded = _loadCounts();
+
+  /// 使用者已在確認框同意「關閉並刪除」的格子（存檔時才真的刪除）。
+  final Set<PitSectionKey> _confirmedClose = {};
+
+  // 淺坑從相簿選的新封面（先暫存，按「儲存」才寫入；null＝清除）。
+  bool _shallowCoverTouched = false;
+  String? _shallowCover;
 
   // modal 的封面選擇：選了先暫存，按「儲存」才寫入（取消不動）。
   late String? _coverId = widget.pit.coverImageId;
   String? _coverKind; // 候選篩選：null＝全部，official／fan／piece
+
+  bool get _shallow => _status == PitStatus.shallow;
+
+  Future<void> _loadCounts() async {
+    final c = await ref
+        .read(databaseProvider)
+        .sectionContentCounts(widget.pit.id);
+    if (mounted) setState(() => _counts = c);
+  }
+
+  /// 切換類型。轉成淺坑時，格子預設為有資料的格子（封存的淺坑則還原當時的設定）；
+  /// 離開淺坑時，雜物開關沿用淺坑的雜物格。
+  Future<void> _setStatus(PitStatus s) async {
+    if (s == _status) return;
+    if (s == PitStatus.shallow && !widget.pit.isShallow) {
+      await _countsLoaded;
+      if (!mounted) return;
+      final restore =
+          widget.pit.isArchived && widget.pit.enabledSections.isNotEmpty;
+      setState(() {
+        _status = s;
+        _sections = restore
+            ? {...widget.pit.enabledSections}
+            : {..._counts.keys, if (_junk) PitSectionKey.junk};
+        _confirmedClose.clear();
+      });
+      return;
+    }
+    setState(() {
+      if (_shallow) _junk = _sections.contains(PitSectionKey.junk);
+      _status = s;
+    });
+  }
+
+  /// 撥動淺坑的某個格子開關。關掉「原本開著而且有內容」的格子要先彈確認框，同意才關（存檔時才刪）。
+  Future<void> _toggleSection(PitSectionKey key, bool on) async {
+    if (on) {
+      setState(() {
+        _sections.add(key);
+        _confirmedClose.remove(key);
+      });
+      return;
+    }
+    await _countsLoaded;
+    if (!mounted) return;
+    final n = _counts[key] ?? 0;
+    final deletes = n > 0 && widget.pit.openSections.contains(key);
+    if (deletes && !await confirmCloseSection(context, key, n)) return;
+    if (!mounted) return;
+    setState(() {
+      _sections.remove(key);
+      if (deletes) _confirmedClose.add(key);
+    });
+  }
+
+  Future<void> _pickShallowCover() async {
+    final file = await pickShallowCoverFile(context, ref);
+    if (file != null && mounted) {
+      setState(() {
+        _shallowCoverTouched = true;
+        _shallowCover = file;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _countsLoaded; // 一進來就開始數各格內容
+  }
 
   @override
   void dispose() {
@@ -73,15 +166,32 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     if (!_form.currentState!.validate()) return;
     final desc = _desc.text.trim();
     final db = ref.read(databaseProvider);
-    await db.updatePit(
-      widget.pit.id,
+    final pit = widget.pit;
+    if (_shallow) {
+      // 原本開著、現在關掉而且有內容的格子：都要有使用者同意（切換開關時已問過；
+      // 其間內容有變動、或經由同步多出內容的，這裡補問）。
+      final fresh = await db.sectionContentCounts(pit.id);
+      for (final k in pit.openSections.difference(_sections)) {
+        final n = fresh[k] ?? 0;
+        if (n > 0 && !_confirmedClose.contains(k)) {
+          if (!mounted || !await confirmCloseSection(context, k, n)) return;
+        }
+      }
+    }
+    await db.savePit(
+      pit.id,
       name: _name.text.trim(),
       description: desc.isEmpty ? null : desc,
-      archived: _archived,
-      junkEnabled: _junk,
+      status: _status,
+      enabledSections: _shallow ? _sections : null,
+      junkEnabled: _shallow ? null : _junk,
+      deleteClosedContent: _shallow,
     );
-    if (_coverId != widget.pit.coverImageId) {
-      await db.setCover(widget.pit.id, _coverId);
+    if (_shallow && _shallowCoverTouched) {
+      await db.setPitCoverFile(pit.id, _shallowCover);
+    }
+    if (_coverId != pit.coverImageId) {
+      await db.setCover(pit.id, _coverId);
     }
     if (mounted) Navigator.of(context).pop();
   }
@@ -127,8 +237,13 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
   String? _validateName(String? v) =>
       (v == null || v.trim().isEmpty) ? context.l10n.pitsNameRequired : null;
 
-  Widget _coverSection(String? coverFile) {
+  Widget _coverSection(String? ownedCover) {
     final t = context.tokens;
+    // 淺坑：封面從手機相簿選（暫存的新封面優先）；現坑：從坑內的圖挑。
+    final coverFile = _shallow && _shallowCoverTouched
+        ? _shallowCover
+        : ownedCover;
+    final pick = _shallow ? _pickShallowCover : _pickCover;
     final Widget tile;
     if (coverFile == null) {
       // 有圖但還沒設封面：虛線正方框＋號，點了進選擇封面。
@@ -136,7 +251,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
         button: true,
         label: context.l10n.pitsSelectCover,
         child: GestureDetector(
-          onTap: _pickCover,
+          onTap: pick,
           child: SizedBox(
             width: 110,
             height: 110,
@@ -168,7 +283,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
           ),
           const SizedBox(width: 14),
           GestureDetector(
-            onTap: _pickCover,
+            onTap: pick,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
@@ -267,8 +382,69 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     );
   }
 
+  /// modal 左欄（淺坑）：封面預覽，加上從手機相簿選圖的按鈕（淺坑通常還沒有坑內的圖可挑）。
+  Widget _shallowCoverPane() {
+    final t = context.tokens;
+    final l = context.l10n;
+    final own = ref.watch(coverFileProvider(widget.pit.id)).value;
+    final file = _shallowCoverTouched ? _shallowCover : own;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+      children: [
+        PitFieldLabel(l.pitsFieldCover),
+        SizedBox(
+          height: 190,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox.expand(
+              child: file != null
+                  ? StoredImage(file, cacheWidth: 600)
+                  : ColoredBox(
+                      color: t.official.bg,
+                      child: Center(
+                        child: SvgIcon(
+                          AppIcons.image,
+                          size: 34,
+                          strokeWidth: 1.5,
+                          color: t.ink.withValues(alpha: .26),
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: GestureDetector(
+            onTap: _pickShallowCover,
+            child: Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: t.surface,
+                border: Border.all(color: t.border),
+                borderRadius: BorderRadius.circular(Radii.chip),
+              ),
+              child: Text(
+                file == null ? l.pitsSelectCover : l.pitsChangeCover,
+                style: TextStyle(
+                  color: t.text2,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// modal 左欄：封面預覽、從坑內選圖（篩選＋4 欄候選）。
   Widget _coverPane() {
+    if (_shallow) return _shallowCoverPane();
     final t = context.tokens;
     final l = context.l10n;
     final all =
@@ -410,7 +586,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     );
   }
 
-  /// modal 右欄：坑名、描述、雜物開關（＋封存：稿沒畫，功能保留）、刪除。
+  /// modal 右欄：類型、坑名、描述、雜物開關（淺坑＝開啟的格子清單）、刪除。
   Widget _formPane() {
     final t = context.tokens;
     final l = context.l10n;
@@ -423,8 +599,10 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                PitTypeSegment(value: _status, onChanged: _setStatus),
                 PitFieldLabel(l.pitsFieldName),
                 TextFormField(
+                  key: const ValueKey('pit-name'),
                   controller: _name,
                   style: const TextStyle(fontSize: 15),
                   decoration: pitInputDecoration(context),
@@ -433,6 +611,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                 const SizedBox(height: 18),
                 PitFieldLabel(l.pitsFieldDesc),
                 TextFormField(
+                  key: const ValueKey('pit-desc'),
                   controller: _desc,
                   minLines: 3,
                   maxLines: 6,
@@ -440,18 +619,22 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                   decoration: pitInputDecoration(context),
                 ),
                 const SizedBox(height: 18),
-                _SwitchCard(
-                  label: l.junkTitle,
-                  subtitle: l.ipadpitJunkHint,
-                  value: _junk,
-                  onChanged: (v) => setState(() => _junk = v),
-                ),
-                const SizedBox(height: 10),
-                _SwitchCard(
-                  label: l.pitsArchive,
-                  value: _archived,
-                  onChanged: (v) => setState(() => _archived = v),
-                ),
+                if (_shallow)
+                  PitSectionSwitchList(
+                    enabled: _sections,
+                    onChanged: _toggleSection,
+                  )
+                else if (_status == PitStatus.active)
+                  PitJunkSwitchCard(
+                    subtitle: l.ipadpitJunkHint,
+                    value: _junk,
+                    radius: 14,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    onChanged: (v) => setState(() => _junk = v),
+                  ),
                 const SizedBox(height: 24),
                 const Spacer(),
                 _deleteButton(),
@@ -524,9 +707,14 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            if (hasImages) _coverSection(coverFile),
+                            PitTypeSegment(
+                              value: _status,
+                              onChanged: _setStatus,
+                            ),
+                            if (hasImages || _shallow) _coverSection(coverFile),
                             PitFieldLabel(context.l10n.pitsFieldName),
                             TextFormField(
+                              key: const ValueKey('pit-name'),
                               controller: _name,
                               style: const TextStyle(fontSize: 15),
                               decoration: pitInputDecoration(context),
@@ -535,6 +723,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                             const SizedBox(height: 16),
                             PitFieldLabel(context.l10n.pitsFieldDesc),
                             TextFormField(
+                              key: const ValueKey('pit-desc'),
                               controller: _desc,
                               minLines: 3,
                               maxLines: 6,
@@ -545,19 +734,17 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                               decoration: pitInputDecoration(context),
                             ),
                             const SizedBox(height: 16),
-                            _SwitchCard(
-                              label: context.l10n.junkTitle,
-                              value: _junk,
-                              onChanged: (v) => setState(() => _junk = v),
-                            ),
-                            // 設計稿沒有封存欄位；封存功能保留，樣式比照雜物開關。
-                            const SizedBox(height: 10),
-                            _SwitchCard(
-                              label: context.l10n.pitsArchive,
-                              value: _archived,
-                              onChanged: (v) => setState(() => _archived = v),
-                            ),
-                            const SizedBox(height: 22),
+                            if (_shallow)
+                              PitSectionSwitchList(
+                                enabled: _sections,
+                                onChanged: _toggleSection,
+                              )
+                            else if (_status == PitStatus.active)
+                              PitJunkSwitchCard(
+                                value: _junk,
+                                onChanged: (v) => setState(() => _junk = v),
+                              ),
+                            SizedBox(height: _shallow ? 0 : 22),
                             PitPrimaryButton(
                               label: context.l10n.commonSave,
                               onPressed: _save,
@@ -581,60 +768,6 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// 白底圓角卡片＋右側開關（PitEdit 的「雜物」）。
-class _SwitchCard extends StatelessWidget {
-  const _SwitchCard({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-    this.subtitle,
-  });
-  final String label;
-  final String? subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: t.surface,
-        border: Border.all(color: t.border),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (subtitle != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      subtitle!,
-                      style: TextStyle(fontSize: 12, color: t.text4),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          AppSwitch(semanticLabel: label, value: value, onChanged: onChanged),
-        ],
       ),
     );
   }

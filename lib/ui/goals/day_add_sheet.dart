@@ -44,9 +44,23 @@ class _DayAddSheet extends StatefulWidget {
 class _DayAddSheetState extends State<_DayAddSheet> {
   GoalKind? _kind; // 有多個坑時，已選的類型
 
+  /// 淺坑只開放它開啟的格子（D-088）：該類型對應的格子開著的坑。
+  List<Pit> _pitsFor(GoalKind k) {
+    final key = switch (k) {
+      GoalKind.idea => PitSectionKey.idea,
+      GoalKind.draft => PitSectionKey.draft,
+      GoalKind.piece => PitSectionKey.piece,
+    };
+    return [
+      for (final p in widget.pits)
+        if (p.sectionOpen(key)) p,
+    ];
+  }
+
   void _pickKind(GoalKind k) {
-    if (widget.pits.length == 1) {
-      Navigator.pop(context, DayAddChoice(k, widget.pits.first.id));
+    final pits = _pitsFor(k);
+    if (pits.length == 1) {
+      Navigator.pop(context, DayAddChoice(k, pits.first.id));
     } else {
       setState(() => _kind = k);
     }
@@ -74,28 +88,33 @@ class _DayAddSheetState extends State<_DayAddSheet> {
               ),
             ),
             if (!choosingPit) ...[
-              _OptionRow(
-                label: context.l10n.goalsKindIdea,
-                icon: GoalsIcons.sheetIdea,
-                color: t.idea,
-                onTap: () => _pickKind(GoalKind.idea),
-              ),
-              const SizedBox(height: 8),
-              _OptionRow(
-                label: context.l10n.goalsKindDraft,
-                icon: GoalsIcons.sheetDraft,
-                color: t.draft,
-                onTap: () => _pickKind(GoalKind.draft),
-              ),
-              const SizedBox(height: 8),
-              _OptionRow(
-                label: context.l10n.goalsKindPiece,
-                icon: GoalsIcons.sheetPiece,
-                color: t.piece,
-                onTap: () => _pickKind(GoalKind.piece),
-              ),
+              if (_pitsFor(GoalKind.idea).isNotEmpty) ...[
+                _OptionRow(
+                  label: context.l10n.goalsKindIdea,
+                  icon: GoalsIcons.sheetIdea,
+                  color: t.idea,
+                  onTap: () => _pickKind(GoalKind.idea),
+                ),
+                const SizedBox(height: 8),
+              ],
+              if (_pitsFor(GoalKind.draft).isNotEmpty) ...[
+                _OptionRow(
+                  label: context.l10n.goalsKindDraft,
+                  icon: GoalsIcons.sheetDraft,
+                  color: t.draft,
+                  onTap: () => _pickKind(GoalKind.draft),
+                ),
+                const SizedBox(height: 8),
+              ],
+              if (_pitsFor(GoalKind.piece).isNotEmpty)
+                _OptionRow(
+                  label: context.l10n.goalsKindPiece,
+                  icon: GoalsIcons.sheetPiece,
+                  color: t.piece,
+                  onTap: () => _pickKind(GoalKind.piece),
+                ),
             ] else
-              for (final p in widget.pits) ...[
+              for (final p in _pitsFor(_kind!)) ...[
                 _OptionRow(
                   label: p.name,
                   icon: AppIcons.folder,

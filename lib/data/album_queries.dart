@@ -530,6 +530,8 @@ extension AlbumQueries on AppDatabase {
     return (update(pits)..where((p) => p.id.equals(pitId))).write(
       PitsCompanion(
         coverImageId: Value(imageId),
+        // 現坑的封面從坑內的圖挑；淺坑自己選的封面檔（Pits.coverFile）不能再蓋過它。
+        coverFile: const Value(null),
         updatedAt: Value(DateTime.now()),
       ),
     );

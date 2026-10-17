@@ -1359,6 +1359,94 @@
   "pieceDetailPayment": "收款",
   "albumFanEmpty": "還沒有同人圖",
   "albumFanCoverSet": "已設為好看同人圖封面",
+  "shallowName": "淺坑",
+  "shallowTypeLabel": "類型",
+  "shallowTypePit": "坑",
+  "shallowTypeArchive": "封存",
+  "shallowNewRow": "開新淺坑",
+  "shallowFieldSections": "開啟的格子",
+  "shallowEmptyTitle": "還沒有開啟格子",
+  "shallowEmptyAction": "開啟格子",
+  "shallowListEmpty": "還沒有淺坑",
+  "shallowSubtitlePart": "{label} {count}",
+  "@shallowSubtitlePart": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "shallowArchivedSubtitle": "成圖 {pieces} · 摸魚 {drafts}",
+  "@shallowArchivedSubtitle": {
+    "placeholders": {
+      "pieces": {
+        "type": "int"
+      },
+      "drafts": {
+        "type": "int"
+      }
+    }
+  },
+  "shallowCloseTitle": "關閉「{label}」？",
+  "@shallowCloseTitle": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "shallowCloseBody": "格子入面的 {detail}會一併刪除，無法復原。",
+  "@shallowCloseBody": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "shallowCountImages": "{count} 張圖",
+  "@shallowCountImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shallowCountIdeas": "{count} 個腦洞",
+  "@shallowCountIdeas": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shallowCountDrafts": "{count} 份摸魚",
+  "@shallowCountDrafts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shallowCountPieces": "{count} 張成圖",
+  "@shallowCountPieces": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shallowCountOshi": "{count} 筆推活",
+  "@shallowCountOshi": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shallowCloseConfirm": "關閉並刪除",
   "shareTitle": "加入到",
   "shareFieldPit": "坑",
   "shareFieldPosition": "位置",

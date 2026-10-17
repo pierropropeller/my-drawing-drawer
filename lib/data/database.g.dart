@@ -162,20 +162,36 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _archivedMeta = const VerificationMeta(
-    'archived',
-  );
   @override
-  late final GeneratedColumn<bool> archived = GeneratedColumn<bool>(
-    'archived',
+  late final GeneratedColumnWithTypeConverter<PitStatus, String> status =
+      GeneratedColumn<String>(
+        'status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('active'),
+      ).withConverter<PitStatus>($PitsTable.$converterstatus);
+  @override
+  late final GeneratedColumnWithTypeConverter<Set<PitSectionKey>, String>
+  enabledSections = GeneratedColumn<String>(
+    'enabled_sections',
     aliasedName,
     false,
-    type: DriftSqlType.bool,
+    type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("archived" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
+    defaultValue: const Constant(''),
+  ).withConverter<Set<PitSectionKey>>($PitsTable.$converterenabledSections);
+  static const VerificationMeta _coverFileMeta = const VerificationMeta(
+    'coverFile',
+  );
+  @override
+  late final GeneratedColumn<String> coverFile = GeneratedColumn<String>(
+    'cover_file',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _junkEnabledMeta = const VerificationMeta(
     'junkEnabled',
@@ -208,7 +224,9 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
     ideaCoverFile,
     pieceCoverFile,
     oshiCoverFile,
-    archived,
+    status,
+    enabledSections,
+    coverFile,
     junkEnabled,
   ];
   @override
@@ -330,10 +348,10 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
         ),
       );
     }
-    if (data.containsKey('archived')) {
+    if (data.containsKey('cover_file')) {
       context.handle(
-        _archivedMeta,
-        archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta),
+        _coverFileMeta,
+        coverFile.isAcceptableOrUnknown(data['cover_file']!, _coverFileMeta),
       );
     }
     if (data.containsKey('junk_enabled')) {
@@ -410,10 +428,22 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
         DriftSqlType.string,
         data['${effectivePrefix}oshi_cover_file'],
       ),
-      archived: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}archived'],
-      )!,
+      status: $PitsTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      enabledSections: $PitsTable.$converterenabledSections.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}enabled_sections'],
+        )!,
+      ),
+      coverFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cover_file'],
+      ),
       junkEnabled: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}junk_enabled'],
@@ -425,6 +455,11 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
   $PitsTable createAlias(String alias) {
     return $PitsTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<PitStatus, String, String> $converterstatus =
+      const EnumNameConverter<PitStatus>(PitStatus.values);
+  static JsonTypeConverter2<Set<PitSectionKey>, String, String>
+  $converterenabledSections = const PitSectionSetConverter();
 }
 
 class Pit extends DataClass implements Insertable<Pit> {
@@ -450,9 +485,21 @@ class Pit extends DataClass implements Insertable<Pit> {
   final String? ideaCoverFile;
   final String? pieceCoverFile;
   final String? oshiCoverFile;
-  final bool archived;
+
+  /// 坑的類型（D-088）：現坑／淺坑／封存坑。v11 起取代 `archived`（遷移：archived＝true → archived，其餘 active）。
+  /// 同步文件另外帶一個相容用的 `archived` bool，舊版 App 才看得懂。
+  final PitStatus status;
+
+  /// 淺坑開啟的格子（只有 [status]＝shallow 時有意義；封存的淺坑保留著，轉回淺坑時還原）。
+  /// 逗號分隔的名稱，見 [PitSectionSetConverter]。預設全部關。
+  final Set<PitSectionKey> enabledSections;
+
+  /// 淺坑自己的封面（從手機相簿直接選的圖，檔名；跟其他圖檔一起同步）。
+  /// 有值時優先於 [coverImageId]；現坑的「選擇封面」會把它清掉。
+  final String? coverFile;
 
   /// 編輯坑的「雜物」開關；開啟後坑內頁最底才出現雜物入口（D-034）。
+  /// 淺坑：與 [enabledSections] 是否含 `junk` 保持一致（舊版 App 只看得到這個欄位）。
   final bool junkEnabled;
   const Pit({
     required this.id,
@@ -469,7 +516,9 @@ class Pit extends DataClass implements Insertable<Pit> {
     this.ideaCoverFile,
     this.pieceCoverFile,
     this.oshiCoverFile,
-    required this.archived,
+    required this.status,
+    required this.enabledSections,
+    this.coverFile,
     required this.junkEnabled,
   });
   @override
@@ -507,7 +556,19 @@ class Pit extends DataClass implements Insertable<Pit> {
     if (!nullToAbsent || oshiCoverFile != null) {
       map['oshi_cover_file'] = Variable<String>(oshiCoverFile);
     }
-    map['archived'] = Variable<bool>(archived);
+    {
+      map['status'] = Variable<String>(
+        $PitsTable.$converterstatus.toSql(status),
+      );
+    }
+    {
+      map['enabled_sections'] = Variable<String>(
+        $PitsTable.$converterenabledSections.toSql(enabledSections),
+      );
+    }
+    if (!nullToAbsent || coverFile != null) {
+      map['cover_file'] = Variable<String>(coverFile);
+    }
     map['junk_enabled'] = Variable<bool>(junkEnabled);
     return map;
   }
@@ -546,7 +607,11 @@ class Pit extends DataClass implements Insertable<Pit> {
       oshiCoverFile: oshiCoverFile == null && nullToAbsent
           ? const Value.absent()
           : Value(oshiCoverFile),
-      archived: Value(archived),
+      status: Value(status),
+      enabledSections: Value(enabledSections),
+      coverFile: coverFile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(coverFile),
       junkEnabled: Value(junkEnabled),
     );
   }
@@ -571,7 +636,13 @@ class Pit extends DataClass implements Insertable<Pit> {
       ideaCoverFile: serializer.fromJson<String?>(json['ideaCoverFile']),
       pieceCoverFile: serializer.fromJson<String?>(json['pieceCoverFile']),
       oshiCoverFile: serializer.fromJson<String?>(json['oshiCoverFile']),
-      archived: serializer.fromJson<bool>(json['archived']),
+      status: $PitsTable.$converterstatus.fromJson(
+        serializer.fromJson<String>(json['status']),
+      ),
+      enabledSections: $PitsTable.$converterenabledSections.fromJson(
+        serializer.fromJson<String>(json['enabledSections']),
+      ),
+      coverFile: serializer.fromJson<String?>(json['coverFile']),
       junkEnabled: serializer.fromJson<bool>(json['junkEnabled']),
     );
   }
@@ -593,7 +664,13 @@ class Pit extends DataClass implements Insertable<Pit> {
       'ideaCoverFile': serializer.toJson<String?>(ideaCoverFile),
       'pieceCoverFile': serializer.toJson<String?>(pieceCoverFile),
       'oshiCoverFile': serializer.toJson<String?>(oshiCoverFile),
-      'archived': serializer.toJson<bool>(archived),
+      'status': serializer.toJson<String>(
+        $PitsTable.$converterstatus.toJson(status),
+      ),
+      'enabledSections': serializer.toJson<String>(
+        $PitsTable.$converterenabledSections.toJson(enabledSections),
+      ),
+      'coverFile': serializer.toJson<String?>(coverFile),
       'junkEnabled': serializer.toJson<bool>(junkEnabled),
     };
   }
@@ -613,7 +690,9 @@ class Pit extends DataClass implements Insertable<Pit> {
     Value<String?> ideaCoverFile = const Value.absent(),
     Value<String?> pieceCoverFile = const Value.absent(),
     Value<String?> oshiCoverFile = const Value.absent(),
-    bool? archived,
+    PitStatus? status,
+    Set<PitSectionKey>? enabledSections,
+    Value<String?> coverFile = const Value.absent(),
     bool? junkEnabled,
   }) => Pit(
     id: id ?? this.id,
@@ -642,7 +721,9 @@ class Pit extends DataClass implements Insertable<Pit> {
     oshiCoverFile: oshiCoverFile.present
         ? oshiCoverFile.value
         : this.oshiCoverFile,
-    archived: archived ?? this.archived,
+    status: status ?? this.status,
+    enabledSections: enabledSections ?? this.enabledSections,
+    coverFile: coverFile.present ? coverFile.value : this.coverFile,
     junkEnabled: junkEnabled ?? this.junkEnabled,
   );
   Pit copyWithCompanion(PitsCompanion data) {
@@ -677,7 +758,11 @@ class Pit extends DataClass implements Insertable<Pit> {
       oshiCoverFile: data.oshiCoverFile.present
           ? data.oshiCoverFile.value
           : this.oshiCoverFile,
-      archived: data.archived.present ? data.archived.value : this.archived,
+      status: data.status.present ? data.status.value : this.status,
+      enabledSections: data.enabledSections.present
+          ? data.enabledSections.value
+          : this.enabledSections,
+      coverFile: data.coverFile.present ? data.coverFile.value : this.coverFile,
       junkEnabled: data.junkEnabled.present
           ? data.junkEnabled.value
           : this.junkEnabled,
@@ -701,7 +786,9 @@ class Pit extends DataClass implements Insertable<Pit> {
           ..write('ideaCoverFile: $ideaCoverFile, ')
           ..write('pieceCoverFile: $pieceCoverFile, ')
           ..write('oshiCoverFile: $oshiCoverFile, ')
-          ..write('archived: $archived, ')
+          ..write('status: $status, ')
+          ..write('enabledSections: $enabledSections, ')
+          ..write('coverFile: $coverFile, ')
           ..write('junkEnabled: $junkEnabled')
           ..write(')'))
         .toString();
@@ -723,7 +810,9 @@ class Pit extends DataClass implements Insertable<Pit> {
     ideaCoverFile,
     pieceCoverFile,
     oshiCoverFile,
-    archived,
+    status,
+    enabledSections,
+    coverFile,
     junkEnabled,
   );
   @override
@@ -744,7 +833,9 @@ class Pit extends DataClass implements Insertable<Pit> {
           other.ideaCoverFile == this.ideaCoverFile &&
           other.pieceCoverFile == this.pieceCoverFile &&
           other.oshiCoverFile == this.oshiCoverFile &&
-          other.archived == this.archived &&
+          other.status == this.status &&
+          other.enabledSections == this.enabledSections &&
+          other.coverFile == this.coverFile &&
           other.junkEnabled == this.junkEnabled);
 }
 
@@ -763,7 +854,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
   final Value<String?> ideaCoverFile;
   final Value<String?> pieceCoverFile;
   final Value<String?> oshiCoverFile;
-  final Value<bool> archived;
+  final Value<PitStatus> status;
+  final Value<Set<PitSectionKey>> enabledSections;
+  final Value<String?> coverFile;
   final Value<bool> junkEnabled;
   final Value<int> rowid;
   const PitsCompanion({
@@ -781,7 +874,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     this.ideaCoverFile = const Value.absent(),
     this.pieceCoverFile = const Value.absent(),
     this.oshiCoverFile = const Value.absent(),
-    this.archived = const Value.absent(),
+    this.status = const Value.absent(),
+    this.enabledSections = const Value.absent(),
+    this.coverFile = const Value.absent(),
     this.junkEnabled = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -800,7 +895,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     this.ideaCoverFile = const Value.absent(),
     this.pieceCoverFile = const Value.absent(),
     this.oshiCoverFile = const Value.absent(),
-    this.archived = const Value.absent(),
+    this.status = const Value.absent(),
+    this.enabledSections = const Value.absent(),
+    this.coverFile = const Value.absent(),
     this.junkEnabled = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name);
@@ -819,7 +916,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     Expression<String>? ideaCoverFile,
     Expression<String>? pieceCoverFile,
     Expression<String>? oshiCoverFile,
-    Expression<bool>? archived,
+    Expression<String>? status,
+    Expression<String>? enabledSections,
+    Expression<String>? coverFile,
     Expression<bool>? junkEnabled,
     Expression<int>? rowid,
   }) {
@@ -838,7 +937,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
       if (ideaCoverFile != null) 'idea_cover_file': ideaCoverFile,
       if (pieceCoverFile != null) 'piece_cover_file': pieceCoverFile,
       if (oshiCoverFile != null) 'oshi_cover_file': oshiCoverFile,
-      if (archived != null) 'archived': archived,
+      if (status != null) 'status': status,
+      if (enabledSections != null) 'enabled_sections': enabledSections,
+      if (coverFile != null) 'cover_file': coverFile,
       if (junkEnabled != null) 'junk_enabled': junkEnabled,
       if (rowid != null) 'rowid': rowid,
     });
@@ -859,7 +960,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     Value<String?>? ideaCoverFile,
     Value<String?>? pieceCoverFile,
     Value<String?>? oshiCoverFile,
-    Value<bool>? archived,
+    Value<PitStatus>? status,
+    Value<Set<PitSectionKey>>? enabledSections,
+    Value<String?>? coverFile,
     Value<bool>? junkEnabled,
     Value<int>? rowid,
   }) {
@@ -878,7 +981,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
       ideaCoverFile: ideaCoverFile ?? this.ideaCoverFile,
       pieceCoverFile: pieceCoverFile ?? this.pieceCoverFile,
       oshiCoverFile: oshiCoverFile ?? this.oshiCoverFile,
-      archived: archived ?? this.archived,
+      status: status ?? this.status,
+      enabledSections: enabledSections ?? this.enabledSections,
+      coverFile: coverFile ?? this.coverFile,
       junkEnabled: junkEnabled ?? this.junkEnabled,
       rowid: rowid ?? this.rowid,
     );
@@ -929,8 +1034,18 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     if (oshiCoverFile.present) {
       map['oshi_cover_file'] = Variable<String>(oshiCoverFile.value);
     }
-    if (archived.present) {
-      map['archived'] = Variable<bool>(archived.value);
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $PitsTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (enabledSections.present) {
+      map['enabled_sections'] = Variable<String>(
+        $PitsTable.$converterenabledSections.toSql(enabledSections.value),
+      );
+    }
+    if (coverFile.present) {
+      map['cover_file'] = Variable<String>(coverFile.value);
     }
     if (junkEnabled.present) {
       map['junk_enabled'] = Variable<bool>(junkEnabled.value);
@@ -958,7 +1073,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
           ..write('ideaCoverFile: $ideaCoverFile, ')
           ..write('pieceCoverFile: $pieceCoverFile, ')
           ..write('oshiCoverFile: $oshiCoverFile, ')
-          ..write('archived: $archived, ')
+          ..write('status: $status, ')
+          ..write('enabledSections: $enabledSections, ')
+          ..write('coverFile: $coverFile, ')
           ..write('junkEnabled: $junkEnabled, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -13069,7 +13186,9 @@ typedef $$PitsTableCreateCompanionBuilder = PitsCompanion Function({
   Value<String?> ideaCoverFile,
   Value<String?> pieceCoverFile,
   Value<String?> oshiCoverFile,
-  Value<bool> archived,
+  Value<PitStatus> status,
+  Value<Set<PitSectionKey>> enabledSections,
+  Value<String?> coverFile,
   Value<bool> junkEnabled,
   Value<int> rowid,
 });
@@ -13088,7 +13207,9 @@ typedef $$PitsTableUpdateCompanionBuilder = PitsCompanion Function({
   Value<String?> ideaCoverFile,
   Value<String?> pieceCoverFile,
   Value<String?> oshiCoverFile,
-  Value<bool> archived,
+  Value<PitStatus> status,
+  Value<Set<PitSectionKey>> enabledSections,
+  Value<String?> coverFile,
   Value<bool> junkEnabled,
   Value<int> rowid,
 });
@@ -13171,8 +13292,20 @@ class $$PitsTableFilterComposer extends Composer<_$AppDatabase, $PitsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get archived => $composableBuilder(
-    column: $table.archived,
+  ColumnWithTypeConverterFilters<PitStatus, PitStatus, String> get status =>
+      $composableBuilder(
+        column: $table.status,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<Set<PitSectionKey>, Set<PitSectionKey>, String>
+  get enabledSections => $composableBuilder(
+    column: $table.enabledSections,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get coverFile => $composableBuilder(
+    column: $table.coverFile,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13260,8 +13393,18 @@ class $$PitsTableOrderingComposer extends Composer<_$AppDatabase, $PitsTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get archived => $composableBuilder(
-    column: $table.archived,
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get enabledSections => $composableBuilder(
+    column: $table.enabledSections,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get coverFile => $composableBuilder(
+    column: $table.coverFile,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -13338,8 +13481,17 @@ class $$PitsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<bool> get archived =>
-      $composableBuilder(column: $table.archived, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<PitStatus, String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Set<PitSectionKey>, String>
+  get enabledSections => $composableBuilder(
+    column: $table.enabledSections,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get coverFile =>
+      $composableBuilder(column: $table.coverFile, builder: (column) => column);
 
   GeneratedColumn<bool> get junkEnabled => $composableBuilder(
     column: $table.junkEnabled,
@@ -13389,7 +13541,10 @@ class $$PitsTableTableManager
                 Value<String?> ideaCoverFile = const Value.absent(),
                 Value<String?> pieceCoverFile = const Value.absent(),
                 Value<String?> oshiCoverFile = const Value.absent(),
-                Value<bool> archived = const Value.absent(),
+                Value<PitStatus> status = const Value.absent(),
+                Value<Set<PitSectionKey>> enabledSections =
+                    const Value.absent(),
+                Value<String?> coverFile = const Value.absent(),
                 Value<bool> junkEnabled = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PitsCompanion(
@@ -13407,7 +13562,9 @@ class $$PitsTableTableManager
                 ideaCoverFile: ideaCoverFile,
                 pieceCoverFile: pieceCoverFile,
                 oshiCoverFile: oshiCoverFile,
-                archived: archived,
+                status: status,
+                enabledSections: enabledSections,
+                coverFile: coverFile,
                 junkEnabled: junkEnabled,
                 rowid: rowid,
               ),
@@ -13427,7 +13584,10 @@ class $$PitsTableTableManager
                 Value<String?> ideaCoverFile = const Value.absent(),
                 Value<String?> pieceCoverFile = const Value.absent(),
                 Value<String?> oshiCoverFile = const Value.absent(),
-                Value<bool> archived = const Value.absent(),
+                Value<PitStatus> status = const Value.absent(),
+                Value<Set<PitSectionKey>> enabledSections =
+                    const Value.absent(),
+                Value<String?> coverFile = const Value.absent(),
                 Value<bool> junkEnabled = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PitsCompanion.insert(
@@ -13445,7 +13605,9 @@ class $$PitsTableTableManager
                 ideaCoverFile: ideaCoverFile,
                 pieceCoverFile: pieceCoverFile,
                 oshiCoverFile: oshiCoverFile,
-                archived: archived,
+                status: status,
+                enabledSections: enabledSections,
+                coverFile: coverFile,
                 junkEnabled: junkEnabled,
                 rowid: rowid,
               ),

@@ -55,8 +55,15 @@ class DayPage extends ConsumerStatefulWidget {
 
 class _DayPageState extends ConsumerState<DayPage> {
   Future<void> _add() async {
-    final pits = ref.read(pitsProvider(false)).value ?? const [];
-    if (pits.isEmpty) {
+    // 現坑＋淺坑（不含封存坑）；淺坑只有開啟的格子能新增。
+    final pits = ref.read(selectablePitsProvider).value ?? const <Pit>[];
+    final addable = pits.any(
+      (p) =>
+          p.sectionOpen(PitSectionKey.idea) ||
+          p.sectionOpen(PitSectionKey.draft) ||
+          p.sectionOpen(PitSectionKey.piece),
+    );
+    if (!addable) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(context.l10n.goalsCreatePitFirst)));
@@ -156,7 +163,7 @@ class _DayPageState extends ConsumerState<DayPage> {
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(pitsProvider(false)); // 讓 ＋ 按下時坑清單已載入
+    ref.watch(selectablePitsProvider); // 讓 ＋ 按下時坑清單已載入
     final body = DayTimeline(
       key: widget.timelineKey,
       initialDay: widget.day,

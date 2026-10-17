@@ -3525,6 +3525,120 @@ abstract class AppLocalizations {
   /// **'已設為好看同人圖封面'**
   String get albumFanCoverSet;
 
+  /// No description provided for @shallowName.
+  ///
+  /// In zh, this message translates to:
+  /// **'淺坑'**
+  String get shallowName;
+
+  /// No description provided for @shallowTypeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'類型'**
+  String get shallowTypeLabel;
+
+  /// No description provided for @shallowTypePit.
+  ///
+  /// In zh, this message translates to:
+  /// **'坑'**
+  String get shallowTypePit;
+
+  /// No description provided for @shallowTypeArchive.
+  ///
+  /// In zh, this message translates to:
+  /// **'封存'**
+  String get shallowTypeArchive;
+
+  /// No description provided for @shallowNewRow.
+  ///
+  /// In zh, this message translates to:
+  /// **'開新淺坑'**
+  String get shallowNewRow;
+
+  /// No description provided for @shallowFieldSections.
+  ///
+  /// In zh, this message translates to:
+  /// **'開啟的格子'**
+  String get shallowFieldSections;
+
+  /// No description provided for @shallowEmptyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有開啟格子'**
+  String get shallowEmptyTitle;
+
+  /// No description provided for @shallowEmptyAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'開啟格子'**
+  String get shallowEmptyAction;
+
+  /// No description provided for @shallowListEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有淺坑'**
+  String get shallowListEmpty;
+
+  /// No description provided for @shallowSubtitlePart.
+  ///
+  /// In zh, this message translates to:
+  /// **'{label} {count}'**
+  String shallowSubtitlePart(String label, String count);
+
+  /// No description provided for @shallowArchivedSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'成圖 {pieces} · 摸魚 {drafts}'**
+  String shallowArchivedSubtitle(int pieces, int drafts);
+
+  /// No description provided for @shallowCloseTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'關閉「{label}」？'**
+  String shallowCloseTitle(String label);
+
+  /// No description provided for @shallowCloseBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'格子入面的 {detail}會一併刪除，無法復原。'**
+  String shallowCloseBody(String detail);
+
+  /// No description provided for @shallowCountImages.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張圖'**
+  String shallowCountImages(int count);
+
+  /// No description provided for @shallowCountIdeas.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 個腦洞'**
+  String shallowCountIdeas(int count);
+
+  /// No description provided for @shallowCountDrafts.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 份摸魚'**
+  String shallowCountDrafts(int count);
+
+  /// No description provided for @shallowCountPieces.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張成圖'**
+  String shallowCountPieces(int count);
+
+  /// No description provided for @shallowCountOshi.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 筆推活'**
+  String shallowCountOshi(int count);
+
+  /// No description provided for @shallowCloseConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'關閉並刪除'**
+  String get shallowCloseConfirm;
+
   /// No description provided for @shareTitle.
   ///
   /// In zh, this message translates to:

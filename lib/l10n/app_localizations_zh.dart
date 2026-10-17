@@ -1951,6 +1951,81 @@ class AppLocalizationsZh extends AppLocalizations {
   String get albumFanCoverSet => '已設為好看同人圖封面';
 
   @override
+  String get shallowName => '淺坑';
+
+  @override
+  String get shallowTypeLabel => '類型';
+
+  @override
+  String get shallowTypePit => '坑';
+
+  @override
+  String get shallowTypeArchive => '封存';
+
+  @override
+  String get shallowNewRow => '開新淺坑';
+
+  @override
+  String get shallowFieldSections => '開啟的格子';
+
+  @override
+  String get shallowEmptyTitle => '還沒有開啟格子';
+
+  @override
+  String get shallowEmptyAction => '開啟格子';
+
+  @override
+  String get shallowListEmpty => '還沒有淺坑';
+
+  @override
+  String shallowSubtitlePart(String label, String count) {
+    return '$label $count';
+  }
+
+  @override
+  String shallowArchivedSubtitle(int pieces, int drafts) {
+    return '成圖 $pieces · 摸魚 $drafts';
+  }
+
+  @override
+  String shallowCloseTitle(String label) {
+    return '關閉「$label」？';
+  }
+
+  @override
+  String shallowCloseBody(String detail) {
+    return '格子入面的 $detail會一併刪除，無法復原。';
+  }
+
+  @override
+  String shallowCountImages(int count) {
+    return '$count 張圖';
+  }
+
+  @override
+  String shallowCountIdeas(int count) {
+    return '$count 個腦洞';
+  }
+
+  @override
+  String shallowCountDrafts(int count) {
+    return '$count 份摸魚';
+  }
+
+  @override
+  String shallowCountPieces(int count) {
+    return '$count 張成圖';
+  }
+
+  @override
+  String shallowCountOshi(int count) {
+    return '$count 筆推活';
+  }
+
+  @override
+  String get shallowCloseConfirm => '關閉並刪除';
+
+  @override
   String get shareTitle => '加入到';
 
   @override

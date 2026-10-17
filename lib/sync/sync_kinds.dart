@@ -161,15 +161,48 @@ class PitsKind extends SyncKind {
     for (final r in await db.select(db.pits).get())
       r.id: r.updatedAt.millisecondsSinceEpoch,
   };
+
+  /// 文件除了 `status`／`enabledSections`／`coverFile`（D-088），另帶舊版 App 才看得懂的
+  /// `archived`（bool，＝封存坑）。舊版 App 讀文件時忽略不認得的欄位。
   @override
-  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>
-      (await (db.select(
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async {
+    final pit = await (db.select(
+      db.pits,
+    )..where((t) => t.id.equals(id))).getSingle();
+    return {...pit.toJson(), 'archived': pit.status == PitStatus.archived};
+  }
+
+  /// 套用遠端文件。舊版 App 寫的文件沒有 `status`：由 `archived` 推（true＝封存，否則現坑）；
+  /// 但本機是淺坑、而舊版 App 只是改了名稱之類（archived 仍是 false）時，保留淺坑與它的格子設定。
+  /// 認不得的 `status`（較新版 App 的新類型）同樣當作沒有。
+  @override
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
+    final raw = data['status'];
+    final known = PitStatus.values.any((s) => s.name == raw);
+    final archived = data['archived'] == true;
+    var doc = Map<String, dynamic>.of(data);
+    if (!known) {
+      final local = await (db.select(
         db.pits,
-      )..where((t) => t.id.equals(id))).getSingle()).toJson();
+      )..where((t) => t.id.equals(data['id'] as String))).getSingleOrNull();
+      if (!archived && local != null && local.status == PitStatus.shallow) {
+        doc['status'] = PitStatus.shallow.name;
+        doc['enabledSections'] = const PitSectionSetConverter().toSql(
+          local.enabledSections,
+        );
+      } else {
+        doc['status'] = (archived ? PitStatus.archived : PitStatus.active).name;
+      }
+    }
+    doc = withDefaults(doc, {'junkEnabled': false, 'enabledSections': ''});
+    await db.into(db.pits).upsertFull(Pit.fromJson(doc));
+  }
+
   @override
-  Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
-      .into(db.pits)
-      .upsertFull(Pit.fromJson(withDefaults(data, {'junkEnabled': false})));
+  Set<String> imageFiles(Map<String, dynamic> data) => {
+    if ((data['coverFile'] as String?)?.isNotEmpty ?? false)
+      data['coverFile'] as String,
+  };
 }
 
 class GroupsKind extends SyncKind {
