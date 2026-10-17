@@ -41,8 +41,9 @@ class GoalNewPage extends ConsumerStatefulWidget {
     String? goalId,
   }) => showAdaptiveModal<void>(
     context,
-    size: const Size(880, 620),
-    builder: (_) =>
+    width: 880,
+    height: 620,
+    builder: (_, _) =>
         GoalNewPage(period: period, year: year, month: month, goalId: goalId),
   );
 

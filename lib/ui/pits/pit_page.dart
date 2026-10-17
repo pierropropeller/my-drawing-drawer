@@ -16,9 +16,11 @@ import '../entity/idea_list_page.dart';
 import '../common/app_icons.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
+import '../common/window_class.dart';
 import 'pit_edit_page.dart';
 import 'pit_junk_entry.dart';
 import 'pit_oshi_entry.dart';
+import 'pit_page_tablet.dart';
 import 'pits_icons.dart';
 
 /// 坑內頁（Pit／PitFilled／PitDark，D-058）：六格正方形（2 欄 3 列）：官方圖冊、好看同人圖／
@@ -47,6 +49,18 @@ class PitPage extends ConsumerWidget {
         ? null
         // 長按進入選擇封面（格內有圖才可）。
         : () => _open(context, CoverPickPage(pitId: pitId, kind: kind));
+
+    // ≥600：iPad 版面（Pit／PitPortrait 稿）；＜600 維持手機版。
+    final wc = WindowClass.of(context);
+    if (!wc.isCompact) {
+      return PitPageTablet(
+        pit: pit,
+        stats: stats,
+        covers: covers,
+        wide: wc.isWide,
+        longPress: longPress,
+      );
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -115,11 +129,7 @@ class PitPage extends ConsumerWidget {
                           size: 21,
                           strokeWidth: 1.8,
                           color: t.text2,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => PitEditPage(pit: pit),
-                            ),
-                          ),
+                          onTap: () => openPitEdit(context, pit),
                         ),
                       ],
                     ),
@@ -246,7 +256,7 @@ class PitPage extends ConsumerWidget {
                         ),
                         // 開啟「雜物」才出現，放在最底（PitJunk）。
                         if (pit.junkEnabled)
-                          _JunkEntry(
+                          PitJunkEntryRow(
                             count: stats.junk,
                             onTap: () => openJunk(context, pitId),
                           ),
@@ -263,9 +273,9 @@ class PitPage extends ConsumerWidget {
   }
 }
 
-/// 坑內頁最底的「雜物」入口：上緣細線、icon、名稱、數量、箭頭。
-class _JunkEntry extends StatelessWidget {
-  const _JunkEntry({required this.count, required this.onTap});
+/// 坑內頁最底的「雜物」入口（手機與 iPad 共用）：上緣細線、icon、名稱、數量、箭頭。
+class PitJunkEntryRow extends StatelessWidget {
+  const PitJunkEntryRow({super.key, required this.count, required this.onTap});
   final int count;
   final VoidCallback onTap;
 
