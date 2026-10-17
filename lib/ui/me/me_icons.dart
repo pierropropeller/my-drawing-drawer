@@ -11,8 +11,4 @@ abstract final class MeIcons {
   /// 相機（編輯個人資料：更換頭像）。ProfileEdit
   static const camera =
       '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/>';
-
-  /// App 圖示（抽屜）。About
-  static const appDrawer =
-      '<rect x="3.5" y="9" width="17" height="11" rx="2"/><path d="M6 9V6.5A1.5 1.5 0 0 1 7.5 5h9A1.5 1.5 0 0 1 18 6.5V9M10 13.5h4"/>';
 }

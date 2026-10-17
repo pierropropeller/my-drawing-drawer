@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'share/share_inbox.dart';
+import 'state/app_icon.dart';
 import 'state/providers.dart';
 import 'state/settings.dart';
 import 'theme/app_theme.dart';
@@ -48,6 +49,8 @@ class HuaKengApp extends ConsumerWidget {
     final accent = ref.watch(settingsProvider.select((s) => s.accent));
     // 啟動時就開始接收分享（冷啟動的初始分享、執行中的新分享）。
     ref.watch(shareInboxProvider);
+    // 啟動時以平台實際啟用的桌面圖示校正設定（D-086）。
+    ref.watch(appIconStartupSyncProvider);
     return RootOverlayHost(
       builder: (context, overlayTracker) => MaterialApp(
         navigatorObservers: [overlayTracker],

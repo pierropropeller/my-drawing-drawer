@@ -1,6 +1,8 @@
 package io.molly.drawer
 
+import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -27,6 +29,7 @@ import java.util.UUID
 class MainActivity : FlutterActivity() {
     private var channel: MethodChannel? = null
     private var mediaChannel: MethodChannel? = null
+    private var appIconChannel: MethodChannel? = null
 
     // Dart 端是否已呼叫過 getInitialShare（之後的分享改用 onShare 推送）。
     private var dartReady = false
@@ -104,6 +107,102 @@ class MainActivity : FlutterActivity() {
             }
         }
         mediaChannel = media
+
+        // App 圖示（D-086）：用 activity-alias 切換桌面圖示，Dart 端見 lib/state/app_icon.dart。
+        val appIcon = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            APP_ICON_CHANNEL,
+        )
+        appIcon.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "currentIcon" -> result.success(
+                    try {
+                        currentIconAlias()
+                    } catch (_: Exception) {
+                        null
+                    },
+                )
+                "setIcon" -> {
+                    val alias = call.argument<String>("alias")
+                    if (alias == null) {
+                        result.error("bad_args", "alias is required", null)
+                    } else {
+                        try {
+                            if (setIconAlias(alias)) {
+                                result.success(null)
+                            } else {
+                                result.error("no_such_alias", alias, null)
+                            }
+                        } catch (e: Exception) {
+                            result.error("set_failed", e.message, null)
+                        }
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+        appIconChannel = appIcon
+    }
+
+    /**
+     * 所有指向 MainActivity 的 activity-alias（含停用的），傳回簡短名稱（`IconSanbi`）與完整類別名。
+     * 用查的而不是寫死，之後加新圖示只要在 Manifest 加一個 alias。
+     */
+    @Suppress("DEPRECATION")
+    private fun iconAliases(): List<Pair<String, String>> {
+        val info = try {
+            packageManager.getPackageInfo(
+                packageName,
+                PackageManager.GET_ACTIVITIES or PackageManager.MATCH_DISABLED_COMPONENTS,
+            )
+        } catch (_: Exception) {
+            return emptyList()
+        }
+        val main = javaClass.name
+        return (info.activities ?: emptyArray())
+            .filter { it.targetActivity == main }
+            .map { it.name.substringAfterLast('.') to it.name }
+    }
+
+    /** 目前啟用的 alias 簡短名稱；沒有（或查不到）回 null，Dart 就用預設。 */
+    private fun currentIconAlias(): String? {
+        for ((short, full) in iconAliases()) {
+            val state = packageManager.getComponentEnabledSetting(ComponentName(packageName, full))
+            if (state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) return short
+        }
+        // 尚未手動切換過（DEFAULT）：以 Manifest 的 enabled 為準。
+        for ((short, full) in iconAliases()) {
+            val state = packageManager.getComponentEnabledSetting(ComponentName(packageName, full))
+            if (state == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT &&
+                packageManager.getActivityInfo(
+                    ComponentName(packageName, full),
+                    PackageManager.MATCH_DISABLED_COMPONENTS,
+                ).enabled
+            ) {
+                return short
+            }
+        }
+        return null
+    }
+
+    /** 啟用 [alias]、停用其他 alias。先開後關，確保任何時刻桌面都有入口。 */
+    private fun setIconAlias(alias: String): Boolean {
+        val all = iconAliases()
+        val target = all.firstOrNull { it.first == alias } ?: return false
+        packageManager.setComponentEnabledSetting(
+            ComponentName(packageName, target.second),
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+        for ((short, full) in all) {
+            if (short == alias) continue
+            packageManager.setComponentEnabledSetting(
+                ComponentName(packageName, full),
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP,
+            )
+        }
+        return true
     }
 
     /** 讀影片的寬高（套用旋轉）、長度與第一格 JPEG 截圖；失敗回 null。 */
@@ -188,6 +287,8 @@ class MainActivity : FlutterActivity() {
         channel = null
         mediaChannel?.setMethodCallHandler(null)
         mediaChannel = null
+        appIconChannel?.setMethodCallHandler(null)
+        appIconChannel = null
         dartReady = false
         super.cleanUpFlutterEngine(flutterEngine)
     }
@@ -335,5 +436,6 @@ class MainActivity : FlutterActivity() {
     companion object {
         private const val CHANNEL = "io.molly.drawer/share"
         private const val MEDIA_CHANNEL = "io.molly.drawer/media"
+        private const val APP_ICON_CHANNEL = "io.molly.drawer/appicon"
     }
 }
