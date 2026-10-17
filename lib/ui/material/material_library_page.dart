@@ -22,6 +22,7 @@ import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
+import '../common/window_class.dart';
 import '../entity/entity_widgets.dart' show EntityFab;
 import '../entity/image_gallery_page.dart';
 import 'material_category.dart';
@@ -39,8 +40,15 @@ const _kLayoutKey = 'materialLayout';
 /// （分享／下載／移動／刪除）時導覽列隱藏。[initialCategory] 是一開始停在哪個分類
 /// （分享進來存完後停在剛存的分類）。
 class MaterialLibraryPage extends ConsumerStatefulWidget {
-  const MaterialLibraryPage({super.key, this.initialCategory});
+  const MaterialLibraryPage({
+    super.key,
+    this.initialCategory,
+    this.embedded = false,
+  });
   final MaterialCategory? initialCategory;
+
+  /// 在 iPad「我的」右側內容面板裡顯示（Profile 稿）：沒有返回鍵，標題旁顯示張數，欄數依面板闊度。
+  final bool embedded;
 
   @override
   ConsumerState<MaterialLibraryPage> createState() =>
@@ -230,8 +238,9 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
     final fullyEmpty = total == 0 && rows.isEmpty;
     final picked = _picked(rows);
     final allSelected = rows.isNotEmpty && picked.length >= rows.length;
+    final embedded = widget.embedded;
     final serif = Theme.of(context).textTheme.titleLarge
-        ?.copyWith(fontSize: 19, fontWeight: FontWeight.w700);
+        ?.copyWith(fontSize: embedded ? 24 : 19, fontWeight: FontWeight.w700);
     return PopScope(
       canPop: !_selecting,
       onPopInvokedWithResult: (didPop, _) {
@@ -239,39 +248,68 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
       },
       child: Scaffold(
         appBar: AppBar(
-          leadingWidth: 58,
-          titleSpacing: 4,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 14),
-            child: _selecting
-                ? IconButton(
-                    tooltip: l.albumCancelSelect,
-                    padding: EdgeInsets.zero,
-                    icon: SvgIcon(
-                      AppIcons.closeX,
-                      size: 22,
-                      color: t.ink,
-                      strokeWidth: 2,
-                    ),
-                    onPressed: _exit,
-                  )
-                : IconButton(
-                    tooltip: l.commonBack,
-                    padding: EdgeInsets.zero,
-                    icon: SvgIcon(
-                      AppIcons.back,
-                      color: t.ink,
-                      strokeWidth: 1.9,
-                    ),
-                    onPressed: () => Navigator.of(context).maybePop(),
+          automaticallyImplyLeading: false,
+          toolbarHeight: embedded ? 72 : null,
+          leadingWidth: (embedded && !_selecting) ? 0 : 58,
+          titleSpacing: (embedded && !_selecting) ? 40 : 4,
+          leading: (embedded && !_selecting)
+              ? null
+              : Padding(
+                  padding: const EdgeInsets.only(left: 14),
+                  child: _selecting
+                      ? IconButton(
+                          tooltip: l.albumCancelSelect,
+                          padding: EdgeInsets.zero,
+                          icon: SvgIcon(
+                            AppIcons.closeX,
+                            size: 22,
+                            color: t.ink,
+                            strokeWidth: 2,
+                          ),
+                          onPressed: _exit,
+                        )
+                      : IconButton(
+                          tooltip: l.commonBack,
+                          padding: EdgeInsets.zero,
+                          icon: SvgIcon(
+                            AppIcons.back,
+                            color: t.ink,
+                            strokeWidth: 1.9,
+                          ),
+                          onPressed: () => Navigator.of(context).maybePop(),
+                        ),
+                ),
+          title: (embedded && !_selecting)
+              ? Text.rich(
+                  TextSpan(
+                    text: l.materialTitle,
+                    children: [
+                      TextSpan(
+                        text: '  ${l.commonCountImages(total)}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: t.text3,
+                          fontFamily: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.fontFamily,
+                        ),
+                      ),
+                    ],
                   ),
-          ),
-          title: Text(
-            _selecting ? l.commonSelectedCount(picked.length) : l.materialTitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: serif,
-          ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: serif,
+                )
+              : Text(
+                  _selecting
+                      ? l.commonSelectedCount(picked.length)
+                      : l.materialTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: serif,
+                ),
           actions: _selecting
               ? [
                   TextButton(
@@ -371,49 +409,68 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
                 ),
               )
             : null,
-        body: Column(
-          children: [
-            if (!fullyEmpty)
-              ChipRow(
-                options: [
-                  for (final c in MaterialCategory.values) (c.name, c.label(l)),
-                ],
-                selected: _category?.name,
-                onSelected: (id) => setState(
-                  () => _category = id == null
-                      ? null
-                      : MaterialCategory.values.byName(id),
-                ),
-                padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
-              ),
-            Expanded(
-              child: rows.isEmpty
-                  ? EmptyState(
-                      svg: AppIcons.image,
-                      text: l.materialEmpty,
-                      color: t.official,
-                      actionLabel: l.albumAddImage,
-                      onAction: _add,
-                    )
-                  : _layout == MaterialLayout.grid
-                  ? SquareGrid(
-                      images: _asAlbum(rows),
-                      selecting: _selecting,
-                      selected: _selected,
-                      padding: const EdgeInsets.fromLTRB(0, 2, 0, 96),
-                      onLongPress: (im) => _longPress(im.id),
-                      onDragSelect: (idx, done) => _dragSelect(rows, idx, done),
-                      onTap: (im, i) => _open(rows, i),
-                    )
-                  : _Masonry(
-                      rows: rows,
-                      selecting: _selecting,
-                      selected: _selected,
-                      onDragSelect: (idx, done) => _dragSelect(rows, idx, done),
-                      onTap: (i) => _open(rows, i),
+        body: Padding(
+          padding: EdgeInsets.symmetric(horizontal: embedded ? 20 : 0),
+          child: LayoutBuilder(
+            builder: (context, box) {
+              // 欄數：手機（＜600）維持原本的欄數；其餘依可用闊度 gridColumnsFor
+              // （面板內 5 欄：最小格寬 120）。
+              final int? columns = embedded
+                  ? gridColumnsFor(box.maxWidth - 40, minCell: 130)
+                  : (WindowClass.of(context).isCompact
+                        ? null
+                        : gridColumnsFor(box.maxWidth - 40));
+              return Column(
+                children: [
+                  if (!fullyEmpty)
+                    ChipRow(
+                      options: [
+                        for (final c in MaterialCategory.values)
+                          (c.name, c.label(l)),
+                      ],
+                      selected: _category?.name,
+                      onSelected: (id) => setState(
+                        () => _category = id == null
+                            ? null
+                            : MaterialCategory.values.byName(id),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
                     ),
-            ),
-          ],
+                  Expanded(
+                    child: rows.isEmpty
+                        ? EmptyState(
+                            svg: AppIcons.image,
+                            text: l.materialEmpty,
+                            color: t.official,
+                            actionLabel: l.albumAddImage,
+                            onAction: _add,
+                          )
+                        : _layout == MaterialLayout.grid
+                        ? SquareGrid(
+                            images: _asAlbum(rows),
+                            columns: columns,
+                            selecting: _selecting,
+                            selected: _selected,
+                            padding: const EdgeInsets.fromLTRB(0, 2, 0, 96),
+                            onLongPress: (im) => _longPress(im.id),
+                            onDragSelect: (idx, done) =>
+                                _dragSelect(rows, idx, done),
+                            onTap: (im, i) => _open(rows, i),
+                          )
+                        : _Masonry(
+                            rows: rows,
+                            columns: columns,
+                            selecting: _selecting,
+                            selected: _selected,
+                            onDragSelect: (idx, done) =>
+                                _dragSelect(rows, idx, done),
+                            onTap: (i) => _open(rows, i),
+                          ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -424,12 +481,16 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
 class _Masonry extends StatelessWidget {
   const _Masonry({
     required this.rows,
+    this.columns,
     required this.selecting,
     required this.selected,
     required this.onDragSelect,
     required this.onTap,
   });
   final List<MaterialImage> rows;
+
+  /// 欄數；null＝沿用手機的 [columnsForWidth]。
+  final int? columns;
   final bool selecting;
   final Set<String> selected;
   final void Function(Set<int> indices, bool finished) onDragSelect;
@@ -440,7 +501,8 @@ class _Masonry extends StatelessWidget {
     final t = context.tokens;
     final grid = MasonryGridView.count(
       padding: const EdgeInsets.fromLTRB(20, 2, 20, 96),
-      crossAxisCount: columnsForWidth(MediaQuery.sizeOf(context).width),
+      crossAxisCount:
+          columns ?? columnsForWidth(MediaQuery.sizeOf(context).width),
       mainAxisSpacing: 8,
       crossAxisSpacing: 8,
       itemCount: rows.length,

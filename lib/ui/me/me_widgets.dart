@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/tokens.dart';
+import '../common/nav_bar_hidden.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import '../../l10n/l10n.dart';
@@ -84,4 +85,59 @@ String meTimeLabel(DateTime? at, {DateTime? now}) {
   if (diff == 0) return l10nStatic.meTimeToday(hm);
   if (diff == 1) return l10nStatic.meTimeYesterday(hm);
   return l10nStatic.meTimeDate(at.month, at.day, hm);
+}
+
+/// 「我的」子頁的外框。
+///
+/// 一般（手機／整頁）＝藏導覽的 Scaffold＋返回列 [MeSubHeader]；
+/// [embedded]（iPad 右側內容面板）＝只有襯線大標題（Profile 稿 24/700）和內容，不藏導覽。
+class MePageFrame extends StatelessWidget {
+  const MePageFrame({
+    super.key,
+    required this.title,
+    required this.child,
+    this.embedded = false,
+    this.bottom = 12,
+  });
+  final String title;
+  final Widget child;
+  final bool embedded;
+  final double bottom;
+
+  @override
+  Widget build(BuildContext context) {
+    if (embedded) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(40, 30, 40, 14),
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.headlineMedium
+                  ?.copyWith(fontSize: 24, fontWeight: FontWeight.w700),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: child,
+            ),
+          ),
+        ],
+      );
+    }
+    return HideNavBar(
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              MeSubHeader(title, bottom: bottom),
+              Expanded(child: child),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

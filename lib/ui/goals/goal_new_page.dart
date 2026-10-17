@@ -10,6 +10,7 @@ import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../entity/entity_widgets.dart';
 import '../common/app_icons.dart';
+import '../common/adaptive_modal.dart';
 import '../common/app_switch.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
@@ -31,11 +32,30 @@ class GoalNewPage extends ConsumerStatefulWidget {
   final int? month;
   final String? goalId;
 
+  /// 開新增／編輯目標：≥840 是置中對話框（NewGoal），其餘是整頁。
+  static Future<void> open(
+    BuildContext context, {
+    required GoalPeriod period,
+    required int year,
+    int? month,
+    String? goalId,
+  }) => showAdaptiveModal<void>(
+    context,
+    size: const Size(880, 620),
+    builder: (_) =>
+        GoalNewPage(period: period, year: year, month: month, goalId: goalId),
+  );
+
   @override
   ConsumerState<GoalNewPage> createState() => _GoalNewPageState();
 }
 
 class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
+  // 在 iPad 對話框裡時側邊導覽仍在遮罩底下，不用藏。
+  @override
+  bool get hidesNavBarOnOpen =>
+      context.getInheritedWidgetOfExactType<AdaptiveModalScope>() == null;
+
   final _name = TextEditingController();
   final _likes = TextEditingController();
   final _countCtl = TextEditingController(text: '1');
@@ -213,6 +233,255 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
       (false, GoalPeriod.month) => l.goalsEditMonthGoal,
     };
     final fieldStyle = const TextStyle(fontSize: 15);
+
+    // 各區塊：手機版一欄排列；iPad 對話框分左右兩欄（NewGoal）。
+    final previewW = <Widget>[
+      Padding(
+        padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
+        child: Text(
+          l.goalsPreview,
+          style: TextStyle(fontSize: 11, color: t.text3),
+        ),
+      ),
+      GoalCardBody(
+        label: _previewLabel,
+        progress: 0,
+        target: _count,
+        pitName: pit?.name,
+        tags: [
+          for (final tag in pitTags)
+            if (_tagIds.contains(tag.id)) '#${tag.name}',
+        ],
+      ),
+    ];
+    final nameW = <Widget>[
+      FormLabel(l.goalsFieldName),
+      TextField(
+        controller: _name,
+        style: fieldStyle,
+        onChanged: (_) => setState(() {}),
+        decoration: entityFieldDecoration(context, l.goalsNameHint),
+      ),
+    ];
+    final kindW = <Widget>[
+      _requiredLabel(context, l.goalsFieldKind),
+      Row(
+        spacing: 8,
+        children: [
+          for (final (k, label) in [
+            (GoalKind.idea, l.goalsKindIdea),
+            (GoalKind.draft, l.goalsKindDraft),
+            (GoalKind.piece, l.goalsKindPiece),
+          ])
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _kind = k),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _kind == k ? t.accent : t.surface,
+                    border: Border.all(color: _kind == k ? t.accent : t.border),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _kind == k ? Colors.white : t.text2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ];
+    final countW = <Widget>[
+      _requiredLabel(context, l.goalsFieldCount),
+      Row(
+        spacing: 10,
+        children: [
+          _stepButton(context, '−', () => _setCount(_count - 1)),
+          Expanded(
+            child: TextField(
+              controller: _countCtl,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              style: fieldStyle,
+              onChanged: (v) {
+                final n = int.tryParse(v);
+                if (n != null && n > 0) {
+                  setState(() => _count = n);
+                }
+              },
+              decoration: entityFieldDecoration(context, ''),
+            ),
+          ),
+          _stepButton(context, '＋', () => _setCount(_count + 1)),
+        ],
+      ),
+    ];
+    final pitW = <Widget>[
+      FormLabel(l.goalsFieldPit),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          if (pit != null)
+            PitPill(
+              name: pit.name,
+              large: true,
+              onRemove: () => setState(() {
+                _pitId = null;
+                _tagIds = [];
+              }),
+            ),
+          DashedAddChip(
+            semanticLabel: l.goalsPickPit,
+            label: l.commonSelect,
+            onTap: () => _pickPit(allPits),
+          ),
+        ],
+      ),
+    ];
+    final tagW = <Widget>[
+      FormLabel(l.goalsFieldTag),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
+        child: Text(
+          _pitId == null ? l.goalsTagHintNoPit : l.goalsTagHintPit,
+          style: TextStyle(fontSize: 11.5, color: t.text4),
+        ),
+      ),
+      if (_pitId != null)
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            for (final tag in pitTags)
+              _pill(
+                context,
+                '#${tag.name}',
+                _tagIds.contains(tag.id),
+                () => setState(
+                  () => _tagIds.contains(tag.id)
+                      ? _tagIds = _tagIds.where((e) => e != tag.id).toList()
+                      : _tagIds = [..._tagIds, tag.id],
+                ),
+              ),
+            DashedAddChip(
+              semanticLabel: l.goalsAddTag,
+              onTap: () async {
+                final name = await promptText(context, title: l.goalsAddTag);
+                if (name == null) return;
+                final id = await ref
+                    .read(databaseProvider)
+                    .createTag(_pitId!, name);
+                if (mounted && !_tagIds.contains(id)) {
+                  setState(() => _tagIds = [..._tagIds, id]);
+                }
+              },
+            ),
+          ],
+        ),
+    ];
+    final likesW = <Widget>[
+      if (_kind == GoalKind.piece)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          decoration: BoxDecoration(
+            color: t.surface,
+            border: Border.all(color: t.borderCard),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l.goalsRequireLikes,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    AppSwitch(
+                      value: _requireLikes,
+                      semanticLabel: l.goalsRequireLikes,
+                      onChanged: (v) => setState(() {
+                        _requireLikes = v;
+                        // 開啟時門檻預設 100（GoalNewHot）。
+                        if (v && _likes.text.trim().isEmpty) {
+                          _likes.text = '100';
+                        }
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+              if (_requireLikes)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 2, 0, 14),
+                  child: Row(
+                    spacing: 10,
+                    children: [
+                      Text(
+                        l.goalsLikesAtLeast,
+                        style: TextStyle(fontSize: 14, color: t.text2),
+                      ),
+                      SizedBox(
+                        width: 110,
+                        child: TextField(
+                          controller: _likes,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          style: fieldStyle,
+                          onChanged: (_) => setState(() {}),
+                          decoration: entityFieldDecoration(context, ''),
+                        ),
+                      ),
+                      Text(
+                        l.goalsHearts,
+                        style: TextStyle(fontSize: 13, color: t.text3),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+    ];
+
+    if (AdaptiveModalScope.of(context)) {
+      return _buildModal(
+        context,
+        title: title,
+        left: [
+          ...previewW,
+          const SizedBox(height: 22),
+          ...nameW,
+          const SizedBox(height: 18),
+          ...kindW,
+          const SizedBox(height: 18),
+          ...countW,
+        ],
+        right: [
+          ...pitW,
+          const SizedBox(height: 18),
+          ...tagW,
+          const SizedBox(height: 18),
+          ...likesW,
+        ],
+      );
+    }
+
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -223,25 +492,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                 title: title,
                 titleSize: 20,
                 gap: 6,
-                trailing: [
-                  if (widget.goalId != null)
-                    HeaderIconButton(
-                      label: l.commonDelete,
-                      icon: AppIcons.trash,
-                      color: t.danger,
-                      onTap: () async {
-                        final ok = await confirmDelete(
-                          context,
-                          title: l.goalsDeleteConfirm,
-                        );
-                        if (!ok || !context.mounted) return;
-                        await ref
-                            .read(databaseProvider)
-                            .deleteGoal(widget.goalId!);
-                        if (context.mounted) Navigator.of(context).pop();
-                      },
-                    ),
-                ],
+                trailing: [if (widget.goalId != null) _deleteButton(context)],
               ),
               Expanded(
                 child: !_loaded
@@ -249,276 +500,20 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                     : ListView(
                         padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
-                            child: Text(
-                              l.goalsPreview,
-                              style: TextStyle(fontSize: 11, color: t.text3),
-                            ),
-                          ),
-                          GoalCardBody(
-                            label: _previewLabel,
-                            progress: 0,
-                            target: _count,
-                            pitName: pit?.name,
-                            tags: [
-                              for (final tag in pitTags)
-                                if (_tagIds.contains(tag.id)) '#${tag.name}',
-                            ],
-                          ),
+                          ...previewW,
                           const SizedBox(height: 20),
-                          FormLabel(l.goalsFieldName),
-                          TextField(
-                            controller: _name,
-                            style: fieldStyle,
-                            onChanged: (_) => setState(() {}),
-                            decoration: entityFieldDecoration(
-                              context,
-                              l.goalsNameHint,
-                            ),
-                          ),
+                          ...nameW,
                           const SizedBox(height: 16),
-                          _requiredLabel(context, l.goalsFieldKind),
-                          Row(
-                            spacing: 8,
-                            children: [
-                              for (final (k, label) in [
-                                (GoalKind.idea, l.goalsKindIdea),
-                                (GoalKind.draft, l.goalsKindDraft),
-                                (GoalKind.piece, l.goalsKindPiece),
-                              ])
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => setState(() => _kind = k),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 11,
-                                      ),
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: _kind == k
-                                            ? t.accent
-                                            : t.surface,
-                                        border: Border.all(
-                                          color: _kind == k
-                                              ? t.accent
-                                              : t.border,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        label,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: _kind == k
-                                              ? Colors.white
-                                              : t.text2,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
+                          ...kindW,
                           const SizedBox(height: 16),
-                          _requiredLabel(context, l.goalsFieldCount),
-                          Row(
-                            spacing: 10,
-                            children: [
-                              _stepButton(
-                                context,
-                                '−',
-                                () => _setCount(_count - 1),
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: _countCtl,
-                                  keyboardType: TextInputType.number,
-                                  textAlign: TextAlign.center,
-                                  style: fieldStyle,
-                                  onChanged: (v) {
-                                    final n = int.tryParse(v);
-                                    if (n != null && n > 0) {
-                                      setState(() => _count = n);
-                                    }
-                                  },
-                                  decoration: entityFieldDecoration(
-                                    context,
-                                    '',
-                                  ),
-                                ),
-                              ),
-                              _stepButton(
-                                context,
-                                '＋',
-                                () => _setCount(_count + 1),
-                              ),
-                            ],
-                          ),
+                          ...countW,
                           const SizedBox(height: 16),
-                          FormLabel(l.goalsFieldPit),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              if (pit != null)
-                                PitPill(
-                                  name: pit.name,
-                                  large: true,
-                                  onRemove: () => setState(() {
-                                    _pitId = null;
-                                    _tagIds = [];
-                                  }),
-                                ),
-                              DashedAddChip(
-                                semanticLabel: l.goalsPickPit,
-                                label: l.commonSelect,
-                                onTap: () => _pickPit(allPits),
-                              ),
-                            ],
-                          ),
+                          ...pitW,
                           const SizedBox(height: 16),
-                          FormLabel(l.goalsFieldTag),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
-                            child: Text(
-                              _pitId == null
-                                  ? l.goalsTagHintNoPit
-                                  : l.goalsTagHintPit,
-                              style: TextStyle(fontSize: 11.5, color: t.text4),
-                            ),
-                          ),
-                          if (_pitId != null)
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                for (final tag in pitTags)
-                                  _pill(
-                                    context,
-                                    '#${tag.name}',
-                                    _tagIds.contains(tag.id),
-                                    () => setState(
-                                      () => _tagIds.contains(tag.id)
-                                          ? _tagIds = _tagIds
-                                                .where((e) => e != tag.id)
-                                                .toList()
-                                          : _tagIds = [..._tagIds, tag.id],
-                                    ),
-                                  ),
-                                DashedAddChip(
-                                  semanticLabel: l.goalsAddTag,
-                                  onTap: () async {
-                                    final name = await promptText(
-                                      context,
-                                      title: l.goalsAddTag,
-                                    );
-                                    if (name == null) return;
-                                    final id = await ref
-                                        .read(databaseProvider)
-                                        .createTag(_pitId!, name);
-                                    if (mounted && !_tagIds.contains(id)) {
-                                      setState(
-                                        () => _tagIds = [..._tagIds, id],
-                                      );
-                                    }
-                                  },
-                                ),
-                              ],
-                            ),
+                          ...tagW,
                           const SizedBox(height: 16),
                           if (_kind == GoalKind.piece) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: t.surface,
-                                border: Border.all(color: t.borderCard),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Column(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          l.goalsRequireLikes,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        AppSwitch(
-                                          value: _requireLikes,
-                                          semanticLabel: l.goalsRequireLikes,
-                                          onChanged: (v) => setState(() {
-                                            _requireLikes = v;
-                                            // 開啟時門檻預設 100（GoalNewHot）。
-                                            if (v &&
-                                                _likes.text.trim().isEmpty) {
-                                              _likes.text = '100';
-                                            }
-                                          }),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (_requireLikes)
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        0,
-                                        2,
-                                        0,
-                                        14,
-                                      ),
-                                      child: Row(
-                                        spacing: 10,
-                                        children: [
-                                          Text(
-                                            l.goalsLikesAtLeast,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: t.text2,
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            width: 110,
-                                            child: TextField(
-                                              controller: _likes,
-                                              keyboardType:
-                                                  TextInputType.number,
-                                              textAlign: TextAlign.center,
-                                              style: fieldStyle,
-                                              onChanged: (_) => setState(() {}),
-                                              decoration: entityFieldDecoration(
-                                                context,
-                                                '',
-                                              ),
-                                            ),
-                                          ),
-                                          Text(
-                                            l.goalsHearts,
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: t.text3,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
+                            ...likesW,
                             const SizedBox(height: 16),
                           ],
                           FormSubmitButton(
@@ -532,6 +527,143 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _deleteButton(BuildContext context) {
+    final l = context.l10n;
+    return HeaderIconButton(
+      label: l.commonDelete,
+      icon: AppIcons.trash,
+      color: context.tokens.danger,
+      onTap: () async {
+        final ok = await confirmDelete(context, title: l.goalsDeleteConfirm);
+        if (!ok || !context.mounted) return;
+        await ref.read(databaseProvider).deleteGoal(widget.goalId!);
+        if (context.mounted) Navigator.of(context).pop();
+      },
+    );
+  }
+
+  /// iPad 對話框版（NewGoal）：頂欄「取消／標題／建立目標」，左欄預覽＋名稱＋種類＋數量，
+  /// 右欄目標坑＋tag＋互動量。對話框被拉窄（＜700）時改單欄捲動。
+  Widget _buildModal(
+    BuildContext context, {
+    required String title,
+    required List<Widget> left,
+    required List<Widget> right,
+  }) {
+    final t = context.tokens;
+    final l = context.l10n;
+    final editing = widget.goalId != null;
+    final header = Container(
+      height: 64,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: t.border)),
+      ),
+      child: Row(
+        children: [
+          TextButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(44, 44),
+              foregroundColor: t.text2,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              textStyle: const TextStyle(fontSize: 15),
+            ),
+            child: Text(l.commonCancel),
+          ),
+          Expanded(
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontSize: 19, fontWeight: FontWeight.w700),
+            ),
+          ),
+          if (editing) _deleteButton(context),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: _loaded ? _save : null,
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: t.accent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                editing ? l.commonSave : l.goalsCreateGoal,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    Widget col(List<Widget> children, EdgeInsets pad) => SingleChildScrollView(
+      padding: pad,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
+    return ScaffoldMessenger(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Column(
+          children: [
+            header,
+            Expanded(
+              child: !_loaded
+                  ? const Center(child: CircularProgressIndicator())
+                  : LayoutBuilder(
+                      builder: (context, box) {
+                        if (box.maxWidth < 700) {
+                          return col([
+                            ...left,
+                            const SizedBox(height: 18),
+                            ...right,
+                          ], const EdgeInsets.fromLTRB(24, 22, 24, 24));
+                        }
+                        final leftW = (box.maxWidth * 0.49).clamp(340.0, 430.0);
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              width: leftW,
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  right: BorderSide(color: t.border),
+                                ),
+                              ),
+                              child: col(
+                                left,
+                                const EdgeInsets.fromLTRB(24, 22, 24, 22),
+                              ),
+                            ),
+                            Expanded(
+                              child: col(
+                                right,
+                                const EdgeInsets.fromLTRB(24, 22, 24, 22),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );

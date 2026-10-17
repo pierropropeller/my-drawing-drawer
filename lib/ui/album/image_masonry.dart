@@ -134,9 +134,13 @@ class SquareGrid extends StatelessWidget {
     this.selecting = false,
     this.selected = const {},
     this.padding = const EdgeInsets.fromLTRB(0, 6, 0, 96),
+    this.columns,
   });
 
   final List<AlbumImage> images;
+
+  /// 欄數；null＝依視窗闊度（手機 3 欄）。平板版面由呼叫端依可用闊度傳入。
+  final int? columns;
   final void Function(AlbumImage image, int index) onTap;
   final void Function(AlbumImage image)? onLongPress;
 
@@ -153,10 +157,9 @@ class SquareGrid extends StatelessWidget {
     final grid = GridView.builder(
       padding: padding,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columnsForWidth(
-          MediaQuery.sizeOf(context).width,
-          phone: 3,
-        ),
+        crossAxisCount:
+            columns ??
+            columnsForWidth(MediaQuery.sizeOf(context).width, phone: 3),
         mainAxisSpacing: 2,
         crossAxisSpacing: 2,
       ),
