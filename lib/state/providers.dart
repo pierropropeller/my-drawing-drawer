@@ -23,6 +23,7 @@ import '../media/gallery_repository.dart';
 import '../media/media_import.dart';
 import '../media/photo_manager_gallery.dart';
 import '../media/video_probe.dart';
+import '../ui/media_source/pick_images_for.dart';
 import '../ui/picker/image_picker_sheet.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -54,11 +55,9 @@ final galleryRepositoryProvider = Provider<GalleryRepository>(
   (ref) => PhotoManagerGallery(),
 );
 
-/// 相簿選圖／影片／GIF（D-080、D-084：自家的選擇器，不再用系統選擇器）。
-/// 傳入 context 才能開 bottom sheet；使用者關閉（✕、撳外面、返回）回傳空清單。
-/// 獨立成 provider 方便測試時替換：`imagePickerProvider.overrideWithValue((_) async => files)`。
-/// 選到的檔案請用 `importPickedMedia` 匯入，不要直接 `store.import`。
-final imagePickerProvider =
+/// 直接開自家相簿選擇器（D-084），不經加圖來源選單。
+/// 手機（＜600）的加圖、素材庫本身的加圖都用它；一般表單請用 [imagePickerProvider]。
+final photoPickerProvider =
     Provider<Future<List<XFile>> Function(BuildContext context)>(
       (ref) =>
           (context) async =>
@@ -67,6 +66,18 @@ final imagePickerProvider =
                 repository: ref.read(galleryRepositoryProvider),
               ) ??
               const [],
+    );
+
+/// 表單／列表的「加圖」（D-080、D-084；iPad MediaMenu）。
+/// 手機（視窗 ＜600）＝直接開自家選擇器；視窗 ≥600＝先彈出加圖來源選單
+/// （照片／檔案／素材庫／拍照／貼上），見 `pickImagesWith`。
+/// 傳入 context 才能開 bottom sheet；使用者關閉（✕、撳外面、返回）回傳空清單。
+/// 獨立成 provider 方便測試時替換：`imagePickerProvider.overrideWithValue((_) async => files)`。
+/// 選到的檔案請用 `importPickedMedia` 匯入，不要直接 `store.import`。
+final imagePickerProvider =
+    Provider<Future<List<XFile>> Function(BuildContext context)>(
+      (ref) =>
+          (context) => pickImagesWith(context, ref.read),
     );
 
 /// 頭像用的選圖：只列圖片、單選。同樣獨立成 provider 方便測試替換。

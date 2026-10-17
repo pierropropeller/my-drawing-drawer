@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart' show XFile;
 
 import '../../data/album_queries.dart';
 import '../../data/junk_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
+import '../media_source/drop_zone.dart';
 import '../common/app_icons.dart';
 import 'album_image.dart';
 import 'album_panels.dart';
@@ -29,6 +31,12 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
   Future<void> _add(String? groupId) async {
     final picked = await ref.read(imagePickerProvider)(context);
     if (picked.isEmpty || !mounted) return;
+    await _openNew(groupId, picked);
+  }
+
+  /// 進入新增頁（圖已選好）。從其他 App 拖放進來（MediaDrop）也走這裡：
+  /// 新增頁就是「放開後選擇分組」那一步（分組 chips＋加入按鈕）。
+  Future<void> _openNew(String? groupId, List<XFile> picked) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => OfficialNewPage(
@@ -68,7 +76,7 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
           posterFile: r.posterFile,
         ),
     ];
-    return AlbumView(
+    final view = AlbumView(
       pitId: widget.pitId,
       cell: AlbumCell.official,
       title: context.l10n.pitsOfficial,
@@ -100,6 +108,13 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
           ),
         ),
       ),
+    );
+    // 從「照片」「檔案」拖放圖片／影片進來（MediaDrop）；只有這個列表頁和新增官方圖頁收。
+    return DropZone(
+      title: context.l10n.ipadmediaDropTitle(context.l10n.pitsOfficial),
+      subtitleFor: context.l10n.ipadmediaDropChooseGroup,
+      onFiles: (files) => _openNew(groupId, files),
+      child: view,
     );
   }
 }

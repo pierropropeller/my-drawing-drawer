@@ -69,6 +69,8 @@ void main() {
       (ref) async => ImageStore(Directory('${tmp.path}/images')),
     ),
     imagePickerProvider.overrideWithValue((_) async => pick),
+    // 素材庫自己的加圖直接開相簿（不經加圖來源選單）。
+    photoPickerProvider.overrideWithValue((_) async => pick),
   ];
 
   Future<void> showPage(
