@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/tokens.dart';
+import '../media_source/media_menu_anchor.dart';
 import 'dashed_box.dart';
 
 /// 表單圖片格的拖曳排序（D-082，`ImageReorder`）。
@@ -258,7 +259,8 @@ class _ReorderableImageGridState extends State<ReorderableImageGrid> {
                   top: _slotOffset(widget.count).dy,
                   width: size,
                   height: size,
-                  child: widget.trailing!,
+                  // 加圖格：按下時記位置，加圖來源選單（iPad）錨在它旁邊。
+                  child: MediaMenuAnchorTarget(child: widget.trailing!),
                 ),
               if (from != null) _lifted(from, size),
             ],

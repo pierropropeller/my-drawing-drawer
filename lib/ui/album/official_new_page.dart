@@ -6,6 +6,7 @@ import '../../data/album_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/nav_bar_hidden.dart';
+import '../media_source/drop_zone.dart';
 import 'album_actions.dart';
 import 'album_form.dart';
 import 'group_picker.dart';
@@ -71,30 +72,39 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
         : (groups.any((g) => g.id == widget.initialGroupId)
               ? widget.initialGroupId
               : (groups.isEmpty ? null : groups.first.id));
-    return AlbumFormScaffold(
-      title: context.l10n.albumOfficialNewTitle,
-      children: [
-        AlbumFieldLabel(context.l10n.albumFieldImage),
-        ImagePickerField(
-          items: _files,
-          onAdd: _pick,
-          onRemove: (i) => setState(() => _files.removeAt(i)),
-          onReorder: (a, b) => setState(() => moveListItem(_files, a, b)),
-        ),
-        const SizedBox(height: 18),
-        GroupPicker(
-          pitId: widget.pitId,
-          kind: 'official',
-          selected: groupId,
-          onSelected: (v) => setState(() => _groupId = v),
-        ),
-        const SizedBox(height: 26),
-        AlbumSubmitButton(
-          label: context.l10n.albumOfficialAdd,
-          busy: _saving,
-          onTap: groupId == null ? null : () => _save(groupId),
-        ),
-      ],
+    return DropZone(
+      title: context.l10n.ipadmediaDropTitle(context.l10n.pitsOfficial),
+      subtitleFor: context.l10n.ipadmediaDropCount,
+      // 拖進來的圖直接加到圖片格（分組用下面原本的 chips 選）。
+      onFiles: (files) =>
+          setState(() => _files.addAll(files.map(ImageItem.picked))),
+      enabled: !_saving,
+      child: AlbumFormScaffold(
+        title: context.l10n.albumOfficialNewTitle,
+        children: [
+          AlbumFieldLabel(context.l10n.albumFieldImage),
+          ImagePickerField(
+            items: _files,
+            onAdd: _pick,
+            onRemove: (i) => setState(() => _files.removeAt(i)),
+            onReorder: (a, b) => setState(() => moveListItem(_files, a, b)),
+          ),
+          const DropHintRow(),
+          const SizedBox(height: 18),
+          GroupPicker(
+            pitId: widget.pitId,
+            kind: 'official',
+            selected: groupId,
+            onSelected: (v) => setState(() => _groupId = v),
+          ),
+          const SizedBox(height: 26),
+          AlbumSubmitButton(
+            label: context.l10n.albumOfficialAdd,
+            busy: _saving,
+            onTap: groupId == null ? null : () => _save(groupId),
+          ),
+        ],
+      ),
     );
   }
 }

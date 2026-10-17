@@ -1,0 +1,55 @@
+{
+  "ipadmediaMenuLabel": "加圖來源",
+  "ipadmediaPhotos": "從「照片」選取",
+  "ipadmediaPhotosSub": "相簿，可多選並保留選取順序",
+  "ipadmediaFiles": "從「檔案」選取",
+  "ipadmediaFilesSub": "iCloud Drive、CSP 匯出的 PNG／JPG",
+  "ipadmediaMaterials": "從素材庫選取",
+  "ipadmediaMaterialsSub": "畫匣內已收藏的素材",
+  "ipadmediaCamera": "拍照",
+  "ipadmediaPaste": "貼上",
+  "ipadmediaPasteHasImage": "剪貼簿有 1 張圖",
+  "ipadmediaPasteEmpty": "剪貼簿裡沒有圖片",
+  "ipadmediaFilesFailed": "無法讀取所選檔案",
+  "ipadmediaCameraFailed": "無法開啟相機",
+  "ipadmediaMaterialsEmpty": "素材庫還沒有素材",
+  "ipadmediaMaterialsAdd": "加入 {count} 張",
+  "@ipadmediaMaterialsAdd": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "ipadmediaMaterialsFailed": "無法讀取所選素材",
+  "ipadmediaDropTitle": "放開即可加入「{target}」",
+  "@ipadmediaDropTitle": {
+    "placeholders": {
+      "target": {"type": "String"}
+    }
+  },
+  "ipadmediaDropChooseGroup": "{count} 張 · 放開後選擇分組",
+  "@ipadmediaDropChooseGroup": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "ipadmediaDropCount": "{count} 張",
+  "@ipadmediaDropCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "ipadmediaDropHint": "分屏時可直接從「照片」或「檔案」拖曳圖片至此",
+  "ipadmediaDropLoading": "正在載入 {done}／{total} 張",
+  "@ipadmediaDropLoading": {
+    "placeholders": {
+      "done": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "ipadmediaDropFailed": "{count} 張無法載入",
+  "@ipadmediaDropFailed": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  }
+}
