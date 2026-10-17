@@ -1271,6 +1271,81 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get ipadListsReferenceView => '參考檢視';
+
+  @override
+  String get ipadListsMultiSelect => '多選';
+
+  @override
+  String get ipadListsPreviewEmpty => '選擇一張圖片以預覽';
+
+  @override
+  String get ipadListsIdeaEmpty => '選擇一個腦洞以查看詳情';
+
+  @override
+  String get ipadListsDraftEmpty => '選擇一份摸魚以查看詳情';
+
+  @override
+  String get ipadListsPieceEmpty => '選擇一張成圖以查看詳情';
+
+  @override
+  String get ipadListsDraftUntitled => '未命名摸魚';
+
+  @override
+  String ipadListsDraftImageN(int n) {
+    return '第 $n 張';
+  }
+
+  @override
+  String ipadListsDraftIdeaLink(String title) {
+    return '腦洞：$title';
+  }
+
+  @override
+  String get ipadListsIdeaFlow => '腦洞 → 摸魚 → 成圖';
+
+  @override
+  String get ipadListsStageIdea => '腦洞';
+
+  @override
+  String get ipadListsStageDraft => '摸魚';
+
+  @override
+  String get ipadListsStagePiece => '成圖';
+
+  @override
+  String get ipadListsStartDraftFromIdea => '從這個腦洞開摸魚';
+
+  @override
+  String get ipadListsReached => '已達標';
+
+  @override
+  String get ipadListsNotReached => '未達標';
+
+  @override
+  String get ipadListsViewWaterfall => '瀑布';
+
+  @override
+  String get ipadListsOshiSearchHint => '搜尋標題、內文';
+
+  @override
+  String get ipadListsOshiSearchLabel => '搜尋推活紀錄';
+
+  @override
+  String get ipadListsOshiCharacterTags => '角色 tag';
+
+  @override
+  String get ipadListsOshiJumpToMonth => '跳到月份';
+
+  @override
+  String get ipadListsOshiEarlier => '更早';
+
+  @override
+  String ipadListsMonthShort(int month) {
+    return '$month 月';
+  }
+
+  @override
   String get ipadnavMainMenu => '主選單';
 
   @override
@@ -1569,6 +1644,95 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pitSearchCategoryOshi => '推活';
+
+  @override
+  String get refviewEntry => '參考檢視';
+
+  @override
+  String get refviewLock => '鎖定縮放';
+
+  @override
+  String get refviewLockedLong => '已鎖定縮放';
+
+  @override
+  String get refviewLockedShort => '已鎖定';
+
+  @override
+  String get refviewUnlockedShort => '未鎖定';
+
+  @override
+  String refviewZoomState(int percent, String state) {
+    return '$percent% · $state';
+  }
+
+  @override
+  String get refviewFlip => '左右翻轉';
+
+  @override
+  String get refviewGray => '灰階';
+
+  @override
+  String get refviewBackground => '背景';
+
+  @override
+  String get refviewMore => '更多';
+
+  @override
+  String get refviewPanel => '資料面板';
+
+  @override
+  String get refviewInfoTitle => '圖片資料';
+
+  @override
+  String get refviewFilmstrip => '同冊圖片';
+
+  @override
+  String refviewImageN(int n) {
+    return '第 $n 張';
+  }
+
+  @override
+  String get refviewCategory => '分類';
+
+  @override
+  String get refviewTags => 'tag';
+
+  @override
+  String refviewVideoTitle(String title) {
+    return '$title · 影片';
+  }
+
+  @override
+  String get refviewCapture => '截取此格';
+
+  @override
+  String get refviewCaptured => '已截取此格';
+
+  @override
+  String get refviewCaptureFailed => '無法截取這一格';
+
+  @override
+  String get refviewCaptureNoTarget => '這個來源沒有可以存放截圖的位置';
+
+  @override
+  String get refviewTimeline => '時間軸';
+
+  @override
+  String get refviewPrevFrame => '上一格';
+
+  @override
+  String get refviewNextFrame => '下一格';
+
+  @override
+  String get refviewSpeed => '播放速度';
+
+  @override
+  String get refviewLoop => '循環';
+
+  @override
+  String refviewFrameLabel(String speed, int frame) {
+    return '$speed · 第 $frame 格';
+  }
 
   @override
   String get searchCategoryPiece => '成圖';

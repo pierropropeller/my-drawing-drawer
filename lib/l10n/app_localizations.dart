@@ -2325,6 +2325,144 @@ abstract class AppLocalizations {
   /// **'{code, select, CNY{人民幣} HKD{港幣} TWD{新台幣} USD{美元} JPY{日圓} EUR{歐元} GBP{英鎊} KRW{韓元} SGD{新加坡幣} other{{code}}}'**
   String goalsCurrencyName(String code);
 
+  /// No description provided for @ipadListsReferenceView.
+  ///
+  /// In zh, this message translates to:
+  /// **'參考檢視'**
+  String get ipadListsReferenceView;
+
+  /// No description provided for @ipadListsMultiSelect.
+  ///
+  /// In zh, this message translates to:
+  /// **'多選'**
+  String get ipadListsMultiSelect;
+
+  /// No description provided for @ipadListsPreviewEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇一張圖片以預覽'**
+  String get ipadListsPreviewEmpty;
+
+  /// No description provided for @ipadListsIdeaEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇一個腦洞以查看詳情'**
+  String get ipadListsIdeaEmpty;
+
+  /// No description provided for @ipadListsDraftEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇一份摸魚以查看詳情'**
+  String get ipadListsDraftEmpty;
+
+  /// No description provided for @ipadListsPieceEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇一張成圖以查看詳情'**
+  String get ipadListsPieceEmpty;
+
+  /// No description provided for @ipadListsDraftUntitled.
+  ///
+  /// In zh, this message translates to:
+  /// **'未命名摸魚'**
+  String get ipadListsDraftUntitled;
+
+  /// No description provided for @ipadListsDraftImageN.
+  ///
+  /// In zh, this message translates to:
+  /// **'第 {n} 張'**
+  String ipadListsDraftImageN(int n);
+
+  /// No description provided for @ipadListsDraftIdeaLink.
+  ///
+  /// In zh, this message translates to:
+  /// **'腦洞：{title}'**
+  String ipadListsDraftIdeaLink(String title);
+
+  /// No description provided for @ipadListsIdeaFlow.
+  ///
+  /// In zh, this message translates to:
+  /// **'腦洞 → 摸魚 → 成圖'**
+  String get ipadListsIdeaFlow;
+
+  /// No description provided for @ipadListsStageIdea.
+  ///
+  /// In zh, this message translates to:
+  /// **'腦洞'**
+  String get ipadListsStageIdea;
+
+  /// No description provided for @ipadListsStageDraft.
+  ///
+  /// In zh, this message translates to:
+  /// **'摸魚'**
+  String get ipadListsStageDraft;
+
+  /// No description provided for @ipadListsStagePiece.
+  ///
+  /// In zh, this message translates to:
+  /// **'成圖'**
+  String get ipadListsStagePiece;
+
+  /// No description provided for @ipadListsStartDraftFromIdea.
+  ///
+  /// In zh, this message translates to:
+  /// **'從這個腦洞開摸魚'**
+  String get ipadListsStartDraftFromIdea;
+
+  /// No description provided for @ipadListsReached.
+  ///
+  /// In zh, this message translates to:
+  /// **'已達標'**
+  String get ipadListsReached;
+
+  /// No description provided for @ipadListsNotReached.
+  ///
+  /// In zh, this message translates to:
+  /// **'未達標'**
+  String get ipadListsNotReached;
+
+  /// No description provided for @ipadListsViewWaterfall.
+  ///
+  /// In zh, this message translates to:
+  /// **'瀑布'**
+  String get ipadListsViewWaterfall;
+
+  /// No description provided for @ipadListsOshiSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜尋標題、內文'**
+  String get ipadListsOshiSearchHint;
+
+  /// No description provided for @ipadListsOshiSearchLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜尋推活紀錄'**
+  String get ipadListsOshiSearchLabel;
+
+  /// No description provided for @ipadListsOshiCharacterTags.
+  ///
+  /// In zh, this message translates to:
+  /// **'角色 tag'**
+  String get ipadListsOshiCharacterTags;
+
+  /// No description provided for @ipadListsOshiJumpToMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳到月份'**
+  String get ipadListsOshiJumpToMonth;
+
+  /// No description provided for @ipadListsOshiEarlier.
+  ///
+  /// In zh, this message translates to:
+  /// **'更早'**
+  String get ipadListsOshiEarlier;
+
+  /// No description provided for @ipadListsMonthShort.
+  ///
+  /// In zh, this message translates to:
+  /// **'{month} 月'**
+  String ipadListsMonthShort(int month);
+
   /// No description provided for @ipadnavMainMenu.
   ///
   /// In zh, this message translates to:
@@ -2852,6 +2990,168 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'推活'**
   String get pitSearchCategoryOshi;
+
+  /// No description provided for @refviewEntry.
+  ///
+  /// In zh, this message translates to:
+  /// **'參考檢視'**
+  String get refviewEntry;
+
+  /// No description provided for @refviewLock.
+  ///
+  /// In zh, this message translates to:
+  /// **'鎖定縮放'**
+  String get refviewLock;
+
+  /// No description provided for @refviewLockedLong.
+  ///
+  /// In zh, this message translates to:
+  /// **'已鎖定縮放'**
+  String get refviewLockedLong;
+
+  /// No description provided for @refviewLockedShort.
+  ///
+  /// In zh, this message translates to:
+  /// **'已鎖定'**
+  String get refviewLockedShort;
+
+  /// No description provided for @refviewUnlockedShort.
+  ///
+  /// In zh, this message translates to:
+  /// **'未鎖定'**
+  String get refviewUnlockedShort;
+
+  /// No description provided for @refviewZoomState.
+  ///
+  /// In zh, this message translates to:
+  /// **'{percent}% · {state}'**
+  String refviewZoomState(int percent, String state);
+
+  /// No description provided for @refviewFlip.
+  ///
+  /// In zh, this message translates to:
+  /// **'左右翻轉'**
+  String get refviewFlip;
+
+  /// No description provided for @refviewGray.
+  ///
+  /// In zh, this message translates to:
+  /// **'灰階'**
+  String get refviewGray;
+
+  /// No description provided for @refviewBackground.
+  ///
+  /// In zh, this message translates to:
+  /// **'背景'**
+  String get refviewBackground;
+
+  /// No description provided for @refviewMore.
+  ///
+  /// In zh, this message translates to:
+  /// **'更多'**
+  String get refviewMore;
+
+  /// No description provided for @refviewPanel.
+  ///
+  /// In zh, this message translates to:
+  /// **'資料面板'**
+  String get refviewPanel;
+
+  /// No description provided for @refviewInfoTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'圖片資料'**
+  String get refviewInfoTitle;
+
+  /// No description provided for @refviewFilmstrip.
+  ///
+  /// In zh, this message translates to:
+  /// **'同冊圖片'**
+  String get refviewFilmstrip;
+
+  /// No description provided for @refviewImageN.
+  ///
+  /// In zh, this message translates to:
+  /// **'第 {n} 張'**
+  String refviewImageN(int n);
+
+  /// No description provided for @refviewCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'分類'**
+  String get refviewCategory;
+
+  /// No description provided for @refviewTags.
+  ///
+  /// In zh, this message translates to:
+  /// **'tag'**
+  String get refviewTags;
+
+  /// No description provided for @refviewVideoTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'{title} · 影片'**
+  String refviewVideoTitle(String title);
+
+  /// No description provided for @refviewCapture.
+  ///
+  /// In zh, this message translates to:
+  /// **'截取此格'**
+  String get refviewCapture;
+
+  /// No description provided for @refviewCaptured.
+  ///
+  /// In zh, this message translates to:
+  /// **'已截取此格'**
+  String get refviewCaptured;
+
+  /// No description provided for @refviewCaptureFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法截取這一格'**
+  String get refviewCaptureFailed;
+
+  /// No description provided for @refviewCaptureNoTarget.
+  ///
+  /// In zh, this message translates to:
+  /// **'這個來源沒有可以存放截圖的位置'**
+  String get refviewCaptureNoTarget;
+
+  /// No description provided for @refviewTimeline.
+  ///
+  /// In zh, this message translates to:
+  /// **'時間軸'**
+  String get refviewTimeline;
+
+  /// No description provided for @refviewPrevFrame.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一格'**
+  String get refviewPrevFrame;
+
+  /// No description provided for @refviewNextFrame.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一格'**
+  String get refviewNextFrame;
+
+  /// No description provided for @refviewSpeed.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放速度'**
+  String get refviewSpeed;
+
+  /// No description provided for @refviewLoop.
+  ///
+  /// In zh, this message translates to:
+  /// **'循環'**
+  String get refviewLoop;
+
+  /// No description provided for @refviewFrameLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'{speed} · 第 {frame} 格'**
+  String refviewFrameLabel(String speed, int frame);
 
   /// No description provided for @searchCategoryPiece.
   ///

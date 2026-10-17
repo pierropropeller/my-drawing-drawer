@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
@@ -6,6 +8,7 @@ import '../common/app_icons.dart';
 import '../common/drag_select.dart';
 import '../common/media_widgets.dart';
 import '../common/responsive.dart';
+import '../common/window_class.dart';
 import '../common/svg_icon.dart';
 import 'album_image.dart';
 
@@ -19,6 +22,7 @@ class ImageMasonry extends StatelessWidget {
     this.onDragSelect,
     this.selecting = false,
     this.selected = const {},
+    this.highlightId,
     this.padding = const EdgeInsets.fromLTRB(20, 2, 20, 96),
   });
 
@@ -30,37 +34,51 @@ class ImageMasonry extends StatelessWidget {
   final void Function(Set<int> indices, bool finished)? onDragSelect;
   final bool selecting;
   final Set<String> selected;
+
+  /// 寬版預覽面板目前顯示的那張（畫 2.5px 主色框；不是多選）。
+  final String? highlightId;
   final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
     final drag = onDragSelect;
-    final grid = MasonryGridView.count(
-      padding: padding,
-      crossAxisCount: columnsForWidth(MediaQuery.sizeOf(context).width),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      itemCount: images.length,
-      itemBuilder: (_, i) {
-        final im = images[i];
-        final tile = _Tile(
-          image: im,
-          selecting: selecting,
-          isSelected: selected.contains(im.id),
-          onTap: () => onTap(im, i),
-          onLongPress: onLongPress == null || drag != null
-              ? null
-              : () => onLongPress!(im),
+    // 手機（＜600）維持 2 欄、間距 12；平板依可用闊度逐格增減、間距 16（RespSpec）。
+    final compact = WindowClass.of(context).isCompact;
+    return LayoutBuilder(
+      builder: (context, c) {
+        final cols = compact
+            ? columnsForWidth(MediaQuery.sizeOf(context).width)
+            : gridColumnsFor(c.maxWidth - padding.horizontal);
+        final gap = compact ? 12.0 : 16.0;
+        final grid = MasonryGridView.count(
+          padding: padding,
+          crossAxisCount: cols,
+          mainAxisSpacing: gap,
+          crossAxisSpacing: gap,
+          itemCount: images.length,
+          itemBuilder: (_, i) {
+            final im = images[i];
+            final tile = _Tile(
+              image: im,
+              selecting: selecting,
+              isSelected: selected.contains(im.id),
+              highlighted: highlightId == im.id,
+              onTap: () => onTap(im, i),
+              onLongPress: onLongPress == null || drag != null
+                  ? null
+                  : () => onLongPress!(im),
+            );
+            return drag == null ? tile : DragSelectItem(index: i, child: tile);
+          },
         );
-        return drag == null ? tile : DragSelectItem(index: i, child: tile);
+        if (drag == null) return grid;
+        return DragSelectArea(
+          itemCount: images.length,
+          isSelected: (i) => selected.contains(images[i].id),
+          onChanged: drag,
+          child: grid,
+        );
       },
-    );
-    if (drag == null) return grid;
-    return DragSelectArea(
-      itemCount: images.length,
-      isSelected: (i) => selected.contains(images[i].id),
-      onChanged: drag,
-      child: grid,
     );
   }
 }
@@ -71,12 +89,14 @@ class _Tile extends StatelessWidget {
     required this.selecting,
     required this.isSelected,
     required this.onTap,
+    this.highlighted = false,
     this.onLongPress,
   });
 
   final AlbumImage image;
   final bool selecting;
   final bool isSelected;
+  final bool highlighted;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
@@ -92,7 +112,7 @@ class _Tile extends StatelessWidget {
             borderRadius: BorderRadius.circular(Radii.image),
             child: MediaThumb(image.media, cacheWidth: 500, badgeInset: 7),
           ),
-          if (isSelected)
+          if (isSelected || highlighted)
             DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(Radii.image),
@@ -159,7 +179,15 @@ class SquareGrid extends StatelessWidget {
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount:
             columns ??
-            columnsForWidth(MediaQuery.sizeOf(context).width, phone: 3),
+            (WindowClass.of(context).isCompact
+                ? columnsForWidth(MediaQuery.sizeOf(context).width, phone: 3)
+                : math.max(
+                    3,
+                    gridColumnsFor(
+                      MediaQuery.sizeOf(context).width,
+                      minCell: 150,
+                    ),
+                  )),
         mainAxisSpacing: 2,
         crossAxisSpacing: 2,
       ),

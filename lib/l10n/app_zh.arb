@@ -837,6 +837,50 @@
       }
     }
   },
+  "ipadListsReferenceView": "參考檢視",
+  "ipadListsMultiSelect": "多選",
+  "ipadListsPreviewEmpty": "選擇一張圖片以預覽",
+  "ipadListsIdeaEmpty": "選擇一個腦洞以查看詳情",
+  "ipadListsDraftEmpty": "選擇一份摸魚以查看詳情",
+  "ipadListsPieceEmpty": "選擇一張成圖以查看詳情",
+  "ipadListsDraftUntitled": "未命名摸魚",
+  "ipadListsDraftImageN": "第 {n} 張",
+  "@ipadListsDraftImageN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "ipadListsDraftIdeaLink": "腦洞：{title}",
+  "@ipadListsDraftIdeaLink": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "ipadListsIdeaFlow": "腦洞 → 摸魚 → 成圖",
+  "ipadListsStageIdea": "腦洞",
+  "ipadListsStageDraft": "摸魚",
+  "ipadListsStagePiece": "成圖",
+  "ipadListsStartDraftFromIdea": "從這個腦洞開摸魚",
+  "ipadListsReached": "已達標",
+  "ipadListsNotReached": "未達標",
+  "ipadListsViewWaterfall": "瀑布",
+  "ipadListsOshiSearchHint": "搜尋標題、內文",
+  "ipadListsOshiSearchLabel": "搜尋推活紀錄",
+  "ipadListsOshiCharacterTags": "角色 tag",
+  "ipadListsOshiJumpToMonth": "跳到月份",
+  "ipadListsOshiEarlier": "更早",
+  "ipadListsMonthShort": "{month} 月",
+  "@ipadListsMonthShort": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      }
+    }
+  },
   "ipadnavMainMenu": "主選單",
   "ipadnavCurrentPits": "現坑",
   "ipadnavYears": "年份",
@@ -1078,6 +1122,67 @@
     }
   },
   "pitSearchCategoryOshi": "推活",
+  "refviewEntry": "參考檢視",
+  "refviewLock": "鎖定縮放",
+  "refviewLockedLong": "已鎖定縮放",
+  "refviewLockedShort": "已鎖定",
+  "refviewUnlockedShort": "未鎖定",
+  "refviewZoomState": "{percent}% · {state}",
+  "@refviewZoomState": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "refviewFlip": "左右翻轉",
+  "refviewGray": "灰階",
+  "refviewBackground": "背景",
+  "refviewMore": "更多",
+  "refviewPanel": "資料面板",
+  "refviewInfoTitle": "圖片資料",
+  "refviewFilmstrip": "同冊圖片",
+  "refviewImageN": "第 {n} 張",
+  "@refviewImageN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "refviewCategory": "分類",
+  "refviewTags": "tag",
+  "refviewVideoTitle": "{title} · 影片",
+  "@refviewVideoTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "refviewCapture": "截取此格",
+  "refviewCaptured": "已截取此格",
+  "refviewCaptureFailed": "無法截取這一格",
+  "refviewCaptureNoTarget": "這個來源沒有可以存放截圖的位置",
+  "refviewTimeline": "時間軸",
+  "refviewPrevFrame": "上一格",
+  "refviewNextFrame": "下一格",
+  "refviewSpeed": "播放速度",
+  "refviewLoop": "循環",
+  "refviewFrameLabel": "{speed} · 第 {frame} 格",
+  "@refviewFrameLabel": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      },
+      "frame": {
+        "type": "int"
+      }
+    }
+  },
   "searchCategoryPiece": "成圖",
   "searchCategoryFan": "同人圖",
   "searchCategoryDraft": "摸魚",
