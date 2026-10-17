@@ -738,3 +738,18 @@ Future<List<String>>                   applyBatchTagsFor(TagTarget target, Itera
 - 要顯示縮圖／封面一律用 `ImageRef.staticFile`／`CoverCandidate.staticFile`／`staticFileOf`；GIF 的 `staticFile` 是檔案本身（Flutter 解碼出第一格；
   列表要播放才用 `Image.file` 的動畫）。
 - 既有 UI 表單用 `NewImage(file:, width:, height:)` 重建舊圖時不會破壞媒體欄位（見 `replaceEntityImages`），但新圖請用 `import`／`importMedia` 的回傳值。
+
+## 7. iPad：參考圖檢視的檢視狀態（schema v10）
+
+純本機、**不同步**的表 `RefViewStates`（`lib/data/ref_view_queries.dart`；沒有 SyncColumns、不進 Outbox，同步引擎不認得它）。
+鍵是圖片檔名；存縮放（相對 fit 的倍數 `zoom`、絕對縮放 `scale`）、視窗中央對到的圖片位置（`centerX`/`centerY`，0～1）、
+`locked`（鎖定縮放）、`flipped`、`gray`、`lightBg`。翻轉／灰階／背景只是檢視狀態，不改原圖檔。
+
+```dart
+Future<RefViewSnapshot?>             getRefViewState(String imageFile);
+Future<Map<String, RefViewSnapshot>> getRefViewStates(Iterable<String> imageFiles);
+Future<void>                         saveRefViewState(String imageFile, RefViewSnapshot s);  // upsert
+Future<void>                         deleteRefViewState(String imageFile);
+```
+- 遷移 v9 → v10：`createTable(refViewStates)`，無舊資料要回填。`AppDatabase.schemaVersion = 10`。
+- UI 端的暫存與 debounce 存檔見 `lib/ui/reference/ref_view_store.dart`；測試 `test/reference/ref_view_db_test.dart`。

@@ -12387,6 +12387,614 @@ class SyncDocsCompanion extends UpdateCompanion<SyncDoc> {
   }
 }
 
+class $RefViewStatesTable extends RefViewStates
+    with TableInfo<$RefViewStatesTable, RefViewState> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RefViewStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _imageFileMeta = const VerificationMeta(
+    'imageFile',
+  );
+  @override
+  late final GeneratedColumn<String> imageFile = GeneratedColumn<String>(
+    'image_file',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _zoomMeta = const VerificationMeta('zoom');
+  @override
+  late final GeneratedColumn<double> zoom = GeneratedColumn<double>(
+    'zoom',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1.0),
+  );
+  static const VerificationMeta _scaleMeta = const VerificationMeta('scale');
+  @override
+  late final GeneratedColumn<double> scale = GeneratedColumn<double>(
+    'scale',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _centerXMeta = const VerificationMeta(
+    'centerX',
+  );
+  @override
+  late final GeneratedColumn<double> centerX = GeneratedColumn<double>(
+    'center_x',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.5),
+  );
+  static const VerificationMeta _centerYMeta = const VerificationMeta(
+    'centerY',
+  );
+  @override
+  late final GeneratedColumn<double> centerY = GeneratedColumn<double>(
+    'center_y',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.5),
+  );
+  static const VerificationMeta _lockedMeta = const VerificationMeta('locked');
+  @override
+  late final GeneratedColumn<bool> locked = GeneratedColumn<bool>(
+    'locked',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("locked" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _flippedMeta = const VerificationMeta(
+    'flipped',
+  );
+  @override
+  late final GeneratedColumn<bool> flipped = GeneratedColumn<bool>(
+    'flipped',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("flipped" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _grayMeta = const VerificationMeta('gray');
+  @override
+  late final GeneratedColumn<bool> gray = GeneratedColumn<bool>(
+    'gray',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("gray" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _lightBgMeta = const VerificationMeta(
+    'lightBg',
+  );
+  @override
+  late final GeneratedColumn<bool> lightBg = GeneratedColumn<bool>(
+    'light_bg',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("light_bg" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    imageFile,
+    zoom,
+    scale,
+    centerX,
+    centerY,
+    locked,
+    flipped,
+    gray,
+    lightBg,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ref_view_states';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RefViewState> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('image_file')) {
+      context.handle(
+        _imageFileMeta,
+        imageFile.isAcceptableOrUnknown(data['image_file']!, _imageFileMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_imageFileMeta);
+    }
+    if (data.containsKey('zoom')) {
+      context.handle(
+        _zoomMeta,
+        zoom.isAcceptableOrUnknown(data['zoom']!, _zoomMeta),
+      );
+    }
+    if (data.containsKey('scale')) {
+      context.handle(
+        _scaleMeta,
+        scale.isAcceptableOrUnknown(data['scale']!, _scaleMeta),
+      );
+    }
+    if (data.containsKey('center_x')) {
+      context.handle(
+        _centerXMeta,
+        centerX.isAcceptableOrUnknown(data['center_x']!, _centerXMeta),
+      );
+    }
+    if (data.containsKey('center_y')) {
+      context.handle(
+        _centerYMeta,
+        centerY.isAcceptableOrUnknown(data['center_y']!, _centerYMeta),
+      );
+    }
+    if (data.containsKey('locked')) {
+      context.handle(
+        _lockedMeta,
+        locked.isAcceptableOrUnknown(data['locked']!, _lockedMeta),
+      );
+    }
+    if (data.containsKey('flipped')) {
+      context.handle(
+        _flippedMeta,
+        flipped.isAcceptableOrUnknown(data['flipped']!, _flippedMeta),
+      );
+    }
+    if (data.containsKey('gray')) {
+      context.handle(
+        _grayMeta,
+        gray.isAcceptableOrUnknown(data['gray']!, _grayMeta),
+      );
+    }
+    if (data.containsKey('light_bg')) {
+      context.handle(
+        _lightBgMeta,
+        lightBg.isAcceptableOrUnknown(data['light_bg']!, _lightBgMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {imageFile};
+  @override
+  RefViewState map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RefViewState(
+      imageFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_file'],
+      )!,
+      zoom: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}zoom'],
+      )!,
+      scale: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}scale'],
+      )!,
+      centerX: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}center_x'],
+      )!,
+      centerY: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}center_y'],
+      )!,
+      locked: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}locked'],
+      )!,
+      flipped: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}flipped'],
+      )!,
+      gray: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}gray'],
+      )!,
+      lightBg: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}light_bg'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $RefViewStatesTable createAlias(String alias) {
+    return $RefViewStatesTable(attachedDatabase, alias);
+  }
+}
+
+class RefViewState extends DataClass implements Insertable<RefViewState> {
+  final String imageFile;
+
+  /// 相對於「完整顯示（fit）」的縮放倍數；1＝剛好放進視窗。
+  final double zoom;
+
+  /// 絕對縮放（每個圖片像素佔幾個邏輯像素）；0＝未知。鎖定縮放時以它為準，
+  /// 這樣拉窗只改可視範圍，不會重新 fit。
+  final double scale;
+
+  /// 視窗正中央對到的圖片位置（0～1，相對於原圖寬高、未翻轉的座標）。
+  final double centerX;
+  final double centerY;
+  final bool locked;
+  final bool flipped;
+  final bool gray;
+
+  /// 背景：false＝深色（預設）、true＝淺色。
+  final bool lightBg;
+  final DateTime updatedAt;
+  const RefViewState({
+    required this.imageFile,
+    required this.zoom,
+    required this.scale,
+    required this.centerX,
+    required this.centerY,
+    required this.locked,
+    required this.flipped,
+    required this.gray,
+    required this.lightBg,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['image_file'] = Variable<String>(imageFile);
+    map['zoom'] = Variable<double>(zoom);
+    map['scale'] = Variable<double>(scale);
+    map['center_x'] = Variable<double>(centerX);
+    map['center_y'] = Variable<double>(centerY);
+    map['locked'] = Variable<bool>(locked);
+    map['flipped'] = Variable<bool>(flipped);
+    map['gray'] = Variable<bool>(gray);
+    map['light_bg'] = Variable<bool>(lightBg);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  RefViewStatesCompanion toCompanion(bool nullToAbsent) {
+    return RefViewStatesCompanion(
+      imageFile: Value(imageFile),
+      zoom: Value(zoom),
+      scale: Value(scale),
+      centerX: Value(centerX),
+      centerY: Value(centerY),
+      locked: Value(locked),
+      flipped: Value(flipped),
+      gray: Value(gray),
+      lightBg: Value(lightBg),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory RefViewState.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RefViewState(
+      imageFile: serializer.fromJson<String>(json['imageFile']),
+      zoom: serializer.fromJson<double>(json['zoom']),
+      scale: serializer.fromJson<double>(json['scale']),
+      centerX: serializer.fromJson<double>(json['centerX']),
+      centerY: serializer.fromJson<double>(json['centerY']),
+      locked: serializer.fromJson<bool>(json['locked']),
+      flipped: serializer.fromJson<bool>(json['flipped']),
+      gray: serializer.fromJson<bool>(json['gray']),
+      lightBg: serializer.fromJson<bool>(json['lightBg']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'imageFile': serializer.toJson<String>(imageFile),
+      'zoom': serializer.toJson<double>(zoom),
+      'scale': serializer.toJson<double>(scale),
+      'centerX': serializer.toJson<double>(centerX),
+      'centerY': serializer.toJson<double>(centerY),
+      'locked': serializer.toJson<bool>(locked),
+      'flipped': serializer.toJson<bool>(flipped),
+      'gray': serializer.toJson<bool>(gray),
+      'lightBg': serializer.toJson<bool>(lightBg),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  RefViewState copyWith({
+    String? imageFile,
+    double? zoom,
+    double? scale,
+    double? centerX,
+    double? centerY,
+    bool? locked,
+    bool? flipped,
+    bool? gray,
+    bool? lightBg,
+    DateTime? updatedAt,
+  }) => RefViewState(
+    imageFile: imageFile ?? this.imageFile,
+    zoom: zoom ?? this.zoom,
+    scale: scale ?? this.scale,
+    centerX: centerX ?? this.centerX,
+    centerY: centerY ?? this.centerY,
+    locked: locked ?? this.locked,
+    flipped: flipped ?? this.flipped,
+    gray: gray ?? this.gray,
+    lightBg: lightBg ?? this.lightBg,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  RefViewState copyWithCompanion(RefViewStatesCompanion data) {
+    return RefViewState(
+      imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
+      zoom: data.zoom.present ? data.zoom.value : this.zoom,
+      scale: data.scale.present ? data.scale.value : this.scale,
+      centerX: data.centerX.present ? data.centerX.value : this.centerX,
+      centerY: data.centerY.present ? data.centerY.value : this.centerY,
+      locked: data.locked.present ? data.locked.value : this.locked,
+      flipped: data.flipped.present ? data.flipped.value : this.flipped,
+      gray: data.gray.present ? data.gray.value : this.gray,
+      lightBg: data.lightBg.present ? data.lightBg.value : this.lightBg,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RefViewState(')
+          ..write('imageFile: $imageFile, ')
+          ..write('zoom: $zoom, ')
+          ..write('scale: $scale, ')
+          ..write('centerX: $centerX, ')
+          ..write('centerY: $centerY, ')
+          ..write('locked: $locked, ')
+          ..write('flipped: $flipped, ')
+          ..write('gray: $gray, ')
+          ..write('lightBg: $lightBg, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    imageFile,
+    zoom,
+    scale,
+    centerX,
+    centerY,
+    locked,
+    flipped,
+    gray,
+    lightBg,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RefViewState &&
+          other.imageFile == this.imageFile &&
+          other.zoom == this.zoom &&
+          other.scale == this.scale &&
+          other.centerX == this.centerX &&
+          other.centerY == this.centerY &&
+          other.locked == this.locked &&
+          other.flipped == this.flipped &&
+          other.gray == this.gray &&
+          other.lightBg == this.lightBg &&
+          other.updatedAt == this.updatedAt);
+}
+
+class RefViewStatesCompanion extends UpdateCompanion<RefViewState> {
+  final Value<String> imageFile;
+  final Value<double> zoom;
+  final Value<double> scale;
+  final Value<double> centerX;
+  final Value<double> centerY;
+  final Value<bool> locked;
+  final Value<bool> flipped;
+  final Value<bool> gray;
+  final Value<bool> lightBg;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const RefViewStatesCompanion({
+    this.imageFile = const Value.absent(),
+    this.zoom = const Value.absent(),
+    this.scale = const Value.absent(),
+    this.centerX = const Value.absent(),
+    this.centerY = const Value.absent(),
+    this.locked = const Value.absent(),
+    this.flipped = const Value.absent(),
+    this.gray = const Value.absent(),
+    this.lightBg = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RefViewStatesCompanion.insert({
+    required String imageFile,
+    this.zoom = const Value.absent(),
+    this.scale = const Value.absent(),
+    this.centerX = const Value.absent(),
+    this.centerY = const Value.absent(),
+    this.locked = const Value.absent(),
+    this.flipped = const Value.absent(),
+    this.gray = const Value.absent(),
+    this.lightBg = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : imageFile = Value(imageFile);
+  static Insertable<RefViewState> custom({
+    Expression<String>? imageFile,
+    Expression<double>? zoom,
+    Expression<double>? scale,
+    Expression<double>? centerX,
+    Expression<double>? centerY,
+    Expression<bool>? locked,
+    Expression<bool>? flipped,
+    Expression<bool>? gray,
+    Expression<bool>? lightBg,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (imageFile != null) 'image_file': imageFile,
+      if (zoom != null) 'zoom': zoom,
+      if (scale != null) 'scale': scale,
+      if (centerX != null) 'center_x': centerX,
+      if (centerY != null) 'center_y': centerY,
+      if (locked != null) 'locked': locked,
+      if (flipped != null) 'flipped': flipped,
+      if (gray != null) 'gray': gray,
+      if (lightBg != null) 'light_bg': lightBg,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RefViewStatesCompanion copyWith({
+    Value<String>? imageFile,
+    Value<double>? zoom,
+    Value<double>? scale,
+    Value<double>? centerX,
+    Value<double>? centerY,
+    Value<bool>? locked,
+    Value<bool>? flipped,
+    Value<bool>? gray,
+    Value<bool>? lightBg,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return RefViewStatesCompanion(
+      imageFile: imageFile ?? this.imageFile,
+      zoom: zoom ?? this.zoom,
+      scale: scale ?? this.scale,
+      centerX: centerX ?? this.centerX,
+      centerY: centerY ?? this.centerY,
+      locked: locked ?? this.locked,
+      flipped: flipped ?? this.flipped,
+      gray: gray ?? this.gray,
+      lightBg: lightBg ?? this.lightBg,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (imageFile.present) {
+      map['image_file'] = Variable<String>(imageFile.value);
+    }
+    if (zoom.present) {
+      map['zoom'] = Variable<double>(zoom.value);
+    }
+    if (scale.present) {
+      map['scale'] = Variable<double>(scale.value);
+    }
+    if (centerX.present) {
+      map['center_x'] = Variable<double>(centerX.value);
+    }
+    if (centerY.present) {
+      map['center_y'] = Variable<double>(centerY.value);
+    }
+    if (locked.present) {
+      map['locked'] = Variable<bool>(locked.value);
+    }
+    if (flipped.present) {
+      map['flipped'] = Variable<bool>(flipped.value);
+    }
+    if (gray.present) {
+      map['gray'] = Variable<bool>(gray.value);
+    }
+    if (lightBg.present) {
+      map['light_bg'] = Variable<bool>(lightBg.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RefViewStatesCompanion(')
+          ..write('imageFile: $imageFile, ')
+          ..write('zoom: $zoom, ')
+          ..write('scale: $scale, ')
+          ..write('centerX: $centerX, ')
+          ..write('centerY: $centerY, ')
+          ..write('locked: $locked, ')
+          ..write('flipped: $flipped, ')
+          ..write('gray: $gray, ')
+          ..write('lightBg: $lightBg, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -12414,6 +13022,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ReviewSettingsTable reviewSettings = $ReviewSettingsTable(this);
   late final $OutboxTable outbox = $OutboxTable(this);
   late final $SyncDocsTable syncDocs = $SyncDocsTable(this);
+  late final $RefViewStatesTable refViewStates = $RefViewStatesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -12441,6 +13050,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     reviewSettings,
     outbox,
     syncDocs,
+    refViewStates,
   ];
 }
 
@@ -18738,6 +19348,310 @@ typedef $$SyncDocsTableProcessedTableManager =
       SyncDoc,
       PrefetchHooks Function()
     >;
+typedef $$RefViewStatesTableCreateCompanionBuilder =
+    RefViewStatesCompanion Function({
+      required String imageFile,
+      Value<double> zoom,
+      Value<double> scale,
+      Value<double> centerX,
+      Value<double> centerY,
+      Value<bool> locked,
+      Value<bool> flipped,
+      Value<bool> gray,
+      Value<bool> lightBg,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$RefViewStatesTableUpdateCompanionBuilder =
+    RefViewStatesCompanion Function({
+      Value<String> imageFile,
+      Value<double> zoom,
+      Value<double> scale,
+      Value<double> centerX,
+      Value<double> centerY,
+      Value<bool> locked,
+      Value<bool> flipped,
+      Value<bool> gray,
+      Value<bool> lightBg,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$RefViewStatesTableFilterComposer
+    extends Composer<_$AppDatabase, $RefViewStatesTable> {
+  $$RefViewStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get imageFile => $composableBuilder(
+    column: $table.imageFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get zoom => $composableBuilder(
+    column: $table.zoom,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get scale => $composableBuilder(
+    column: $table.scale,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get centerX => $composableBuilder(
+    column: $table.centerX,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get centerY => $composableBuilder(
+    column: $table.centerY,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get locked => $composableBuilder(
+    column: $table.locked,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get flipped => $composableBuilder(
+    column: $table.flipped,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get gray => $composableBuilder(
+    column: $table.gray,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get lightBg => $composableBuilder(
+    column: $table.lightBg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RefViewStatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $RefViewStatesTable> {
+  $$RefViewStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get imageFile => $composableBuilder(
+    column: $table.imageFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get zoom => $composableBuilder(
+    column: $table.zoom,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get scale => $composableBuilder(
+    column: $table.scale,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get centerX => $composableBuilder(
+    column: $table.centerX,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get centerY => $composableBuilder(
+    column: $table.centerY,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get locked => $composableBuilder(
+    column: $table.locked,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get flipped => $composableBuilder(
+    column: $table.flipped,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get gray => $composableBuilder(
+    column: $table.gray,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get lightBg => $composableBuilder(
+    column: $table.lightBg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RefViewStatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RefViewStatesTable> {
+  $$RefViewStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get imageFile =>
+      $composableBuilder(column: $table.imageFile, builder: (column) => column);
+
+  GeneratedColumn<double> get zoom =>
+      $composableBuilder(column: $table.zoom, builder: (column) => column);
+
+  GeneratedColumn<double> get scale =>
+      $composableBuilder(column: $table.scale, builder: (column) => column);
+
+  GeneratedColumn<double> get centerX =>
+      $composableBuilder(column: $table.centerX, builder: (column) => column);
+
+  GeneratedColumn<double> get centerY =>
+      $composableBuilder(column: $table.centerY, builder: (column) => column);
+
+  GeneratedColumn<bool> get locked =>
+      $composableBuilder(column: $table.locked, builder: (column) => column);
+
+  GeneratedColumn<bool> get flipped =>
+      $composableBuilder(column: $table.flipped, builder: (column) => column);
+
+  GeneratedColumn<bool> get gray =>
+      $composableBuilder(column: $table.gray, builder: (column) => column);
+
+  GeneratedColumn<bool> get lightBg =>
+      $composableBuilder(column: $table.lightBg, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$RefViewStatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RefViewStatesTable,
+          RefViewState,
+          $$RefViewStatesTableFilterComposer,
+          $$RefViewStatesTableOrderingComposer,
+          $$RefViewStatesTableAnnotationComposer,
+          $$RefViewStatesTableCreateCompanionBuilder,
+          $$RefViewStatesTableUpdateCompanionBuilder,
+          (
+            RefViewState,
+            BaseReferences<_$AppDatabase, $RefViewStatesTable, RefViewState>,
+          ),
+          RefViewState,
+          PrefetchHooks Function()
+        > {
+  $$RefViewStatesTableTableManager(_$AppDatabase db, $RefViewStatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RefViewStatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RefViewStatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RefViewStatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> imageFile = const Value.absent(),
+                Value<double> zoom = const Value.absent(),
+                Value<double> scale = const Value.absent(),
+                Value<double> centerX = const Value.absent(),
+                Value<double> centerY = const Value.absent(),
+                Value<bool> locked = const Value.absent(),
+                Value<bool> flipped = const Value.absent(),
+                Value<bool> gray = const Value.absent(),
+                Value<bool> lightBg = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RefViewStatesCompanion(
+                imageFile: imageFile,
+                zoom: zoom,
+                scale: scale,
+                centerX: centerX,
+                centerY: centerY,
+                locked: locked,
+                flipped: flipped,
+                gray: gray,
+                lightBg: lightBg,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String imageFile,
+                Value<double> zoom = const Value.absent(),
+                Value<double> scale = const Value.absent(),
+                Value<double> centerX = const Value.absent(),
+                Value<double> centerY = const Value.absent(),
+                Value<bool> locked = const Value.absent(),
+                Value<bool> flipped = const Value.absent(),
+                Value<bool> gray = const Value.absent(),
+                Value<bool> lightBg = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RefViewStatesCompanion.insert(
+                imageFile: imageFile,
+                zoom: zoom,
+                scale: scale,
+                centerX: centerX,
+                centerY: centerY,
+                locked: locked,
+                flipped: flipped,
+                gray: gray,
+                lightBg: lightBg,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$RefViewStatesTable, RefViewState>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $RefViewStatesTable,
+                    RefViewState
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RefViewStatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RefViewStatesTable,
+      RefViewState,
+      $$RefViewStatesTableFilterComposer,
+      $$RefViewStatesTableOrderingComposer,
+      $$RefViewStatesTableAnnotationComposer,
+      $$RefViewStatesTableCreateCompanionBuilder,
+      $$RefViewStatesTableUpdateCompanionBuilder,
+      (
+        RefViewState,
+        BaseReferences<_$AppDatabase, $RefViewStatesTable, RefViewState>,
+      ),
+      RefViewState,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -18784,4 +19698,6 @@ class $AppDatabaseManager {
       $$OutboxTableTableManager(_db, _db.outbox);
   $$SyncDocsTableTableManager get syncDocs =>
       $$SyncDocsTableTableManager(_db, _db.syncDocs);
+  $$RefViewStatesTableTableManager get refViewStates =>
+      $$RefViewStatesTableTableManager(_db, _db.refViewStates);
 }

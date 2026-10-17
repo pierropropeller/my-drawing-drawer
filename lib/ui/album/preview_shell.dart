@@ -52,6 +52,7 @@ class PreviewShell extends StatelessWidget {
     required this.onPageChanged,
     required this.info,
     required this.actions,
+    this.headerTrailing,
   });
 
   final String title;
@@ -66,6 +67,9 @@ class PreviewShell extends StatelessWidget {
   final ValueChanged<int> onPageChanged;
   final Widget info;
   final List<PreviewAction> actions;
+
+  /// 頂欄頁碼前面的額外按鈕（例如「參考檢視」入口）；null＝和原來一樣。
+  final Widget? headerTrailing;
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +109,10 @@ class PreviewShell extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (headerTrailing != null) ...[
+                    headerTrailing!,
+                    const SizedBox(width: 8),
+                  ],
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: Text(
