@@ -24,6 +24,7 @@ class DraftFormPage extends ConsumerStatefulWidget {
     this.draftId,
     this.initialTime,
     this.initialImages = const [],
+    this.initialIdeaIds = const [],
   });
   final String pitId;
   final String? draftId;
@@ -33,6 +34,9 @@ class DraftFormPage extends ConsumerStatefulWidget {
 
   /// 先從相簿選好的圖片（新增流程是先選圖、再進新增頁）。
   final List<XFile> initialImages;
+
+  /// 新增時預先關聯的腦洞（平板腦洞詳情的「從這個腦洞開摸魚」）。
+  final List<String> initialIdeaIds;
 
   @override
   ConsumerState<DraftFormPage> createState() => _DraftFormPageState();
@@ -70,6 +74,8 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
         _pieceIds = v.pieceIds;
         _date = v.draft.date;
       }
+    } else {
+      _ideaIds = [...widget.initialIdeaIds];
     }
     if (mounted) setState(() => _loaded = true);
   }

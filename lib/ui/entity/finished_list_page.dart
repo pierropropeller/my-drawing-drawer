@@ -11,8 +11,11 @@ import '../common/app_icons.dart';
 import '../common/media_widgets.dart';
 import '../common/empty_state.dart';
 import '../common/svg_icon.dart';
+import '../common/window_class.dart';
+import '../album/wide_layout.dart';
 import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
+import 'detail_panes.dart';
 import 'entity_widgets.dart';
 import 'piece_detail_page.dart';
 import 'piece_form_page.dart';
@@ -43,6 +46,9 @@ class FinishedListPage extends ConsumerStatefulWidget {
 class _FinishedListPageState extends ConsumerState<FinishedListPage> {
   _Mode _mode = _Mode.waterfall;
 
+  /// 寬版右側詳情面板目前顯示的成圖（放在 State，拉窗不會丟）。
+  String? _selectedId;
+
   /// 新增：先打開相簿選圖，選好再進入新增頁。
   Future<void> _add() async {
     final picked = await ref.read(imagePickerProvider)(context);
@@ -55,7 +61,132 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
     );
   }
 
-  void _open(PieceView v) => Navigator.of(context).push(
+  /// 瀑布／田字／九宮格的內容。手機維持 2／2／3 欄；平板依可用闊度逐格增減（間距 16／16／8）。
+  Widget _content(
+    List<PieceView> views,
+    EdgeInsets pad, {
+    required bool wide,
+    bool highlight = false,
+  }) {
+    final compact = WindowClass.of(context).isCompact;
+    return LayoutBuilder(
+      builder: (context, c) {
+        final inner = c.maxWidth - pad.horizontal;
+        final wfCols = compact ? 2 : gridColumnsFor(inner);
+        final wfGap = compact ? 12.0 : 16.0;
+        final nineCols = compact ? 3 : gridColumnsFor(inner, minCell: 120);
+        final nineGap = 8.0;
+        void tap(PieceView v) => _open(v);
+        bool sel(PieceView v) => highlight && _selectedId == v.piece.id;
+        return switch (_mode) {
+          _Mode.waterfall => MasonryGridView.count(
+            padding: pad,
+            crossAxisCount: wfCols,
+            mainAxisSpacing: compact ? 14 : 16,
+            crossAxisSpacing: wfGap,
+            itemCount: views.length,
+            itemBuilder: (_, i) => _PieceTile(
+              view: views[i],
+              selected: sel(views[i]),
+              onTap: () => tap(views[i]),
+              ratio: views[i].images.isEmpty
+                  ? 1
+                  : views[i].images.first.aspect.clamp(0.5, 2.0),
+            ),
+          ),
+          _Mode.grid => GridView.builder(
+            padding: pad,
+            gridDelegate: compact
+                ? const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    // 方圖＋標題＋互動量
+                    childAspectRatio: 0.76,
+                  )
+                : SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: wfCols,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    // 方圖＋標題＋互動量（約 52px 文字）
+                    mainAxisExtent: (inner - 16 * (wfCols - 1)) / wfCols + 52,
+                  ),
+            itemCount: views.length,
+            itemBuilder: (_, i) => _PieceTile(
+              view: views[i],
+              selected: sel(views[i]),
+              onTap: () => tap(views[i]),
+              ratio: 1,
+            ),
+          ),
+          _Mode.nine => GridView.builder(
+            padding: pad,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: nineCols,
+              mainAxisSpacing: nineGap,
+              crossAxisSpacing: nineGap,
+            ),
+            itemCount: views.length,
+            itemBuilder: (_, i) => _NineTile(
+              view: views[i],
+              selected: sel(views[i]),
+              onTap: () => tap(views[i]),
+            ),
+          ),
+        };
+      },
+    );
+  }
+
+  /// 寬版：左邊成圖（瀑布／田字／九宮格）＋右邊詳情面板（Finished 設計稿，350）。
+  Widget _wideBody(List<PieceView> views) {
+    final spec = WideSpec.of(
+      MediaQuery.sizeOf(context).width,
+      expanded: (320, 350),
+      large: (350, 380),
+    );
+    final sel = _selectedId;
+    final valid = sel != null && views.any((v) => v.piece.id == sel);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: _content(
+            views,
+            EdgeInsets.fromLTRB(spec.hpad, 10, 0, 96),
+            wide: true,
+            highlight: true,
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(left: spec.gap, right: spec.hpad, top: 10),
+          child: SizedBox(
+            width: spec.panel,
+            child: SidePanelFrame(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+              child: valid
+                  ? PieceDetailPanel(
+                      key: ValueKey(sel),
+                      pitId: widget.pitId,
+                      pieceId: sel,
+                    )
+                  : WideEmptyHint(context.l10n.ipadListsPieceEmpty),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _open(PieceView v) {
+    if (WindowClass.of(context).isWide) {
+      setState(() => _selectedId = v.piece.id);
+      return;
+    }
+    _openDetail(v);
+  }
+
+  void _openDetail(PieceView v) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => PieceDetailPage(
         pieceId: v.piece.id,
@@ -82,6 +213,7 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
         ref.watch(pieceViewsProvider((widget.pitId, widget.tagId))).value ??
         const [];
     const pad = EdgeInsets.fromLTRB(20, 10, 20, 96);
+    final wide = WindowClass.of(context).isWide;
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -105,6 +237,7 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
                     ),
                   ],
                 ),
+                // TODO(IPADPIT): 標題列下方（內容之上）放 PitSectionTabBar（lib/ui/pits/pit_section_tabs.dart），這裡是唯一的插入點。
                 if (widget.tagId != null)
                   TagFilterBar(
                     pitId: widget.pitId,
@@ -121,56 +254,9 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
                           actionLabel: context.l10n.commonAdd,
                           onAction: _add,
                         )
-                      : switch (_mode) {
-                          _Mode.waterfall => MasonryGridView.count(
-                            padding: pad,
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 14,
-                            crossAxisSpacing: 12,
-                            itemCount: views.length,
-                            itemBuilder: (_, i) => _PieceTile(
-                              view: views[i],
-                              onTap: () => _open(views[i]),
-                              ratio: views[i].images.isEmpty
-                                  ? 1
-                                  : views[i].images.first.aspect.clamp(
-                                      0.5,
-                                      2.0,
-                                    ),
-                            ),
-                          ),
-                          _Mode.grid => GridView.builder(
-                            padding: pad,
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  mainAxisSpacing: 12,
-                                  crossAxisSpacing: 12,
-                                  // 方圖＋標題＋互動量
-                                  childAspectRatio: 0.76,
-                                ),
-                            itemCount: views.length,
-                            itemBuilder: (_, i) => _PieceTile(
-                              view: views[i],
-                              onTap: () => _open(views[i]),
-                              ratio: 1,
-                            ),
-                          ),
-                          _Mode.nine => GridView.builder(
-                            padding: pad,
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  mainAxisSpacing: 8,
-                                  crossAxisSpacing: 8,
-                                ),
-                            itemCount: views.length,
-                            itemBuilder: (_, i) => _NineTile(
-                              view: views[i],
-                              onTap: () => _open(views[i]),
-                            ),
-                          ),
-                        },
+                      : wide
+                      ? _wideBody(views)
+                      : _content(views, pad, wide: false),
                 ),
               ],
             ),
@@ -286,7 +372,9 @@ class _PieceTile extends StatelessWidget {
     required this.view,
     required this.onTap,
     required this.ratio,
+    this.selected = false,
   });
+  final bool selected;
   final PieceView view;
   final VoidCallback onTap;
   final double ratio;
@@ -305,9 +393,15 @@ class _PieceTile extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: ratio,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: _pieceImage(context, view),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: _pieceImage(context, view),
+                ),
+                if (selected) const _SelectRing(radius: 14),
+              ],
             ),
           ),
           Padding(
@@ -359,7 +453,12 @@ String _hex(Color c) =>
 
 /// 九宮格的格：方圖（圓角 11）、左下白色半透明愛心＋實際互動量。
 class _NineTile extends StatelessWidget {
-  const _NineTile({required this.view, required this.onTap});
+  const _NineTile({
+    required this.view,
+    required this.onTap,
+    this.selected = false,
+  });
+  final bool selected;
   final PieceView view;
   final VoidCallback onTap;
 
@@ -376,6 +475,7 @@ class _NineTile extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               _pieceImage(context, view, glyph: 22, badgeInset: 5),
+              if (selected) const _SelectRing(radius: 11),
               if (view.piece.isPublished)
                 Positioned(
                   left: 5,
@@ -423,4 +523,20 @@ class _NineTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 寬版詳情面板目前顯示的那張：2.5px 主色框（稿：`outline:2.5px solid accent`）。
+class _SelectRing extends StatelessWidget {
+  const _SelectRing({required this.radius});
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: context.tokens.accent, width: 2.5),
+      ),
+    ),
+  );
 }

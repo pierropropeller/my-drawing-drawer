@@ -11,8 +11,12 @@ import '../common/media_mini.dart';
 import '../common/empty_state.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
+import '../common/window_class.dart';
+import '../album/wide_layout.dart';
 import 'draft_detail_page.dart';
+import 'detail_panes.dart';
 import 'draft_form_page.dart';
+import 'master_detail.dart';
 import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
 import 'entity_widgets.dart';
@@ -38,7 +42,8 @@ class DraftListPage extends ConsumerStatefulWidget {
   ConsumerState<DraftListPage> createState() => _DraftListPageState();
 }
 
-class _DraftListPageState extends ConsumerState<DraftListPage> {
+class _DraftListPageState extends ConsumerState<DraftListPage>
+    with MasterDetailState<DraftListPage> {
   bool _grid = false;
 
   /// 新增：先打開相簿選圖，選好再進入新增頁。
@@ -53,24 +58,82 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
     );
   }
 
-  void _open(DraftView d) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => DraftDetailPage(
-        draftId: d.draft.id,
+  void _onTagTap(String id) =>
+      (widget.onTagTap ??
+      (tid) => onListTagTap(
+        context,
         pitId: widget.pitId,
-        onTagTap:
-            widget.onTagTap ??
-            (id) => onListTagTap(
-              context,
-              pitId: widget.pitId,
-              kind: TaggedKind.draft,
-              tagId: id,
-              listFiltered: widget.tagId != null,
-              fromDetail: true,
-            ),
+        kind: TaggedKind.draft,
+        tagId: tid,
+        listFiltered: widget.tagId != null,
+        fromDetail: true,
+      ))(id);
+
+  /// 開詳情頁（手機／600–839，或由寬變窄時停在詳情）。
+  void _pushDetail(String id) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => PopWhenWide(
+        child: DraftDetailPage(
+          draftId: id,
+          pitId: widget.pitId,
+          onTagTap: _onTagTap,
+        ),
       ),
     ),
   );
+
+  /// 並排時：選中該項（右側顯示詳情）；否則開詳情頁（並記住它，之後拉寬可還原）。
+  void _open(DraftView d, {bool wide = false}) {
+    setState(() => selectedId = d.draft.id);
+    if (!wide) _pushDetail(d.draft.id);
+  }
+
+  /// 寬版：左邊緊湊列表（固定約 400，縮圖 76）＋右邊詳情。
+  Widget _splitBody(List<DraftView> views, Map<String, String> ideaTitle) {
+    final t = context.tokens;
+    final w = MediaQuery.sizeOf(context).width;
+    final listW = (w * 0.42).clamp(340.0, 400.0);
+    final sel = selectedId;
+    final valid = sel != null && views.any((v) => v.draft.id == sel);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: listW,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border(right: BorderSide(color: t.border)),
+            ),
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(24, 18, 20, 96),
+              itemCount: views.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (_, i) => _DraftRow(
+                view: views[i],
+                selected: views[i].draft.id == sel,
+                ideaTitles: [
+                  for (final id in views[i].ideaIds)
+                    if (ideaTitle[id] != null) ideaTitle[id]!,
+                ],
+                onTap: () => _open(views[i], wide: true),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: valid
+              ? DraftDetailPane(
+                  key: ValueKey(sel),
+                  pitId: widget.pitId,
+                  draftId: sel,
+                  onDeleted: () => setState(() => selectedId = null),
+                  onTagTap: _onTagTap,
+                )
+              : WideEmptyHint(context.l10n.ipadListsDraftEmpty),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +153,8 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
     final ideas =
         ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? const [];
     final ideaTitle = {for (final i in ideas) i.idea.id: i.idea.title};
+    final wide = WindowClass.of(context).isWide;
+    syncMasterDetail(wide, _pushDetail);
     return Scaffold(
       floatingActionButton: views.isEmpty
           ? null
@@ -108,13 +173,16 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
               trailing: [
                 HeaderCount(context.l10n.pitsCountDrafts(total)),
                 SearchIconButton(pitId: widget.pitId),
-                _ViewToggle(
-                  grid: _grid,
-                  onChanged: (g) => setState(() => _grid = g),
-                ),
+                // 並排時右邊是詳情，不提供九宮格切換（_grid 狀態保留，拉窄後還原）。
+                if (!wide)
+                  _ViewToggle(
+                    grid: _grid,
+                    onChanged: (g) => setState(() => _grid = g),
+                  ),
                 const SizedBox(width: 6),
               ],
             ),
+            // TODO(IPADPIT): 標題列下方（內容之上）放 PitSectionTabBar（lib/ui/pits/pit_section_tabs.dart），這裡是唯一的插入點。
             if (widget.tagId != null)
               TagFilterBar(
                 pitId: widget.pitId,
@@ -131,6 +199,8 @@ class _DraftListPageState extends ConsumerState<DraftListPage> {
                       actionLabel: context.l10n.draftFormTitleNew,
                       onAction: _add,
                     )
+                  : wide
+                  ? _splitBody(views, ideaTitle)
                   : _grid
                   ? GridView.builder(
                       padding: const EdgeInsets.only(top: 8, bottom: 96),
@@ -509,6 +579,94 @@ class _IdeaChip extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 寬版列表的一列（Drafts 設計稿）：76px 縮圖（多張右下角張數）、標題（無標題＝灰字）＋日期、
+/// 「已孵 n 成圖」與 tag／關聯腦洞小標；選中＝主色框。
+class _DraftRow extends StatelessWidget {
+  const _DraftRow({
+    required this.view,
+    required this.selected,
+    required this.ideaTitles,
+    required this.onTap,
+  });
+  final DraftView view;
+  final bool selected;
+  final List<String> ideaTitles;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final d = view.draft;
+    final title = d.title ?? '';
+    final imgs = view.images;
+    final pieces = view.pieceIds.length;
+    return EntityCard(
+      selected: selected,
+      onTap: onTap,
+      padding: const EdgeInsets.all(10),
+      child: Row(
+        spacing: 12,
+        children: [
+          SizedBox(
+            width: 76,
+            height: 76,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: imgs.isEmpty
+                  ? const ImagePlaceholder()
+                  : MediaThumb(
+                      MediaSource.fromImageRef(imgs.first),
+                      cacheWidth: 300,
+                      count: imgs.length,
+                    ),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 5,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title.isEmpty
+                            ? context.l10n.ipadListsDraftUntitled
+                            : title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: title.isEmpty ? t.text3 : t.ink,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      fmtMd(d.date),
+                      style: TextStyle(color: t.text3, fontSize: 11.5),
+                    ),
+                  ],
+                ),
+                Wrap(
+                  spacing: 5,
+                  runSpacing: 5,
+                  children: [
+                    if (pieces > 0) _HatchedMark(pieces),
+                    for (final tag in view.tags) _TagChip(tag.name),
+                    for (final title in ideaTitles) _IdeaChip(title),
+                  ],
+                ),
+              ],
             ),
           ),
         ],

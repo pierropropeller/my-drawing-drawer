@@ -13,11 +13,16 @@ import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
+import '../common/window_class.dart';
+import '../album/wide_layout.dart';
 import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
 import 'entity_widgets.dart';
 import 'idea_detail_page.dart';
+import 'detail_panes.dart';
 import 'idea_form_page.dart';
+import 'master_detail.dart';
+import '../album/album_view.dart' show ChipRow;
 
 /// 我的腦洞：卡片顯示標題、狀態、內文兩行、配圖、tag、日期；長按多選（只有刪除）。
 /// 瀏覽狀態有底部導覽列；多選時隱藏（IdeaSelect）。
@@ -41,7 +46,10 @@ class IdeaListPage extends ConsumerStatefulWidget {
 }
 
 class _IdeaListPageState extends ConsumerState<IdeaListPage>
-    with HidesNavBar<IdeaListPage> {
+    with HidesNavBar<IdeaListPage>, MasterDetailState<IdeaListPage> {
+  /// 寬版列表上方的狀態篩選（全部／未孵／孵化中／已孵）；null＝全部。只在並排時顯示與套用。
+  IdeaStatus? _status;
+
   bool _selecting = false;
   final Set<String> _selected = {};
 
@@ -79,6 +87,85 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
     MaterialPageRoute<void>(builder: (_) => IdeaFormPage(pitId: widget.pitId)),
   );
 
+  /// 並排時：選中該項（右側顯示詳情）；否則開詳情頁（並記住它，之後拉寬可還原）。
+  void _tapItem(String id, bool wide) {
+    setState(() => selectedId = id);
+    if (!wide) _pushDetail(id);
+  }
+
+  /// 開詳情頁（手機／600–839，或由寬變窄時停在詳情）。
+  void _pushDetail(String id) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => PopWhenWide(
+        child: IdeaDetailPage(
+          ideaId: id,
+          pitId: widget.pitId,
+          onTagTap: widget.onTagTap ?? (tid) => _tagTap(tid, fromDetail: true),
+        ),
+      ),
+    ),
+  );
+
+  /// 寬版：左邊列表（固定約 400，窄視窗縮一點）＋右邊詳情。
+  Widget _splitBody(List<IdeaView> views, Widget listArea) {
+    final t = context.tokens;
+    final w = MediaQuery.sizeOf(context).width;
+    final listW = (w * 0.42).clamp(340.0, 400.0);
+    final sel = selectedId;
+    final valid = sel != null && views.any((v) => v.idea.id == sel);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: listW,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border(right: BorderSide(color: t.border)),
+            ),
+            child: Column(
+              children: [
+                if (!_selecting)
+                  ChipRow(
+                    options: [
+                      (IdeaStatus.open.name, context.l10n.ideaStatusOpen),
+                      (
+                        IdeaStatus.hatching.name,
+                        context.l10n.ideaStatusHatchingShort,
+                      ),
+                      (
+                        IdeaStatus.hatched.name,
+                        context.l10n.ideaStatusHatchedShort,
+                      ),
+                    ],
+                    selected: _status?.name,
+                    onSelected: (v) => setState(
+                      () => _status = v == null
+                          ? null
+                          : IdeaStatus.values.byName(v),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 14, 12, 8),
+                  ),
+                Expanded(child: listArea),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: valid
+              ? IdeaDetailPane(
+                  key: ValueKey(sel),
+                  pitId: widget.pitId,
+                  ideaId: sel,
+                  onDeleted: () => setState(() => selectedId = null),
+                  onTagTap:
+                      widget.onTagTap ?? (id) => _tagTap(id, fromDetail: true),
+                )
+              : WideEmptyHint(context.l10n.ipadListsIdeaEmpty),
+        ),
+      ],
+    );
+  }
+
   /// 卡片或詳情頁點 tag 的預設處理（D-043）。
   void _tagTap(String id, {bool fromDetail = false}) => onListTagTap(
     context,
@@ -93,17 +180,79 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
   Widget build(BuildContext context) {
     final t = context.tokens;
     final pitName = ref.watch(pitProvider(widget.pitId)).value?.name;
-    final views =
+    final wide = WindowClass.of(context).isWide;
+    syncMasterDetail(wide, _pushDetail);
+    final allViews =
         ref.watch(ideaViewsProvider((widget.pitId, widget.tagId))).value ??
         const [];
+    final views = wide && _status != null
+        ? allViews.where((v) => v.status == _status).toList()
+        : allViews;
     // 標題列一律顯示全部數量；篩選時符合的數量在篩選列。
     final all = widget.tagId == null
-        ? views
-        : (ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? views);
+        ? allViews
+        : (ref.watch(ideaViewsProvider((widget.pitId, null))).value ??
+              allViews);
     final unhatched = all.where((v) => v.status != IdeaStatus.hatched).length;
     final title = pitName == null
         ? context.l10n.pitsIdeas
         : context.l10n.albumTitleWithPit(pitName, context.l10n.pitsIdeas);
+    final Widget listArea = views.isEmpty
+        ? EmptyState(
+            svg: AppIcons.pitIdea,
+            text: context.l10n.ideaListEmpty,
+            color: t.idea,
+            actionLabel: context.l10n.ideaListEmptyAction,
+            onAction: _openNew,
+          )
+        : ContentWidth(
+            child: ListView.separated(
+              padding: EdgeInsets.fromLTRB(_selecting ? 16 : 20, 8, 20, 96),
+              itemCount: views.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (_, i) {
+                final v = views[i];
+                final isSel = _selected.contains(v.idea.id);
+                final card = _IdeaCard(
+                  view: v,
+                  selected: _selecting
+                      ? isSel
+                      : (wide && selectedId == v.idea.id),
+                  selecting: _selecting,
+                  onTagTap: _selecting ? null : (widget.onTagTap ?? _tagTap),
+                );
+                if (!_selecting) {
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _tapItem(v.idea.id, wide),
+                    onLongPress: () {
+                      setNavBarHidden(true);
+                      setState(() {
+                        _selecting = true;
+                        _selected.add(v.idea.id);
+                      });
+                    },
+                    child: card,
+                  );
+                }
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _toggle(v.idea.id),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: SelectDot(isSel),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: card),
+                    ],
+                  ),
+                );
+              },
+            ),
+          );
     return PopScope(
       canPop: !_selecting,
       onPopInvokedWithResult: (didPop, _) {
@@ -177,6 +326,7 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                     SearchIconButton(pitId: widget.pitId),
                   ],
                 ),
+              // TODO(IPADPIT): 標題列下方（內容之上）放 PitSectionTabBar（lib/ui/pits/pit_section_tabs.dart），這裡是唯一的插入點。
               if (!_selecting && widget.tagId != null)
                 TagFilterBar(
                   pitId: widget.pitId,
@@ -184,80 +334,7 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                   tagId: widget.tagId!,
                   countText: context.l10n.pitsCountIdeas(views.length),
                 ),
-              Expanded(
-                child: views.isEmpty
-                    ? EmptyState(
-                        svg: AppIcons.pitIdea,
-                        text: context.l10n.ideaListEmpty,
-                        color: t.idea,
-                        actionLabel: context.l10n.ideaListEmptyAction,
-                        onAction: _openNew,
-                      )
-                    : ContentWidth(
-                        child: ListView.separated(
-                          padding: EdgeInsets.fromLTRB(
-                            _selecting ? 16 : 20,
-                            8,
-                            20,
-                            96,
-                          ),
-                          itemCount: views.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (_, i) {
-                            final v = views[i];
-                            final isSel = _selected.contains(v.idea.id);
-                            final card = _IdeaCard(
-                              view: v,
-                              selected: isSel,
-                              selecting: _selecting,
-                              onTagTap: _selecting
-                                  ? null
-                                  : (widget.onTagTap ?? _tagTap),
-                            );
-                            if (!_selecting) {
-                              return GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => IdeaDetailPage(
-                                      ideaId: v.idea.id,
-                                      pitId: widget.pitId,
-                                      onTagTap:
-                                          widget.onTagTap ??
-                                          (id) => _tagTap(id, fromDetail: true),
-                                    ),
-                                  ),
-                                ),
-                                onLongPress: () {
-                                  setNavBarHidden(true);
-                                  setState(() {
-                                    _selecting = true;
-                                    _selected.add(v.idea.id);
-                                  });
-                                },
-                                child: card,
-                              );
-                            }
-                            return GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => _toggle(v.idea.id),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 16),
-                                    child: SelectDot(isSel),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(child: card),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-              ),
+              Expanded(child: wide ? _splitBody(views, listArea) : listArea),
             ],
           ),
         ),
