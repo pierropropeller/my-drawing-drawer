@@ -603,6 +603,20 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get appiconTitle => 'App 圖示';
+
+  @override
+  String get appiconSanbi => '三筆';
+
+  @override
+  String get appiconHuati => '花體';
+
+  @override
+  String appiconToast(String name) {
+    return '桌面圖示已換成「$name」';
+  }
+
+  @override
   String get appTagline => '把想畫的、畫好的，都收進坑裡。';
 
   @override

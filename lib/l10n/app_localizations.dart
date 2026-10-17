@@ -1143,6 +1143,30 @@ abstract class AppLocalizations {
   /// **'連結失敗：{error}'**
   String syncLinkFailed(String error);
 
+  /// No description provided for @appiconTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'App 圖示'**
+  String get appiconTitle;
+
+  /// No description provided for @appiconSanbi.
+  ///
+  /// In zh, this message translates to:
+  /// **'三筆'**
+  String get appiconSanbi;
+
+  /// No description provided for @appiconHuati.
+  ///
+  /// In zh, this message translates to:
+  /// **'花體'**
+  String get appiconHuati;
+
+  /// No description provided for @appiconToast.
+  ///
+  /// In zh, this message translates to:
+  /// **'桌面圖示已換成「{name}」'**
+  String appiconToast(String name);
+
   /// 關於 App 的標語
   ///
   /// In zh, this message translates to:

@@ -11,7 +11,7 @@
 
 ## 批次 13（2026-10-18，新 App icon＋可選圖示）
 
-- **D-086** **新 App icon（Molly 親手畫）＋App 內可選圖示**，取代 D-068（主題色匣子 icon 作廢）。
+- **D-086** **新 App icon（Molly 親手畫）＋App 內可選圖示**，取代 D-068（主題色匣子 icon 作廢）。 🟡 未完成：已完成並通過測試，Android 桌面圖示切換（activity-alias）未實機驗證 commit 0dcde79
   - 兩款：**三筆**（`sanbi`，預設）、**花體**（`huati`）。白底＋漸變六邊形＋白色筆觸，**不跟主題色**。
   - 資源：`appicon.zip` 直接覆蓋 `android/app/src/main/res/`（每款一套 `ic_launcher_{key}`：legacy、round、adaptive 前景（透明底）、monochrome（Android 13 主題圖示）、`mipmap-anydpi-v26` xml；背景色 `#FFFFFF`）。不帶 key 的 `ic_launcher*`＝三筆副本。Play 用 `playstore/icon-512-sanbi.png`。說明見 zip 內 README。
   - **切換做法**：AndroidManifest 每款一個 `activity-alias`（`.IconSanbi` 預設 enabled、`.IconHuati` disabled），都指向 MainActivity、各自 `android:icon="@mipmap/ic_launcher_{key}"`、`roundIcon` 同理、都有 LAUNCHER intent-filter。切換時用 `PackageManager.setComponentEnabledSetting` 開新的、關舊的（`DONT_KILL_APP`），Flutter 用 MethodChannel 呼叫。選擇存在裝置設定（3.10），不同步。
@@ -25,7 +25,7 @@
 
 ## 批次 12（2026-10-18，改名）
 
-- **D-085** **「草稿」全部改名為「摸魚」**（只改介面文字，程式裡的型別／檔名 `Draft`、`DraftList` 等不用改）。
+- **D-085** **「草稿」全部改名為「摸魚」**（只改介面文字，程式裡的型別／檔名 `Draft`、`DraftList` 等不用改）。 ✅ commit 014ff1c
   - 「我的草稿」→「我的摸魚」、「新增草稿」→「新增摸魚」、「建立草稿」→「建立摸魚」、「草稿詳情」→「摸魚詳情」、「選擇草稿」→「選擇摸魚」、「關聯草稿」→「關聯摸魚」、「草稿圖」→「摸魚圖」、腦洞狀態「孵化中 · N 草稿」→「孵化中 · N 摸魚」、目標類型、搜尋分段、時間軸標籤、同步進度、分享匯入的位置……**所有出現「草稿」的地方一律換成「摸魚」**（ARB 全部搜一次）。
   - 量詞照舊「份」（「7 份」）。
   - 目標自動名稱：「畫 N 份草稿」→「畫 N 份摸魚」。
