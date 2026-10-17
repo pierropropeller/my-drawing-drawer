@@ -22,6 +22,7 @@ import 'pit_edit_page.dart';
 import 'pit_junk_entry.dart';
 import 'pit_oshi_entry.dart';
 import 'pit_page_tablet.dart';
+import 'pit_type_widgets.dart' show ShallowBadge, ShallowEmptyState;
 import 'pits_icons.dart';
 
 /// 坑內頁（Pit／PitFilled／PitDark，D-058）：六格正方形（2 欄 3 列）：官方圖冊、好看同人圖／
@@ -33,6 +34,83 @@ class PitPage extends ConsumerWidget {
 
   void _open(BuildContext context, Widget page) =>
       Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+
+  /// 六個固定格之一（雜物不在這裡）。順序＝[PitSectionKey] 的順序。
+  _Cell _cellFor(
+    BuildContext context,
+    PitSectionKey key,
+    PitStats stats,
+    CellCovers covers,
+    VoidCallback? Function(int count, String kind) longPress,
+    double side,
+  ) {
+    final t = context.tokens;
+    final l = context.l10n;
+    return switch (key) {
+      PitSectionKey.official => _Cell(
+        l.pitsOfficial,
+        AppIcons.pitOfficial,
+        t.official,
+        l.commonCountImages(stats.official),
+        side: side,
+        file: covers.official,
+        onTap: () => _open(context, OfficialListPage(pitId: pitId)),
+        onLongPress: longPress(stats.official, 'official'),
+      ),
+      PitSectionKey.fan => _Cell(
+        l.pitsFanArt,
+        AppIcons.pitFanArt,
+        t.fanArt,
+        l.commonCountImages(stats.fanArts),
+        side: side,
+        file: covers.fanArt,
+        onTap: () => _open(context, FanArtListPage(pitId: pitId)),
+        onLongPress: longPress(stats.fanArts, 'fan'),
+      ),
+      PitSectionKey.idea => _Cell(
+        l.pitsIdeas,
+        AppIcons.pitIdea,
+        t.idea,
+        l.pitsCountIdeas(stats.ideas),
+        side: side,
+        file: covers.idea,
+        onTap: () => _open(context, IdeaListPage(pitId: pitId)),
+        onLongPress: longPress(stats.ideas, 'idea'),
+      ),
+      PitSectionKey.draft => _Cell(
+        l.pitsDrafts,
+        AppIcons.edit,
+        t.draft,
+        l.pitsCountDrafts(stats.drafts),
+        side: side,
+        file: covers.draft,
+        onTap: () => _open(context, DraftListPage(pitId: pitId)),
+        onLongPress: longPress(stats.drafts, 'draft'),
+      ),
+      PitSectionKey.piece => _Cell(
+        l.pitsPieces,
+        stats.pieces == 0 ? AppIcons.pitPieceEmpty : AppIcons.image,
+        t.piece,
+        l.commonCountImages(stats.pieces),
+        side: side,
+        file: covers.piece,
+        // 有成圖但還沒有封面檔：灰粉底＋淡色相框（PitFilled）。
+        placeholder: stats.pieces > 0,
+        onTap: () => _open(context, FinishedListPage(pitId: pitId)),
+        onLongPress: longPress(stats.pieces, 'piece'),
+      ),
+      _ => _Cell(
+        l.pitsCellOshi,
+        PitsIcons.oshi,
+        t.oshi,
+        l.pitsCellOshiCount(stats.oshi),
+        side: side,
+        file: covers.oshi,
+        onTap: () => openOshiList(context, pitId),
+        onLongPress: longPress(stats.oshi, 'oshi'),
+      ),
+    };
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -99,17 +177,25 @@ class PitPage extends ConsumerWidget {
                                 height: 40,
                                 child: Align(
                                   alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    pit.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleLarge
-                                        ?.copyWith(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w700,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          pit.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleLarge
+                                              ?.copyWith(
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                         ),
+                                      ),
+                                      if (pit.isShallow) const ShallowBadge(),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -145,121 +231,38 @@ class PitPage extends ConsumerWidget {
                   builder: (context, c) {
                     // 正方形格邊長。
                     final side = (c.maxWidth - 40 - 12) / 2;
+                    final cells = <_Cell>[
+                      for (final k in PitSectionKey.values)
+                        if (k != PitSectionKey.junk && pit.sectionOpen(k))
+                          _cellFor(context, k, stats, covers, longPress, side),
+                    ];
+                    final showJunk = pit.junkEnabled;
+                    // 淺坑一個格子都沒開（也沒有雜物）：空白狀態（PitShallowEmpty）。
+                    if (pit.isShallow && cells.isEmpty && !showJunk) {
+                      return ShallowEmptyState(
+                        onOpen: () => openPitEdit(context, pit),
+                      );
+                    }
                     return ListView(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _Cell(
-                                context.l10n.pitsOfficial,
-                                AppIcons.pitOfficial,
-                                t.official,
-                                context.l10n.commonCountImages(stats.official),
-                                side: side,
-                                file: covers.official,
-                                onTap: () => _open(
-                                  context,
-                                  OfficialListPage(pitId: pitId),
-                                ),
-                                onLongPress: longPress(
-                                  stats.official,
-                                  'official',
-                                ),
+                        for (var i = 0; i < cells.length; i += 2) ...[
+                          if (i > 0) const SizedBox(height: 12),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: cells[i]),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: i + 1 < cells.length
+                                    ? cells[i + 1]
+                                    : const SizedBox.shrink(),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _Cell(
-                                context.l10n.pitsFanArt,
-                                AppIcons.pitFanArt,
-                                t.fanArt,
-                                context.l10n.commonCountImages(stats.fanArts),
-                                side: side,
-                                file: covers.fanArt,
-                                onTap: () => _open(
-                                  context,
-                                  FanArtListPage(pitId: pitId),
-                                ),
-                                onLongPress: longPress(stats.fanArts, 'fan'),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _Cell(
-                                context.l10n.pitsIdeas,
-                                AppIcons.pitIdea,
-                                t.idea,
-                                context.l10n.pitsCountIdeas(stats.ideas),
-                                side: side,
-                                file: covers.idea,
-                                onTap: () =>
-                                    _open(context, IdeaListPage(pitId: pitId)),
-                                onLongPress: longPress(stats.ideas, 'idea'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _Cell(
-                                context.l10n.pitsDrafts,
-                                AppIcons.edit,
-                                t.draft,
-                                context.l10n.pitsCountDrafts(stats.drafts),
-                                side: side,
-                                file: covers.draft,
-                                onTap: () =>
-                                    _open(context, DraftListPage(pitId: pitId)),
-                                onLongPress: longPress(stats.drafts, 'draft'),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _Cell(
-                                context.l10n.pitsPieces,
-                                stats.pieces == 0
-                                    ? AppIcons.pitPieceEmpty
-                                    : AppIcons.image,
-                                t.piece,
-                                context.l10n.commonCountImages(stats.pieces),
-                                side: side,
-                                file: covers.piece,
-                                // 有成圖但還沒有封面檔：灰粉底＋淡色相框（PitFilled）。
-                                placeholder: stats.pieces > 0,
-                                onTap: () => _open(
-                                  context,
-                                  FinishedListPage(pitId: pitId),
-                                ),
-                                onLongPress: longPress(stats.pieces, 'piece'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _Cell(
-                                context.l10n.pitsCellOshi,
-                                PitsIcons.oshi,
-                                context.tokens.oshi,
-                                context.l10n.pitsCellOshiCount(stats.oshi),
-                                side: side,
-                                file: covers.oshi,
-                                onTap: () => openOshiList(context, pitId),
-                                onLongPress: longPress(stats.oshi, 'oshi'),
-                              ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+                        ],
                         // 開啟「雜物」才出現，放在最底（PitJunk）。
-                        if (pit.junkEnabled)
+                        if (showJunk)
                           PitJunkEntryRow(
                             count: stats.junk,
                             onTap: () => openJunk(context, pitId),

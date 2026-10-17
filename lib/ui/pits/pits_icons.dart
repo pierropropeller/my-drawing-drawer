@@ -10,4 +10,11 @@ class PitsIcons {
   /// 推活（星星；坑內頁第六格，Pit）。
   static const oshi =
       '<path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>';
+
+  /// 四格（淺坑還沒開啟任何格子的空白狀態，PitShallowEmpty）。
+  static const emptyCells =
+      '<rect x="4" y="4" width="7" height="7" rx="1.8"/>'
+      '<rect x="13" y="4" width="7" height="7" rx="1.8"/>'
+      '<rect x="4" y="13" width="7" height="7" rx="1.8"/>'
+      '<rect x="13" y="13" width="7" height="7" rx="1.8"/>';
 }

@@ -32,6 +32,9 @@ enum ShareSection {
   idea,
   piece;
 
+  /// 對應的坑內格子（淺坑只開放它開啟的格子，D-088）。
+  PitSectionKey get sectionKey => PitSectionKey.values.byName(name);
+
   /// 草稿／腦洞／成圖／推活要先填表單，按鈕是「下一步」；其餘直接存。
   bool get needsForm =>
       this == ShareSection.draft ||
@@ -253,19 +256,23 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
     final l = context.l10n;
     final media = MediaQuery.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final pits = ref.watch(pitsProvider(false)).value ?? const <Pit>[];
+    // 現坑＋淺坑；封存坑不列（D-088）。
+    final pits = ref.watch(selectablePitsProvider).value ?? const <Pit>[];
     // 選中的坑不在列表（已封存、還沒載入）時退回第一個。
     final pit =
         pits.where((p) => p.id == _pitId).firstOrNull ?? pits.firstOrNull;
-    // 沒開啟雜物的坑不列雜物（和「移動到」一致）；選到了就退回官方圖冊。
-    final junkOk = pit?.junkEnabled == true;
+    // 沒開啟雜物的坑不列雜物（和「移動到」一致）；淺坑只列它開啟的格子。
+    // 選到的位置不在清單裡就退回第一個。
     final sections = [
       for (final s in ShareSection.values)
-        if (s != ShareSection.junk || junkOk) s,
+        if (pit == null
+            ? s != ShareSection.junk
+            : pit.sectionOpen(s.sectionKey))
+          s,
     ];
     final section = sections.contains(_section)
         ? _section
-        : ShareSection.official;
+        : (sections.firstOrNull ?? ShareSection.official);
     final groups = pit == null || section != ShareSection.official
         ? const <OfficialGroup>[]
         : ref.watch(groupsProvider((pit.id, 'official'))).value ?? const [];
@@ -283,7 +290,9 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
         if (_tagIds.contains(tag.id)) tag.id,
     ];
     final canGo =
-        pit != null && (section != ShareSection.official || group != null);
+        pit != null &&
+        sections.isNotEmpty &&
+        (section != ShareSection.official || group != null);
     final groupForResult = switch (section) {
       ShareSection.official => group?.id,
       ShareSection.fan => fanGroup?.id,

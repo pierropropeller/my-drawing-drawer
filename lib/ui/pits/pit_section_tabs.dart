@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/database.dart';
 import '../../l10n/l10n.dart';
+import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/fan_art_list_page.dart';
 import '../album/official_list_page.dart';
@@ -26,6 +29,16 @@ enum PitSection {
     drafts => l.pitsDrafts,
     pieces => l.pitsPieces,
     oshi => l.pitsCellOshi,
+  };
+
+  /// 對應的資料層格子（淺坑只顯示開啟的格子，D-088）。
+  PitSectionKey get key => switch (this) {
+    official => PitSectionKey.official,
+    fanArt => PitSectionKey.fan,
+    ideas => PitSectionKey.idea,
+    drafts => PitSectionKey.draft,
+    pieces => PitSectionKey.piece,
+    oshi => PitSectionKey.oshi,
   };
 
   /// 這個分區的列表頁（與坑內頁的六格開啟同一批頁面）。
@@ -71,7 +84,7 @@ enum PitSection {
 ///
 /// 觸控目標：每個 tab 高 44、最小寬 44；tab 太多放不下時橫向捲動，並在建立時
 /// 捲到選中的 tab。
-class PitSectionTabBar extends StatefulWidget {
+class PitSectionTabBar extends ConsumerStatefulWidget {
   const PitSectionTabBar({
     super.key,
     required this.pitId,
@@ -104,10 +117,10 @@ class PitSectionTabBar extends StatefulWidget {
   }
 
   @override
-  State<PitSectionTabBar> createState() => _PitSectionTabBarState();
+  ConsumerState<PitSectionTabBar> createState() => _PitSectionTabBarState();
 }
 
-class _PitSectionTabBarState extends State<PitSectionTabBar> {
+class _PitSectionTabBarState extends ConsumerState<PitSectionTabBar> {
   final _scroll = ScrollController();
   final _selectedKey = GlobalKey();
 
@@ -144,6 +157,12 @@ class _PitSectionTabBarState extends State<PitSectionTabBar> {
     if (WindowClass.of(context).isCompact) return const SizedBox.shrink();
     final t = context.tokens;
     final l = context.l10n;
+    // 淺坑只列開啟的格子；目前所在的分區一定列出。
+    final pit = ref.watch(pitProvider(widget.pitId)).value;
+    final sections = [
+      for (final s in PitSection.values)
+        if (s == widget.selected || pit == null || pit.sectionOpen(s.key)) s,
+    ];
     return Semantics(
       container: true,
       label: l.ipadpitSectionsLabel,
@@ -157,8 +176,8 @@ class _PitSectionTabBarState extends State<PitSectionTabBar> {
           padding: widget.padding,
           child: Row(
             children: [
-              for (final s in PitSection.values) ...[
-                if (s != PitSection.values.first) const SizedBox(width: 18),
+              for (final s in sections) ...[
+                if (s != sections.first) const SizedBox(width: 18),
                 _Tab(
                   key: s == widget.selected ? _selectedKey : null,
                   label: s.label(l),

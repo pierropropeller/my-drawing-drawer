@@ -17,8 +17,10 @@ import '../common/window_class.dart';
 import '../sync/sync_avatar.dart';
 import 'pit_new_page.dart';
 import 'pit_page.dart';
+import 'pit_rows.dart';
 
-/// 主頁：現坑／封存坑、田字／瀑布切換、坑卡片、開新坑（最後一格的虛線格）。
+/// 主頁：現坑／淺坑／封存坑三個分頁。現坑＝田字／瀑布切換、坑卡片、開新坑（最後一格的虛線格）；
+/// 淺坑、封存坑＝純列表（小封面、坑名、一行副標、右箭頭），淺坑列表最底有「開新淺坑」（D-088）。
 class PitsPage extends ConsumerStatefulWidget {
   const PitsPage({super.key});
 
@@ -26,23 +28,26 @@ class PitsPage extends ConsumerStatefulWidget {
   ConsumerState<PitsPage> createState() => _PitsPageState();
 }
 
-void _openNewPit(BuildContext context) => openNewPit(context);
+void _openNewPit(BuildContext context, {PitStatus status = PitStatus.active}) =>
+    openNewPit(context, initialStatus: status);
 
 class _PitsPageState extends ConsumerState<PitsPage> {
-  bool _archived = false;
+  PitStatus _tab = PitStatus.active;
   bool _grid = true; // true＝田字，false＝瀑布
 
   @override
   Widget build(BuildContext context) {
-    final pits = ref.watch(pitsProvider(_archived));
-    final otherCount = ref.watch(pitsProvider(!_archived)).value?.length ?? 0;
-    final nickname = ref.watch(settingsProvider.select((s) => s.nickname));
-    // 完全沒有坑（現坑、封存坑都是空）：只留頭像與名字（MainEmpty）。
+    final pits = ref.watch(pitsByStatusProvider(_tab));
+    // 完全沒有坑（現坑、淺坑、封存坑都是空）：只留頭像與名字（MainEmpty）。
+    final others = [
+      for (final st in PitStatus.values)
+        if (st != _tab) ref.watch(pitsByStatusProvider(st)).value,
+    ];
     final nothingAtAll =
-        !_archived &&
         pits.value != null &&
         pits.value!.isEmpty &&
-        otherCount == 0;
+        others.every((o) => o != null && o.isEmpty);
+    final nickname = ref.watch(settingsProvider.select((s) => s.nickname));
     final wc = WindowClass.of(context);
     // ≥600 用 iPad 版面（頭像在 rail／sidebar，頁面標題是「我的坑」）；＜600 與手機版完全一樣。
     final tablet = !wc.isCompact;
@@ -51,19 +56,23 @@ class _PitsPageState extends ConsumerState<PitsPage> {
     final pills = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _FilterChip(
-          label: context.l10n.pitsActive,
-          selected: !_archived,
-          big: tablet,
-          onTap: () => setState(() => _archived = false),
-        ),
-        const SizedBox(width: 8),
-        _FilterChip(
-          label: context.l10n.pitsArchived,
-          selected: _archived,
-          big: tablet,
-          onTap: () => setState(() => _archived = true),
-        ),
+        for (final (i, st) in [
+          (0, PitStatus.active),
+          (1, PitStatus.shallow),
+          (2, PitStatus.archived),
+        ]) ...[
+          if (i > 0) const SizedBox(width: 8),
+          _FilterChip(
+            label: switch (st) {
+              PitStatus.active => context.l10n.pitsActive,
+              PitStatus.shallow => context.l10n.shallowName,
+              PitStatus.archived => context.l10n.pitsArchived,
+            },
+            selected: _tab == st,
+            big: tablet,
+            onTap: () => setState(() => _tab = st),
+          ),
+        ],
       ],
     );
     final toggle = _ViewToggle(
@@ -95,7 +104,8 @@ class _PitsPageState extends ConsumerState<PitsPage> {
                     ),
                     if (!nothingAtAll) ...[
                       if (wide) ...[pills, const SizedBox(width: 16)],
-                      toggle,
+                      // 田字／瀑布只在「現坑」分頁。
+                      if (_tab == PitStatus.active) toggle,
                     ],
                   ],
                 ),
@@ -117,7 +127,7 @@ class _PitsPageState extends ConsumerState<PitsPage> {
                             ?.copyWith(fontSize: 24, letterSpacing: 0.5),
                       ),
                     ),
-                    if (!nothingAtAll) toggle,
+                    if (!nothingAtAll && _tab == PitStatus.active) toggle,
                   ],
                 ),
               ),
@@ -144,15 +154,26 @@ class _PitsPageState extends ConsumerState<PitsPage> {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) =>
                     Center(child: Text(context.l10n.pitsLoadFailed('$e'))),
-                data: (list) => list.isEmpty
-                    ? _Empty(archived: _archived)
-                    : _PitList(
-                        pits: list,
-                        grid: _grid,
-                        archived: _archived,
-                        tablet: tablet,
-                        wide: wide,
-                      ),
+                data: (list) => switch (_tab) {
+                  PitStatus.active =>
+                    list.isEmpty
+                        ? _Empty(tab: _tab)
+                        : _PitList(
+                            pits: list,
+                            grid: _grid,
+                            tablet: tablet,
+                            wide: wide,
+                          ),
+                  PitStatus.shallow || PitStatus.archived =>
+                    list.isEmpty
+                        ? _Empty(tab: _tab)
+                        : PitRows(
+                            pits: list,
+                            status: _tab,
+                            tablet: tablet,
+                            wide: wide,
+                          ),
+                },
               ),
             ),
           ],
@@ -309,8 +330,8 @@ class _FilterChip extends StatelessWidget {
 
 /// 空白狀態（MainEmpty）：大圓角方塊資料夾圖示、說明、開新坑按鈕。
 class _Empty extends StatelessWidget {
-  const _Empty({required this.archived});
-  final bool archived;
+  const _Empty({required this.tab});
+  final PitStatus tab;
 
   @override
   Widget build(BuildContext context) {
@@ -339,16 +360,18 @@ class _Empty extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              archived
-                  ? context.l10n.pitsEmptyArchived
-                  : context.l10n.pitsEmpty,
+              switch (tab) {
+                PitStatus.active => context.l10n.pitsEmpty,
+                PitStatus.shallow => context.l10n.shallowListEmpty,
+                PitStatus.archived => context.l10n.pitsEmptyArchived,
+              },
               style: Theme.of(context).textTheme.titleLarge
                   ?.copyWith(fontSize: 19, fontWeight: FontWeight.w700),
             ),
-            if (!archived) ...[
+            if (tab != PitStatus.archived) ...[
               const SizedBox(height: 22),
               GestureDetector(
-                onTap: () => _openNewPit(context),
+                onTap: () => _openNewPit(context, status: tab),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 26,
@@ -369,7 +392,9 @@ class _Empty extends StatelessWidget {
                       ),
                       SizedBox(width: 6),
                       Text(
-                        context.l10n.pitsNewTitle,
+                        tab == PitStatus.shallow
+                            ? context.l10n.shallowNewRow
+                            : context.l10n.pitsNewTitle,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -392,13 +417,11 @@ class _PitList extends StatelessWidget {
   const _PitList({
     required this.pits,
     required this.grid,
-    required this.archived,
     this.tablet = false,
     this.wide = false,
   });
   final List<Pit> pits;
   final bool grid;
-  final bool archived;
 
   /// ≥600：iPad 版面（欄數按闊度計、間距與字級照 Main／MainPortrait 稿）。
   final bool tablet;
@@ -413,7 +436,7 @@ class _PitList extends StatelessWidget {
         : const EdgeInsets.fromLTRB(20, 12, 20, 24);
     final gapX = tablet ? (wide ? 20.0 : 18.0) : 14.0;
     final gapY = tablet ? (grid ? 22.0 : 20.0) : 14.0;
-    final itemCount = pits.length + (archived ? 0 : 1);
+    final itemCount = pits.length + 1;
     return LayoutBuilder(
       builder: (context, c) {
         // 手機沿用既有欄數；iPad 欄數 = max(2, floor(可用闊 ÷ 180))，拉窗逐格增減（RespSpec）。
