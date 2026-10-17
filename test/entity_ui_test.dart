@@ -100,13 +100,18 @@ void main() {
     int images = 1,
     List<String> tagIds = const [],
     List<String> ideaIds = const [],
+    List<(int, int)>? sizes,
   }) => db.saveDraft(
     pitId: pitId,
     title: title,
     body: body,
     images: [
-      for (var i = 0; i < images; i++)
-        NewImage(file: ['a.png', 'b.png', 'c.png'][i % 3]),
+      for (var i = 0; i < (sizes?.length ?? images); i++)
+        NewImage(
+          file: ['a.png', 'b.png', 'c.png'][i % 3],
+          width: sizes?[i].$1 ?? 0,
+          height: sizes?[i].$2 ?? 0,
+        ),
     ],
     tagIds: tagIds,
     ideaIds: ideaIds,
@@ -664,102 +669,164 @@ void main() {
     });
   });
 
-  group('摸魚列表卡片', () {
-    testWidgets('有字卡、純圖單張、純圖多張（+N）、九宮格切換', (tester) async {
+  group('摸魚列表（D-087 推特式）', () {
+    testWidgets('列表與九宮格切換', (tester) async {
       await newDraft(title: '有字', images: 3);
-      await newDraft(); // 純圖單張
-      await newDraft(images: 3); // 純圖多張
-      await newDraft(images: 5); // 純圖 +2
+      await newDraft();
+      await newDraft(images: 3);
+      await newDraft(images: 5);
       await show(tester, DraftListPage(pitId: pitId));
-      expect(find.text('有字'), findsOneWidget);
-      expect(find.text('+2'), findsOneWidget);
+      expect(find.byType(DraftRow), findsWidgets);
       expect(find.text('4 份'), findsOneWidget);
       await tester.tap(find.bySemanticsLabel('九宮格'));
       await settle(tester);
+      expect(find.byType(DraftRow), findsNothing);
       expect(find.text('3'), findsWidgets); // 多圖格右下角張數
       expect(tester.takeException(), isNull);
       await unmount(tester);
     });
 
-    // D-083：版面只看內文；標題／關聯成圖標記／tag／關聯腦洞共用同一個框架。
     Finder tiles() => find.descendant(
-      of: find.byType(DraftListCard),
+      of: find.byType(DraftRow),
       matching: find.byType(StoredImage),
     );
+    Finder rich(String s) => find.text(s);
 
-    testWidgets('D-083：有內文＝小圖版（64px，最多 4 張，第 4 張 +N）', (tester) async {
-      await newDraft(body: '內文', images: 5);
+    test('版面算式', () {
+      const w = 350.0;
+      var l = draftImageLayout([1.5], w);
+      expect(l.scrolls, isFalse);
+      expect(l.sizes.single.width, w);
+      expect(l.sizes.single.height, closeTo(w / 1.5, 0.001));
+      // 極端比例夾在高 0.25W～1.6W。
+      expect(
+        draftImageLayout([20], w).sizes.single.height,
+        closeTo(w / 4, .001),
+      );
+      expect(
+        draftImageLayout([0.1], w).sizes.single.height,
+        closeTo(w * 1.6, .001),
+      );
+      // 未知比例＝1:1。
+      expect(draftImageLayout([1], w).sizes.single.height, w);
+      l = draftImageLayout([0.75, 1.5], w);
+      final h = (w - 4) / 2.25;
+      expect(l.sizes[0], Size(h * 0.75, h));
+      expect(l.sizes[1], Size(h * 1.5, h));
+      expect(l.sizes[0].width + 4 + l.sizes[1].width, closeTo(w, .001));
+      l = draftImageLayout([0.8, 1.0, 1.3, 0.7], w);
+      expect(l.scrolls, isTrue);
+      final h3 = (w - 4) / (0.8 + 0.5);
+      for (final s in l.sizes) {
+        expect(s.height, closeTo(h3, .001));
+      }
+      expect(l.sizes[0].width + 4 + l.sizes[1].width / 2, closeTo(w, .001));
+    });
+
+    testWidgets('1 張：寬 W、高依比例；標題・日期、無內文', (tester) async {
+      await newDraft(title: '單張', sizes: const [(200, 100)]);
       await show(tester, DraftListPage(pitId: pitId));
-      expect(find.text('內文'), findsOneWidget);
-      expect(tiles(), findsNWidgets(4));
-      expect(find.text('+1'), findsOneWidget);
-      expect(tester.getSize(tiles().first), const Size(64, 64));
+      final row = tester.getRect(find.byType(DraftRow));
+      expect(row.left, 0);
+      final im = tester.getRect(tiles());
+      expect(im.left, 20);
+      expect(im.width, closeTo(row.width - 40, .01));
+      expect(im.height, closeTo(im.width / 2, .01));
+      expect(rich('單張'), findsOneWidget);
+      expect(rich('·'), findsOneWidget);
+      expect(tester.takeException(), isNull);
       await unmount(tester);
     });
 
-    testWidgets('D-083：沒有內文＝大圖版，不管有沒有標題／tag', (tester) async {
-      await newDraft(title: '有標題有 tag', images: 1, tagIds: [tagA]);
+    testWidgets('2 張：同高拼滿 W', (tester) async {
+      await newDraft(sizes: const [(300, 400), (400, 300)]);
       await show(tester, DraftListPage(pitId: pitId));
-      expect(tiles(), findsOneWidget);
-      expect(tester.getSize(tiles().first).height, 140);
-      expect(find.text('有標題有 tag'), findsOneWidget);
-      expect(find.text('#角色1'), findsOneWidget);
-      await unmount(tester);
-    });
-
-    testWidgets('D-083：大圖版 2 張靠左留空、3 張一排、5 張第三格 +2', (tester) async {
-      await newDraft(images: 2);
-      await show(tester, DraftListPage(pitId: pitId));
-      expect(tiles(), findsNWidgets(2));
+      final row = tester.getRect(find.byType(DraftRow));
       final a = tester.getRect(tiles().at(0));
       final b = tester.getRect(tiles().at(1));
-      expect(a.width, closeTo(a.height, 0.01));
-      expect(b.left - a.right, closeTo(4, 0.01));
-      final card = tester.getRect(find.byType(DraftListCard));
-      expect(b.right, lessThan(card.right - a.width / 2)); // 第三格留空
-      await unmount(tester);
-
-      await newDraft(images: 3);
-      await show(tester, DraftListPage(pitId: pitId));
-      expect(find.text('+0'), findsNothing);
-      expect(find.textContaining('+'), findsNothing);
-      await unmount(tester);
-
-      await newDraft(images: 5);
-      await show(tester, DraftListPage(pitId: pitId));
-      expect(find.text('+2'), findsOneWidget);
+      final w = row.width - 40;
+      final h = (w - 4) / (0.75 + 4 / 3);
+      expect(a.height, closeTo(h, .01));
+      expect(b.height, closeTo(h, .01));
+      expect(a.width, closeTo(h * 0.75, .01));
+      expect(b.left - a.right, closeTo(4, .01));
+      expect(b.right, closeTo(row.right - 20, .01));
       await unmount(tester);
     });
 
-    testWidgets('D-083：右上「已孵 N 成圖」同腦洞卡；沒有標題也沒有標記時整行不顯示', (tester) async {
+    testWidgets('3 張以上：同高橫捲，第 1 張完整、第 2 張露一半，延伸到右緣', (tester) async {
+      await newDraft(
+        title: '多張',
+        sizes: const [(300, 400), (400, 400), (400, 300), (300, 400)],
+      );
+      await show(tester, DraftListPage(pitId: pitId));
+      final row = tester.getRect(find.byType(DraftRow));
+      final w = row.width - 40;
+      final h = (w - 4) / (0.75 + 0.5);
+      final a = tester.getRect(tiles().at(0));
+      expect(a.left, 20);
+      expect(a.height, closeTo(h, .01));
+      final b = tester.getRect(tiles().at(1));
+      // 第 2 張只露出一半：被可視區（到螢幕右緣）剪掉。
+      expect(b.left, closeTo(20 + a.width + 4, .01));
+      expect(
+        row.right - b.left,
+        closeTo(b.width / 2 + 20, .5),
+      ); // 公式照 W；右邊多出的 20 留白也算可視
+      final sc = tester.getRect(
+        find.descendant(
+          of: find.byType(DraftRow),
+          matching: find.byType(ListView),
+        ),
+      );
+      expect(sc.right, row.right);
+      await tester.drag(
+        find.descendant(
+          of: find.byType(DraftRow),
+          matching: find.byType(ListView),
+        ),
+        const Offset(-200, 0),
+      );
+      await tester.pump();
+      expect(tester.getRect(tiles().at(0)).left, lessThan(20));
+      expect(tester.takeException(), isNull);
+      await unmount(tester);
+    });
+
+    testWidgets('無標題只有日期；有內文；已孵標記；tag 與關聯腦洞', (tester) async {
       final pieceId = await newPiece('成圖甲');
+      final ideaId = await newIdea('某腦洞');
       await db.saveDraft(
         pitId: pitId,
-        title: '有成圖',
-        images: const [NewImage(file: 'a.png')],
-        tagIds: const [],
-        ideaIds: const [],
+        body: '這是內文',
+        images: const [],
+        tagIds: [tagA],
+        ideaIds: [ideaId],
         pieceIds: [pieceId],
       );
-      await db.saveDraft(
-        pitId: pitId,
-        images: const [NewImage(file: 'a.png')],
-        tagIds: const [],
-        ideaIds: const [],
-        pieceIds: [pieceId],
-      ); // 無標題但有標記：仍有頂行
-      await newDraft(images: 1); // 都沒有
       await show(tester, DraftListPage(pitId: pitId));
-      expect(find.text('已孵 1 成圖'), findsNWidgets(2));
-      // 沒標題沒標記的卡片（頂行不顯示）比另外兩張矮。
-      final hs = [
-        for (var i = 0; i < 3; i++)
-          tester.getSize(find.byType(DraftListCard).at(i)).height,
-      ];
-      final shortest = hs.reduce((a, b) => a < b ? a : b);
-      expect(hs.where((h) => h == shortest).length, 1);
-      expect(hs.where((h) => h > shortest + 20).length, 2);
+      expect(rich('·'), findsNothing);
+      expect(find.text('這是內文'), findsOneWidget);
+      expect(find.text('已孵 1 成圖'), findsOneWidget);
+      expect(find.text('#角色1'), findsOneWidget);
+      expect(find.text('某腦洞'), findsOneWidget);
+      expect(tiles(), findsNothing);
       expect(tester.takeException(), isNull);
+      await unmount(tester);
+    });
+
+    testWidgets('沒有內文：標題後直接圖片；點整列開詳情、點圖開預覽', (tester) async {
+      await newDraft(title: '甲', sizes: const [(100, 100), (100, 100)]);
+      await show(tester, DraftListPage(pitId: pitId));
+      await tester.tap(tiles().at(1));
+      await settle(tester);
+      expect(find.byType(ImageGalleryPage), findsOneWidget);
+      expect(find.byType(DraftDetailPage), findsNothing);
+      Navigator.of(tester.element(find.byType(ImageGalleryPage))).pop();
+      await settle(tester);
+      await tester.tap(rich('甲'));
+      await settle(tester);
+      expect(find.byType(DraftDetailPage), findsOneWidget);
       await unmount(tester);
     });
 

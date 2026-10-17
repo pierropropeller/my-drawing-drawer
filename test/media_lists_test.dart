@@ -230,24 +230,10 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('摸魚卡：大圖版用完整標記、小圖版用縮小標記', (tester) async {
+  testWidgets('摸魚列（D-087）：GIF／影片用縮小標記', (tester) async {
     await tester.runAsync(
       () => db.saveDraft(
         pitId: pitId,
-        images: const [gif, video],
-        tagIds: const [],
-        ideaIds: const [],
-      ),
-    );
-    await show(tester, DraftListPage(pitId: pitId));
-    expect(badgeGif, findsOneWidget);
-    expect(badgeVideo, findsOneWidget);
-    await unmount(tester);
-
-    await tester.runAsync(
-      () => db.saveDraft(
-        pitId: pitId,
-        body: '有內文',
         images: const [gif, video],
         tagIds: const [],
         ideaIds: const [],

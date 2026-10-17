@@ -16,12 +16,13 @@ import '../album/wide_layout.dart';
 import 'draft_detail_page.dart';
 import 'detail_panes.dart';
 import 'draft_form_page.dart';
+import 'image_gallery_page.dart';
 import 'master_detail.dart';
 import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
 import 'entity_widgets.dart';
 
-/// 我的草稿：列表（D-083 統一卡片）與九宮格切換。
+/// 我的草稿：列表（D-087 推特式）與九宮格切換。
 /// 瀏覽用頁面，有底部導覽列。
 class DraftListPage extends ConsumerStatefulWidget {
   const DraftListPage({
@@ -104,11 +105,10 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
             decoration: BoxDecoration(
               border: Border(right: BorderSide(color: t.border)),
             ),
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(24, 18, 20, 96),
+            child: ListView.builder(
+              padding: const EdgeInsets.only(bottom: 96),
               itemCount: views.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (_, i) => _DraftRow(
+              itemBuilder: (_, i) => DraftRow(
                 view: views[i],
                 selected: views[i].draft.id == sel,
                 ideaTitles: [
@@ -219,13 +219,12 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
                       ),
                     )
                   : ContentWidth(
-                      child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 96),
                         itemCount: views.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
                         itemBuilder: (_, i) {
                           final d = views[i];
-                          return DraftListCard(
+                          return DraftRow(
                             view: d,
                             onTap: () => _open(d),
                             ideaTitles: [
@@ -329,179 +328,219 @@ class _GridCell extends StatelessWidget {
   }
 }
 
-/// 草稿列表卡（D-083）：版面只看「內文」——有內文＝小圖版，沒有＝大圖版。
-/// 兩種版本共用同一個框架（同腦洞卡）：頂部＝標題＋右上關聯成圖標記，底部＝tag＋關聯腦洞＋日期。
-class DraftListCard extends StatelessWidget {
-  const DraftListCard({
+/// 推特式列表的圖片版面（D-087）：寬 [w] 內的每張圖尺寸與是否橫捲。
+class DraftImageLayout {
+  const DraftImageLayout(this.sizes, {required this.scrolls});
+  final List<Size> sizes;
+  final bool scrolls;
+}
+
+/// 圖片間距、圓角（D-087）。
+const double kDraftImageGap = 4;
+const double kDraftImageRadius = 12;
+
+/// 單張的比例（寬÷高）上限／下限：高度落在 [0.25W, 1.6W]（極端長／扁圖的上限〔待評估〕）。
+const double kDraftMinRatio = 1 / 1.6;
+const double kDraftMaxRatio = 4;
+
+/// 依各張比例（寬÷高）算出 [w] 寬內的版面：1 張＝整寬；2 張＝同高拼滿；3 張以上＝同高橫捲，
+/// 第 1 張完整、第 2 張露一半。一律不裁切（每格按比例定大小）。
+DraftImageLayout draftImageLayout(List<double> ratios, double w) {
+  final r = [
+    for (final x in ratios)
+      (x.isFinite && x > 0 ? x : 1.0).clamp(kDraftMinRatio, kDraftMaxRatio),
+  ];
+  if (r.isEmpty) return const DraftImageLayout([], scrolls: false);
+  if (r.length == 1) {
+    return DraftImageLayout([Size(w, w / r[0])], scrolls: false);
+  }
+  if (r.length == 2) {
+    final h = (w - kDraftImageGap) / (r[0] + r[1]);
+    return DraftImageLayout([
+      Size(h * r[0], h),
+      Size(h * r[1], h),
+    ], scrolls: false);
+  }
+  final h = (w - kDraftImageGap) / (r[0] + 0.5 * r[1]);
+  return DraftImageLayout([for (final x in r) Size(h * x, h)], scrolls: true);
+}
+
+/// 我的摸魚列表的一列（D-087，推特式）：不用卡片框，底部 1px 分隔線，左右留白 20。
+/// 標題（粗）·日期（灰）＋右邊「已孵 N 成圖」→ 內文 → 圖片 → tag＋關聯腦洞。
+class DraftRow extends StatelessWidget {
+  const DraftRow({
     super.key,
     required this.view,
     required this.ideaTitles,
     this.onTap,
+    this.selected = false,
   });
   final DraftView view;
   final List<String> ideaTitles;
   final VoidCallback? onTap;
+
+  /// 並排版選中的那一列（淡色底）。
+  final bool selected;
+
+  static const double _pad = 20;
+
+  void _openImage(BuildContext context, int i) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => ImageGalleryPage(images: view.images, initialIndex: i),
+    ),
+  );
+
+  Widget _tile(BuildContext context, int i, Size size) {
+    final im = view.images[i];
+    final t = context.tokens;
+    return GestureDetector(
+      onTap: () => _openImage(context, i),
+      child: SizedBox(
+        width: size.width,
+        height: size.height,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(kDraftImageRadius),
+          child: ColoredBox(
+            color: t.chipBg,
+            child: MiniMediaThumb(
+              MediaSource.fromImageRef(im),
+              cacheWidth: 900,
+              fit: BoxFit.contain,
+              inset: 6,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _images(BuildContext context, double rowWidth) {
+    final w = rowWidth - _pad * 2;
+    final lay = draftImageLayout([for (final i in view.images) i.aspect], w);
+    Widget tile(int i) => _tile(context, i, lay.sizes[i]);
+    if (lay.scrolls) {
+      return SizedBox(
+        height: lay.sizes.first.height,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.only(left: _pad),
+          itemCount: lay.sizes.length,
+          separatorBuilder: (_, _) => const SizedBox(width: kDraftImageGap),
+          itemBuilder: (_, i) => tile(i),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: _pad),
+      child: Row(
+        children: [
+          for (var i = 0; i < lay.sizes.length; i++) ...[
+            if (i > 0) const SizedBox(width: kDraftImageGap),
+            tile(i),
+          ],
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final d = view.draft;
     final title = d.title ?? '';
-    final small = (d.body ?? '').isNotEmpty;
+    final body = d.body ?? '';
     final pieces = view.pieceIds.length;
-    return EntityCard(
-      onTap: onTap,
-      padding: small
-          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 14)
-          : const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 標題與關聯成圖都沒有時，整行不顯示。
-          if (title.isNotEmpty || pieces > 0)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w700,
-                        color: t.ink,
+    final date = fmtMd(d.date);
+    final hasMeta = view.tags.isNotEmpty || ideaTitles.isNotEmpty;
+    return LayoutBuilder(
+      builder: (context, c) => GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: selected ? t.accentSoft : null,
+            border: Border(bottom: BorderSide(color: t.border)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: _pad),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          if (title.isNotEmpty) ...[
+                            Flexible(
+                              child: Text(
+                                title,
+                                style: TextStyle(
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: t.ink,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                              ),
+                              child: Text(
+                                '·',
+                                style: TextStyle(fontSize: 13, color: t.text4),
+                              ),
+                            ),
+                          ],
+                          Text(
+                            date,
+                            style: TextStyle(fontSize: 13, color: t.text4),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  if (pieces > 0) ...[
-                    const SizedBox(width: 10),
-                    _HatchedMark(pieces),
-                  ],
-                ],
-              ),
-            ),
-          if (small) ..._small(context) else _large(),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    for (final tag in view.tags) _TagChip(tag.name),
-                    for (final title in ideaTitles) _IdeaChip(title),
+                    if (pieces > 0) ...[
+                      const SizedBox(width: 10),
+                      _HatchedMark(pieces),
+                    ],
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                fmtMd(d.date),
-                style: TextStyle(color: t.text4, fontSize: 11.5),
-              ),
+              if (body.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(_pad, 4, _pad, 0),
+                  child: Text(
+                    body,
+                    style: TextStyle(color: t.ink, fontSize: 14.5, height: 1.6),
+                  ),
+                ),
+              if (view.images.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: _images(context, c.maxWidth),
+                ),
+              if (hasMeta)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(_pad, 10, _pad, 0),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      for (final tag in view.tags) _TagChip(tag.name),
+                      for (final title in ideaTitles) _IdeaChip(title),
+                    ],
+                  ),
+                ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  /// 小圖版：一排 64px 小圖（最多 4 張，第 4 張蓋 +N）＋內文。
-  List<Widget> _small(BuildContext context) {
-    final t = context.tokens;
-    final shown = view.images.take(4).toList();
-    final extra = view.images.length - 4;
-    return [
-      if (shown.isNotEmpty)
-        Row(
-          children: [
-            for (var i = 0; i < shown.length; i++)
-              Padding(
-                padding: EdgeInsets.only(right: i == shown.length - 1 ? 0 : 6),
-                child: SizedBox(
-                  width: 64,
-                  height: 64,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        MiniMediaThumb(
-                          MediaSource.fromImageRef(shown[i]),
-                          cacheWidth: 300,
-                        ),
-                        if (i == 3 && extra > 0)
-                          MoreOverlay(extra, fontSize: 15),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      Padding(
-        padding: EdgeInsets.only(top: shown.isEmpty ? 0 : 9),
-        child: Text(
-          view.draft.body!,
-          style: TextStyle(color: t.text2, fontSize: 13, height: 1.5),
         ),
       ),
-    ];
-  }
-
-  /// 大圖版：1 張＝整寬闊圖（高 140）；2 張以上＝一排 3 格正方形，第 3 格蓋 +N。
-  Widget _large() {
-    final imgs = view.images;
-    if (imgs.length <= 1) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: SizedBox(
-          height: 140,
-          width: double.infinity,
-          child: imgs.isEmpty
-              ? const ImagePlaceholder(iconSize: 26)
-              : MediaThumb(
-                  MediaSource.fromImageRef(imgs.first),
-                  cacheWidth: 900,
-                  badgeInset: 7,
-                ),
-        ),
-      );
-    }
-    final shown = imgs.take(3).toList();
-    final extra = imgs.length - 3;
-    return LayoutBuilder(
-      builder: (_, c) {
-        final cell = (c.maxWidth - 8) / 3;
-        return Row(
-          children: [
-            for (var i = 0; i < shown.length; i++)
-              Padding(
-                padding: EdgeInsets.only(right: i == 2 ? 0 : 4),
-                child: SizedBox(
-                  width: cell,
-                  height: cell,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        MediaThumb(
-                          MediaSource.fromImageRef(shown[i]),
-                          cacheWidth: 400,
-                        ),
-                        if (i == 2 && extra > 0) MoreOverlay(extra),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
     );
   }
 }
@@ -579,94 +618,6 @@ class _IdeaChip extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 寬版列表的一列（Drafts 設計稿）：76px 縮圖（多張右下角張數）、標題（無標題＝灰字）＋日期、
-/// 「已孵 n 成圖」與 tag／關聯腦洞小標；選中＝主色框。
-class _DraftRow extends StatelessWidget {
-  const _DraftRow({
-    required this.view,
-    required this.selected,
-    required this.ideaTitles,
-    required this.onTap,
-  });
-  final DraftView view;
-  final bool selected;
-  final List<String> ideaTitles;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    final d = view.draft;
-    final title = d.title ?? '';
-    final imgs = view.images;
-    final pieces = view.pieceIds.length;
-    return EntityCard(
-      selected: selected,
-      onTap: onTap,
-      padding: const EdgeInsets.all(10),
-      child: Row(
-        spacing: 12,
-        children: [
-          SizedBox(
-            width: 76,
-            height: 76,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: imgs.isEmpty
-                  ? const ImagePlaceholder()
-                  : MediaThumb(
-                      MediaSource.fromImageRef(imgs.first),
-                      cacheWidth: 300,
-                      count: imgs.length,
-                    ),
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: 5,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title.isEmpty
-                            ? context.l10n.ipadListsDraftUntitled
-                            : title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: title.isEmpty ? t.text3 : t.ink,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      fmtMd(d.date),
-                      style: TextStyle(color: t.text3, fontSize: 11.5),
-                    ),
-                  ],
-                ),
-                Wrap(
-                  spacing: 5,
-                  runSpacing: 5,
-                  children: [
-                    if (pieces > 0) _HatchedMark(pieces),
-                    for (final tag in view.tags) _TagChip(tag.name),
-                    for (final title in ideaTitles) _IdeaChip(title),
-                  ],
-                ),
-              ],
             ),
           ),
         ],
