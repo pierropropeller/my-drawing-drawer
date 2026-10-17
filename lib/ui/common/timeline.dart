@@ -162,6 +162,7 @@ class TimelineView extends StatelessWidget {
     required this.countLabel,
     this.padding = const EdgeInsets.fromLTRB(20, 4, 20, 96),
     this.controller,
+    this.headerKeys,
   });
 
   final List<TimelineEntry> entries;
@@ -170,6 +171,9 @@ class TimelineView extends StatelessWidget {
   /// 左右＝列的邊距（標題列滿版）；下＝清單尾端留白。
   final EdgeInsets padding;
   final ScrollController? controller;
+
+  /// 每個月份標題的 key（鍵＝年×100＋月）；平板的「跳到月份」用它捲到該月。省略＝不提供。
+  final Map<int, GlobalKey>? headerKeys;
 
   @override
   Widget build(BuildContext context) {
@@ -185,6 +189,7 @@ class TimelineView extends StatelessWidget {
               SliverLayoutBuilder(
                 builder: (context, c) {
                   return SliverPersistentHeader(
+                    key: headerKeys?[s.year * 100 + s.month],
                     pinned: true,
                     delegate: StickyMonthHeaderDelegate(
                       title: l.oshiMonthHeader(s.year, s.month),
