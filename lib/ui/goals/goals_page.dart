@@ -6,6 +6,7 @@ import '../../data/goal_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
+import '../nav/adaptive_nav.dart';
 import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/responsive.dart';
@@ -20,14 +21,14 @@ import 'year_view.dart';
 
 /// 目標分頁（GoalYear／Month／Day）：襯線「目標」＋年份、年／月／日分段控制。
 /// 三個視圖用 IndexedStack 保留各自的狀態。
-class GoalsPage extends StatefulWidget {
+class GoalsPage extends ConsumerStatefulWidget {
   const GoalsPage({super.key});
 
   @override
-  State<GoalsPage> createState() => _GoalsPageState();
+  ConsumerState<GoalsPage> createState() => _GoalsPageState();
 }
 
-class _GoalsPageState extends State<GoalsPage> {
+class _GoalsPageState extends ConsumerState<GoalsPage> {
   /// 內容區至少這麼寬才用並排版面（左 430 回顧卡＋右目標列表）。
   static const _wideMin = 720.0;
 
@@ -37,7 +38,24 @@ class _GoalsPageState extends State<GoalsPage> {
   final _years = [DateTime.now().year, DateTime.now().year]; // 月、日視圖目前顯示的年份
 
   @override
+  void initState() {
+    super.initState();
+    // 側邊欄的年份清單（iPad）與年度視圖的年份同步。
+    _year = ref.read(goalSidebarYearProvider);
+  }
+
+  /// 年度視圖換年份：同時告訴側邊欄。
+  void _setYear(int y) {
+    setState(() => _year = y);
+    ref.read(goalSidebarYearProvider.notifier).select(y);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // 側邊欄點年份 → 年度視圖跟著換。
+    ref.listen<int>(goalSidebarYearProvider, (_, y) {
+      if (y != _year) setState(() => _year = y);
+    });
     final t = context.tokens;
     final headerYear = switch (_mode) {
       0 => _year,
@@ -57,12 +75,12 @@ class _GoalsPageState extends State<GoalsPage> {
                     _YearStep(
                       icon: AppIcons.back,
                       tooltip: context.l10n.goalsPrevYear,
-                      onTap: () => setState(() => _year--),
+                      onTap: () => _setYear(_year - 1),
                     ),
                     _YearStep(
                       icon: AppIcons.chevronRight,
                       tooltip: context.l10n.goalsNextYear,
-                      onTap: () => setState(() => _year++),
+                      onTap: () => _setYear(_year + 1),
                     ),
                   ]
                 : const <Widget>[];

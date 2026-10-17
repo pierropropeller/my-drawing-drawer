@@ -1271,6 +1271,33 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get ipadnavMainMenu => '主選單';
+
+  @override
+  String get ipadnavCurrentPits => '現坑';
+
+  @override
+  String get ipadnavYears => '年份';
+
+  @override
+  String get ipadpitChangeCover => '換封面';
+
+  @override
+  String get ipadpitPickFromPit => '從坑內選圖';
+
+  @override
+  String get ipadpitJunkHint => '在坑內頁顯示雜物入口';
+
+  @override
+  String get ipadpitNameHint => '例：原作名稱或 CP 名';
+
+  @override
+  String get ipadpitCoverLater => '封面可於建立後在「編輯坑」中選擇。';
+
+  @override
+  String get ipadpitSectionsLabel => '坑內分區';
+
+  @override
   String get materialTitle => '素材庫';
 
   @override

@@ -2325,6 +2325,60 @@ abstract class AppLocalizations {
   /// **'{code, select, CNY{人民幣} HKD{港幣} TWD{新台幣} USD{美元} JPY{日圓} EUR{歐元} GBP{英鎊} KRW{韓元} SGD{新加坡幣} other{{code}}}'**
   String goalsCurrencyName(String code);
 
+  /// No description provided for @ipadnavMainMenu.
+  ///
+  /// In zh, this message translates to:
+  /// **'主選單'**
+  String get ipadnavMainMenu;
+
+  /// No description provided for @ipadnavCurrentPits.
+  ///
+  /// In zh, this message translates to:
+  /// **'現坑'**
+  String get ipadnavCurrentPits;
+
+  /// No description provided for @ipadnavYears.
+  ///
+  /// In zh, this message translates to:
+  /// **'年份'**
+  String get ipadnavYears;
+
+  /// No description provided for @ipadpitChangeCover.
+  ///
+  /// In zh, this message translates to:
+  /// **'換封面'**
+  String get ipadpitChangeCover;
+
+  /// No description provided for @ipadpitPickFromPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'從坑內選圖'**
+  String get ipadpitPickFromPit;
+
+  /// No description provided for @ipadpitJunkHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'在坑內頁顯示雜物入口'**
+  String get ipadpitJunkHint;
+
+  /// No description provided for @ipadpitNameHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'例：原作名稱或 CP 名'**
+  String get ipadpitNameHint;
+
+  /// No description provided for @ipadpitCoverLater.
+  ///
+  /// In zh, this message translates to:
+  /// **'封面可於建立後在「編輯坑」中選擇。'**
+  String get ipadpitCoverLater;
+
+  /// No description provided for @ipadpitSectionsLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'坑內分區'**
+  String get ipadpitSectionsLabel;
+
   /// No description provided for @materialTitle.
   ///
   /// In zh, this message translates to:

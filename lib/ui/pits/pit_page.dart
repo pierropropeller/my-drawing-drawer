@@ -15,6 +15,7 @@ import '../entity/finished_list_page.dart';
 import '../entity/idea_list_page.dart';
 import '../common/app_icons.dart';
 import '../common/responsive.dart';
+import '../nav/adaptive_nav.dart';
 import '../common/svg_icon.dart';
 import '../common/window_class.dart';
 import 'pit_edit_page.dart';
@@ -53,12 +54,15 @@ class PitPage extends ConsumerWidget {
     // ≥600：iPad 版面（Pit／PitPortrait 稿）；＜600 維持手機版。
     final wc = WindowClass.of(context);
     if (!wc.isCompact) {
-      return PitPageTablet(
-        pit: pit,
-        stats: stats,
-        covers: covers,
-        wide: wc.isWide,
-        longPress: longPress,
+      return SideNavStyleHint.sidebar(
+        currentPitId: pitId,
+        child: PitPageTablet(
+          pit: pit,
+          stats: stats,
+          covers: covers,
+          wide: wc.isWide,
+          longPress: longPress,
+        ),
       );
     }
 

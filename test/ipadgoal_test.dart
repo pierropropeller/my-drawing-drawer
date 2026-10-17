@@ -203,7 +203,7 @@ void main() {
       // 沒有目標時是空白虛線框的「新增目標」按鈕。
       await tester.tap(find.text('新增目標'));
       await settle(tester);
-      expect(find.byType(AdaptiveModalFrame), findsOneWidget);
+      expect(find.byType(AdaptiveModalDialog), findsOneWidget);
       expect(find.text('新增年度目標'), findsOneWidget);
       expect(find.text('建立目標'), findsOneWidget);
       expect(find.text('取消'), findsOneWidget);
@@ -217,7 +217,7 @@ void main() {
       expect(navBarHiddenCount.value, 0);
       await tester.tap(find.text('建立目標'));
       await settle(tester);
-      expect(find.byType(AdaptiveModalFrame), findsNothing);
+      expect(find.byType(AdaptiveModalDialog), findsNothing);
       expect(find.text('完成 1 張成圖'), findsOneWidget);
       await unmount(tester);
     });
@@ -227,11 +227,11 @@ void main() {
       await show(tester, const GoalsPage());
       await tester.tap(find.text('夏日企劃'));
       await settle(tester);
-      expect(find.byType(AdaptiveModalFrame), findsOneWidget);
+      expect(find.byType(AdaptiveModalDialog), findsOneWidget);
       expect(find.text('編輯年度目標'), findsOneWidget);
       await tester.tap(find.text('取消'));
       await settle(tester);
-      expect(find.byType(AdaptiveModalFrame), findsNothing);
+      expect(find.byType(AdaptiveModalDialog), findsNothing);
       await unmount(tester);
     });
 
@@ -239,7 +239,7 @@ void main() {
       await show(tester, const GoalsPage(), size: sizes['834×1194']!);
       await tester.tap(find.text('新增目標'));
       await settle(tester);
-      expect(find.byType(AdaptiveModalFrame), findsNothing);
+      expect(find.byType(AdaptiveModalDialog), findsNothing);
       expect(find.byType(GoalNewPage), findsOneWidget);
       expect(navBarHiddenCount.value, 1);
       await unmount(tester);
@@ -405,7 +405,7 @@ void main() {
             body: TextButton(
               onPressed: () => showAdaptiveModal<void>(
                 context,
-                builder: (_) => const Text('modal-body'),
+                builder: (_, _) => const Text('modal-body'),
               ),
               child: const Text('open'),
             ),
@@ -418,12 +418,12 @@ void main() {
     }
 
     await open(sizes['834×1194']!);
-    expect(find.byType(AdaptiveModalFrame), findsNothing);
+    expect(find.byType(AdaptiveModalDialog), findsNothing);
     expect(find.text('modal-body'), findsOneWidget);
     await unmount(tester);
 
     await open(sizes['1194×834']!);
-    expect(find.byType(AdaptiveModalFrame), findsOneWidget);
+    expect(find.byType(AdaptiveModalDialog), findsOneWidget);
     expect(find.text('modal-body'), findsOneWidget);
     await unmount(tester);
   });

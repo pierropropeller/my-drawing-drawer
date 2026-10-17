@@ -837,6 +837,15 @@
       }
     }
   },
+  "ipadnavMainMenu": "主選單",
+  "ipadnavCurrentPits": "現坑",
+  "ipadnavYears": "年份",
+  "ipadpitChangeCover": "換封面",
+  "ipadpitPickFromPit": "從坑內選圖",
+  "ipadpitJunkHint": "在坑內頁顯示雜物入口",
+  "ipadpitNameHint": "例：原作名稱或 CP 名",
+  "ipadpitCoverLater": "封面可於建立後在「編輯坑」中選擇。",
+  "ipadpitSectionsLabel": "坑內分區",
   "materialTitle": "素材庫",
   "materialLayoutWaterfall": "瀑布",
   "materialLayoutGrid": "九宮格",
