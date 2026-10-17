@@ -3600,7 +3600,7 @@ abstract class AppLocalizations {
   /// No description provided for @shallowCloseBody.
   ///
   /// In zh, this message translates to:
-  /// **'格子入面的 {detail}會一併刪除，無法復原。'**
+  /// **'格子裡的 {detail}會一併刪除，無法復原。'**
   String shallowCloseBody(String detail);
 
   /// No description provided for @shallowCountImages.

@@ -1994,7 +1994,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String shallowCloseBody(String detail) {
-    return '格子入面的 $detail會一併刪除，無法復原。';
+    return '格子裡的 $detail會一併刪除，無法復原。';
   }
 
   @override

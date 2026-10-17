@@ -1398,7 +1398,7 @@
       }
     }
   },
-  "shallowCloseBody": "格子入面的 {detail}會一併刪除，無法復原。",
+  "shallowCloseBody": "格子裡的 {detail}會一併刪除，無法復原。",
   "@shallowCloseBody": {
     "placeholders": {
       "detail": {
