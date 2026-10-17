@@ -557,7 +557,7 @@ void main() {
 
       await tapSwitch(tester, '官方圖冊');
       expect(find.text('關閉「官方圖冊」？'), findsOneWidget);
-      expect(find.text('格子入面的 3 張圖會一併刪除，無法復原。'), findsOneWidget);
+      expect(find.text('格子裡的 3 張圖會一併刪除，無法復原。'), findsOneWidget);
       expect(find.text('取消'), findsOneWidget);
       expect(find.text('關閉並刪除'), findsOneWidget);
       await tester.tap(find.text('取消'));
@@ -606,7 +606,7 @@ void main() {
       await openEdit(tester, active);
       await tapSeg(tester, '淺坑');
       await tapSwitch(tester, '我的腦洞');
-      expect(find.text('格子入面的 2 個腦洞會一併刪除，無法復原。'), findsOneWidget);
+      expect(find.text('格子裡的 2 個腦洞會一併刪除，無法復原。'), findsOneWidget);
       await tester.tap(find.text('取消'));
       await settle(tester);
       await unmount(tester);
