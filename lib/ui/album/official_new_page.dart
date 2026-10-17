@@ -5,12 +5,33 @@ import 'package:image_picker/image_picker.dart';
 import '../../data/album_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
+import '../common/adaptive_modal.dart';
+import '../common/modal_form_layout.dart';
 import '../common/nav_bar_hidden.dart';
+import '../../theme/tokens.dart';
 import 'album_actions.dart';
 import 'album_form.dart';
 import 'group_picker.dart';
 import 'image_picker_field.dart';
 import '../common/reorder_tile.dart';
+
+/// 新增官方圖的單一入口：視窗 ≥840 開置中 modal（NewOfficial，880×640），較窄開整頁。
+Future<void> openOfficialNew(
+  BuildContext context, {
+  required String pitId,
+  String? initialGroupId,
+  List<XFile> initialImages = const [],
+}) => showAdaptiveModal<void>(
+  context,
+  width: 880,
+  height: 640,
+  builder: (_, asModal) => OfficialNewPage(
+    pitId: pitId,
+    initialGroupId: initialGroupId,
+    initialImages: initialImages,
+    asModal: asModal,
+  ),
+);
 
 /// 新增官方圖（OfficialNew）：一次可加多張，選分組；官方圖沒有 tag。沒有底部導覽列。
 class OfficialNewPage extends ConsumerStatefulWidget {
@@ -19,6 +40,7 @@ class OfficialNewPage extends ConsumerStatefulWidget {
     required this.pitId,
     this.initialGroupId,
     this.initialImages = const [],
+    this.asModal = false,
   });
   final String pitId;
   final String? initialGroupId;
@@ -26,12 +48,18 @@ class OfficialNewPage extends ConsumerStatefulWidget {
   /// 從相簿先選好的圖片（新增流程是先選圖、再進新增頁）。
   final List<XFile> initialImages;
 
+  /// 畫成置中 modal 的內容（取消／標題／主動作 標題列，不藏導覽列）。
+  final bool asModal;
+
   @override
   ConsumerState<OfficialNewPage> createState() => _OfficialNewPageState();
 }
 
 class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
     with HidesNavBar<OfficialNewPage> {
+  @override
+  bool get hidesNavBarOnOpen => !widget.asModal;
+
   late final List<ImageItem> _files = widget.initialImages
       .map(ImageItem.picked)
       .toList();
@@ -71,23 +99,53 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
         : (groups.any((g) => g.id == widget.initialGroupId)
               ? widget.initialGroupId
               : (groups.isEmpty ? null : groups.first.id));
+    final imageField = [
+      AlbumFieldLabel(context.l10n.albumFieldImage),
+      ImagePickerField(
+        items: _files,
+        onAdd: _pick,
+        onRemove: (i) => setState(() => _files.removeAt(i)),
+        onReorder: (a, b) => setState(() => moveListItem(_files, a, b)),
+      ),
+    ];
+    final groupField = GroupPicker(
+      pitId: widget.pitId,
+      kind: 'official',
+      selected: groupId,
+      onSelected: (v) => setState(() => _groupId = v),
+    );
+    if (widget.asModal) {
+      final name = groups.where((g) => g.id == groupId).firstOrNull?.name;
+      return ModalFormShell(
+        title: context.l10n.albumOfficialNewTitle,
+        actionLabel: context.l10n.albumOfficialAdd,
+        onAction: () {
+          if (!_saving && groupId != null) _save(groupId);
+        },
+        panes: [
+          ModalPane(width: 420, children: imageField),
+          ModalPane(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
+            children: [
+              groupField,
+              if (name != null && _files.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  context.l10n.ipadformsOfficialGroupNote(_files.length, name),
+                  style: TextStyle(fontSize: 12.5, color: context.tokens.text3),
+                ),
+              ],
+            ],
+          ),
+        ],
+      );
+    }
     return AlbumFormScaffold(
       title: context.l10n.albumOfficialNewTitle,
       children: [
-        AlbumFieldLabel(context.l10n.albumFieldImage),
-        ImagePickerField(
-          items: _files,
-          onAdd: _pick,
-          onRemove: (i) => setState(() => _files.removeAt(i)),
-          onReorder: (a, b) => setState(() => moveListItem(_files, a, b)),
-        ),
+        ...imageField,
         const SizedBox(height: 18),
-        GroupPicker(
-          pitId: widget.pitId,
-          kind: 'official',
-          selected: groupId,
-          onSelected: (v) => setState(() => _groupId = v),
-        ),
+        groupField,
         const SizedBox(height: 26),
         AlbumSubmitButton(
           label: context.l10n.albumOfficialAdd,

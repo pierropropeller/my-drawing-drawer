@@ -12,6 +12,7 @@ import 'album_panels.dart';
 import 'album_view.dart';
 import 'group_manage_page.dart';
 import 'official_new_page.dart';
+import '../pits/pit_section_tabs.dart';
 
 /// 官方圖冊：分組 chips，最右固定「管理分組」icon。
 class OfficialListPage extends ConsumerStatefulWidget {
@@ -29,14 +30,11 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
   Future<void> _add(String? groupId) async {
     final picked = await ref.read(imagePickerProvider)(context);
     if (picked.isEmpty || !mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => OfficialNewPage(
-          pitId: widget.pitId,
-          initialGroupId: groupId,
-          initialImages: picked,
-        ),
-      ),
+    await openOfficialNew(
+      context,
+      pitId: widget.pitId,
+      initialGroupId: groupId,
+      initialImages: picked,
     );
   }
 
@@ -73,7 +71,10 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
       cell: AlbumCell.official,
       title: context.l10n.pitsOfficial,
       images: images,
-      // TODO(IPADPIT): sectionTabs: PitSectionTabBar(...)（lib/ui/pits/pit_section_tabs.dart），這裡是唯一的插入點。
+      sectionTabs: PitSectionTabBar(
+        pitId: widget.pitId,
+        selected: PitSection.official,
+      ),
       emptyLabel: context.l10n.albumOfficialEmpty,
       emptySvg: AppIcons.pitOfficial,
       total: total,

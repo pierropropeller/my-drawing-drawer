@@ -19,6 +19,7 @@ import 'detail_panes.dart';
 import 'entity_widgets.dart';
 import 'piece_detail_page.dart';
 import 'piece_form_page.dart';
+import '../pits/pit_section_tabs.dart';
 
 enum _Mode { waterfall, grid, nine }
 
@@ -53,12 +54,7 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
   Future<void> _add() async {
     final picked = await ref.read(imagePickerProvider)(context);
     if (picked.isEmpty || !mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) =>
-            PieceFormPage(pitId: widget.pitId, initialImages: picked),
-      ),
-    );
+    await openPieceForm(context, pitId: widget.pitId, initialImages: picked);
   }
 
   /// 瀑布／田字／九宮格的內容。手機維持 2／2／3 欄；平板依可用闊度逐格增減（間距 16／16／8）。
@@ -237,7 +233,10 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
                     ),
                   ],
                 ),
-                // TODO(IPADPIT): 標題列下方（內容之上）放 PitSectionTabBar（lib/ui/pits/pit_section_tabs.dart），這裡是唯一的插入點。
+                PitSectionTabBar(
+                  pitId: widget.pitId,
+                  selected: PitSection.pieces,
+                ),
                 if (widget.tagId != null)
                   TagFilterBar(
                     pitId: widget.pitId,

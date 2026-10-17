@@ -53,10 +53,10 @@ List<RefInfoAction> buildRefActions({
 
   Future<void> edit() async {
     if (fan) {
-      final deleted = await Navigator.of(context).push<bool>(
-        MaterialPageRoute<bool>(
-          builder: (_) => FanArtEditPage(pitId: pitId, imageId: a.id),
-        ),
+      final deleted = await openFanArtEdit(
+        context,
+        pitId: pitId,
+        imageId: a.id,
       );
       if (deleted == true) onRemoved();
     } else {

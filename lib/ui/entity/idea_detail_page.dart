@@ -68,12 +68,8 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
                 HeaderIconButton(
                   icon: AppIcons.edit,
                   label: context.l10n.commonEdit,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          IdeaFormPage(pitId: pitId, ideaId: ideaId),
-                    ),
-                  ),
+                  onTap: () =>
+                      openIdeaForm(context, pitId: pitId, ideaId: ideaId),
                 ),
                 HeaderIconButton(
                   icon: AppIcons.trash,

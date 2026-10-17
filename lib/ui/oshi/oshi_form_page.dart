@@ -10,6 +10,8 @@ import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../album/group_manage_page.dart';
 import '../album/image_picker_field.dart';
+import '../common/adaptive_modal.dart';
+import '../common/modal_form_layout.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
@@ -18,6 +20,26 @@ import '../tags/tag_picker.dart';
 import 'oshi_date_guess.dart';
 import 'oshi_icons.dart';
 import '../common/reorder_tile.dart';
+
+/// 新增／編輯推活紀錄的單一入口：視窗 ≥840 開置中 modal（NewOshi，900×680），較窄開整頁。
+Future<void> openOshiFormPage(
+  BuildContext context, {
+  required String pitId,
+  String? recordId,
+  List<String> initialImages = const [],
+  String? initialGroupId,
+}) => showAdaptiveModal<void>(
+  context,
+  width: 900,
+  height: 680,
+  builder: (_, asModal) => OshiFormPage(
+    pitId: pitId,
+    recordId: recordId,
+    initialImages: initialImages,
+    initialGroupId: initialGroupId,
+    asModal: asModal,
+  ),
+);
 
 /// 新增推活紀錄（OshiNew），編輯用同一頁（[recordId]，按鈕改「儲存」）。沒有導覽列。
 /// 欄位順序：圖片 → 標題 → 描述 → 分組 → tag → 日期（最後）。
@@ -29,6 +51,7 @@ class OshiFormPage extends ConsumerStatefulWidget {
     this.recordId,
     this.initialImages = const [],
     this.initialGroupId,
+    this.asModal = false,
   });
   final String pitId;
   final String? recordId;
@@ -37,12 +60,18 @@ class OshiFormPage extends ConsumerStatefulWidget {
   /// 新增時預選的分組（從分組篩選下新增時帶入）；可省略。
   final String? initialGroupId;
 
+  /// 畫成置中 modal 的內容（取消／標題／主動作 標題列，不藏導覽列）。
+  final bool asModal;
+
   @override
   ConsumerState<OshiFormPage> createState() => _OshiFormPageState();
 }
 
 class _OshiFormPageState extends ConsumerState<OshiFormPage>
     with HidesNavBar<OshiFormPage> {
+  @override
+  bool get hidesNavBarOnOpen => !widget.asModal;
+
   final _title = TextEditingController();
   final _desc = TextEditingController();
   final List<ImageItem> _images = [];
@@ -169,17 +198,138 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage>
     final groups =
         ref.watch(groupsProvider((widget.pitId, 'oshi'))).value ?? const [];
     final validIds = [for (final g in groups) g.id];
+    final title = _isNew
+        ? context.l10n.oshiFormTitleNew
+        : context.l10n.oshiFormTitleEdit;
+    final actionLabel = _isNew
+        ? context.l10n.oshiFormCreate
+        : context.l10n.commonSave;
+    final imageField = [
+      FormLabel(context.l10n.oshiFieldImages),
+      ImagePickerField(
+        items: _images,
+        onAdd: _addImages,
+        onRemove: _removeImage,
+        onReorder: (a, b) => setState(() => moveListItem(_images, a, b)),
+      ),
+    ];
+    final textFields = [
+      FormLabel(context.l10n.entityFieldTitle),
+      TextField(
+        controller: _title,
+        style: const TextStyle(fontSize: 15),
+        decoration: entityFieldDecoration(context, ''),
+      ),
+      const SizedBox(height: 16),
+      FormLabel(context.l10n.oshiFieldDescription),
+      TextField(
+        controller: _desc,
+        minLines: 3,
+        maxLines: 8,
+        style: const TextStyle(fontSize: 15, height: 1.55),
+        decoration: entityFieldDecoration(context, ''),
+      ),
+    ];
+    final groupFields = [
+      // 「分組」標題右邊的「管理」（D-076，同 tag 欄）。
+      Padding(
+        padding: const EdgeInsets.fromLTRB(2, 0, 2, 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Expanded(
+              child: Text(
+                context.l10n.albumGroupLabel,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: context.tokens.text2,
+                ),
+              ),
+            ),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      GroupManagePage(pitId: widget.pitId, kind: 'oshi'),
+                ),
+              ),
+              child: Text(
+                context.l10n.commonManage,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: context.tokens.piece.fg,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final g in groups)
+            _GroupPill(
+              label: g.name,
+              on: _groupId == g.id,
+              // 分組是選填的：再點一次已選的分組即取消。
+              onTap: () =>
+                  setState(() => _groupId = _groupId == g.id ? null : g.id),
+            ),
+          DashedAddChip(
+            semanticLabel: context.l10n.albumGroupAdd,
+            onTap: _addGroup,
+          ),
+        ],
+      ),
+    ];
+    final tagAndDate = [
+      TagPicker(
+        pitId: widget.pitId,
+        selected: _tagIds,
+        onChanged: (v) => setState(() => _tagIds = v),
+      ),
+      const SizedBox(height: 16),
+      FormLabel(context.l10n.oshiFieldDate),
+      _DateField(date: _date, onTap: _pickDate),
+    ];
+    if (widget.asModal) {
+      return ModalFormShell(
+        title: title,
+        actionLabel: actionLabel,
+        loaded: _loaded,
+        onAction: () {
+          if (!_saving) _save(validIds);
+        },
+        panes: [
+          ModalPane(
+            width: 440,
+            children: [
+              ...imageField,
+              const SizedBox(height: 20),
+              ...textFields,
+            ],
+          ),
+          ModalPane(
+            children: [
+              ...groupFields,
+              const SizedBox(height: 18),
+              ...tagAndDate,
+            ],
+          ),
+        ],
+      );
+    }
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            SubPageHeader(
-              title: _isNew
-                  ? context.l10n.oshiFormTitleNew
-                  : context.l10n.oshiFormTitleEdit,
-              titleSize: 19,
-            ),
+            SubPageHeader(title: title, titleSize: 19),
             Expanded(
               child: !_loaded
                   ? const Center(child: CircularProgressIndicator())
@@ -187,105 +337,16 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage>
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                         children: [
-                          FormLabel(context.l10n.oshiFieldImages),
-                          ImagePickerField(
-                            items: _images,
-                            onAdd: _addImages,
-                            onRemove: _removeImage,
-                            onReorder: (a, b) =>
-                                setState(() => moveListItem(_images, a, b)),
-                          ),
+                          ...imageField,
                           const SizedBox(height: 16),
-                          FormLabel(context.l10n.entityFieldTitle),
-                          TextField(
-                            controller: _title,
-                            style: const TextStyle(fontSize: 15),
-                            decoration: entityFieldDecoration(context, ''),
-                          ),
+                          ...textFields,
                           const SizedBox(height: 16),
-                          FormLabel(context.l10n.oshiFieldDescription),
-                          TextField(
-                            controller: _desc,
-                            minLines: 3,
-                            maxLines: 8,
-                            style: const TextStyle(fontSize: 15, height: 1.55),
-                            decoration: entityFieldDecoration(context, ''),
-                          ),
+                          ...groupFields,
                           const SizedBox(height: 16),
-                          // 「分組」標題右邊的「管理」（D-076，同 tag 欄）。
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(2, 0, 2, 8),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    context.l10n.albumGroupLabel,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: context.tokens.text2,
-                                    ),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => Navigator.of(context).push(
-                                    MaterialPageRoute<void>(
-                                      builder: (_) => GroupManagePage(
-                                        pitId: widget.pitId,
-                                        kind: 'oshi',
-                                      ),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    context.l10n.commonManage,
-                                    style: TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: context.tokens.piece.fg,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final g in groups)
-                                _GroupPill(
-                                  label: g.name,
-                                  on: _groupId == g.id,
-                                  // 分組是選填的：再點一次已選的分組即取消。
-                                  onTap: () => setState(
-                                    () => _groupId = _groupId == g.id
-                                        ? null
-                                        : g.id,
-                                  ),
-                                ),
-                              DashedAddChip(
-                                semanticLabel: context.l10n.albumGroupAdd,
-                                onTap: _addGroup,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          TagPicker(
-                            pitId: widget.pitId,
-                            selected: _tagIds,
-                            onChanged: (v) => setState(() => _tagIds = v),
-                          ),
-                          const SizedBox(height: 16),
-                          FormLabel(context.l10n.oshiFieldDate),
-                          _DateField(date: _date, onTap: _pickDate),
+                          ...tagAndDate,
                           const SizedBox(height: 24),
                           FormSubmitButton(
-                            label: _isNew
-                                ? context.l10n.oshiFormCreate
-                                : context.l10n.commonSave,
+                            label: actionLabel,
                             onPressed: _saving ? null : () => _save(validIds),
                           ),
                         ],

@@ -34,6 +34,7 @@ import 'oshi_select_actions.dart';
 import 'oshi_select_bar.dart';
 import 'oshi_selection.dart';
 import 'oshi_widgets.dart';
+import '../pits/pit_section_tabs.dart';
 
 /// 推活的兩種佈局，記在本機設定（跟裝置走）。
 enum OshiLayout { timeline, grid }
@@ -109,14 +110,11 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
   Future<void> _add(String? groupId) async {
     final picked = await ref.read(imagePickerProvider)(context);
     if (picked.isEmpty || !mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => OshiFormPage(
-          pitId: widget.pitId,
-          initialImages: [for (final x in picked) x.path],
-          initialGroupId: groupId,
-        ),
-      ),
+    await openOshiFormPage(
+      context,
+      pitId: widget.pitId,
+      initialImages: [for (final x in picked) x.path],
+      initialGroupId: groupId,
     );
   }
 
@@ -649,7 +647,11 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
                     SearchIconButton(pitId: widget.pitId),
                   ],
                 ),
-              // TODO(IPADPIT): 標題列下方（內容之上）放 PitSectionTabBar（lib/ui/pits/pit_section_tabs.dart），這裡是唯一的插入點。
+              if (!selecting)
+                PitSectionTabBar(
+                  pitId: widget.pitId,
+                  selected: PitSection.oshi,
+                ),
               if (!fullyEmpty) ...[
                 if (filtered)
                   TagFilterBar(

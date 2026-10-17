@@ -78,13 +78,10 @@ class _OshiDetailPageState extends ConsumerState<OshiDetailPage>
                 HeaderIconButton(
                   icon: AppIcons.edit,
                   label: context.l10n.commonEdit,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => OshiFormPage(
-                        pitId: widget.pitId,
-                        recordId: widget.recordId,
-                      ),
-                    ),
+                  onTap: () => openOshiFormPage(
+                    context,
+                    pitId: widget.pitId,
+                    recordId: widget.recordId,
                   ),
                 ),
                 HeaderIconButton(

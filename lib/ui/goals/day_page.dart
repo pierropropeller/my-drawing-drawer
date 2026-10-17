@@ -66,13 +66,23 @@ class _DayPageState extends ConsumerState<DayPage> {
     if (picked == null || !mounted) return;
     // 建立時間一律是「現在」，不能改（D-038）。
     final now = DateTime.now();
-    final page = switch (picked.kind) {
-      GoalKind.idea => IdeaFormPage(pitId: picked.pitId, initialTime: now),
-      GoalKind.draft => DraftFormPage(pitId: picked.pitId, initialTime: now),
-      GoalKind.piece => PieceFormPage(pitId: picked.pitId, initialTime: now),
+    await switch (picked.kind) {
+      GoalKind.idea => openIdeaForm(
+        context,
+        pitId: picked.pitId,
+        initialTime: now,
+      ),
+      GoalKind.draft => openDraftForm(
+        context,
+        pitId: picked.pitId,
+        initialTime: now,
+      ),
+      GoalKind.piece => openPieceForm(
+        context,
+        pitId: picked.pitId,
+        initialTime: now,
+      ),
     };
-    await Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => page));
   }
 
   void _open(TimelineItem it) {
