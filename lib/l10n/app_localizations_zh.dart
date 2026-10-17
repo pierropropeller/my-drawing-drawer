@@ -1346,6 +1346,84 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get ipadmediaMenuLabel => '加圖來源';
+
+  @override
+  String get ipadmediaPhotos => '從「照片」選取';
+
+  @override
+  String get ipadmediaPhotosSub => '相簿，可多選並保留選取順序';
+
+  @override
+  String get ipadmediaFiles => '從「檔案」選取';
+
+  @override
+  String get ipadmediaFilesSub => 'iCloud Drive、CSP 匯出的 PNG／JPG';
+
+  @override
+  String get ipadmediaMaterials => '從素材庫選取';
+
+  @override
+  String get ipadmediaMaterialsSub => '畫匣內已收藏的素材';
+
+  @override
+  String get ipadmediaCamera => '拍照';
+
+  @override
+  String get ipadmediaPaste => '貼上';
+
+  @override
+  String get ipadmediaPasteHasImage => '剪貼簿有 1 張圖';
+
+  @override
+  String get ipadmediaPasteEmpty => '剪貼簿裡沒有圖片';
+
+  @override
+  String get ipadmediaFilesFailed => '無法讀取所選檔案';
+
+  @override
+  String get ipadmediaCameraFailed => '無法開啟相機';
+
+  @override
+  String get ipadmediaMaterialsEmpty => '素材庫還沒有素材';
+
+  @override
+  String ipadmediaMaterialsAdd(int count) {
+    return '加入 $count 張';
+  }
+
+  @override
+  String get ipadmediaMaterialsFailed => '無法讀取所選素材';
+
+  @override
+  String ipadmediaDropTitle(String target) {
+    return '放開即可加入「$target」';
+  }
+
+  @override
+  String ipadmediaDropChooseGroup(int count) {
+    return '$count 張 · 放開後選擇分組';
+  }
+
+  @override
+  String ipadmediaDropCount(int count) {
+    return '$count 張';
+  }
+
+  @override
+  String get ipadmediaDropHint => '分屏時可直接從「照片」或「檔案」拖曳圖片至此';
+
+  @override
+  String ipadmediaDropLoading(int done, int total) {
+    return '正在載入 $done／$total 張';
+  }
+
+  @override
+  String ipadmediaDropFailed(int count) {
+    return '$count 張無法載入';
+  }
+
+  @override
   String get ipadnavMainMenu => '主選單';
 
   @override

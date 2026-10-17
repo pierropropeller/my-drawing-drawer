@@ -2463,6 +2463,138 @@ abstract class AppLocalizations {
   /// **'{month} 月'**
   String ipadListsMonthShort(int month);
 
+  /// No description provided for @ipadmediaMenuLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'加圖來源'**
+  String get ipadmediaMenuLabel;
+
+  /// No description provided for @ipadmediaPhotos.
+  ///
+  /// In zh, this message translates to:
+  /// **'從「照片」選取'**
+  String get ipadmediaPhotos;
+
+  /// No description provided for @ipadmediaPhotosSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'相簿，可多選並保留選取順序'**
+  String get ipadmediaPhotosSub;
+
+  /// No description provided for @ipadmediaFiles.
+  ///
+  /// In zh, this message translates to:
+  /// **'從「檔案」選取'**
+  String get ipadmediaFiles;
+
+  /// No description provided for @ipadmediaFilesSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'iCloud Drive、CSP 匯出的 PNG／JPG'**
+  String get ipadmediaFilesSub;
+
+  /// No description provided for @ipadmediaMaterials.
+  ///
+  /// In zh, this message translates to:
+  /// **'從素材庫選取'**
+  String get ipadmediaMaterials;
+
+  /// No description provided for @ipadmediaMaterialsSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'畫匣內已收藏的素材'**
+  String get ipadmediaMaterialsSub;
+
+  /// No description provided for @ipadmediaCamera.
+  ///
+  /// In zh, this message translates to:
+  /// **'拍照'**
+  String get ipadmediaCamera;
+
+  /// No description provided for @ipadmediaPaste.
+  ///
+  /// In zh, this message translates to:
+  /// **'貼上'**
+  String get ipadmediaPaste;
+
+  /// No description provided for @ipadmediaPasteHasImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'剪貼簿有 1 張圖'**
+  String get ipadmediaPasteHasImage;
+
+  /// No description provided for @ipadmediaPasteEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'剪貼簿裡沒有圖片'**
+  String get ipadmediaPasteEmpty;
+
+  /// No description provided for @ipadmediaFilesFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法讀取所選檔案'**
+  String get ipadmediaFilesFailed;
+
+  /// No description provided for @ipadmediaCameraFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法開啟相機'**
+  String get ipadmediaCameraFailed;
+
+  /// No description provided for @ipadmediaMaterialsEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'素材庫還沒有素材'**
+  String get ipadmediaMaterialsEmpty;
+
+  /// No description provided for @ipadmediaMaterialsAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'加入 {count} 張'**
+  String ipadmediaMaterialsAdd(int count);
+
+  /// No description provided for @ipadmediaMaterialsFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法讀取所選素材'**
+  String get ipadmediaMaterialsFailed;
+
+  /// No description provided for @ipadmediaDropTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'放開即可加入「{target}」'**
+  String ipadmediaDropTitle(String target);
+
+  /// No description provided for @ipadmediaDropChooseGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張 · 放開後選擇分組'**
+  String ipadmediaDropChooseGroup(int count);
+
+  /// No description provided for @ipadmediaDropCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張'**
+  String ipadmediaDropCount(int count);
+
+  /// No description provided for @ipadmediaDropHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'分屏時可直接從「照片」或「檔案」拖曳圖片至此'**
+  String get ipadmediaDropHint;
+
+  /// No description provided for @ipadmediaDropLoading.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在載入 {done}／{total} 張'**
+  String ipadmediaDropLoading(int done, int total);
+
+  /// No description provided for @ipadmediaDropFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張無法載入'**
+  String ipadmediaDropFailed(int count);
+
   /// No description provided for @ipadnavMainMenu.
   ///
   /// In zh, this message translates to:
