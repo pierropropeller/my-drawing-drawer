@@ -837,6 +837,20 @@
       }
     }
   },
+  "ipadformsFanNewTitle": "加收藏",
+  "ipadformsFanAdd": "加入同人圖",
+  "ipadformsOfficialGroupNote": "{n} 張圖片將一併加入「{group}」，之後可逐張修改分組。",
+  "@ipadformsOfficialGroupNote": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "ipadformsShareTitle": "加入到畫匣",
   "ipadListsReferenceView": "參考檢視",
   "ipadListsMultiSelect": "多選",
   "ipadListsPreviewEmpty": "選擇一張圖片以預覽",

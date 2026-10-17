@@ -67,11 +67,10 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
   }
 
   Future<void> _edit() async {
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (_) =>
-            FanArtEditPage(pitId: widget.pitId, imageId: _current.id),
-      ),
+    final deleted = await openFanArtEdit(
+      context,
+      pitId: widget.pitId,
+      imageId: _current.id,
     );
     if (deleted == true && mounted) _removeCurrent();
   }

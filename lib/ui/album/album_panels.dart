@@ -372,10 +372,10 @@ class FanArtPreviewPanel extends ConsumerWidget {
           showSnack(context, n > 0 ? l.albumSavedToGallery : l.albumSaveFailed);
         }),
         PanelAction(AppIcons.edit, l.commonEdit, () async {
-          final deleted = await Navigator.of(context).push<bool>(
-            MaterialPageRoute<bool>(
-              builder: (_) => FanArtEditPage(pitId: pitId, imageId: image.id),
-            ),
+          final deleted = await openFanArtEdit(
+            context,
+            pitId: pitId,
+            imageId: image.id,
           );
           if (deleted == true) onDismiss();
         }),

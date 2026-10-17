@@ -94,12 +94,8 @@ class PieceDetailPage extends ConsumerWidget {
                   HeaderIconButton(
                     label: context.l10n.commonEdit,
                     icon: AppIcons.edit,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            PieceFormPage(pitId: pitId, pieceId: pieceId),
-                      ),
-                    ),
+                    onTap: () =>
+                        openPieceForm(context, pitId: pitId, pieceId: pieceId),
                   ),
                   HeaderIconButton(
                     label: context.l10n.commonDelete,

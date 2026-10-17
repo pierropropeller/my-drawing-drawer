@@ -11,6 +11,8 @@ import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../album/image_picker_field.dart';
 import '../common/app_icons.dart';
+import '../common/adaptive_modal.dart';
+import '../common/modal_form_layout.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import '../tags/tag_picker.dart';
@@ -19,6 +21,26 @@ import 'entity_widgets.dart';
 import 'piece_platform.dart';
 import 'piece_widgets.dart';
 import '../common/reorder_tile.dart';
+
+/// 新增／編輯成圖的單一入口：視窗 ≥840 開置中 modal（NewPiece，1090×760），較窄開整頁。
+Future<void> openPieceForm(
+  BuildContext context, {
+  required String pitId,
+  String? pieceId,
+  DateTime? initialTime,
+  List<XFile> initialImages = const [],
+}) => showAdaptiveModal<void>(
+  context,
+  width: 1090,
+  height: 760,
+  builder: (_, asModal) => PieceFormPage(
+    pitId: pitId,
+    pieceId: pieceId,
+    initialTime: initialTime,
+    initialImages: initialImages,
+    asModal: asModal,
+  ),
+);
 
 /// 新增成圖（亦作編輯頁 PieceEdit）：圖片置頂（只限圖片）、標題、內文、tag、
 /// 兩個獨立開關「已公開發佈」「商稿」（D-046）、完成時間、關聯腦洞與草稿。
@@ -29,6 +51,7 @@ class PieceFormPage extends ConsumerStatefulWidget {
     this.pieceId,
     this.initialTime,
     this.initialImages = const [],
+    this.asModal = false,
   });
   final String pitId;
   final String? pieceId;
@@ -38,6 +61,9 @@ class PieceFormPage extends ConsumerStatefulWidget {
 
   /// 先從相簿選好的圖片（新增流程是先選圖、再進新增頁）。
   final List<XFile> initialImages;
+
+  /// 畫成置中 modal 的內容（取消／標題／主動作 標題列，不藏導覽列）。
+  final bool asModal;
 
   @override
   ConsumerState<PieceFormPage> createState() => _PieceFormPageState();
@@ -68,6 +94,9 @@ class _LinkRow {
 
 class _PieceFormPageState extends ConsumerState<PieceFormPage>
     with HidesNavBar<PieceFormPage> {
+  @override
+  bool get hidesNavBarOnOpen => !widget.asModal;
+
   final _form = GlobalKey<FormState>();
   final _title = TextEditingController();
   final _body = TextEditingController();
@@ -433,17 +462,167 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
         ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? const [];
     final drafts =
         ref.watch(draftViewsProvider(widget.pitId)).value ?? const [];
+    final title = _isEdit
+        ? context.l10n.pieceFormTitleEdit
+        : context.l10n.pieceFormTitleNew;
+    final actionLabel = _isEdit
+        ? context.l10n.commonSave
+        : context.l10n.pieceFormCreate;
+    final imagesField = [
+      FormLabel(context.l10n.pieceFormImages),
+      PieceImageGrid(
+        items: _images,
+        onAdd: () async {
+          final picked = await ref.read(imagePickerProvider)(context);
+          if (picked.isNotEmpty) {
+            setState(() => _images.addAll(picked.map(ImageItem.picked)));
+          }
+        },
+        onRemove: (i) => setState(() => _images.removeAt(i)),
+        onReorder: (a, b) => setState(() => moveListItem(_images, a, b)),
+      ),
+    ];
+    final textFields = [
+      FormLabel(context.l10n.entityFieldTitle),
+      TextFormField(
+        key: const Key('piece-title'),
+        controller: _title,
+        style: const TextStyle(fontSize: 15),
+        decoration: entityFieldDecoration(
+          context,
+          context.l10n.pieceFormTitleHint,
+        ),
+        validator: (v) => (v == null || v.trim().isEmpty)
+            ? context.l10n.entityTitleRequired
+            : null,
+      ),
+      const SizedBox(height: 16),
+      FormLabel(context.l10n.entityFieldBody),
+      TextFormField(
+        controller: _body,
+        minLines: 3,
+        maxLines: 8,
+        style: const TextStyle(fontSize: 15, height: 1.55),
+        decoration: entityFieldDecoration(
+          context,
+          context.l10n.pieceFormBodyHint,
+        ),
+      ),
+      const SizedBox(height: 16),
+      TagPicker(
+        pitId: widget.pitId,
+        selected: _tagIds,
+        onChanged: (v) => setState(() => _tagIds = v),
+      ),
+    ];
+    final publishedCard = PieceSwitchCard(
+      title: context.l10n.pieceFormPublished,
+      value: _published,
+      onChanged: (v) => setState(() => _published = v),
+      child: _publishFields(context),
+    );
+    final commissionCard = PieceSwitchCard(
+      title: context.l10n.pieceFormCommission,
+      value: _commission,
+      bottomGap: 18,
+      onChanged: (v) => setState(() => _commission = v),
+      child: _commissionFields(context),
+    );
+    final finishedField = [
+      FormLabel(context.l10n.pieceFormFinishedAt),
+      PieceDateField(
+        date: _finishedAt,
+        semanticLabel: context.l10n.pieceFormFinishedAt,
+        onChanged: (d) => setState(() => _finishedAt = d),
+      ),
+    ];
+    final ideaConnect = ConnectField(
+      label: context.l10n.entityConnectIdea,
+      kind: ConnectKind.idea,
+      options: [
+        for (final i in ideas)
+          ConnectOption(
+            id: i.idea.id,
+            title: i.idea.title,
+            file: i.images.isEmpty ? null : i.images.first.staticFile,
+          ),
+      ],
+      selected: _ideaIds,
+      onChanged: (v) => setState(() => _ideaIds = v),
+    );
+    final draftConnect = ConnectField(
+      label: context.l10n.entityConnectDraft,
+      kind: ConnectKind.draft,
+      options: [
+        for (final d in drafts)
+          ConnectOption(
+            id: d.draft.id,
+            title: d.draft.title ?? '',
+            file: d.images.isEmpty ? null : d.images.first.staticFile,
+            imageCount: d.images.length,
+            date: d.draft.date,
+          ),
+      ],
+      selected: _draftIds,
+      onChanged: (v) => setState(() => _draftIds = v),
+    );
+    if (widget.asModal) {
+      return Form(
+        key: _form,
+        // 對話框寬 ≥960 畫三欄（成品圖｜發佈＋關聯｜商稿）；較窄時商稿卡併到第二欄下方。
+        child: LayoutBuilder(
+          builder: (context, c) {
+            final three = c.maxWidth >= 960;
+            final middle = <Widget>[
+              publishedCard,
+              ...finishedField,
+              const SizedBox(height: 16),
+              ideaConnect,
+              const SizedBox(height: 16),
+              draftConnect,
+            ];
+            const pad = EdgeInsets.symmetric(horizontal: 22, vertical: 20);
+            return ModalFormShell(
+              title: title,
+              actionLabel: actionLabel,
+              loaded: _loaded,
+              onAction: () {
+                if (!_saving) _save();
+              },
+              panes: [
+                ModalPane(
+                  width: 360,
+                  padding: pad,
+                  children: [
+                    ...imagesField,
+                    const SizedBox(height: 18),
+                    ...textFields,
+                  ],
+                ),
+                ModalPane(
+                  padding: pad,
+                  children: three
+                      ? middle
+                      : [...middle, const SizedBox(height: 16), commissionCard],
+                ),
+                if (three)
+                  ModalPane(
+                    width: 330,
+                    padding: pad,
+                    children: [commissionCard],
+                  ),
+              ],
+            );
+          },
+        ),
+      );
+    }
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            SubPageHeader(
-              title: _isEdit
-                  ? context.l10n.pieceFormTitleEdit
-                  : context.l10n.pieceFormTitleNew,
-              titleSize: 20,
-            ),
+            SubPageHeader(title: title, titleSize: 20),
             Expanded(
               child: !_loaded
                   ? const Center(child: CircularProgressIndicator())
@@ -452,119 +631,20 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                         children: [
-                          FormLabel(context.l10n.pieceFormImages),
-                          PieceImageGrid(
-                            items: _images,
-                            onAdd: () async {
-                              final picked = await ref.read(
-                                imagePickerProvider,
-                              )(context);
-                              if (picked.isNotEmpty) {
-                                setState(
-                                  () => _images.addAll(
-                                    picked.map(ImageItem.picked),
-                                  ),
-                                );
-                              }
-                            },
-                            onRemove: (i) =>
-                                setState(() => _images.removeAt(i)),
-                            onReorder: (a, b) =>
-                                setState(() => moveListItem(_images, a, b)),
-                          ),
+                          ...imagesField,
                           const SizedBox(height: 16),
-                          FormLabel(context.l10n.entityFieldTitle),
-                          TextFormField(
-                            key: const Key('piece-title'),
-                            controller: _title,
-                            style: const TextStyle(fontSize: 15),
-                            decoration: entityFieldDecoration(
-                              context,
-                              context.l10n.pieceFormTitleHint,
-                            ),
-                            validator: (v) => (v == null || v.trim().isEmpty)
-                                ? context.l10n.entityTitleRequired
-                                : null,
-                          ),
+                          ...textFields,
                           const SizedBox(height: 16),
-                          FormLabel(context.l10n.entityFieldBody),
-                          TextFormField(
-                            controller: _body,
-                            minLines: 3,
-                            maxLines: 8,
-                            style: const TextStyle(fontSize: 15, height: 1.55),
-                            decoration: entityFieldDecoration(
-                              context,
-                              context.l10n.pieceFormBodyHint,
-                            ),
-                          ),
+                          publishedCard,
+                          commissionCard,
+                          ...finishedField,
                           const SizedBox(height: 16),
-                          TagPicker(
-                            pitId: widget.pitId,
-                            selected: _tagIds,
-                            onChanged: (v) => setState(() => _tagIds = v),
-                          ),
+                          ideaConnect,
                           const SizedBox(height: 16),
-                          PieceSwitchCard(
-                            title: context.l10n.pieceFormPublished,
-                            value: _published,
-                            onChanged: (v) => setState(() => _published = v),
-                            child: _publishFields(context),
-                          ),
-                          PieceSwitchCard(
-                            title: context.l10n.pieceFormCommission,
-                            value: _commission,
-                            bottomGap: 18,
-                            onChanged: (v) => setState(() => _commission = v),
-                            child: _commissionFields(context),
-                          ),
-                          FormLabel(context.l10n.pieceFormFinishedAt),
-                          PieceDateField(
-                            date: _finishedAt,
-                            semanticLabel: context.l10n.pieceFormFinishedAt,
-                            onChanged: (d) => setState(() => _finishedAt = d),
-                          ),
-                          const SizedBox(height: 16),
-                          ConnectField(
-                            label: context.l10n.entityConnectIdea,
-                            kind: ConnectKind.idea,
-                            options: [
-                              for (final i in ideas)
-                                ConnectOption(
-                                  id: i.idea.id,
-                                  title: i.idea.title,
-                                  file: i.images.isEmpty
-                                      ? null
-                                      : i.images.first.staticFile,
-                                ),
-                            ],
-                            selected: _ideaIds,
-                            onChanged: (v) => setState(() => _ideaIds = v),
-                          ),
-                          const SizedBox(height: 16),
-                          ConnectField(
-                            label: context.l10n.entityConnectDraft,
-                            kind: ConnectKind.draft,
-                            options: [
-                              for (final d in drafts)
-                                ConnectOption(
-                                  id: d.draft.id,
-                                  title: d.draft.title ?? '',
-                                  file: d.images.isEmpty
-                                      ? null
-                                      : d.images.first.staticFile,
-                                  imageCount: d.images.length,
-                                  date: d.draft.date,
-                                ),
-                            ],
-                            selected: _draftIds,
-                            onChanged: (v) => setState(() => _draftIds = v),
-                          ),
+                          draftConnect,
                           const SizedBox(height: 22),
                           FormSubmitButton(
-                            label: _isEdit
-                                ? context.l10n.commonSave
-                                : context.l10n.pieceFormCreate,
+                            label: actionLabel,
                             onPressed: _saving ? null : _save,
                           ),
                         ],

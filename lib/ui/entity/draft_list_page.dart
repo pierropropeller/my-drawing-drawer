@@ -21,6 +21,7 @@ import 'master_detail.dart';
 import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
 import 'entity_widgets.dart';
+import '../pits/pit_section_tabs.dart';
 
 /// 我的草稿：列表（D-087 推特式）與九宮格切換。
 /// 瀏覽用頁面，有底部導覽列。
@@ -51,12 +52,7 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
   Future<void> _add() async {
     final picked = await ref.read(imagePickerProvider)(context);
     if (picked.isEmpty || !mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) =>
-            DraftFormPage(pitId: widget.pitId, initialImages: picked),
-      ),
-    );
+    await openDraftForm(context, pitId: widget.pitId, initialImages: picked);
   }
 
   void _onTagTap(String id) =>
@@ -182,7 +178,7 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
                 const SizedBox(width: 6),
               ],
             ),
-            // TODO(IPADPIT): 標題列下方（內容之上）放 PitSectionTabBar（lib/ui/pits/pit_section_tabs.dart），這裡是唯一的插入點。
+            PitSectionTabBar(pitId: widget.pitId, selected: PitSection.drafts),
             if (widget.tagId != null)
               TagFilterBar(
                 pitId: widget.pitId,

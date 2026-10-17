@@ -1271,6 +1271,20 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get ipadformsFanNewTitle => '加收藏';
+
+  @override
+  String get ipadformsFanAdd => '加入同人圖';
+
+  @override
+  String ipadformsOfficialGroupNote(int n, String group) {
+    return '$n 張圖片將一併加入「$group」，之後可逐張修改分組。';
+  }
+
+  @override
+  String get ipadformsShareTitle => '加入到畫匣';
+
+  @override
   String get ipadListsReferenceView => '參考檢視';
 
   @override

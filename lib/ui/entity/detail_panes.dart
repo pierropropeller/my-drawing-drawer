@@ -114,11 +114,7 @@ class IdeaDetailPane extends ConsumerWidget {
             IdeaStatusChip(v, short: true, fontSize: 12),
             const SizedBox(width: 12),
             _PaneActions(
-              onEdit: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => IdeaFormPage(pitId: pitId, ideaId: ideaId),
-                ),
-              ),
+              onEdit: () => openIdeaForm(context, pitId: pitId, ideaId: ideaId),
               onDelete: () async {
                 final ok = await confirmDelete(
                   context,
@@ -235,11 +231,10 @@ class IdeaDetailPane extends ConsumerWidget {
             excludeSemantics: true,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) =>
-                      DraftFormPage(pitId: pitId, initialIdeaIds: [ideaId]),
-                ),
+              onTap: () => openDraftForm(
+                context,
+                pitId: pitId,
+                initialIdeaIds: [ideaId],
               ),
               child: DashedBox(
                 color: t.dashed,
@@ -543,13 +538,10 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                 ),
                 const SizedBox(width: 10),
                 _PaneActions(
-                  onEdit: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => DraftFormPage(
-                        pitId: widget.pitId,
-                        draftId: widget.draftId,
-                      ),
-                    ),
+                  onEdit: () => openDraftForm(
+                    context,
+                    pitId: widget.pitId,
+                    draftId: widget.draftId,
                   ),
                   onDelete: () async {
                     final ok = await confirmDelete(

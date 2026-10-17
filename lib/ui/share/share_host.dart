@@ -24,6 +24,7 @@ import '../entity/idea_form_page.dart';
 import '../entity/piece_form_page.dart';
 import '../junk/junk_list_page.dart';
 import '../material/material_library_page.dart';
+import '../common/window_class.dart';
 import '../pits/pit_new_page.dart';
 import '../pits/pit_page.dart';
 import 'share_sheet.dart';
@@ -113,10 +114,7 @@ class _ShareHostState extends ConsumerState<ShareHost> {
         case ShareAction.newPit:
           // 開新坑沿用既有的新增坑頁，回來後選中新坑，位置維持原樣。
           widget.showPitsTab();
-          final nav = widget.pitsNavigator.currentState;
-          final newId = await nav?.push<String>(
-            MaterialPageRoute<String>(builder: (_) => const PitNewPage()),
-          );
+          final newId = await _newPit();
           pitId = newId ?? choice.pitId;
           section = choice.section;
           groupId = null;
@@ -131,6 +129,19 @@ class _ShareHostState extends ConsumerState<ShareHost> {
           return;
       }
     }
+  }
+
+  /// 開新坑：視窗 ≥840 是置中 modal，較窄沿用整頁（坑分頁的 Navigator）。回傳新坑 id。
+  Future<String?> _newPit() async {
+    final nav = widget.pitsNavigator.currentState;
+    final overlayCtx = nav?.overlay?.context;
+    if (nav == null || overlayCtx == null) return null;
+    if (MediaQuery.sizeOf(overlayCtx).width >= WindowClass.expandedMin) {
+      return openNewPit(overlayCtx);
+    }
+    return nav.push<String>(
+      MaterialPageRoute<String>(builder: (_) => const PitNewPage()),
+    );
   }
 
   /// 「加入」：匯入 App 儲存空間、寫進資料庫、顯示「已加入」，並留在 App 裡，
@@ -243,18 +254,17 @@ class _ShareHostState extends ConsumerState<ShareHost> {
       if (inner != null) openOshiForm(inner, pitId, paths);
       return;
     }
-    nav.push(
-      MaterialPageRoute<void>(
-        builder: (_) => switch (c.section!) {
-          ShareSection.draft => DraftFormPage(
-            pitId: pitId,
-            initialImages: files,
-          ),
-          ShareSection.idea => IdeaFormPage(pitId: pitId, initialImages: files),
-          _ => PieceFormPage(pitId: pitId, initialImages: files),
-        },
-      ),
-    );
+    // 表單：視窗 ≥840 是置中 modal（蓋在列表上），較窄是整頁（同以前）。
+    final inner = nav.overlay?.context;
+    if (inner == null) return;
+    switch (c.section!) {
+      case ShareSection.draft:
+        openDraftForm(inner, pitId: pitId, initialImages: files);
+      case ShareSection.idea:
+        openIdeaForm(inner, pitId: pitId, initialImages: files);
+      default:
+        openPieceForm(inner, pitId: pitId, initialImages: files);
+    }
   }
 
   void _deleteFiles(List<String> paths) {

@@ -23,6 +23,7 @@ import 'detail_panes.dart';
 import 'idea_form_page.dart';
 import 'master_detail.dart';
 import '../album/album_view.dart' show ChipRow;
+import '../pits/pit_section_tabs.dart';
 
 /// 我的腦洞：卡片顯示標題、狀態、內文兩行、配圖、tag、日期；長按多選（只有刪除）。
 /// 瀏覽狀態有底部導覽列；多選時隱藏（IdeaSelect）。
@@ -83,9 +84,7 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
     if (!_selecting) setNavBarHidden(false);
   }
 
-  void _openNew() => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => IdeaFormPage(pitId: widget.pitId)),
-  );
+  void _openNew() => openIdeaForm(context, pitId: widget.pitId);
 
   /// 並排時：選中該項（右側顯示詳情）；否則開詳情頁（並記住它，之後拉寬可還原）。
   void _tapItem(String id, bool wide) {
@@ -326,7 +325,11 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                     SearchIconButton(pitId: widget.pitId),
                   ],
                 ),
-              // TODO(IPADPIT): 標題列下方（內容之上）放 PitSectionTabBar（lib/ui/pits/pit_section_tabs.dart），這裡是唯一的插入點。
+              if (!_selecting)
+                PitSectionTabBar(
+                  pitId: widget.pitId,
+                  selected: PitSection.ideas,
+                ),
               if (!_selecting && widget.tagId != null)
                 TagFilterBar(
                   pitId: widget.pitId,

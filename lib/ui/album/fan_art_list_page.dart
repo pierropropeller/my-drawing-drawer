@@ -15,6 +15,7 @@ import 'fan_art_preview_page.dart';
 import 'group_manage_page.dart';
 import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
+import '../pits/pit_section_tabs.dart';
 
 /// 好看同人圖：出處 chips 篩選；卡片開啟同人圖預覽（D-045）。
 class FanArtListPage extends ConsumerStatefulWidget {
@@ -43,14 +44,11 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
   Future<void> _add(String? groupId) async {
     final picked = await ref.read(imagePickerProvider)(context);
     if (picked.isEmpty || !mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => FanArtNewPage(
-          pitId: widget.pitId,
-          initialImages: picked,
-          initialGroupId: groupId,
-        ),
-      ),
+    await openFanArtNew(
+      context,
+      pitId: widget.pitId,
+      initialImages: picked,
+      initialGroupId: groupId,
     );
   }
 
@@ -93,7 +91,10 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
       cell: AlbumCell.fan,
       title: context.l10n.pitsFanArt,
       images: images,
-      // TODO(IPADPIT): sectionTabs: PitSectionTabBar(...)（lib/ui/pits/pit_section_tabs.dart），這裡是唯一的插入點。
+      sectionTabs: PitSectionTabBar(
+        pitId: widget.pitId,
+        selected: PitSection.fanArt,
+      ),
       emptyLabel: context.l10n.albumFanEmpty,
       emptySvg: AppIcons.pitFanArt,
       total: total,

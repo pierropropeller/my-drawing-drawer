@@ -2325,6 +2325,30 @@ abstract class AppLocalizations {
   /// **'{code, select, CNY{人民幣} HKD{港幣} TWD{新台幣} USD{美元} JPY{日圓} EUR{歐元} GBP{英鎊} KRW{韓元} SGD{新加坡幣} other{{code}}}'**
   String goalsCurrencyName(String code);
 
+  /// No description provided for @ipadformsFanNewTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'加收藏'**
+  String get ipadformsFanNewTitle;
+
+  /// No description provided for @ipadformsFanAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'加入同人圖'**
+  String get ipadformsFanAdd;
+
+  /// No description provided for @ipadformsOfficialGroupNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'{n} 張圖片將一併加入「{group}」，之後可逐張修改分組。'**
+  String ipadformsOfficialGroupNote(int n, String group);
+
+  /// No description provided for @ipadformsShareTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'加入到畫匣'**
+  String get ipadformsShareTitle;
+
   /// No description provided for @ipadListsReferenceView.
   ///
   /// In zh, this message translates to:

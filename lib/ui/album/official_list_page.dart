@@ -14,6 +14,7 @@ import 'album_panels.dart';
 import 'album_view.dart';
 import 'group_manage_page.dart';
 import 'official_new_page.dart';
+import '../pits/pit_section_tabs.dart';
 
 /// 官方圖冊：分組 chips，最右固定「管理分組」icon。
 class OfficialListPage extends ConsumerStatefulWidget {
@@ -37,14 +38,11 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
   /// 進入新增頁（圖已選好）。從其他 App 拖放進來（MediaDrop）也走這裡：
   /// 新增頁就是「放開後選擇分組」那一步（分組 chips＋加入按鈕）。
   Future<void> _openNew(String? groupId, List<XFile> picked) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => OfficialNewPage(
-          pitId: widget.pitId,
-          initialGroupId: groupId,
-          initialImages: picked,
-        ),
-      ),
+    await openOfficialNew(
+      context,
+      pitId: widget.pitId,
+      initialGroupId: groupId,
+      initialImages: picked,
     );
   }
 
@@ -81,7 +79,10 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
       cell: AlbumCell.official,
       title: context.l10n.pitsOfficial,
       images: images,
-      // TODO(IPADPIT): sectionTabs: PitSectionTabBar(...)（lib/ui/pits/pit_section_tabs.dart），這裡是唯一的插入點。
+      sectionTabs: PitSectionTabBar(
+        pitId: widget.pitId,
+        selected: PitSection.official,
+      ),
       emptyLabel: context.l10n.albumOfficialEmpty,
       emptySvg: AppIcons.pitOfficial,
       total: total,

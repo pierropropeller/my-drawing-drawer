@@ -72,12 +72,8 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
                 HeaderIconButton(
                   icon: AppIcons.edit,
                   label: context.l10n.commonEdit,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          DraftFormPage(pitId: pitId, draftId: draftId),
-                    ),
-                  ),
+                  onTap: () =>
+                      openDraftForm(context, pitId: pitId, draftId: draftId),
                 ),
                 HeaderIconButton(
                   icon: AppIcons.trash,

@@ -73,7 +73,7 @@ class AlbumView extends ConsumerStatefulWidget {
   final AlbumPanelBuilder? panelBuilder;
 
   /// 標題列下方（內容之上）的坑內分區 tab。
-  /// TODO(IPADPIT): 放 `PitSectionTabBar`（lib/ui/pits/pit_section_tabs.dart），由 Official／FanArt 頁傳入。
+  /// 由 Official／FanArt 頁傳入 `PitSectionTabBar`（lib/ui/pits/pit_section_tabs.dart）；＜600 它自己不畫。
   final Widget? sectionTabs;
 
   final String pitId;

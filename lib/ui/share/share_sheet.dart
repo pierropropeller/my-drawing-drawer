@@ -15,10 +15,12 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../album/image_picker_field.dart' show ImageItem, ImageItemThumb;
+import '../common/adaptive_modal.dart';
 import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
 import '../entity/entity_widgets.dart';
 import '../goals/pit_pill.dart' show mockLine;
+import '../common/window_class.dart';
 import '../material/material_category.dart';
 import 'share_icons.dart';
 
@@ -117,6 +119,9 @@ const _kDestKey = 'shareLastDest';
 const _kMaterialKey = 'shareLastMaterial';
 
 /// 分享進來的「加入到」bottom sheet（ShareImport，D-053／D-059／D-064）。
+///
+/// 視窗 ≥840（iPad 設計稿 ShareImport）改成置中的 720×760 對話框：取消／標題／張數 標題列、
+/// 位置 7 欄一排；其餘欄位與手機版相同。較窄維持 bottom sheet。
 Future<ShareChoice?> showShareSheet(
   BuildContext context, {
   required List<String> paths,
@@ -125,6 +130,24 @@ Future<ShareChoice?> showShareSheet(
   String? groupId,
 }) {
   final t = context.tokens;
+  if (MediaQuery.sizeOf(context).width >= WindowClass.expandedMin) {
+    return showDialog<ShareChoice>(
+      context: context,
+      useRootNavigator: true,
+      barrierColor: const Color(0x591E1A17),
+      builder: (_) => AdaptiveModalDialog(
+        width: 720,
+        height: 760,
+        child: ShareSheet(
+          paths: paths,
+          initialPitId: pitId,
+          initialSection: section,
+          initialGroupId: groupId,
+          asDialog: true,
+        ),
+      ),
+    );
+  }
   return showModalBottomSheet<ShareChoice>(
     context: context,
     // 全域的 sheet：蓋在所有分頁之上。
@@ -151,9 +174,13 @@ class ShareSheet extends ConsumerStatefulWidget {
     this.initialPitId,
     this.initialSection,
     this.initialGroupId,
+    this.asDialog = false,
   });
 
   final List<String> paths;
+
+  /// 畫成置中對話框的內容（iPad）：沒有拖曳條、不依鍵盤縮高，位置 7 欄。
+  final bool asDialog;
 
   /// 沒指定就用上一次用過的坑／位置。
   final String? initialPitId;
@@ -295,274 +322,317 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
       media.size.height * 0.88,
       media.size.height - media.viewInsets.bottom - media.padding.top,
     );
+    final asDialog = widget.asDialog;
+    final sheet = Column(
+      mainAxisSize: asDialog ? MainAxisSize.max : MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (asDialog)
+          // 取消／襯線標題／張數（ShareImport：64 高）。
+          SizedBox(
+            height: 64,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(44, 44),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      foregroundColor: t.text2,
+                      textStyle: const TextStyle(fontSize: 15),
+                    ),
+                    child: Text(l.commonCancel),
+                  ),
+                  Expanded(
+                    child: Text(
+                      l.ipadformsShareTitle,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(fontSize: 19, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 64),
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Text(
+                        l.commonCountImages(widget.paths.length),
+                        textAlign: TextAlign.right,
+                        style: TextStyle(fontSize: 13, color: t.text3),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          // 固定的頂部：拖曳條、標題＋張數、縮圖列。
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: t.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l.shareTitle,
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      l.commonCountImages(widget.paths.length),
+                      style: TextStyle(fontSize: 13, color: t.text3),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        _Thumbs(paths: widget.paths),
+        Divider(height: 1, thickness: 1, color: t.border),
+        // 可捲動的中間。
+        Flexible(
+          fit: asDialog ? FlexFit.tight : FlexFit.loose,
+          child: SingleChildScrollView(
+            key: const ValueKey('shareScroll'),
+            padding: const EdgeInsets.fromLTRB(0, 12, 0, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _DestToggle(toMaterial: _toMaterial, onChanged: _setDest),
+                if (_toMaterial) ...[
+                  _Label(l.materialFieldCategory),
+                  _ChipWrap(
+                    children: [
+                      for (final c in MaterialCategory.values)
+                        KeyedSubtree(
+                          key: ValueKey('shareMaterial-${c.name}'),
+                          child: _GroupChip(
+                            label: c.label(l),
+                            selected: c == _material,
+                            onTap: () => setState(() => _material = c),
+                          ),
+                        ),
+                    ],
+                  ),
+                ] else ...[
+                  _Label(l.shareFieldPit),
+                  SizedBox(
+                    height: 38,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      children: [
+                        for (final p in pits)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _PitChip(
+                              pit: p,
+                              selected: p.id == pit?.id,
+                              onTap: () => setState(() {
+                                if (_pitId != p.id) {
+                                  _groupId = null;
+                                  _fanGroupId = null;
+                                  _tagIds.clear();
+                                }
+                                _pitId = p.id;
+                              }),
+                            ),
+                          ),
+                        _NewPitChip(
+                          label: l.pitsNewTitle,
+                          onTap: () => _finish(
+                            ShareAction.newPit,
+                            pit?.id,
+                            section,
+                            group?.id,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _Label(l.shareFieldPosition),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: LayoutBuilder(
+                      builder: (_, c) {
+                        // 手機 4 欄、對話框 7 欄（一排），欄距 8。
+                        final cols = asDialog ? 7 : 4;
+                        final w = (c.maxWidth - 8 * (cols - 1)) / cols;
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final s in sections)
+                              SizedBox(
+                                width: w,
+                                child: _SectionCell(
+                                  section: s,
+                                  dark: dark,
+                                  selected: s == section,
+                                  onTap: () => setState(() => _section = s),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  if (section == ShareSection.official &&
+                      groups.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    _Label(l.albumGroupLabel),
+                    _ChipWrap(
+                      children: [
+                        for (final g in groups)
+                          _GroupChip(
+                            label: g.name,
+                            selected: g.id == group?.id,
+                            onTap: () => setState(() => _groupId = g.id),
+                          ),
+                      ],
+                    ),
+                  ],
+                  if (section == ShareSection.fan) ...[
+                    const SizedBox(height: 14),
+                    _Label(l.albumFieldAuthor),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: TextField(
+                        key: const ValueKey('shareAuthor'),
+                        controller: _author,
+                        style: TextStyle(fontSize: 15, color: t.ink),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          filled: true,
+                          fillColor: t.surface,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          border: _fieldBorder(context),
+                          enabledBorder: _fieldBorder(context),
+                          focusedBorder: _fieldBorder(context),
+                        ),
+                      ),
+                    ),
+                    if (fanGroups.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _Label(l.albumFieldSource),
+                      _ChipWrap(
+                        children: [
+                          for (final g in fanGroups)
+                            _GroupChip(
+                              label: g.name,
+                              selected: g.id == fanGroup?.id,
+                              // 再點一次已選的出處＝取消（出處可留空）。
+                              onTap: () => setState(
+                                () => _fanGroupId = g.id == fanGroup?.id
+                                    ? null
+                                    : g.id,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
+                  if (section.hasTags && pit != null) ...[
+                    const SizedBox(height: 12),
+                    _Label(l.shareMoveTag),
+                    _ChipWrap(
+                      children: [
+                        for (final tag in tags)
+                          _GroupChip(
+                            label: '#${tag.name}',
+                            selected: _tagIds.contains(tag.id),
+                            onTap: () => setState(() {
+                              if (!_tagIds.remove(tag.id)) {
+                                _tagIds.add(tag.id);
+                              }
+                            }),
+                          ),
+                        DashedAddChip(
+                          semanticLabel: l.tagsAdd,
+                          onTap: () => _newTag(pit.id),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ],
+            ),
+          ),
+        ),
+        // 固定的底部按鈕。
+        Container(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            12,
+            20,
+            math.max(24, media.padding.bottom),
+          ),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: t.border)),
+          ),
+          child: GestureDetector(
+            onTap: _toMaterial
+                ? _finishMaterial
+                : canGo
+                ? () => _finish(
+                    section.needsForm ? ShareAction.next : ShareAction.add,
+                    pit.id,
+                    section,
+                    groupForResult,
+                    tagIds: tagIds,
+                  )
+                : null,
+            child: Container(
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              decoration: BoxDecoration(
+                color: (canGo || _toMaterial)
+                    ? t.accent
+                    : t.accent.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(Radii.button),
+              ),
+              child: Text(
+                (!_toMaterial && section.needsForm) ? l.shareNext : l.shareAdd,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+    if (asDialog) return sheet;
     return Padding(
       padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: maxHeight),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 固定的頂部：拖曳條、標題＋張數、縮圖列。
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: t.border,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        l.shareTitle,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        l.commonCountImages(widget.paths.length),
-                        style: TextStyle(fontSize: 13, color: t.text3),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
-            _Thumbs(paths: widget.paths),
-            Divider(height: 1, thickness: 1, color: t.border),
-            // 可捲動的中間。
-            Flexible(
-              child: SingleChildScrollView(
-                key: const ValueKey('shareScroll'),
-                padding: const EdgeInsets.fromLTRB(0, 12, 0, 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _DestToggle(toMaterial: _toMaterial, onChanged: _setDest),
-                    if (_toMaterial) ...[
-                      _Label(l.materialFieldCategory),
-                      _ChipWrap(
-                        children: [
-                          for (final c in MaterialCategory.values)
-                            KeyedSubtree(
-                              key: ValueKey('shareMaterial-${c.name}'),
-                              child: _GroupChip(
-                                label: c.label(l),
-                                selected: c == _material,
-                                onTap: () => setState(() => _material = c),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ] else ...[
-                      _Label(l.shareFieldPit),
-                      SizedBox(
-                        height: 38,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          children: [
-                            for (final p in pits)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: _PitChip(
-                                  pit: p,
-                                  selected: p.id == pit?.id,
-                                  onTap: () => setState(() {
-                                    if (_pitId != p.id) {
-                                      _groupId = null;
-                                      _fanGroupId = null;
-                                      _tagIds.clear();
-                                    }
-                                    _pitId = p.id;
-                                  }),
-                                ),
-                              ),
-                            _NewPitChip(
-                              label: l.pitsNewTitle,
-                              onTap: () => _finish(
-                                ShareAction.newPit,
-                                pit?.id,
-                                section,
-                                group?.id,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      _Label(l.shareFieldPosition),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: LayoutBuilder(
-                          builder: (_, c) {
-                            // 4 欄、欄距 8。
-                            final w = (c.maxWidth - 24) / 4;
-                            return Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                for (final s in sections)
-                                  SizedBox(
-                                    width: w,
-                                    child: _SectionCell(
-                                      section: s,
-                                      dark: dark,
-                                      selected: s == section,
-                                      onTap: () => setState(() => _section = s),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                      if (section == ShareSection.official &&
-                          groups.isNotEmpty) ...[
-                        const SizedBox(height: 14),
-                        _Label(l.albumGroupLabel),
-                        _ChipWrap(
-                          children: [
-                            for (final g in groups)
-                              _GroupChip(
-                                label: g.name,
-                                selected: g.id == group?.id,
-                                onTap: () => setState(() => _groupId = g.id),
-                              ),
-                          ],
-                        ),
-                      ],
-                      if (section == ShareSection.fan) ...[
-                        const SizedBox(height: 14),
-                        _Label(l.albumFieldAuthor),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: TextField(
-                            key: const ValueKey('shareAuthor'),
-                            controller: _author,
-                            style: TextStyle(fontSize: 15, color: t.ink),
-                            decoration: InputDecoration(
-                              isDense: true,
-                              filled: true,
-                              fillColor: t.surface,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
-                              ),
-                              border: _fieldBorder(context),
-                              enabledBorder: _fieldBorder(context),
-                              focusedBorder: _fieldBorder(context),
-                            ),
-                          ),
-                        ),
-                        if (fanGroups.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          _Label(l.albumFieldSource),
-                          _ChipWrap(
-                            children: [
-                              for (final g in fanGroups)
-                                _GroupChip(
-                                  label: g.name,
-                                  selected: g.id == fanGroup?.id,
-                                  // 再點一次已選的出處＝取消（出處可留空）。
-                                  onTap: () => setState(
-                                    () => _fanGroupId = g.id == fanGroup?.id
-                                        ? null
-                                        : g.id,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ],
-                      if (section.hasTags && pit != null) ...[
-                        const SizedBox(height: 12),
-                        _Label(l.shareMoveTag),
-                        _ChipWrap(
-                          children: [
-                            for (final tag in tags)
-                              _GroupChip(
-                                label: '#${tag.name}',
-                                selected: _tagIds.contains(tag.id),
-                                onTap: () => setState(() {
-                                  if (!_tagIds.remove(tag.id)) {
-                                    _tagIds.add(tag.id);
-                                  }
-                                }),
-                              ),
-                            DashedAddChip(
-                              semanticLabel: l.tagsAdd,
-                              onTap: () => _newTag(pit.id),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            // 固定的底部按鈕。
-            Container(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                12,
-                20,
-                math.max(24, media.padding.bottom),
-              ),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: t.border)),
-              ),
-              child: GestureDetector(
-                onTap: _toMaterial
-                    ? _finishMaterial
-                    : canGo
-                    ? () => _finish(
-                        section.needsForm ? ShareAction.next : ShareAction.add,
-                        pit.id,
-                        section,
-                        groupForResult,
-                        tagIds: tagIds,
-                      )
-                    : null,
-                child: Container(
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  decoration: BoxDecoration(
-                    color: (canGo || _toMaterial)
-                        ? t.accent
-                        : t.accent.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(Radii.button),
-                  ),
-                  child: Text(
-                    (!_toMaterial && section.needsForm)
-                        ? l.shareNext
-                        : l.shareAdd,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+        child: sheet,
       ),
     );
   }
