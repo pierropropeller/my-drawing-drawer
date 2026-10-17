@@ -31,9 +31,20 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-/// 主頁：現坑（archived=false）／封存坑（archived=true）。
+/// 相容舊介面：false＝現坑（不含淺坑）、true＝封存坑。新程式請用 [pitsByStatusProvider]
+/// 或（選擇清單用的）[selectablePitsProvider]。
 final pitsProvider = StreamProvider.family<List<Pit>, bool>(
   (ref, archived) => ref.watch(databaseProvider).watchPits(archived: archived),
+);
+
+/// 主頁三個分頁：現坑／淺坑／封存坑（D-088）。
+final pitsByStatusProvider = StreamProvider.family<List<Pit>, PitStatus>(
+  (ref, status) => ref.watch(databaseProvider).watchPitsByStatus({status}),
+);
+
+/// 選擇清單用的坑（分享匯入、圖片移動、新增目標、日頁新增）：現坑＋淺坑，**不含封存坑**。
+final selectablePitsProvider = StreamProvider<List<Pit>>(
+  (ref) => ref.watch(databaseProvider).watchSelectablePits(),
 );
 
 final pitProvider = StreamProvider.family<Pit?, String>(
@@ -67,6 +78,12 @@ final imagePickerProvider =
                 repository: ref.read(galleryRepositoryProvider),
               ) ??
               const [],
+    );
+
+/// 淺坑封面用的選圖：只列圖片、單選（和頭像同一種選擇器）。同樣獨立成 provider 方便測試替換。
+final pitCoverPickerProvider =
+    Provider<Future<List<XFile>> Function(BuildContext context)>(
+      (ref) => ref.watch(avatarPickerProvider),
     );
 
 /// 頭像用的選圖：只列圖片、單選。同樣獨立成 provider 方便測試替換。
@@ -120,6 +137,9 @@ final tagIdsProvider = StreamProvider.family<List<String>, (TagTarget, String)>(
 final coverFileProvider = StreamProvider.family<String?, String>((ref, pitId) {
   final db = ref.watch(databaseProvider);
   return db.watchPit(pitId).asyncMap((pit) async {
+    // 淺坑自己選的封面檔優先；否則是坑內某張圖。
+    final own = pit?.coverFile;
+    if (own != null && own.isNotEmpty) return own;
     final id = pit?.coverImageId;
     return id == null ? null : db.imageFileOf(id);
   });

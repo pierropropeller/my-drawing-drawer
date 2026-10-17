@@ -1,9 +1,11 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import 'pit_status_queries.dart';
 import 'ref_view_queries.dart' show RefViewStates;
 import 'tables.dart';
 
+export 'pit_status_queries.dart';
 export 'tables.dart'
     show
         GoalKind,
@@ -11,6 +13,9 @@ export 'tables.dart'
         MaterialCategory,
         MediaKind,
         OwnerType,
+        PitSectionKey,
+        PitSectionSetConverter,
+        PitStatus,
         TagTarget;
 
 part 'database.g.dart';
@@ -47,7 +52,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -94,8 +99,40 @@ class AppDatabase extends _$AppDatabase {
         // v10：參考圖檢視的每張圖檢視狀態（純本機、不同步）。全新的表，沒有舊資料。
         await m.createTable(refViewStates);
       }
+      if (from < 11) {
+        await _migrateV11(m);
+      }
     },
   );
+
+  /// v11：坑的類型（D-088）。`archived`（bool）換成 `status`（active／shallow／archived），
+  /// 新增 `enabled_sections`（淺坑開啟的格子，預設空）與 `cover_file`（淺坑自己的封面）。
+  /// archived＝1 → `archived`，其餘 → `active`；舊的 `archived` 欄位用重建資料表的方式移除。
+  /// 每個欄位先確認存在與否再加（可重複執行）。不動 updated_at：各裝置各自升級結果相同，不需要同步。
+  Future<void> _migrateV11(Migrator m) async {
+    Future<Set<String>> columnsOf(String table) async => {
+      for (final r in await customSelect('PRAGMA table_info($table)').get())
+        r.read<String>('name'),
+    };
+
+    final have = await columnsOf('pits');
+    if (have.isEmpty) {
+      await m.createTable(pits);
+      return;
+    }
+    // 缺的欄位一律補上（新的三欄，以及較舊的遷移若是自己建表而漏掉的欄位）：
+    // 重建資料表時要求新舊欄位一致。
+    for (final c in pits.$columns) {
+      if (!have.contains(c.$name)) await m.addColumn(pits, c);
+    }
+    if (have.contains('archived')) {
+      await customStatement(
+        "UPDATE pits SET status = 'archived' WHERE archived = 1",
+      );
+      // 目前的資料表定義已沒有 archived：重建資料表會把它丟掉，其餘欄位原樣搬過去。
+      await m.alterTable(TableMigration(pits));
+    }
+  }
 
   /// v9：坑內其餘四格的封面（Pits 四欄）、所有放圖的表加媒體欄位（kind／durationMs／posterFile，D-080）。
   /// 每個欄位先確認存在與否再加（較舊版本的遷移若是整張建表，已經帶有新欄位）。
@@ -355,17 +392,30 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// 新增坑並建立預設官方圖分組。
+  /// [status]＝淺坑時，[enabledSections] 是開啟的格子（預設全關；雜物開關跟著是否含 `junk`）；
+  /// [coverFile] 是淺坑從相簿直接選的封面檔名。
   Future<String> createPit({
     required String name,
     String? description,
     bool junkEnabled = false,
+    PitStatus status = PitStatus.active,
+    Set<PitSectionKey> enabledSections = const {},
+    String? coverFile,
   }) {
+    final shallow = status == PitStatus.shallow;
     return transaction(() async {
       final pit = await into(pits).insertReturning(
         PitsCompanion.insert(
           name: name,
           description: Value(description),
-          junkEnabled: Value(junkEnabled),
+          junkEnabled: Value(
+            shallow
+                ? enabledSections.contains(PitSectionKey.junk)
+                : junkEnabled,
+          ),
+          status: Value(status),
+          enabledSections: Value(shallow ? enabledSections : const {}),
+          coverFile: Value(coverFile),
         ),
       );
       for (var i = 0; i < defaultGroups.length; i++) {
@@ -402,59 +452,50 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// 主頁的坑依「最後更新」排序：坑本身，或坑內任何內容（圖、同人圖、腦洞、草稿、成圖）有更新都算。
-  Stream<List<Pit>> watchPits({required bool archived}) {
-    return customSelect(
-      '''
-      SELECT p.*, MAX(
-        p.updated_at,
-        COALESCE((SELECT MAX(updated_at) FROM official_images WHERE pit_id = p.id), 0),
-        COALESCE((SELECT MAX(updated_at) FROM fan_arts WHERE pit_id = p.id), 0),
-        COALESCE((SELECT MAX(updated_at) FROM junk_images WHERE pit_id = p.id), 0),
-        COALESCE((SELECT MAX(updated_at) FROM ideas WHERE pit_id = p.id), 0),
-        COALESCE((SELECT MAX(updated_at) FROM drafts WHERE pit_id = p.id), 0),
-        COALESCE((SELECT MAX(updated_at) FROM pieces WHERE pit_id = p.id), 0),
-        COALESCE((SELECT MAX(updated_at) FROM oshi_records WHERE pit_id = p.id), 0)
-      ) AS last_activity
-      FROM pits p
-      WHERE p.deleted_at IS NULL AND p.archived = ?
-      ORDER BY last_activity DESC, p.created_at DESC
-      ''',
-      variables: [Variable<bool>(archived)],
-      readsFrom: {
-        pits,
-        officialImages,
-        fanArts,
-        junkImages,
-        ideas,
-        drafts,
-        pieces,
-        oshiRecords,
-      },
-    ).watch().map((rows) => [for (final r in rows) pits.map(r.data)]);
-  }
+  /// 相容舊介面：`archived: true`＝封存坑，`false`＝現坑（不含淺坑）。
+  /// 新程式請用 [watchPitsByStatus]／[watchSelectablePits]。
+  Stream<List<Pit>> watchPits({required bool archived}) =>
+      watchPitsByStatus({archived ? PitStatus.archived : PitStatus.active});
 
   Stream<Pit?> watchPit(String id) {
     return (select(pits)..where((p) => p.id.equals(id) & p.deletedAt.isNull()))
         .watchSingleOrNull();
   }
 
+  /// 編輯坑存檔。[status]／[enabledSections] 的規則見 [setPitStatus]；
+  /// [junkEnabled]、[status]、[enabledSections] 為 null＝不變（或依轉換規則推算）。
+  /// 相容舊介面的 [archived]（沒給 [status] 時才看）：true＝封存，false＝取消封存（回到現坑；淺坑維持淺坑）。
   Future<void> updatePit(
     String id, {
     required String name,
     String? description,
-    required bool archived,
+    bool? archived,
+    PitStatus? status,
+    Set<PitSectionKey>? enabledSections,
     bool? junkEnabled, // null＝不變
-  }) {
-    return (update(pits)..where((p) => p.id.equals(id))).write(
-      PitsCompanion(
-        name: Value(name),
-        description: Value(description),
-        archived: Value(archived),
-        junkEnabled: junkEnabled == null
-            ? const Value.absent()
-            : Value(junkEnabled),
-        updatedAt: Value(DateTime.now()),
-      ),
+    bool deleteClosedContent = false,
+  }) async {
+    var target = status;
+    if (target == null && archived != null) {
+      if (archived) {
+        target = PitStatus.archived;
+      } else {
+        final cur = await (select(
+          pits,
+        )..where((p) => p.id.equals(id))).getSingle();
+        target = cur.status == PitStatus.archived
+            ? PitStatus.active
+            : cur.status;
+      }
+    }
+    return savePit(
+      id,
+      name: name,
+      description: description,
+      status: target,
+      enabledSections: enabledSections,
+      junkEnabled: junkEnabled,
+      deleteClosedContent: deleteClosedContent,
     );
   }
 

@@ -313,6 +313,11 @@ class SyncEngine {
   /// 本機資料庫引用到的所有圖片檔名。
   Future<Set<String>> _referencedImages() async {
     final needed = <String>{};
+    // 淺坑自己選的封面檔（D-088）。
+    for (final r in await db.select(db.pits).get()) {
+      final c = r.coverFile;
+      if (c != null && c.isNotEmpty) needed.add(c);
+    }
     for (final r in await db.select(db.officialImages).get()) {
       needed.add(r.imageFile);
       final poster = r.posterFile;

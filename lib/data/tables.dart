@@ -43,6 +43,41 @@ enum OwnerType { idea, draft, piece, oshi }
 /// 新值只能加在最後（資料庫存的是名稱，順序無關，但保持習慣）。
 enum TagTarget { fanArt, idea, draft, piece, goal, official, oshi }
 
+/// 坑的類型（D-088）。資料庫存名稱（`active`／`shallow`／`archived`）；新值只能加在最後。
+/// 取代舊的 `Pits.archived`（bool）。
+enum PitStatus { active, shallow, archived }
+
+/// 坑內可以開關的格子（淺坑的「開啟的格子」，D-088）。資料庫存名稱；
+/// 順序＝介面顯示順序（官方圖冊、好看同人圖、我的腦洞、我的摸魚、我的成圖、推活、雜物）。
+/// 名稱同 `setCellCover`／`coverCandidatesProvider` 用的格子種類字串。
+enum PitSectionKey { official, fan, idea, draft, piece, oshi, junk }
+
+/// `Set<PitSectionKey>` ⇄ 逗號分隔的名稱字串（`official,fan`）。
+/// 讀回時略過不認得的名稱（較新版 App 的新格子），輸出固定依宣告順序，方便比較與同步。
+class PitSectionSetConverter extends TypeConverter<Set<PitSectionKey>, String>
+    with JsonTypeConverter2<Set<PitSectionKey>, String, String> {
+  const PitSectionSetConverter();
+
+  @override
+  Set<PitSectionKey> fromSql(String fromDb) => {
+    for (final n in fromDb.split(','))
+      for (final k in PitSectionKey.values)
+        if (k.name == n.trim()) k,
+  };
+
+  @override
+  String toSql(Set<PitSectionKey> value) => [
+    for (final k in PitSectionKey.values)
+      if (value.contains(k)) k.name,
+  ].join(',');
+
+  @override
+  Set<PitSectionKey> fromJson(String json) => fromSql(json);
+
+  @override
+  String toJson(Set<PitSectionKey> value) => toSql(value);
+}
+
 class Pits extends Table with SyncColumns {
   TextColumn get name => text()();
   TextColumn get description => text().nullable()();
@@ -61,9 +96,24 @@ class Pits extends Table with SyncColumns {
   TextColumn get ideaCoverFile => text().nullable()();
   TextColumn get pieceCoverFile => text().nullable()();
   TextColumn get oshiCoverFile => text().nullable()();
-  BoolColumn get archived => boolean().withDefault(const Constant(false))();
+
+  /// 坑的類型（D-088）：現坑／淺坑／封存坑。v11 起取代 `archived`（遷移：archived＝true → archived，其餘 active）。
+  /// 同步文件另外帶一個相容用的 `archived` bool，舊版 App 才看得懂。
+  TextColumn get status =>
+      textEnum<PitStatus>().withDefault(const Constant('active'))();
+
+  /// 淺坑開啟的格子（只有 [status]＝shallow 時有意義；封存的淺坑保留著，轉回淺坑時還原）。
+  /// 逗號分隔的名稱，見 [PitSectionSetConverter]。預設全部關。
+  TextColumn get enabledSections => text()
+      .map(const PitSectionSetConverter())
+      .withDefault(const Constant(''))();
+
+  /// 淺坑自己的封面（從手機相簿直接選的圖，檔名；跟其他圖檔一起同步）。
+  /// 有值時優先於 [coverImageId]；現坑的「選擇封面」會把它清掉。
+  TextColumn get coverFile => text().nullable()();
 
   /// 編輯坑的「雜物」開關；開啟後坑內頁最底才出現雜物入口（D-034）。
+  /// 淺坑：與 [enabledSections] 是否含 `junk` 保持一致（舊版 App 只看得到這個欄位）。
   BoolColumn get junkEnabled => boolean().withDefault(const Constant(false))();
 }
 

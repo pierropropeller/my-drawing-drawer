@@ -496,6 +496,113 @@ void main() {
     await dir.delete(recursive: true);
   });
 
+  // v11：坑的類型（批次 14，D-088）。archived → status，新增 enabled_sections／cover_file。
+  for (var from = 1; from <= 5; from++) {
+    test('v$from → v11：archived 對應成 status、舊的 archived 欄位移除、舊資料保留', () async {
+      final db = AppDatabase(
+        NativeDatabase.memory(
+          setup: (raw) {
+            _legacySchema(raw, from);
+            raw.execute(
+              "INSERT INTO pits (id, created_at, updated_at, name, archived) VALUES ('p2', 2, 2, '封存的坑', 1)",
+            );
+          },
+        ),
+      );
+      final pits = {for (final p in await db.select(db.pits).get()) p.id: p};
+      expect(pits['p1']!.status, PitStatus.active);
+      expect(pits['p1']!.name, '舊坑');
+      expect(pits['p2']!.status, PitStatus.archived);
+      expect(pits['p2']!.archived, isTrue);
+      expect(pits['p1']!.enabledSections, isEmpty);
+      expect(pits['p1']!.coverFile, isNull);
+      expect([
+        for (final r in await db.customSelect('PRAGMA table_info(pits)').get())
+          r.read<String>('name'),
+      ], isNot(contains('archived')));
+      expect(
+        [for (final p in await db.watchPits(archived: true).first) p.id],
+        ['p2'],
+      );
+      expect(
+        (await db.select(db.officialImages).get()).single.imageFile,
+        'o.png',
+      );
+      // 新 API 可用
+      await db.setPitStatus('p1', PitStatus.shallow);
+      expect(
+        (await db.select(db.pits).get())
+            .firstWhere((p) => p.id == 'p1')
+            .isShallow,
+        isTrue,
+      );
+      await db.close();
+    });
+  }
+
+  // v6～v10：用目前結構還原成「有 archived、沒有 status／enabled_sections／cover_file」的 v10 形狀，
+  // 再把 user_version 設成起點（後面的遷移步驟對較新的結構都可重複執行）。
+  for (final from in [6, 7, 8, 9, 10]) {
+    test('v$from → v11（用真實結構還原）：archived 對應成 status，其他資料不動', () async {
+      final dir = await Directory.systemTemp.createTemp('mig_v11_$from');
+      final file = File('${dir.path}/db.sqlite');
+      var db = AppDatabase(NativeDatabase(file));
+      final live = await db.createPit(name: '現坑', junkEnabled: true);
+      final dead = await db.createPit(name: '封存坑');
+      await db.setPitStatus(dead, PitStatus.archived);
+      final groupId = (await db.watchGroups(live).first).first.id;
+      await db.addOfficial(live, groupId, const [
+        NewImage(file: 'a.png', width: 3, height: 4),
+      ]);
+      await db.setCover(live, null);
+      await db.customStatement(
+        'ALTER TABLE pits ADD COLUMN archived INTEGER NOT NULL DEFAULT 0 CHECK (archived IN (0, 1))',
+      );
+      await db.customStatement(
+        "UPDATE pits SET archived = (status = 'archived')",
+      );
+      for (final c in ['status', 'enabled_sections', 'cover_file']) {
+        await db.customStatement('ALTER TABLE pits DROP COLUMN $c');
+      }
+      await db.customStatement('PRAGMA user_version = $from');
+      await db.close();
+
+      db = AppDatabase(NativeDatabase(file));
+      final pits = {for (final p in await db.select(db.pits).get()) p.id: p};
+      expect(pits[live]!.status, PitStatus.active);
+      expect(pits[live]!.junkEnabled, isTrue);
+      expect(pits[dead]!.status, PitStatus.archived);
+      expect(pits[live]!.enabledSections, isEmpty);
+      expect([
+        for (final r in await db.customSelect('PRAGMA table_info(pits)').get())
+          r.read<String>('name'),
+      ], isNot(contains('archived')));
+      expect((await db.watchOfficial(live).first).single.width, 3);
+      expect((await db.watchGroups(live).first), isNotEmpty);
+      await db.close();
+      await dir.delete(recursive: true);
+    });
+  }
+
+  test('v11 遷移可以重複執行（已是新結構）而不出錯', () async {
+    final dir = await Directory.systemTemp.createTemp('mig_v11_twice');
+    final file = File('${dir.path}/db.sqlite');
+    var db = AppDatabase(NativeDatabase(file));
+    final pitId = await db.createPit(
+      name: '淺',
+      status: PitStatus.shallow,
+      enabledSections: {PitSectionKey.fan},
+    );
+    await db.customStatement('PRAGMA user_version = 10');
+    await db.close();
+    db = AppDatabase(NativeDatabase(file));
+    final p = await db.select(db.pits).getSingle();
+    expect((p.id, p.status), (pitId, PitStatus.shallow));
+    expect(p.enabledSections, {PitSectionKey.fan});
+    await db.close();
+    await dir.delete(recursive: true);
+  });
+
   test('v9 遷移可以重複執行（欄位已存在）而不出錯', () async {
     final dir = await Directory.systemTemp.createTemp('mig_v9_twice');
     final file = File('${dir.path}/db.sqlite');
