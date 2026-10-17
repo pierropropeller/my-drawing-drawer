@@ -1,0 +1,99 @@
+name: Build iOS IPA (unsigned)
+
+# 產出「未簽名」的 IPA，用 AltStore / Sideloadly 以免費 Apple ID 側載（見 docs/IOS_SETUP.md）。
+# 不需要任何 Apple 憑證；簽名由側載工具在使用者自己的電腦上完成。
+
+on:
+  push:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# 同一個分支連續推送時，取消尚未跑完的舊建置（macOS 分鐘數比 Linux 貴很多）。
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.6"
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      # CocoaPods 的下載快取（Pods 目錄本身不快取，避免跟 Flutter 外掛版本不一致）。
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cocoapods
+            ~/Library/Caches/CocoaPods
+          key: pods-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'ios/Podfile') }}
+          restore-keys: |
+            pods-${{ runner.os }}-
+
+      # 選填：GitHub Secret GOOGLE_IOS_CLIENT_ID（形如 123-abc.apps.googleusercontent.com）。
+      # 有設定就在建置前寫進 Info.plist 的 GIDClientID 與 URL scheme；沒設定則保留占位值，
+      # App 仍可離線使用，只是雲端同步無法登入。
+      - name: Inject Google iOS client ID
+        env:
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+        run: |
+          if [ -z "$GOOGLE_IOS_CLIENT_ID" ]; then
+            echo "GOOGLE_IOS_CLIENT_ID 未設定，保留 Info.plist 的占位值。"
+            exit 0
+          fi
+          case "$GOOGLE_IOS_CLIENT_ID" in
+            *.apps.googleusercontent.com) ;;
+            *) echo "::error::GOOGLE_IOS_CLIENT_ID 格式不正確（應以 .apps.googleusercontent.com 結尾）"; exit 1 ;;
+          esac
+          PLIST=ios/Runner/Info.plist
+          REVERSED="com.googleusercontent.apps.${GOOGLE_IOS_CLIENT_ID%.apps.googleusercontent.com}"
+          /usr/libexec/PlistBuddy -c "Set :GIDClientID $GOOGLE_IOS_CLIENT_ID" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLSchemes:0 $REVERSED" "$PLIST"
+          echo "已寫入 GIDClientID 與 URL scheme。"
+
+      - name: Build iOS (no codesign)
+        env:
+          # Google 登入用的 Web OAuth Client ID（與 Android 共用同一個 Secret，沒設定時為空）
+          GOOGLE_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SERVER_CLIENT_ID }}
+        run: flutter build ios --release --no-codesign --dart-define=GOOGLE_SERVER_CLIENT_ID=$GOOGLE_SERVER_CLIENT_ID
+
+      - name: Package IPA
+        id: ipa
+        run: |
+          set -euo pipefail
+          APP=build/ios/iphoneos/Runner.app
+          test -d "$APP"
+          rm -rf Payload
+          mkdir Payload
+          cp -R "$APP" Payload/Runner.app
+          NAME="drawer-ios-${{ github.run_number }}.ipa"
+          # -y 保留符號連結（framework 內有），-r 遞迴。
+          zip -qry "$NAME" Payload
+          ls -l "$NAME"
+          echo "ipa=$NAME" >> "$GITHUB_OUTPUT"
+
+      # run_number 是各 workflow 各自計數，不會和 Android 的 debug-build-N 對齊，所以另開 ios-build-N。
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-build-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: iOS Build ${{ github.run_number }}
+          body: |
+            Automated unsigned iOS build (IPA, sideload with AltStore/Sideloadly) from commit ${{ github.sha }} (branch `${{ github.ref_name }}`).
+          files: |
+            ${{ steps.ipa.outputs.ipa }}
