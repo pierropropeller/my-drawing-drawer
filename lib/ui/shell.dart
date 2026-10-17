@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/tokens.dart';
 import '../state/settings.dart';
 import '../sync/sync_driver.dart';
-import 'common/nav_bar_hidden.dart';
 import 'common/root_overlay_guard.dart';
 import 'goals/goals_page.dart';
-import '../l10n/l10n.dart';
 import 'login/welcome_page.dart';
+import 'nav/adaptive_nav.dart';
+import 'nav/adaptive_scaffold.dart';
+import 'nav/nav_tabs.dart';
+import 'pits/pit_new_page.dart';
+import 'pits/pit_page.dart';
 import 'me/profile_page.dart';
 import 'pits/pits_page.dart';
 import 'share/share_host.dart';
 
-/// 底部導覽列：坑／目標／我的。各分頁內容之後逐步補上。
+/// 導覽外框：手機＝底部列，平板＝左側 icon rail／sidebar（見 `nav/adaptive_nav.dart`）。
+/// 坑／目標／我的各有自己的 Navigator，分頁 index 與頁面堆疊都放在這個 State，
+/// 視窗拉闊收窄（導覽型態切換）時不會丟。
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
@@ -23,57 +27,46 @@ class AppShell extends ConsumerStatefulWidget {
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-/// 導覽列的 icon 直接取自設計稿（Main／GoalYear／Profile 的 nav）：
-/// 資料夾、雙圓靶心、人像；未選中線寬 1.8，選中線寬 2。
-class _Tab {
-  const _Tab(this.id, this.shapes);
-  final int id;
-
-  String label(AppLocalizations l) => switch (id) {
-    0 => l.shellTabPits,
-    1 => l.shellTabGoals,
-    _ => l.shellTabMe,
-  };
-
-  /// SVG（24×24）內的圖形，線寬在建立時帶入。
-  final String shapes;
-
-  String svg(double strokeWidth) =>
-      '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" '
-      'fill="none" stroke="currentColor" stroke-width="$strokeWidth" '
-      'stroke-linecap="round" stroke-linejoin="round">$shapes</svg>';
-}
-
-const _tabs = [
-  _Tab(
-    0,
-    '<path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
-  ),
-  _Tab(1, '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/>'),
-  _Tab(
-    2,
-    '<circle cx="12" cy="8" r="4"/><path d="M4.5 20c0-4.2 3.8-6 7.5-6s7.5 1.8 7.5 6"/>',
-  ),
-];
-
 class _AppShellState extends ConsumerState<AppShell> {
   int _index = 0;
   final _navKeys = List.generate(
-    _tabs.length,
+    navTabs.length,
     (_) => GlobalKey<NavigatorState>(),
   );
+  final _sideNav = SideNavController();
+  late final _observers = [
+    for (var i = 0; i < navTabs.length; i++) SideNavObserver(_sideNav, i),
+  ];
 
+  @override
+  void dispose() {
+    _sideNav.dispose();
+    super.dispose();
+  }
+
+  // 坑、目標的根頁在橫向寬螢幕用完整 sidebar；我的用 rail（設計稿 Main／Goal／Profile）。
   Widget _root(int i) => switch (i) {
-    0 => const PitsPage(),
-    1 => const GoalsPage(),
+    0 => const SideNavStyleHint.sidebar(child: PitsPage()),
+    1 => const SideNavStyleHint.sidebar(child: GoalsPage()),
     2 => const ProfilePage(),
-    _ => Center(
-      child: Text(
-        _tabs[i].label(context.l10n),
-        style: Theme.of(context).textTheme.headlineMedium,
-      ),
-    ),
+    _ => const SizedBox.shrink(),
   };
+
+  /// sidebar 點一個坑：切到坑分頁，回到主頁後開啟該坑。
+  void _openPit(String pitId) {
+    setState(() => _index = 0);
+    final nav = _navKeys[0].currentState;
+    if (nav == null) return;
+    nav.popUntil((r) => r.isFirst);
+    nav.push(MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pitId)));
+  }
+
+  void _newPit() {
+    setState(() => _index = 0);
+    _navKeys[0].currentState?.push(
+      MaterialPageRoute<void>(builder: (_) => const PitNewPage()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -99,8 +92,13 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   Widget _buildShell(BuildContext context, AppTokens t) {
-    return Scaffold(
-      // 每個分頁各自一個 Navigator，子頁面時導覽列仍留在所屬分頁。
+    return AdaptiveNavScaffold(
+      index: _index,
+      controller: _sideNav,
+      onSelect: (i) => setState(() => _index = i),
+      onOpenPit: _openPit,
+      onNewPit: _newPit,
+      // 每個分頁各自一個 Navigator，子頁面時導覽仍留在所屬分頁。
       body: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, _) {
@@ -117,89 +115,22 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: IndexedStack(
           index: _index,
           children: [
-            for (var i = 0; i < _tabs.length; i++)
-              TabBackScope(
-                active: i == _index,
-                child: Navigator(
-                  key: _navKeys[i],
-                  onGenerateRoute: (_) =>
-                      MaterialPageRoute<void>(builder: (_) => _root(i)),
+            for (var i = 0; i < navTabs.length; i++)
+              SideNavTabScope(
+                controller: _sideNav,
+                tab: i,
+                child: TabBackScope(
+                  active: i == _index,
+                  child: Navigator(
+                    key: _navKeys[i],
+                    observers: [_observers[i]],
+                    onGenerateRoute: (_) =>
+                        MaterialPageRoute<void>(builder: (_) => _root(i)),
+                  ),
                 ),
               ),
           ],
         ),
-      ),
-      bottomNavigationBar: ValueListenableBuilder<int>(
-        valueListenable: navBarHiddenCount,
-        builder: (_, hidden, _) => hidden > 0
-            ? const SizedBox.shrink()
-            : Container(
-                decoration: BoxDecoration(
-                  color: t.nav,
-                  border: Border(top: BorderSide(color: t.border)),
-                ),
-                child: SafeArea(
-                  top: false,
-                  // 設計稿導覽列高 74（64＋底部 10）。
-                  minimum: const EdgeInsets.only(bottom: 10),
-                  child: SizedBox(
-                    height: 64,
-                    child: Row(
-                      children: [
-                        for (var i = 0; i < _tabs.length; i++)
-                          Expanded(
-                            child: _NavItem(
-                              tab: _tabs[i],
-                              selected: i == _index,
-                              onTap: () => setState(() => _index = i),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.tab,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final _Tab tab;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    final color = selected ? t.accent : t.text4;
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SvgPicture.string(
-            tab.svg(selected ? 2 : 1.8),
-            width: 24,
-            height: 24,
-            theme: SvgTheme(currentColor: color),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            tab.label(context.l10n),
-            style: TextStyle(
-              fontSize: 11,
-              color: color,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }
