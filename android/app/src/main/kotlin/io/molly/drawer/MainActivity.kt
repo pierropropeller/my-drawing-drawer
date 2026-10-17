@@ -103,6 +103,22 @@ class MainActivity : FlutterActivity() {
                         }.start()
                     }
                 }
+                "extractFrames" -> {
+                    // 參考圖檢視（影片）：時間軸縮圖與「截取此格」，Dart 端見 lib/ui/reference/ref_frames.dart。
+                    val path = call.argument<String>("path")
+                    val positions = call.argument<List<Number>>("positionsMs") ?: emptyList()
+                    val maxSide = call.argument<Int>("maxSide") ?: 240
+                    val quality = call.argument<Int>("quality") ?: 70
+                    val exact = call.argument<Boolean>("exact") ?: false
+                    if (path == null) {
+                        result.success(null)
+                    } else {
+                        Thread {
+                            val out = extractFrames(path, positions, maxSide, quality, exact)
+                            runOnUiThread { result.success(out) }
+                        }.start()
+                    }
+                }
                 else -> result.notImplemented()
             }
         }
@@ -272,6 +288,74 @@ class MainActivity : FlutterActivity() {
                 "durationMs" to duration?.toInt(),
                 "poster" to poster,
             )
+        } catch (_: Exception) {
+            return null
+        } finally {
+            try {
+                mmr.release()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    /**
+     * 抽出影片在指定時間點（毫秒）的畫面（JPEG，最長邊不超過 maxSide），並盡量回傳幀率。
+     * 抽不到的那一格是 null；整支影片讀不開回 null。[exact] false 取最近的關鍵格（快），
+     * true 取最接近該時間的畫面（截取用）。
+     */
+    private fun extractFrames(
+        path: String,
+        positionsMs: List<Number>,
+        maxSide: Int,
+        quality: Int,
+        exact: Boolean,
+    ): Map<String, Any?>? {
+        val mmr = MediaMetadataRetriever()
+        try {
+            mmr.setDataSource(path)
+            val duration = mmr.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_DURATION,
+            )?.toLongOrNull()
+            var fps: Double? = null
+            if (Build.VERSION.SDK_INT >= 28) {
+                val count = mmr.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT,
+                )?.toLongOrNull()
+                if (count != null && duration != null && count > 0 && duration > 0) {
+                    fps = count * 1000.0 / duration
+                }
+            }
+            val option = if (exact) {
+                MediaMetadataRetriever.OPTION_CLOSEST
+            } else {
+                MediaMetadataRetriever.OPTION_CLOSEST_SYNC
+            }
+            val frames = ArrayList<ByteArray?>()
+            for (p in positionsMs) {
+                var bytes: ByteArray? = null
+                try {
+                    var bitmap: Bitmap? = mmr.getFrameAtTime(p.toLong() * 1000, option)
+                    if (bitmap != null) {
+                        val longest = maxOf(bitmap.width, bitmap.height)
+                        if (longest > maxSide) {
+                            val s = maxSide.toDouble() / longest
+                            bitmap = Bitmap.createScaledBitmap(
+                                bitmap,
+                                maxOf(1, Math.round(bitmap.width * s).toInt()),
+                                maxOf(1, Math.round(bitmap.height * s).toInt()),
+                                true,
+                            )
+                        }
+                        val out = ByteArrayOutputStream()
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
+                        bytes = out.toByteArray()
+                    }
+                } catch (_: Exception) {
+                    // 這一格取不到就留 null。
+                }
+                frames.add(bytes)
+            }
+            return mapOf("frames" to frames, "fps" to fps)
         } catch (_: Exception) {
             return null
         } finally {

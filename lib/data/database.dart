@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import 'ref_view_queries.dart' show RefViewStates;
 import 'tables.dart';
 
 export 'tables.dart'
@@ -38,6 +39,7 @@ part 'database.g.dart';
     ReviewSettings,
     Outbox,
     SyncDocs,
+    RefViewStates,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -45,7 +47,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -87,6 +89,10 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 9) {
         await _migrateV9(m);
+      }
+      if (from < 10) {
+        // v10：參考圖檢視的每張圖檢視狀態（純本機、不同步）。全新的表，沒有舊資料。
+        await m.createTable(refViewStates);
       }
     },
   );

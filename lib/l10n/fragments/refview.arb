@@ -1,0 +1,63 @@
+{
+  "refviewEntry": "參考檢視",
+  "refviewLock": "鎖定縮放",
+  "refviewLockedLong": "已鎖定縮放",
+  "refviewLockedShort": "已鎖定",
+  "refviewUnlockedShort": "未鎖定",
+  "refviewZoomState": "{percent}% · {state}",
+  "@refviewZoomState": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "refviewFlip": "左右翻轉",
+  "refviewGray": "灰階",
+  "refviewBackground": "背景",
+  "refviewMore": "更多",
+  "refviewPanel": "資料面板",
+  "refviewInfoTitle": "圖片資料",
+  "refviewFilmstrip": "同冊圖片",
+  "refviewImageN": "第 {n} 張",
+  "@refviewImageN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "refviewCategory": "分類",
+  "refviewTags": "tag",
+  "refviewVideoTitle": "{title} · 影片",
+  "@refviewVideoTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "refviewCapture": "截取此格",
+  "refviewCaptured": "已截取此格",
+  "refviewCaptureFailed": "無法截取這一格",
+  "refviewCaptureNoTarget": "這個來源沒有可以存放截圖的位置",
+  "refviewTimeline": "時間軸",
+  "refviewPrevFrame": "上一格",
+  "refviewNextFrame": "下一格",
+  "refviewSpeed": "播放速度",
+  "refviewLoop": "循環",
+  "refviewFrameLabel": "{speed} · 第 {frame} 格",
+  "@refviewFrameLabel": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      },
+      "frame": {
+        "type": "int"
+      }
+    }
+  }
+}

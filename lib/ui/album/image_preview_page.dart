@@ -6,6 +6,8 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/app_icons.dart';
 import '../common/nav_bar_hidden.dart';
+import '../common/window_class.dart';
+import '../reference/reference_viewer.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
 import 'group_manage_page.dart';
@@ -129,6 +131,28 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
     }
   }
 
+  /// 開參考圖檢視（平板／分屏才有入口，手機版面不變）；回來時把檢視器裡刪掉的圖也拿掉。
+  Future<void> _openReference(String title) async {
+    final removed = await openReferenceViewer(
+      context,
+      images: [
+        for (final i in _items)
+          RefImage.fromAlbum(i, pitId: widget.pitId, title: title),
+      ],
+      index: _index,
+    );
+    if (!mounted || removed.isEmpty) return;
+    setState(() => _items.removeWhere((i) => removed.contains(i.id)));
+    if (_items.isEmpty) {
+      Navigator.of(context).pop();
+      return;
+    }
+    _index = _index.clamp(0, _items.length - 1);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _controller.hasClients) _controller.jumpToPage(_index);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_items.isEmpty) {
@@ -137,10 +161,14 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
     final pitName = ref.watch(pitProvider(widget.pitId)).value?.name;
     final group = _current.groupName ?? '';
     final date = _current.createdAt;
+    final title = pitName == null
+        ? context.l10n.pitsOfficial
+        : context.l10n.albumTitleWithPit(pitName, context.l10n.pitsOfficial);
     return PreviewShell(
-      title: pitName == null
-          ? context.l10n.pitsOfficial
-          : context.l10n.albumTitleWithPit(pitName, context.l10n.pitsOfficial),
+      title: title,
+      headerTrailing: WindowClass.of(context).isCompact
+          ? null
+          : RefEntryChip(onTap: () => _openReference(title)),
       counter: '${_index + 1} / ${_items.length}',
       controller: _controller,
       media: [for (final i in _items) i.media],
