@@ -125,7 +125,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('草稿格：選第二張 → 草稿格換圖，坑封面不動', (tester) async {
+  testWidgets('摸魚格：選第二張 → 摸魚格換圖，坑封面不動', (tester) async {
     await tester.runAsync(() async {
       await db.saveDraft(
         pitId: pitId,
@@ -139,7 +139,7 @@ void main() {
     });
     await pumpHome(tester, PitPage(pitId: pitId));
     expect(img('d1.png'), findsOneWidget);
-    await tester.longPress(find.text('我的草稿'));
+    await tester.longPress(find.text('我的摸魚'));
     await settle(tester);
     await tester.tap(img('d2.png'));
     await settle(tester);

@@ -142,7 +142,7 @@ void main() {
     expect(events.last.transfers.single.isDone, isTrue);
   });
 
-  test('imageLocationOf：官方／同人圖／雜物／草稿／腦洞／成圖；隱藏與已刪除不算', () async {
+  test('imageLocationOf：官方／同人圖／雜物／摸魚／腦洞／成圖；隱藏與已刪除不算', () async {
     final pitId = await a.createPit(name: '坑A');
     final g = (await a.watchGroups(pitId).first).first;
     await a.addOfficial(pitId, g.id, [const NewImage(file: 'o.png')]);

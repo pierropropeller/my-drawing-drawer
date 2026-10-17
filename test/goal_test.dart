@@ -57,7 +57,7 @@ void main() {
       name: name,
     );
     expect(goalDisplayName(l10nStatic, g(GoalKind.idea)), '生產 12 個腦洞');
-    expect(goalDisplayName(l10nStatic, g(GoalKind.draft)), '畫 12 份草稿');
+    expect(goalDisplayName(l10nStatic, g(GoalKind.draft)), '畫 12 份摸魚');
     expect(goalDisplayName(l10nStatic, g(GoalKind.piece)), '完成 12 張成圖');
     expect(
       goalDisplayName(l10nStatic, g(GoalKind.piece, likes: 500)),

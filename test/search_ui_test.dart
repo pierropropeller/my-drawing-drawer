@@ -257,20 +257,20 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('草稿與成圖的篩選列表：同一條篩選列，只列有該 tag 的項目', (tester) async {
+  testWidgets('摸魚與成圖的篩選列表：同一條篩選列，只列有該 tag 的項目', (tester) async {
     await tester.runAsync(() async {
-      await newDraft('甲草稿', tags: [tagA]);
-      await newDraft('乙草稿');
+      await newDraft('甲摸魚', tags: [tagA]);
+      await newDraft('乙摸魚');
       await newPiece('甲成圖', tags: [tagA]);
       await newPiece('乙成圖');
     });
     await pumpPage(tester, DraftListPage(pitId: pitId, tagId: tagA));
     expect(pill('角色1'), findsOneWidget);
-    expect(find.text('甲草稿'), findsOneWidget);
-    expect(find.text('乙草稿'), findsNothing);
+    expect(find.text('甲摸魚'), findsOneWidget);
+    expect(find.text('乙摸魚'), findsNothing);
     await tester.tap(find.bySemanticsLabel('移除篩選'));
     await settle(tester);
-    expect(find.text('乙草稿'), findsOneWidget);
+    expect(find.text('乙摸魚'), findsOneWidget);
     await unmount(tester);
 
     await pumpPage(tester, FinishedListPage(pitId: pitId, tagId: tagA));
@@ -287,7 +287,7 @@ void main() {
     await tester.runAsync(() async {
       await seedFan(1, tags: [tagA]);
       await newIdea('腦洞');
-      await newDraft('草稿');
+      await newDraft('摸魚');
       await newPiece('成圖');
     });
     for (final page in <Widget>[
@@ -321,7 +321,7 @@ void main() {
 
     expect(find.byType(PitSearchPage), findsOneWidget);
     expect(find.text('目標'), findsNothing);
-    final labels = ['全部', '成圖', '同人圖', '推活', '草稿', '腦洞'];
+    final labels = ['全部', '成圖', '同人圖', '推活', '摸魚', '腦洞'];
     final xs = [
       for (final l in labels)
         tester.getTopLeft(find.widgetWithText(Container, l).first).dx,
@@ -339,7 +339,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('點常用 tag 進結果：分段順序 成圖→同人圖→推活→草稿→腦洞，+N 與沒有導覽列', (tester) async {
+  testWidgets('點常用 tag 進結果：分段順序 成圖→同人圖→推活→摸魚→腦洞，+N 與沒有導覽列', (tester) async {
     await tester.runAsync(() async {
       for (var i = 0; i < 5; i++) {
         await newPiece('成圖$i', tags: [tagA]);
@@ -349,7 +349,7 @@ void main() {
         await newOshi(i, tags: [tagA]);
       }
       for (var i = 0; i < 3; i++) {
-        await newDraft('草稿$i', tags: [tagA]);
+        await newDraft('摸魚$i', tags: [tagA]);
       }
       await newIdea('腦洞甲', tags: [tagA]);
     });
@@ -371,15 +371,15 @@ void main() {
     expect(find.text('成圖 5'), findsOneWidget);
     expect(find.text('同人圖 4'), findsOneWidget);
     expect(find.text('推活 7'), findsOneWidget);
-    expect(find.text('草稿 3'), findsOneWidget);
+    expect(find.text('摸魚 3'), findsOneWidget);
     expect(find.text('腦洞 1'), findsOneWidget);
     // 沒有「全部」連結在段頭。
     expect(find.text('查看全部'), findsNothing);
 
     double y(String t) => tester.getTopLeft(find.text(t)).dy;
-    final ys = [y('成圖  5'), y('好看同人圖  4'), y('推活  7'), y('草稿  3'), y('腦洞  1')];
+    final ys = [y('成圖  5'), y('好看同人圖  4'), y('推活  7'), y('摸魚  3'), y('腦洞  1')];
     expect([...ys]..sort(), ys);
-    // 成圖 5 筆＝+2，同人圖 4 筆＝+1，推活 7 筆＝+4，草稿剛好 3 筆沒有 +N。
+    // 成圖 5 筆＝+2，同人圖 4 筆＝+1，推活 7 筆＝+4，摸魚剛好 3 筆沒有 +N。
     expect(find.text('+2'), findsOneWidget);
     expect(find.text('+1'), findsOneWidget);
     expect(find.text('+4'), findsOneWidget);
@@ -443,7 +443,7 @@ void main() {
     expect(find.text('同人圖 1'), findsOneWidget);
     expect(find.text('腦洞 1'), findsOneWidget);
     expect(find.textContaining('推活'), findsNothing);
-    expect(find.textContaining('草稿'), findsNothing);
+    expect(find.textContaining('摸魚'), findsNothing);
     expect(find.textContaining('+'), findsNothing);
 
     // 成圖 2 張＋同人圖 1 張，一共 3 張圖；格寬仍是 1/3，間距 4。
@@ -481,7 +481,7 @@ void main() {
     await unmount(tester);
   });
 
-  test('SearchCategory 順序：全部／成圖／同人圖／推活／草稿／腦洞', () {
+  test('SearchCategory 順序：全部／成圖／同人圖／推活／摸魚／腦洞', () {
     expect(SearchCategory.values, [
       SearchCategory.all,
       SearchCategory.piece,
@@ -495,7 +495,7 @@ void main() {
   testWidgets('文字搜尋：找標題、作者與 tag 名稱；沒有 tag 的 +N 開完整列表', (tester) async {
     await tester.runAsync(() async {
       for (var i = 0; i < 4; i++) {
-        await newDraft('夏日草稿$i');
+        await newDraft('夏日摸魚$i');
       }
       await newDraft('別的');
       await newIdea('夏日祭典');
@@ -508,7 +508,7 @@ void main() {
     await settle(tester);
 
     expect(find.byType(PitSearchResultPage), findsOneWidget);
-    expect(find.text('草稿  4'), findsOneWidget);
+    expect(find.text('摸魚  4'), findsOneWidget);
     expect(find.text('腦洞  2'), findsOneWidget); // 標題命中＋tag 名稱命中
     expect(find.text('夏日祭典'), findsOneWidget);
     expect(find.text('冬天'), findsOneWidget);
@@ -520,7 +520,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('腦洞 2'));
     await settle(tester);
-    expect(find.text('草稿  4'), findsNothing);
+    expect(find.text('摸魚  4'), findsNothing);
     expect(find.text('夏日祭典'), findsOneWidget);
 
     await tester.ensureVisible(find.text('全部 6'));
@@ -537,7 +537,7 @@ void main() {
   testWidgets('結果頁圖片段：一排 3 格、4px 間距、第 3 格 +N 其餘照常開詳情', (tester) async {
     await tester.runAsync(() async {
       for (var i = 0; i < 4; i++) {
-        await newDraft('草稿$i', tags: [tagA]);
+        await newDraft('摸魚$i', tags: [tagA]);
       }
     });
     await pumpPage(tester, PitSearchResultPage(pitId: pitId, tagId: tagA));

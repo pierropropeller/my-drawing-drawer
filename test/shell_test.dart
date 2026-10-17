@@ -81,7 +81,7 @@ void main() {
     await tester.tap(find.text('測試坑'));
     await settle(tester);
     await frames(tester);
-    for (final label in ['官方圖冊', '好看同人圖', '我的草稿', '我的腦洞', '我的成圖']) {
+    for (final label in ['官方圖冊', '好看同人圖', '我的摸魚', '我的腦洞', '我的成圖']) {
       expect(find.text(label), findsOneWidget);
     }
     // 新坑沒有圖，編輯頁不顯示「更換封面」。

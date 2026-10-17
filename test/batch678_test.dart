@@ -7,7 +7,7 @@ import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/goal_queries.dart';
 import 'package:huakeng/data/junk_queries.dart';
 
-/// 批次 6–8 的資料層：D-070 date、D-069 草稿↔成圖兩側、D-060 官方圖 tag 與批次 tag、
+/// 批次 6–8 的資料層：D-070 date、D-069 摸魚↔成圖兩側、D-060 官方圖 tag 與批次 tag、
 /// D-058 封面與統計、D-059 分享進來的新增 API。
 void main() {
   late AppDatabase db;
@@ -67,7 +67,7 @@ void main() {
     isPublished: true,
   );
 
-  group('D-070 腦洞／草稿的 date', () {
+  group('D-070 腦洞／摸魚的 date', () {
     test('預設是現在；給日期就用日期；列表依 date 新到舊（不再看 updatedAt）', () async {
       final now = DateTime.now();
       final fresh = await idea('今天');
@@ -99,7 +99,7 @@ void main() {
         DateTime(2026, 1, 5),
       );
 
-      // 草稿同理
+      // 摸魚同理
       final d1 = await draft('a', date: DateTime(2026, 3, 1));
       final d2 = await draft('b', date: DateTime(2026, 8, 1));
       expect((await db.watchDraftViews(pitId).first).map((v) => v.draft.id), [
@@ -188,8 +188,8 @@ void main() {
       // createdAt 是今天，date 在 2026/3
       await idea('三月', date: DateTime(2026, 3, 15, 10));
       await idea('四月', date: DateTime(2026, 4, 15, 10));
-      await draft('三月草稿', date: DateTime(2026, 3, 15, 20));
-      await draft('去年草稿', date: DateTime(2025, 12, 31, 23, 59));
+      await draft('三月摸魚', date: DateTime(2026, 3, 15, 20));
+      await draft('去年摸魚', date: DateTime(2025, 12, 31, 23, 59));
       final month =
           (await db.watchGoalViews(GoalPeriod.month, 2026, month: 3).first)
               .singleWhere((g) => g.goal.id == goal);
@@ -199,7 +199,7 @@ void main() {
       expect(year.progress, 1);
 
       final day = await db.watchTimeline(DateTime(2026, 3, 15)).first;
-      expect(day.map((i) => i.title), ['三月草稿', '三月']); // 新到舊
+      expect(day.map((i) => i.title), ['三月摸魚', '三月']); // 新到舊
       expect(day.first.time, DateTime(2026, 3, 15, 20));
       expect(await db.watchTimeline(DateTime(2026, 4, 15)).first, hasLength(1));
       // createdAt（今天）那天沒有東西
@@ -216,22 +216,22 @@ void main() {
     });
   });
 
-  group('D-069 草稿↔成圖兩側', () {
-    test('從草稿側設定：兩邊都看得到（id、標題、第一張圖）；從成圖側設定也是', () async {
+  group('D-069 摸魚↔成圖兩側', () {
+    test('從摸魚側設定：兩邊都看得到（id、標題、第一張圖）；從成圖側設定也是', () async {
       final p1 = await piece('成圖一', DateTime(2026, 3, 1), file: 'p1.png');
       final p2 = await piece('成圖二', DateTime(2026, 3, 2), file: 'p2.png');
-      final d1 = await draft('草稿一', pieceIds: [p1, p2], file: 'd1.png');
+      final d1 = await draft('摸魚一', pieceIds: [p1, p2], file: 'd1.png');
       final dv = (await db.watchDraftView(d1).first)!;
       expect(dv.pieceIds, [p2, p1]); // 完成日期新到舊
       expect(dv.linkedPieces.map((p) => p.title), ['成圖二', '成圖一']);
       expect(dv.linkedPieces.last.firstImage!.file, 'p1.png');
       final pv1 = (await db.watchPieceView(p1).first)!;
       expect(pv1.draftIds, [d1]);
-      expect(pv1.linkedDrafts.single.title, '草稿一');
+      expect(pv1.linkedDrafts.single.title, '摸魚一');
       expect(pv1.linkedDrafts.single.firstImage!.file, 'd1.png');
 
-      // 從成圖側：成圖二改關聯另一份草稿
-      final d2 = await draft('草稿二', file: 'd2.png');
+      // 從成圖側：成圖二改關聯另一份摸魚
+      final d2 = await draft('摸魚二', file: 'd2.png');
       await db.savePiece(
         id: p2,
         pitId: pitId,
@@ -252,13 +252,13 @@ void main() {
 
     test('pieceIds 不傳＝不動關係；傳空＝清空；重複 id 只算一次', () async {
       final p1 = await piece('成圖', DateTime(2026, 3, 1));
-      final d = await draft('草稿', pieceIds: [p1, p1]);
+      final d = await draft('摸魚', pieceIds: [p1, p1]);
       expect((await db.watchDraftView(d).first)!.pieceIds, [p1]);
       Future<void> edit({List<String>? pieceIds}) async {
         await db.saveDraft(
           id: d,
           pitId: pitId,
-          title: '草稿',
+          title: '摸魚',
           images: const [NewImage(file: 'd.png')],
           tagIds: const [],
           ideaIds: const [],
@@ -275,7 +275,7 @@ void main() {
 
     test('已刪除的一邊不再顯示；刪除時關係被清掉', () async {
       final p1 = await piece('成圖', DateTime(2026, 3, 1));
-      final d = await draft('草稿', pieceIds: [p1]);
+      final d = await draft('摸魚', pieceIds: [p1]);
       await db.deletePieces([p1]);
       final dv = (await db.watchDraftView(d).first)!;
       expect(dv.pieceIds, isEmpty);
@@ -287,11 +287,11 @@ void main() {
       expect((await db.watchPieceView(p2).first)!.linkedDrafts, isEmpty);
     });
 
-    test('從草稿側修改會更新受影響成圖的 updatedAt（同步擁有者是成圖）', () async {
+    test('從摸魚側修改會更新受影響成圖的 updatedAt（同步擁有者是成圖）', () async {
       final p1 = await piece('一', DateTime(2026, 3, 1));
       final p2 = await piece('二', DateTime(2026, 3, 1));
       final p3 = await piece('三', DateTime(2026, 3, 1));
-      final d = await draft('草稿', pieceIds: [p1, p2]);
+      final d = await draft('摸魚', pieceIds: [p1, p2]);
       Future<DateTime> at(String id) async =>
           (await db.watchPieceView(id).first)!.piece.updatedAt;
       final before = {p1: await at(p1), p2: await at(p2), p3: await at(p3)};
@@ -655,7 +655,7 @@ void main() {
       expect(stats.oshi, 0);
     });
 
-    test('草稿／腦洞格封面取 date 最新的一筆', () async {
+    test('摸魚／腦洞格封面取 date 最新的一筆', () async {
       await db.saveDraft(
         pitId: pitId,
         images: const [NewImage(file: 'old.png')],

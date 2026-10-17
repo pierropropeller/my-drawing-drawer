@@ -64,7 +64,7 @@
   "goalsDayEmpty": "這天沒有紀錄",
   "goalsTimeline": "時間軸",
   "goalsKindIdea": "腦洞",
-  "goalsKindDraft": "草稿",
+  "goalsKindDraft": "摸魚",
   "goalsKindPiece": "成圖",
   "goalsUntitled": "（無標題）",
   "goalsPickPit": "選擇坑",
@@ -115,7 +115,7 @@
       }
     }
   },
-  "goalsAutoNameDraft": "畫 {count} 份草稿",
+  "goalsAutoNameDraft": "畫 {count} 份摸魚",
   "@goalsAutoNameDraft": {
     "placeholders": {
       "count": {

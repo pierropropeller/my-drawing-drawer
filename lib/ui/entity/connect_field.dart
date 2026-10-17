@@ -38,7 +38,7 @@ enum ConnectKind {
   /// 由欄位／面板標籤判斷種類（標籤含「腦洞」「草稿」，其餘視為成圖）。
   static ConnectKind of(String label) => label.contains('腦洞')
       ? ConnectKind.idea
-      : label.contains('草稿')
+      : label.contains('摸魚')
       ? ConnectKind.draft
       : ConnectKind.piece;
 

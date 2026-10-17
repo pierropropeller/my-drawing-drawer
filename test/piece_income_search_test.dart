@@ -265,7 +265,7 @@ void main() {
     for (var i = 0; i < 4; i++) {
       await db.saveDraft(
         pitId: pitId,
-        title: '草稿$i',
+        title: '摸魚$i',
         images: [NewImage(file: 'd$i.png')],
         tagIds: [role],
         ideaIds: const [],

@@ -158,7 +158,7 @@ void main() {
     );
     final d = await a.saveDraft(
       pitId: pitId,
-      title: '草稿',
+      title: '摸魚',
       images: [await imageOn(dirA, 'd.png')],
       tagIds: const [],
       ideaIds: const [],
@@ -226,7 +226,7 @@ void main() {
     );
   });
 
-  test('D-069 草稿↔成圖：兩邊任一側修改都同步到另一台，並在兩側顯示', () async {
+  test('D-069 摸魚↔成圖：兩邊任一側修改都同步到另一台，並在兩側顯示', () async {
     final pitId = await a.createPit(name: '坑');
     final p1 = await a.savePiece(
       pitId: pitId,
@@ -242,7 +242,7 @@ void main() {
     );
     final d1 = await a.saveDraft(
       pitId: pitId,
-      title: '草稿',
+      title: '摸魚',
       images: [await imageOn(dirA, 'd.png')],
       tagIds: const [],
       ideaIds: const [],
@@ -251,12 +251,12 @@ void main() {
     await engineB.sync();
     expect((await b.watchDraftView(d1).first)!.linkedPieces, isEmpty);
 
-    // A 從草稿側關聯成圖
+    // A 從摸魚側關聯成圖
     await tick();
     await a.saveDraft(
       id: d1,
       pitId: pitId,
-      title: '草稿',
+      title: '摸魚',
       images: [await imageOn(dirA, 'd.png')],
       tagIds: const [],
       ideaIds: const [],
@@ -291,14 +291,14 @@ void main() {
     expect((await a.watchDraftView(d1).first)!.pieceIds, isEmpty);
     expect((await a.watchPieceView(p1).first)!.draftIds, isEmpty);
 
-    // B 從草稿側再關聯回來；A 在同一輪從草稿側把關係清掉再加上第二份（互不衝突的順序）
+    // B 從摸魚側再關聯回來；A 在同一輪從摸魚側把關係清掉再加上第二份（互不衝突的順序）
     await tick();
     await b.setDraftPieces(d1, [p1]);
     await engineB.sync();
     await engineA.sync();
     expect((await a.watchPieceView(p1).first)!.linkedDrafts.single.id, d1);
 
-    // 草稿被刪：成圖那邊的關係也要消失並同步（成圖文件擁有關係，刪除時會被更新）
+    // 摸魚被刪：成圖那邊的關係也要消失並同步（成圖文件擁有關係，刪除時會被更新）
     await tick();
     await a.deleteDrafts([d1]);
     await engineA.sync();

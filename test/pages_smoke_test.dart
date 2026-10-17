@@ -104,7 +104,7 @@ void main() {
     fanId = (await db.watchFanArts(pitId).first).first.id;
     draftId = await db.saveDraft(
       pitId: pitId,
-      title: '草稿標題',
+      title: '摸魚標題',
       body: '內文',
       images: [
         for (final n in ['a.png', 'b.png', 'c.png', 'd.png', 'e.png'])

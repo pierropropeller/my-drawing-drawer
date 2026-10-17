@@ -557,7 +557,7 @@ void main() {
       expect((await db.watchCellCovers(pitId).first).official, 'o2.png');
     });
 
-    test('成圖／草稿：圖片被替換掉（檔名不在了）→ 退回；刪除擁有者 → 退回', () async {
+    test('成圖／摸魚：圖片被替換掉（檔名不在了）→ 退回；刪除擁有者 → 退回', () async {
       final p1 = await piece('A', const [
         NewImage(file: 'a1.png'),
         NewImage(file: 'a2.png'),

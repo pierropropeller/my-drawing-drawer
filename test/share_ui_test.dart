@@ -147,7 +147,7 @@ void main() {
     expect(inSheet(find.text('開新坑')), findsOneWidget);
     expect(inSheet(find.text('官方圖冊')), findsOneWidget);
     expect(inSheet(find.text('好看同人圖')), findsOneWidget);
-    expect(inSheet(find.text('草稿')), findsOneWidget);
+    expect(inSheet(find.text('摸魚')), findsOneWidget);
     expect(inSheet(find.text('腦洞')), findsOneWidget);
     expect(inSheet(find.text('成圖')), findsOneWidget);
     // 官方圖冊選中時展開分組。
@@ -234,7 +234,7 @@ void main() {
   });
 
   for (final c in [
-    ('草稿', DraftFormPage),
+    ('摸魚', DraftFormPage),
     ('腦洞', IdeaFormPage),
     ('成圖', PieceFormPage),
   ]) {
@@ -445,12 +445,12 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('位置是 4 欄 7 格：官方圖冊、好看同人圖、推活、雜物／草稿、腦洞、成圖', (tester) async {
+  testWidgets('位置是 4 欄 7 格：官方圖冊、好看同人圖、推活、雜物／摸魚、腦洞、成圖', (tester) async {
     await db.updatePit(pitA, name: '坑A', archived: false, junkEnabled: true);
     await pumpApp(tester, FakeShareChannel(initial: sharedFiles(1)));
     Offset c(String text) => tester.getCenter(inSheet(find.text(text)));
     final first = [c('官方圖冊'), c('好看同人圖'), c('推活'), c('雜物')];
-    final second = [c('草稿'), c('腦洞'), c('成圖')];
+    final second = [c('摸魚'), c('腦洞'), c('成圖')];
     // 第一列 4 格由左到右，同一水平線。
     for (var i = 1; i < 4; i++) {
       expect(first[i].dx, greaterThan(first[i - 1].dx));
@@ -462,11 +462,11 @@ void main() {
       expect(second[i].dy, closeTo(second[0].dy, 2));
     }
     expect(second[0].dy, greaterThan(first[0].dy));
-    // 坑沒開雜物時只有 6 格，草稿掉到第二列第一欄之前（推活後直接是草稿）。
+    // 坑沒開雜物時只有 6 格，摸魚掉到第二列第一欄之前（推活後直接是摸魚）。
     await tapIn(tester, '坑B');
     expect(inSheet(find.text('雜物')), findsNothing);
-    expect(c('草稿').dx, closeTo(first[3].dx, 0.5));
-    expect(c('草稿').dy, closeTo(c('官方圖冊').dy, 2));
+    expect(c('摸魚').dx, closeTo(first[3].dx, 0.5));
+    expect(c('摸魚').dy, closeTo(c('官方圖冊').dy, 2));
     await unmount(tester);
   });
 
