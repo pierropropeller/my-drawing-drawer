@@ -12,7 +12,8 @@
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -30,10 +31,8 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
+            <!-- 桌面入口改由下面的 activity-alias 提供（D-086），這裡不再放 LAUNCHER，避免桌面出現重複圖示。
+                 exported 維持 true：flutter run、分享進來都是直接指向 MainActivity。 -->
             <!-- 從其他 App 分享圖片、GIF、影片進來（D-053、D-080）：單張與多張。 -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>
@@ -48,6 +47,35 @@
                 <data android:mimeType="video/*"/>
             </intent-filter>
         </activity>
+        <!-- App 圖示（D-086）：每款一個 activity-alias，同一時間只啟用一個（PackageManager.setComponentEnabledSetting，
+             見 MainActivity.kt 的 io.molly.drawer/appicon）。新增圖示＝產一套 ic_launcher_{key}、在這裡加一個 alias（enabled=false）、
+             lib/state/app_icon.dart 的 appIconOptions 加一筆。name 要和 appIconOptions 的 alias 欄位一致。 -->
+        <activity-alias
+            android:name=".IconSanbi"
+            android:enabled="true"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:label="@string/app_name"
+            android:icon="@mipmap/ic_launcher_sanbi"
+            android:roundIcon="@mipmap/ic_launcher_sanbi_round">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconHuati"
+            android:enabled="false"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:label="@string/app_name"
+            android:icon="@mipmap/ic_launcher_huati"
+            android:roundIcon="@mipmap/ic_launcher_huati_round">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

@@ -83,5 +83,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # App 圖示預覽圖（D-086）：每款 icon 一張 256px。
+  assets:
+    - assets/appicon/
 dependency_overrides:
   analyzer: 14.4.0

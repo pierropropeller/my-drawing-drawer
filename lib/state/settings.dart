@@ -24,9 +24,14 @@ class AppSettings {
     this.language = AppLanguage.system,
     this.defaultCurrency = 'CNY',
     this.syncedAccount,
+    this.appIcon = 'sanbi',
   });
 
   final ThemeMode themeMode;
+
+  /// 桌面／App 內顯示的圖示 key（D-086，`appIconOptions` 的 key）；本機設定，不同步。
+  /// 啟動時會以平台實際啟用的 alias 校正。
+  final String appIcon;
 
   /// 新增商稿時預設的幣種（D-047），每張商稿仍可各自選；本機設定，不同步。
   final String defaultCurrency;
@@ -62,7 +67,9 @@ class AppSettings {
     AppLanguage? language,
     String? defaultCurrency,
     Object? syncedAccount = _keep,
+    String? appIcon,
   }) => AppSettings(
+    appIcon: appIcon ?? this.appIcon,
     themeMode: themeMode ?? this.themeMode,
     accent: accent ?? this.accent,
     language: language ?? this.language,
@@ -130,7 +137,13 @@ class SettingsNotifier extends Notifier<AppSettings> {
       accountEmail: p.getString('accountEmail'),
       defaultCurrency: p.getString('defaultCurrency') ?? 'CNY',
       syncedAccount: p.getString('syncedAccount'),
+      appIcon: p.getString('appIcon') ?? 'sanbi',
     );
+  }
+
+  void setAppIcon(String key) {
+    state = state.copyWith(appIcon: key);
+    _p?.setString('appIcon', key);
   }
 
   void setThemeMode(ThemeMode m) {

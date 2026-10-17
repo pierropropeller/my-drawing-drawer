@@ -1,0 +1,7 @@
+{
+  "appiconTitle": "App 圖示",
+  "appiconSanbi": "三筆",
+  "appiconHuati": "花體",
+  "appiconToast": "桌面圖示已換成「{name}」",
+  "@appiconToast": {"placeholders": {"name": {"type": "String"}}}
+}

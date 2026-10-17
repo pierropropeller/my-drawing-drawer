@@ -8,7 +8,8 @@ import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../common/app_icons.dart';
-import '../me/me_icons.dart';
+import '../../state/app_icon.dart';
+import '../me/app_icon_image.dart';
 import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
 import '../pits/pit_form.dart';
@@ -34,29 +35,11 @@ class WelcomePage extends ConsumerWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 92,
-                      height: 92,
-                      // D-068：App icon（白色線條匣子＋目前主題色底），跟著主題色變。
-                      decoration: BoxDecoration(
-                        color: t.accent,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: t.accent.withValues(alpha: .28),
-                            offset: const Offset(0, 10),
-                            blurRadius: 26,
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: SvgIcon(
-                          MeIcons.appDrawer,
-                          size: 46,
-                          strokeWidth: 1.8,
-                          color: Colors.white,
-                        ),
-                      ),
+                    // D-086：目前選的 App 圖示（不跟主題色）。
+                    AppIconImage(
+                      ref.watch(currentAppIconProvider),
+                      size: 92,
+                      radius: 24,
                     ),
                     const SizedBox(height: 22),
                     Text(

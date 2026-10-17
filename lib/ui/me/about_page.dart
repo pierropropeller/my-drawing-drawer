@@ -8,7 +8,8 @@ import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
-import 'me_icons.dart';
+import '../../state/app_icon.dart';
+import 'app_icon_image.dart';
 import 'me_widgets.dart';
 import '../../l10n/l10n.dart';
 
@@ -56,29 +57,10 @@ class AboutPage extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(0, 18, 0, 26),
                       child: Column(
                         children: [
-                          Container(
-                            width: 84,
-                            height: 84,
-                            decoration: BoxDecoration(
-                              color: t.accent,
-                              borderRadius: BorderRadius.circular(22),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF2B2622)
-                                      .withValues(alpha: .18),
-                                  offset: const Offset(0, 6),
-                                  blurRadius: 16,
-                                ),
-                              ],
-                            ),
-                            child: const Center(
-                              child: SvgIcon(
-                                MeIcons.appDrawer,
-                                size: 42,
-                                strokeWidth: 1.8,
-                                color: Colors.white,
-                              ),
-                            ),
+                          AppIconImage(
+                            ref.watch(currentAppIconProvider),
+                            size: 84,
+                            radius: 22,
                           ),
                           const SizedBox(height: 14),
                           Text(

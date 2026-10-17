@@ -10,7 +10,10 @@ import '../common/svg_icon.dart';
 import '../common/user_avatar.dart';
 import '../material/material_icons.dart';
 import '../material/material_library_page.dart';
+import '../../state/app_icon.dart';
 import 'about_page.dart';
+import 'app_icon_image.dart';
+import 'app_icon_page.dart';
 import 'backup_page.dart';
 import 'me_widgets.dart';
 import 'language_page.dart';
@@ -38,14 +41,16 @@ class ProfilePage extends ConsumerWidget {
         : (sync.lastSyncAt == null
               ? context.l10n.meBackupLinked
               : meTimeLabel(sync.lastSyncAt));
+    final appIcon = ref.watch(currentAppIconProvider);
     final materialTotal = ref.watch(materialCountsProvider).value?.total ?? 0;
     final chevron = dark ? t.text4 : const Color(0xFFB7ADA0);
     final divider = dark ? t.border : const Color(0xFFF1EADF);
 
     Widget row({
-      required String icon,
-      required Color tileBg,
-      required Color tileFg,
+      String? icon,
+      Widget? leading,
+      Color? tileBg,
+      Color? tileFg,
       required String title,
       String? value,
       required VoidCallback onTap,
@@ -59,17 +64,23 @@ class ProfilePage extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: tileBg,
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: Center(
-                child: SvgIcon(icon, size: 21, color: tileFg, strokeWidth: 1.7),
-              ),
-            ),
+            leading ??
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: tileBg,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Center(
+                    child: SvgIcon(
+                      icon!,
+                      size: 21,
+                      color: tileFg,
+                      strokeWidth: 1.7,
+                    ),
+                  ),
+                ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -202,6 +213,22 @@ class ProfilePage extends ConsumerWidget {
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (_) => const ThemePage(),
+                              ),
+                            ),
+                          ),
+                          // App 圖示（D-086）：左邊是目前那款的小圖（不跟主題色），右邊是名稱。
+                          row(
+                            leading: AppIconImage(
+                              appIcon,
+                              size: 38,
+                              radius: 11,
+                              shadow: false,
+                            ),
+                            title: context.l10n.appiconTitle,
+                            value: appIcon.name(context.l10n),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const AppIconPickPage(),
                               ),
                             ),
                           ),
