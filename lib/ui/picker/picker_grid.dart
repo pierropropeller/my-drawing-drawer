@@ -484,7 +484,8 @@ class _Cell extends StatelessWidget {
                 else if (item.isGif)
                   const Positioned(left: 4, bottom: 4, child: MediaBadgeGif()),
                 Positioned(
-                  right: 5,
+                  // 左上角：避開日期標題右邊的「整天選取」圓圈（D-084）。
+                  left: 5,
                   top: 5,
                   child: Container(
                     key: ValueKey('picker-circle-${item.id}'),
