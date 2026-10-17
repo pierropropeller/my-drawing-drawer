@@ -12,6 +12,7 @@ import '../../state/app_icon.dart';
 import '../me/app_icon_image.dart';
 import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
+import '../common/window_class.dart';
 import '../pits/pit_form.dart';
 import 'sync_first_page.dart';
 import '../../l10n/l10n.dart';
@@ -23,6 +24,8 @@ class WelcomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // iPad 橫向等寬視窗（≥840）：左裝飾瀑布牆＋右 Logo／按鈕（Welcome 稿）；其餘沿用手機版面。
+    if (WindowClass.of(context).isWide) return _WelcomeWide(ref: ref);
     final t = context.tokens;
     return Scaffold(
       body: SafeArea(
@@ -62,62 +65,7 @@ class WelcomePage extends ConsumerWidget {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 40),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _DarkButton(
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const ConnectPage(),
-                        ),
-                      ),
-                      leading: Container(
-                        width: 22,
-                        height: 22,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: t.ground,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          'G',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: t.ink,
-                              ),
-                        ),
-                      ),
-                      label: context.l10n.loginStartWithGoogle,
-                    ),
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: () => ref
-                          .read(settingsProvider.notifier)
-                          .setOnboarded(true),
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: fieldBorderColor(context),
-                            width: 1.5,
-                          ),
-                          borderRadius: BorderRadius.circular(Radii.button),
-                        ),
-                        child: Text(
-                          context.l10n.loginOfflineNoSync,
-                          style: TextStyle(
-                            color: t.text2,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                child: _WelcomeButtons(ref: ref),
               ),
             ],
           ),
@@ -127,10 +75,208 @@ class WelcomePage extends ConsumerWidget {
   }
 }
 
+/// 開頭的兩顆按鈕：用 Google 帳號開始、離線使用。
+class _WelcomeButtons extends StatelessWidget {
+  const _WelcomeButtons({required this.ref, this.buttonHeight});
+  final WidgetRef ref;
+
+  /// 寬版稿的按鈕高度（52／50）；手機沿用 padding 撐高。
+  final double? buttonHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _DarkButton(
+          height: buttonHeight,
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute<void>(builder: (_) => const ConnectPage())),
+          leading: Container(
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: t.ground, shape: BoxShape.circle),
+            child: Text(
+              'G',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: t.ink,
+              ),
+            ),
+          ),
+          label: context.l10n.loginStartWithGoogle,
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: () => ref.read(settingsProvider.notifier).setOnboarded(true),
+          child: Container(
+            alignment: Alignment.center,
+            height: buttonHeight == null ? null : 50,
+            padding: buttonHeight == null
+                ? const EdgeInsets.symmetric(vertical: 13)
+                : null,
+            decoration: BoxDecoration(
+              border: Border.all(color: fieldBorderColor(context), width: 1.5),
+              borderRadius: BorderRadius.circular(Radii.button),
+            ),
+            child: Text(
+              context.l10n.loginOfflineNoSync,
+              style: TextStyle(
+                color: t.text2,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 寬版開頭（Welcome 稿 1194×834）：左半裝飾瀑布牆（3 欄、12 塊色塊，只作裝飾），
+/// 右半置中：App 圖示 104、畫匣 40、標語 17、按鈕（闊度 ≤360）。
+class _WelcomeWide extends StatelessWidget {
+  const _WelcomeWide({required this.ref});
+  final WidgetRef ref;
+
+  // 稿的色塊與高度（依 CSS column-count:3 由上而下填欄：每欄 4 塊）。
+  static const _colors = [
+    Color(0xFFEAD9E0),
+    Color(0xFFDCE6EC),
+    Color(0xFFF2E2CE),
+    Color(0xFFE0E8DD),
+    Color(0xFFF5DED6),
+    Color(0xFFE6E0EE),
+    Color(0xFFE7ECF2),
+    Color(0xFFF5EFCF),
+    Color(0xFFF6E7EA),
+    Color(0xFFECE6F3),
+    Color(0xFFFBE7E0),
+    Color(0xFFE7EFE4),
+  ];
+  static const _heights = [
+    220.0,
+    160.0,
+    250.0,
+    180.0,
+    210.0,
+    150.0,
+    240.0,
+    190.0,
+    170.0,
+    230.0,
+    160.0,
+    200.0,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    Color tile(int i) => dark
+        ? Color.alphaBlend(_colors[i].withValues(alpha: .16), t.surface)
+        : _colors[i];
+    return Scaffold(
+      body: Row(
+        children: [
+          // 裝飾牆：不進無障礙樹、不可操作。
+          Expanded(
+            child: ExcludeSemantics(
+              child: Container(
+                color: dark ? t.nav : const Color(0xFFF3EDE4),
+                padding: const EdgeInsets.all(40),
+                child: ClipRect(
+                  child: SingleChildScrollView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (var c = 0; c < 3; c++) ...[
+                          if (c > 0) const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                for (var r = 0; r < 4; r++)
+                                  Container(
+                                    height: _heights[c * 4 + r],
+                                    margin: const EdgeInsets.only(bottom: 14),
+                                    decoration: BoxDecoration(
+                                      color: tile(c * 4 + r),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 80),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppIconImage(
+                        ref.watch(currentAppIconProvider),
+                        size: 104,
+                        radius: 26,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        appName,
+                        style: Theme.of(context).textTheme.headlineLarge
+                            ?.copyWith(fontSize: 40, letterSpacing: 1),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        context.l10n.loginTagline,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 17,
+                          height: 1.7,
+                          color: t.text2,
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 360),
+                        child: _WelcomeButtons(ref: ref, buttonHeight: 52),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 深色（ink 底）滿版按鈕；[onTap] 為 null 時變成灰色停用。
 class _DarkButton extends StatelessWidget {
-  const _DarkButton({required this.label, this.onTap, this.leading});
+  const _DarkButton({
+    required this.label,
+    this.onTap,
+    this.leading,
+    this.height,
+  });
   final String label;
+  final double? height;
   final VoidCallback? onTap;
   final Widget? leading;
 
@@ -147,6 +293,7 @@ class _DarkButton extends StatelessWidget {
         disabledBackgroundColor: dark ? t.chipBg : const Color(0xFFE7DFD4),
         disabledForegroundColor: dark ? t.text4 : const Color(0xFFB3A898),
         padding: const EdgeInsets.symmetric(vertical: 15),
+        minimumSize: height == null ? null : Size.fromHeight(height!),
         textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       ),
       child: Row(
