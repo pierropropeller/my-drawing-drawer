@@ -163,7 +163,7 @@ abstract class AppLocalizations {
   /// No description provided for @pitsDeleteHint.
   ///
   /// In zh, this message translates to:
-  /// **'刪除後坑內所有圖片、腦洞、草稿及成圖將一併移除'**
+  /// **'刪除後坑內所有圖片、腦洞、摸魚及成圖將一併移除'**
   String get pitsDeleteHint;
 
   /// No description provided for @pitsNewTitle.
@@ -193,7 +193,7 @@ abstract class AppLocalizations {
   /// No description provided for @pitsDrafts.
   ///
   /// In zh, this message translates to:
-  /// **'我的草稿'**
+  /// **'我的摸魚'**
   String get pitsDrafts;
 
   /// No description provided for @pitsIdeas.
@@ -1350,7 +1350,7 @@ abstract class AppLocalizations {
   /// No description provided for @entityConnectDraft.
   ///
   /// In zh, this message translates to:
-  /// **'關聯草稿'**
+  /// **'關聯摸魚'**
   String get entityConnectDraft;
 
   /// No description provided for @entityConnectPiece.
@@ -1368,7 +1368,7 @@ abstract class AppLocalizations {
   /// No description provided for @entityConnectSelectDraft.
   ///
   /// In zh, this message translates to:
-  /// **'選擇草稿'**
+  /// **'選擇摸魚'**
   String get entityConnectSelectDraft;
 
   /// No description provided for @entityConnectSelectPiece.
@@ -1428,7 +1428,7 @@ abstract class AppLocalizations {
   /// No description provided for @ideaStatusHatching.
   ///
   /// In zh, this message translates to:
-  /// **'孵化中 · {count} 草稿'**
+  /// **'孵化中 · {count} 摸魚'**
   String ideaStatusHatching(int count);
 
   /// No description provided for @ideaStatusHatchedShort.
@@ -1476,37 +1476,25 @@ abstract class AppLocalizations {
   /// No description provided for @draftFormTitleNew.
   ///
   /// In zh, this message translates to:
-  /// **'新增草稿'**
+  /// **'新增摸魚'**
   String get draftFormTitleNew;
 
   /// No description provided for @draftFormTitleEdit.
   ///
   /// In zh, this message translates to:
-  /// **'編輯草稿'**
+  /// **'編輯摸魚'**
   String get draftFormTitleEdit;
 
   /// No description provided for @draftFormImages.
   ///
   /// In zh, this message translates to:
-  /// **'草稿圖'**
+  /// **'摸魚圖'**
   String get draftFormImages;
-
-  /// No description provided for @draftFormTitleHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'為這張草稿命名'**
-  String get draftFormTitleHint;
-
-  /// No description provided for @draftFormBodyHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'正在畫什麼、嘗試什麼構圖…'**
-  String get draftFormBodyHint;
 
   /// No description provided for @draftFormCreate.
   ///
   /// In zh, this message translates to:
-  /// **'建立草稿'**
+  /// **'建立摸魚'**
   String get draftFormCreate;
 
   /// No description provided for @pieceFormMissingImage.
@@ -1974,7 +1962,7 @@ abstract class AppLocalizations {
   /// No description provided for @goalsKindDraft.
   ///
   /// In zh, this message translates to:
-  /// **'草稿'**
+  /// **'摸魚'**
   String get goalsKindDraft;
 
   /// No description provided for @goalsKindPiece.
@@ -2136,7 +2124,7 @@ abstract class AppLocalizations {
   /// No description provided for @goalsAutoNameDraft.
   ///
   /// In zh, this message translates to:
-  /// **'畫 {count} 份草稿'**
+  /// **'畫 {count} 份摸魚'**
   String goalsAutoNameDraft(int count);
 
   /// No description provided for @goalsAutoNamePiece.
@@ -2802,7 +2790,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchCategoryDraft.
   ///
   /// In zh, this message translates to:
-  /// **'草稿'**
+  /// **'摸魚'**
   String get searchCategoryDraft;
 
   /// No description provided for @searchCategoryIdea.
@@ -2880,7 +2868,7 @@ abstract class AppLocalizations {
   /// No description provided for @ideaDetailDraftLabel.
   ///
   /// In zh, this message translates to:
-  /// **'草稿（{count} 張）'**
+  /// **'摸魚（{count} 張）'**
   String ideaDetailDraftLabel(int count);
 
   /// No description provided for @ideaLinkedHeading.
@@ -2892,7 +2880,7 @@ abstract class AppLocalizations {
   /// No description provided for @draftLinkedHeading.
   ///
   /// In zh, this message translates to:
-  /// **'關聯的草稿'**
+  /// **'關聯的摸魚'**
   String get draftLinkedHeading;
 
   /// No description provided for @pieceLinkedHeading.
@@ -2904,7 +2892,7 @@ abstract class AppLocalizations {
   /// No description provided for @draftListEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'還沒有草稿'**
+  /// **'還沒有摸魚'**
   String get draftListEmpty;
 
   /// No description provided for @draftViewList.
@@ -2916,13 +2904,13 @@ abstract class AppLocalizations {
   /// No description provided for @draftDetailTitle.
   ///
   /// In zh, this message translates to:
-  /// **'草稿詳情'**
+  /// **'摸魚詳情'**
   String get draftDetailTitle;
 
   /// No description provided for @draftDetailDeleteTitle.
   ///
   /// In zh, this message translates to:
-  /// **'刪除這份草稿？'**
+  /// **'刪除這份摸魚？'**
   String get draftDetailDeleteTitle;
 
   /// No description provided for @draftDetailImageLabel.

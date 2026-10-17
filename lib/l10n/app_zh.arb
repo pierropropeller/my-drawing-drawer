@@ -11,12 +11,12 @@
   "pitsFieldDesc": "描述",
   "pitsArchive": "封存",
   "pitsDeleteThis": "刪除這個坑",
-  "pitsDeleteHint": "刪除後坑內所有圖片、腦洞、草稿及成圖將一併移除",
+  "pitsDeleteHint": "刪除後坑內所有圖片、腦洞、摸魚及成圖將一併移除",
   "pitsNewTitle": "開新坑",
   "pitsCreate": "建立",
   "pitsOfficial": "官方圖冊",
   "pitsFanArt": "好看同人圖",
-  "pitsDrafts": "我的草稿",
+  "pitsDrafts": "我的摸魚",
   "pitsIdeas": "我的腦洞",
   "pitsPieces": "我的成圖",
   "pitsCountDrafts": "{count} 份",
@@ -501,10 +501,10 @@
   "entityFieldDate": "日期",
   "entityTitleRequired": "請輸入標題",
   "entityConnectIdea": "關聯腦洞",
-  "entityConnectDraft": "關聯草稿",
+  "entityConnectDraft": "關聯摸魚",
   "entityConnectPiece": "關聯成圖",
   "entityConnectSelectIdea": "選擇腦洞",
-  "entityConnectSelectDraft": "選擇草稿",
+  "entityConnectSelectDraft": "選擇摸魚",
   "entityConnectSelectPiece": "選擇成圖",
   "entityConnectSelectedIdea": "已選 {count} 個",
   "@entityConnectSelectedIdea": {
@@ -535,7 +535,7 @@
   "entityGallerySaveFailed": "儲存失敗",
   "ideaStatusOpen": "未孵",
   "ideaStatusHatchingShort": "孵化中",
-  "ideaStatusHatching": "孵化中 · {count} 草稿",
+  "ideaStatusHatching": "孵化中 · {count} 摸魚",
   "@ideaStatusHatching": {
     "placeholders": {
       "count": {
@@ -557,12 +557,10 @@
   "ideaFormImages": "配圖",
   "ideaFormCreate": "建立腦洞",
   "draftFormMissingImage": "請至少新增一張圖片",
-  "draftFormTitleNew": "新增草稿",
-  "draftFormTitleEdit": "編輯草稿",
-  "draftFormImages": "草稿圖",
-  "draftFormTitleHint": "為這張草稿命名",
-  "draftFormBodyHint": "正在畫什麼、嘗試什麼構圖…",
-  "draftFormCreate": "建立草稿",
+  "draftFormTitleNew": "新增摸魚",
+  "draftFormTitleEdit": "編輯摸魚",
+  "draftFormImages": "摸魚圖",
+  "draftFormCreate": "建立摸魚",
   "pieceFormMissingImage": "請至少選擇一張圖片",
   "pieceFormLinkHint": "貼上連結網址",
   "pieceFormPublishDate": "發佈日期",
@@ -678,7 +676,7 @@
   "goalsDayEmpty": "這天沒有紀錄",
   "goalsTimeline": "時間軸",
   "goalsKindIdea": "腦洞",
-  "goalsKindDraft": "草稿",
+  "goalsKindDraft": "摸魚",
   "goalsKindPiece": "成圖",
   "goalsUntitled": "（無標題）",
   "goalsPickPit": "選擇坑",
@@ -729,7 +727,7 @@
       }
     }
   },
-  "goalsAutoNameDraft": "畫 {count} 份草稿",
+  "goalsAutoNameDraft": "畫 {count} 份摸魚",
   "@goalsAutoNameDraft": {
     "placeholders": {
       "count": {
@@ -1062,7 +1060,7 @@
   "pitSearchCategoryOshi": "推活",
   "searchCategoryPiece": "成圖",
   "searchCategoryFan": "同人圖",
-  "searchCategoryDraft": "草稿",
+  "searchCategoryDraft": "摸魚",
   "searchCategoryIdea": "腦洞",
   "searchHint": "搜尋{name}",
   "@searchHint": {
@@ -1106,7 +1104,7 @@
       }
     }
   },
-  "ideaDetailDraftLabel": "草稿（{count} 張）",
+  "ideaDetailDraftLabel": "摸魚（{count} 張）",
   "@ideaDetailDraftLabel": {
     "placeholders": {
       "count": {
@@ -1115,12 +1113,12 @@
     }
   },
   "ideaLinkedHeading": "關聯的腦洞",
-  "draftLinkedHeading": "關聯的草稿",
+  "draftLinkedHeading": "關聯的摸魚",
   "pieceLinkedHeading": "關聯的成圖",
-  "draftListEmpty": "還沒有草稿",
+  "draftListEmpty": "還沒有摸魚",
   "draftViewList": "列表",
-  "draftDetailTitle": "草稿詳情",
-  "draftDetailDeleteTitle": "刪除這份草稿？",
+  "draftDetailTitle": "摸魚詳情",
+  "draftDetailDeleteTitle": "刪除這份摸魚？",
   "draftDetailImageLabel": "第 {n} 張",
   "@draftDetailImageLabel": {
     "placeholders": {

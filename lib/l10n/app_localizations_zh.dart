@@ -43,7 +43,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pitsDeleteThis => '刪除這個坑';
 
   @override
-  String get pitsDeleteHint => '刪除後坑內所有圖片、腦洞、草稿及成圖將一併移除';
+  String get pitsDeleteHint => '刪除後坑內所有圖片、腦洞、摸魚及成圖將一併移除';
 
   @override
   String get pitsNewTitle => '開新坑';
@@ -58,7 +58,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pitsFanArt => '好看同人圖';
 
   @override
-  String get pitsDrafts => '我的草稿';
+  String get pitsDrafts => '我的摸魚';
 
   @override
   String get pitsIdeas => '我的腦洞';
@@ -709,7 +709,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get entityConnectIdea => '關聯腦洞';
 
   @override
-  String get entityConnectDraft => '關聯草稿';
+  String get entityConnectDraft => '關聯摸魚';
 
   @override
   String get entityConnectPiece => '關聯成圖';
@@ -718,7 +718,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get entityConnectSelectIdea => '選擇腦洞';
 
   @override
-  String get entityConnectSelectDraft => '選擇草稿';
+  String get entityConnectSelectDraft => '選擇摸魚';
 
   @override
   String get entityConnectSelectPiece => '選擇成圖';
@@ -755,7 +755,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String ideaStatusHatching(int count) {
-    return '孵化中 · $count 草稿';
+    return '孵化中 · $count 摸魚';
   }
 
   @override
@@ -782,22 +782,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get draftFormMissingImage => '請至少新增一張圖片';
 
   @override
-  String get draftFormTitleNew => '新增草稿';
+  String get draftFormTitleNew => '新增摸魚';
 
   @override
-  String get draftFormTitleEdit => '編輯草稿';
+  String get draftFormTitleEdit => '編輯摸魚';
 
   @override
-  String get draftFormImages => '草稿圖';
+  String get draftFormImages => '摸魚圖';
 
   @override
-  String get draftFormTitleHint => '為這張草稿命名';
-
-  @override
-  String get draftFormBodyHint => '正在畫什麼、嘗試什麼構圖…';
-
-  @override
-  String get draftFormCreate => '建立草稿';
+  String get draftFormCreate => '建立摸魚';
 
   @override
   String get pieceFormMissingImage => '請至少選擇一張圖片';
@@ -1056,7 +1050,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get goalsKindIdea => '腦洞';
 
   @override
-  String get goalsKindDraft => '草稿';
+  String get goalsKindDraft => '摸魚';
 
   @override
   String get goalsKindPiece => '成圖';
@@ -1144,7 +1138,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String goalsAutoNameDraft(int count) {
-    return '畫 $count 份草稿';
+    return '畫 $count 份摸魚';
   }
 
   @override
@@ -1542,7 +1536,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchCategoryFan => '同人圖';
 
   @override
-  String get searchCategoryDraft => '草稿';
+  String get searchCategoryDraft => '摸魚';
 
   @override
   String get searchCategoryIdea => '腦洞';
@@ -1590,29 +1584,29 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String ideaDetailDraftLabel(int count) {
-    return '草稿（$count 張）';
+    return '摸魚（$count 張）';
   }
 
   @override
   String get ideaLinkedHeading => '關聯的腦洞';
 
   @override
-  String get draftLinkedHeading => '關聯的草稿';
+  String get draftLinkedHeading => '關聯的摸魚';
 
   @override
   String get pieceLinkedHeading => '關聯的成圖';
 
   @override
-  String get draftListEmpty => '還沒有草稿';
+  String get draftListEmpty => '還沒有摸魚';
 
   @override
   String get draftViewList => '列表';
 
   @override
-  String get draftDetailTitle => '草稿詳情';
+  String get draftDetailTitle => '摸魚詳情';
 
   @override
-  String get draftDetailDeleteTitle => '刪除這份草稿？';
+  String get draftDetailDeleteTitle => '刪除這份摸魚？';
 
   @override
   String draftDetailImageLabel(int n) {
