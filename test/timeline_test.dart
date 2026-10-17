@@ -71,7 +71,7 @@ void main() {
     expect(await db.nearestTimelineDay(DateTime(2026, 5, 1)), isNull);
   });
 
-  test('腦洞／草稿／成圖合併，依 date／finishedAt 新到舊；每項帶圖片與 tag', () async {
+  test('腦洞／摸魚／成圖合併，依 date／finishedAt 新到舊；每項帶圖片與 tag', () async {
     final tag = await db.createTag(pit, '角色');
     await db.saveIdea(
       pitId: pit,
@@ -85,7 +85,7 @@ void main() {
     );
     await db.saveDraft(
       pitId: pit,
-      title: '草稿',
+      title: '摸魚',
       images: const [],
       tagIds: const [],
       ideaIds: const [],
@@ -105,7 +105,7 @@ void main() {
     );
     final page = await db.loadTimelinePage();
     expect(page.items.map((e) => (e.kind, e.title)), [
-      (GoalKind.draft, '草稿'),
+      (GoalKind.draft, '摸魚'),
       (GoalKind.idea, '腦洞'),
       (GoalKind.piece, '成圖'),
     ]);
@@ -340,7 +340,7 @@ void main() {
       DateTime(2026, 7),
     ]);
     expect(counts, {
-      DateTime(2026, 9): 11, // 9 腦洞 + 1 草稿 + 1 成圖
+      DateTime(2026, 9): 11, // 9 腦洞 + 1 摸魚 + 1 成圖
       DateTime(2026, 8): 1,
       DateTime(2026, 10): 1,
       DateTime(2026, 7): 0,

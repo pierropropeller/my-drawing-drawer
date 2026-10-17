@@ -210,9 +210,9 @@ void main() {
     });
   }
 
-  // v7：推活、腦洞／草稿的 date（D-057、D-070）。從每個舊版本升上來都要通。
+  // v7：推活、腦洞／摸魚的 date（D-057、D-070）。從每個舊版本升上來都要通。
   for (var from = 1; from <= 5; from++) {
-    test('v$from → v7：腦洞／草稿 date 回填成 createdAt、既有坑補預設推活分組、推活可用', () async {
+    test('v$from → v7：腦洞／摸魚 date 回填成 createdAt、既有坑補預設推活分組、推活可用', () async {
       final db = AppDatabase(
         NativeDatabase.memory(setup: (raw) => _legacySchema(raw, from)),
       );
@@ -597,6 +597,6 @@ void _legacySchema(dynamic raw, int v) {
     "INSERT INTO ideas (id, created_at, updated_at, pit_id, title) VALUES ('i1', 1700000000, 1700005000, 'p1', '舊腦洞')",
   );
   raw.execute(
-    "INSERT INTO drafts (id, created_at, updated_at, pit_id, title) VALUES ('d1', 1690000000, 1700005000, 'p1', '舊草稿')",
+    "INSERT INTO drafts (id, created_at, updated_at, pit_id, title) VALUES ('d1', 1690000000, 1700005000, 'p1', '舊摸魚')",
   );
 }

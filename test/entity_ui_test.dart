@@ -27,7 +27,7 @@ import 'package:huakeng/ui/entity/piece_detail_page.dart';
 import 'package:huakeng/ui/entity/piece_widgets.dart';
 import 'package:huakeng/ui/tags/tag_manage_page.dart';
 
-/// 腦洞／草稿／tag 畫面的互動與規則（D-001～D-005、D-015～D-018、D-037、D-043）。
+/// 腦洞／摸魚／tag 畫面的互動與規則（D-001～D-005、D-015～D-018、D-037、D-043）。
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late AppDatabase db;
@@ -143,7 +143,7 @@ void main() {
   group('導覽列規則（D-005）', () {
     testWidgets('列表有導覽列，表單與詳情沒有', (tester) async {
       final ideaId = await newIdea('腦洞');
-      final draftId = await newDraft(title: '草稿');
+      final draftId = await newDraft(title: '摸魚');
       await show(tester, IdeaListPage(pitId: pitId));
       expect(navBarHiddenCount.value, 0);
       await unmount(tester);
@@ -182,7 +182,7 @@ void main() {
       await unmount(tester);
 
       await show(tester, DraftListPage(pitId: pitId));
-      expect(find.text('還沒有草稿'), findsOneWidget);
+      expect(find.text('還沒有摸魚'), findsOneWidget);
       expect(find.byType(EntityFab), findsNothing);
       expect(navBarHiddenCount.value, 0);
       await unmount(tester);
@@ -213,19 +213,19 @@ void main() {
   });
 
   group('選擇面板（D-015）與關聯用詞（D-001／D-003）', () {
-    testWidgets('腦洞編輯頁：選擇草稿面板列標題／無標題、多選、完成後存成關聯', (tester) async {
+    testWidgets('腦洞編輯頁：選擇摸魚面板列標題／無標題、多選、完成後存成關聯', (tester) async {
       final titled = await newDraft(title: '天台煙花 · 構圖', images: 2);
       final blank = await newDraft();
       final ideaId = await newIdea('天台');
       await show(tester, IdeaFormPage(pitId: pitId, ideaId: ideaId));
-      expect(find.text('關聯草稿'), findsOneWidget);
+      expect(find.text('關聯摸魚'), findsOneWidget);
       expect(find.text('關聯成圖'), findsOneWidget);
       expect(find.textContaining('連接'), findsNothing);
 
       await tester.ensureVisible(find.text('選擇').first);
-      await tester.tap(find.text('選擇').first); // 第一顆是關聯草稿
+      await tester.tap(find.text('選擇').first); // 第一顆是關聯摸魚
       await settle(tester);
-      expect(find.text('選擇草稿'), findsWidgets);
+      expect(find.text('選擇摸魚'), findsWidgets);
       expect(find.text('已選 0 份'), findsOneWidget);
       expect(find.text('天台煙花 · 構圖'), findsOneWidget);
       expect(find.text('無標題'), findsOneWidget);
@@ -253,7 +253,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('草稿表單：關聯腦洞的面板用同一款，量詞是「個」', (tester) async {
+    testWidgets('摸魚表單：關聯腦洞的面板用同一款，量詞是「個」', (tester) async {
       await newIdea('腦洞甲');
       await show(tester, DraftFormPage(pitId: pitId));
       expect(find.text('關聯腦洞'), findsOneWidget);
@@ -348,10 +348,10 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('草稿編輯：帶入原日期；不動日期儲存不變；列表與詳情顯示 date 而非建立時間', (tester) async {
+    testWidgets('摸魚編輯：帶入原日期；不動日期儲存不變；列表與詳情顯示 date 而非建立時間', (tester) async {
       final id = await db.saveDraft(
         pitId: pitId,
-        title: '舊草稿',
+        title: '舊摸魚',
         images: const [NewImage(file: 'a.png')],
         tagIds: const [],
         ideaIds: const [],
@@ -394,9 +394,9 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('草稿表單：關聯成圖在關聯腦洞下面；編輯時選擇後存成兩邊的關係，兩邊詳情都顯示', (tester) async {
+    testWidgets('摸魚表單：關聯成圖在關聯腦洞下面；編輯時選擇後存成兩邊的關係，兩邊詳情都顯示', (tester) async {
       final pieceId = await newPiece('成圖甲');
-      final draftId = await newDraft(title: '草稿甲');
+      final draftId = await newDraft(title: '摸魚甲');
       await show(tester, DraftFormPage(pitId: pitId, draftId: draftId));
       expect(find.text('關聯成圖'), findsOneWidget);
       expect(
@@ -422,19 +422,19 @@ void main() {
       expect(dv.pieceIds, [pieceId]);
       await unmount(tester);
 
-      // 草稿詳情顯示關聯成圖（方形縮圖，沒有「＋」）
+      // 摸魚詳情顯示關聯成圖（方形縮圖，沒有「＋」）
       await show(tester, DraftDetailPage(draftId: draftId, pitId: pitId));
       expect(find.text('關聯的成圖'), findsOneWidget);
       expect(find.byType(ThumbSquare), findsOneWidget);
       expect(find.bySemanticsLabel(RegExp('選擇成圖')), findsNothing);
       await unmount(tester);
 
-      // 成圖詳情顯示關聯草稿
+      // 成圖詳情顯示關聯摸魚
       await show(tester, PieceDetailPage(pieceId: pieceId, pitId: pitId));
-      expect(find.text('關聯的草稿'), findsOneWidget);
+      expect(find.text('關聯的摸魚'), findsOneWidget);
       await unmount(tester);
 
-      // 草稿編輯頁帶入已選成圖，可移除並存成空
+      // 摸魚編輯頁帶入已選成圖，可移除並存成空
       await show(tester, DraftFormPage(pitId: pitId, draftId: draftId));
       expect(find.text('成圖甲'), findsOneWidget);
       await tester.ensureVisible(find.bySemanticsLabel('移除').first);
@@ -450,7 +450,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('草稿詳情沒有關聯成圖時整段不顯示', (tester) async {
+    testWidgets('摸魚詳情沒有關聯成圖時整段不顯示', (tester) async {
       final id = await newDraft(title: '空', body: '字');
       await show(tester, DraftDetailPage(draftId: id, pitId: pitId));
       expect(find.text('關聯的成圖'), findsNothing);
@@ -459,7 +459,7 @@ void main() {
   });
 
   group('表單圖片 ×（D-018）', () {
-    testWidgets('草稿編輯：移除一張後儲存只剩一張', (tester) async {
+    testWidgets('摸魚編輯：移除一張後儲存只剩一張', (tester) async {
       final id = await newDraft(title: '兩張', images: 2);
       await show(tester, DraftFormPage(pitId: pitId, draftId: id));
       expect(find.bySemanticsLabel('移除圖片'), findsNWidgets(2));
@@ -528,7 +528,7 @@ void main() {
     });
   });
 
-  group('草稿詳情三種情況（D-017）', () {
+  group('摸魚詳情三種情況（D-017）', () {
     testWidgets('完整：標題、日期、內文、tag、關聯腦洞，多張時有 1 / N 與縮圖列', (tester) async {
       final ideaId = await newIdea('天台看煙花');
       final id = await newDraft(
@@ -587,7 +587,7 @@ void main() {
       await show(tester, DraftDetailPage(draftId: id, pitId: pitId));
       await tester.tap(find.bySemanticsLabel('刪除'));
       await settle(tester);
-      expect(find.text('刪除這份草稿？'), findsOneWidget);
+      expect(find.text('刪除這份摸魚？'), findsOneWidget);
       await unmount(tester);
     });
   });
@@ -597,14 +597,14 @@ void main() {
       final id = await newIdea('孤單腦洞');
       await show(tester, IdeaDetailPage(ideaId: id, pitId: pitId));
       expect(find.text('孤單腦洞'), findsOneWidget);
-      expect(find.text('關聯的草稿'), findsNothing);
+      expect(find.text('關聯的摸魚'), findsNothing);
       expect(find.text('關聯的成圖'), findsNothing);
-      expect(find.bySemanticsLabel(RegExp('選擇草稿')), findsNothing);
+      expect(find.bySemanticsLabel(RegExp('選擇摸魚')), findsNothing);
       expect(find.bySemanticsLabel(RegExp('選擇成圖')), findsNothing);
       await unmount(tester);
     });
 
-    testWidgets('有關聯草稿才顯示該段，且沒有「＋」格；tag 可點', (tester) async {
+    testWidgets('有關聯摸魚才顯示該段，且沒有「＋」格；tag 可點', (tester) async {
       final d = await newDraft(title: '線稿');
       final id = await newIdea('腦洞', tagIds: [tagA], draftIds: [d]);
       String? tapped;
@@ -612,9 +612,9 @@ void main() {
         tester,
         IdeaDetailPage(ideaId: id, pitId: pitId, onTagTap: (t) => tapped = t),
       );
-      expect(find.text('關聯的草稿'), findsOneWidget);
+      expect(find.text('關聯的摸魚'), findsOneWidget);
       expect(find.text('關聯的成圖'), findsNothing);
-      expect(find.bySemanticsLabel(RegExp('選擇草稿')), findsNothing);
+      expect(find.bySemanticsLabel(RegExp('選擇摸魚')), findsNothing);
       expect(find.textContaining('連接'), findsNothing);
       await tester.tap(find.text('#角色1'));
       expect(tapped, tagA);
@@ -623,15 +623,15 @@ void main() {
   });
 
   group('tag 顯示規則與篩選（D-043）', () {
-    testWidgets('腦洞卡片與草稿卡片都顯示 tag（D-083 統一框架）', (tester) async {
+    testWidgets('腦洞卡片與摸魚卡片都顯示 tag（D-083 統一框架）', (tester) async {
       await newIdea('有 tag 的腦洞', tagIds: [tagA]);
-      await newDraft(title: '有 tag 的草稿', tagIds: [tagA]);
+      await newDraft(title: '有 tag 的摸魚', tagIds: [tagA]);
       await show(tester, IdeaListPage(pitId: pitId));
       expect(find.text('#角色1'), findsOneWidget);
       await unmount(tester);
 
       await show(tester, DraftListPage(pitId: pitId));
-      expect(find.text('有 tag 的草稿'), findsOneWidget);
+      expect(find.text('有 tag 的摸魚'), findsOneWidget);
       expect(find.text('#角色1'), findsOneWidget);
       await unmount(tester);
     });
@@ -664,7 +664,7 @@ void main() {
     });
   });
 
-  group('草稿列表卡片', () {
+  group('摸魚列表卡片', () {
     testWidgets('有字卡、純圖單張、純圖多張（+N）、九宮格切換', (tester) async {
       await newDraft(title: '有字', images: 3);
       await newDraft(); // 純圖單張

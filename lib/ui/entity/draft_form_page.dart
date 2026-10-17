@@ -153,10 +153,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
                           TextField(
                             controller: _title,
                             style: const TextStyle(fontSize: 15),
-                            decoration: entityFieldDecoration(
-                              context,
-                              context.l10n.draftFormTitleHint,
-                            ),
+                            decoration: entityFieldDecoration(context, ''),
                           ),
                           const SizedBox(height: 16),
                           FormLabel(context.l10n.entityFieldBody),
@@ -165,10 +162,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
                             minLines: 3,
                             maxLines: 10,
                             style: const TextStyle(fontSize: 15, height: 1.55),
-                            decoration: entityFieldDecoration(
-                              context,
-                              context.l10n.draftFormBodyHint,
-                            ),
+                            decoration: entityFieldDecoration(context, ''),
                           ),
                           const SizedBox(height: 16),
                           TagPicker(

@@ -115,7 +115,7 @@ void main() {
     await pumpPitPage(tester, Brightness.light);
     final o = at(tester, '官方圖冊');
     final f = at(tester, '好看同人圖');
-    final d = at(tester, '我的草稿');
+    final d = at(tester, '我的摸魚');
     final i = at(tester, '我的腦洞');
     final p = at(tester, '我的成圖');
     final h = at(tester, '推活');
@@ -123,7 +123,7 @@ void main() {
     expect(d.dy, i.dy);
     expect(p.dy, h.dy);
     expect(o.dy < d.dy && d.dy < p.dy, isTrue);
-    // D-074：第二列腦洞在左、草稿在右。
+    // D-074：第二列腦洞在左、摸魚在右。
     expect(o.dx, i.dx);
     expect(i.dx, p.dx);
     expect(f.dx, d.dx);

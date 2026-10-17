@@ -230,7 +230,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('草稿卡：大圖版用完整標記、小圖版用縮小標記', (tester) async {
+  testWidgets('摸魚卡：大圖版用完整標記、小圖版用縮小標記', (tester) async {
     await tester.runAsync(
       () => db.saveDraft(
         pitId: pitId,

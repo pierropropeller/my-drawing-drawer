@@ -51,7 +51,7 @@ void main() {
     final tag = await a.createTag(pitId, '角色1');
     final draftId = await a.saveDraft(
       pitId: pitId,
-      title: '草稿',
+      title: '摸魚',
       images: [await imageOnA('d.png')],
       tagIds: [tag],
       ideaIds: const [],
@@ -146,7 +146,7 @@ void main() {
     expect((await b.watchPit(pitId).first)!.name, 'A 的名字');
   });
 
-  test('刪除會同步（軟刪除）；從草稿側修改連接也會同步到腦洞', () async {
+  test('刪除會同步（軟刪除）；從摸魚側修改連接也會同步到腦洞', () async {
     final pitId = await a.createPit(name: 'x');
     final ideaId = await a.saveIdea(
       pitId: pitId,
@@ -166,7 +166,7 @@ void main() {
     await engineA.sync();
     await engineB.sync();
     await Future<void>.delayed(const Duration(milliseconds: 1100));
-    // 從草稿側連接腦洞：腦洞文件擁有這個關係，必須跟著被同步
+    // 從摸魚側連接腦洞：腦洞文件擁有這個關係，必須跟著被同步
     await a.saveDraft(
       id: draftId,
       pitId: pitId,

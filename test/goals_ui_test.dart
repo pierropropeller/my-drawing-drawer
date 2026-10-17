@@ -172,13 +172,13 @@ void main() {
     await tester.tap(find.byType(AppSwitch));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('互動量過 100 的成圖 1 張'), findsOneWidget);
-    // 切到腦洞／草稿：動詞與量詞
+    // 切到腦洞／摸魚：動詞與量詞
     await tester.tap(find.text('腦洞'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('生產 1 個腦洞'), findsOneWidget);
-    await tester.tap(find.text('草稿'));
+    await tester.tap(find.text('摸魚'));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('畫 1 份草稿'), findsOneWidget);
+    expect(find.text('畫 1 份摸魚'), findsOneWidget);
     await unmount(tester);
     await tester.pump(const Duration(milliseconds: 10));
     expect(navBarHiddenCount.value, 0);
@@ -308,17 +308,17 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('時間軸 ＋：只有腦洞／草稿／成圖，時間不可改，進對應表單（D-038）', (tester) async {
+  testWidgets('時間軸 ＋：只有腦洞／摸魚／成圖，時間不可改，進對應表單（D-038）', (tester) async {
     await show(tester, DayPage(day: DateTime.now()));
     await tester.tap(find.byType(EntityFab));
     await settle(tester);
     expect(find.text('新增'), findsWidgets);
     expect(find.text('腦洞'), findsOneWidget);
-    expect(find.text('草稿'), findsOneWidget);
+    expect(find.text('摸魚'), findsOneWidget);
     expect(find.text('成圖'), findsOneWidget);
     expect(find.byType(OutlinedButton), findsNothing); // 沒有時間按鈕
     expect(find.byType(DropdownButtonFormField<String>), findsNothing);
-    await tester.tap(find.text('草稿'));
+    await tester.tap(find.text('摸魚'));
     await settle(tester);
     expect(find.byType(DraftFormPage), findsOneWidget);
     await unmount(tester);

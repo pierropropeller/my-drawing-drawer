@@ -74,7 +74,7 @@ void main() {
     expect(s.openIdeas, 1);
   });
 
-  test('草稿：純圖判定與圖片數量', () async {
+  test('摸魚：純圖判定與圖片數量', () async {
     final plain = await draft();
     final text = await draft(title: '有標題');
     final views = await db.watchDraftViews(pitId).first;

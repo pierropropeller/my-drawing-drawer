@@ -151,7 +151,7 @@ void main() {
     expect(pit.officialCoverId, isNull);
   });
 
-  test('坑封面可從任一格選圖；腦洞／草稿／成圖編輯後封面不會失效', () async {
+  test('坑封面可從任一格選圖；腦洞／摸魚／成圖編輯後封面不會失效', () async {
     final id = await db.saveIdea(
       pitId: pitId,
       title: 't',

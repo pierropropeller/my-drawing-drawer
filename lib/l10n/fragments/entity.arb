@@ -8,10 +8,10 @@
   "entityTitleRequired": "請輸入標題",
 
   "entityConnectIdea": "關聯腦洞",
-  "entityConnectDraft": "關聯草稿",
+  "entityConnectDraft": "關聯摸魚",
   "entityConnectPiece": "關聯成圖",
   "entityConnectSelectIdea": "選擇腦洞",
-  "entityConnectSelectDraft": "選擇草稿",
+  "entityConnectSelectDraft": "選擇摸魚",
   "entityConnectSelectPiece": "選擇成圖",
   "entityConnectSelectedIdea": "已選 {count} 個",
   "@entityConnectSelectedIdea": { "placeholders": { "count": { "type": "int" } } },
@@ -26,7 +26,7 @@
 
   "ideaStatusOpen": "未孵",
   "ideaStatusHatchingShort": "孵化中",
-  "ideaStatusHatching": "孵化中 · {count} 草稿",
+  "ideaStatusHatching": "孵化中 · {count} 摸魚",
   "@ideaStatusHatching": { "placeholders": { "count": { "type": "int" } } },
   "ideaStatusHatchedShort": "已孵",
   "ideaStatusHatched": "已孵 {count} 成圖",
@@ -38,12 +38,10 @@
   "ideaFormCreate": "建立腦洞",
 
   "draftFormMissingImage": "請至少新增一張圖片",
-  "draftFormTitleNew": "新增草稿",
-  "draftFormTitleEdit": "編輯草稿",
-  "draftFormImages": "草稿圖",
-  "draftFormTitleHint": "為這張草稿命名",
-  "draftFormBodyHint": "正在畫什麼、嘗試什麼構圖…",
-  "draftFormCreate": "建立草稿",
+  "draftFormTitleNew": "新增摸魚",
+  "draftFormTitleEdit": "編輯摸魚",
+  "draftFormImages": "摸魚圖",
+  "draftFormCreate": "建立摸魚",
 
   "pieceFormMissingImage": "請至少選擇一張圖片",
   "pieceFormLinkHint": "貼上連結網址",

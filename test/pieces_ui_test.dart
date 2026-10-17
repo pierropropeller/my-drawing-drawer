@@ -440,7 +440,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('草稿↔成圖關聯（D-069）：從草稿側設定，成圖詳情與編輯頁都看得到；從成圖側移除，草稿也消失', (
+  testWidgets('摸魚↔成圖關聯（D-069）：從摸魚側設定，成圖詳情與編輯頁都看得到；從成圖側移除，摸魚也消失', (
     tester,
   ) async {
     late String pieceId;
@@ -449,7 +449,7 @@ void main() {
       pieceId = await seed();
       draftId = await db.saveDraft(
         pitId: pitId,
-        title: '構圖草稿',
+        title: '構圖摸魚',
         images: const [NewImage(file: 'a.png', width: 10, height: 10)],
         tagIds: const [],
         ideaIds: const [],
@@ -459,20 +459,20 @@ void main() {
     });
     await pumpPage(tester, PieceDetailPage(pieceId: pieceId, pitId: pitId));
     await settle(tester);
-    expect(find.text('關聯的草稿'), findsOneWidget);
+    expect(find.text('關聯的摸魚'), findsOneWidget);
     expect(find.byType(ThumbSquare), findsOneWidget);
     // 詳情頁不能新增關聯
-    expect(find.bySemanticsLabel(RegExp('選擇草稿')), findsNothing);
+    expect(find.bySemanticsLabel(RegExp('選擇摸魚')), findsNothing);
     await unmount(tester);
 
     await pumpPage(tester, PieceFormPage(pitId: pitId, pieceId: pieceId));
     await settle(tester);
-    expect(find.text('構圖草稿'), findsOneWidget); // 已關聯的 chip
+    expect(find.text('構圖摸魚'), findsOneWidget); // 已關聯的 chip
     await show(tester, find.text('選擇').last);
-    await tester.tap(find.text('選擇').last); // 最後一顆是關聯草稿
+    await tester.tap(find.text('選擇').last); // 最後一顆是關聯摸魚
     await settle(tester);
-    expect(find.text('選擇草稿'), findsWidgets);
-    expect(find.text('8/3'), findsOneWidget); // 面板列尾顯示草稿的 date
+    expect(find.text('選擇摸魚'), findsWidgets);
+    expect(find.text('8/3'), findsOneWidget); // 面板列尾顯示摸魚的 date
     await tester.tap(find.text('完成'));
     await settle(tester);
     await tester.tap(find.bySemanticsLabel('移除').last);
