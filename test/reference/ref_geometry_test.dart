@@ -58,7 +58,11 @@ void main() {
     final read = a.snapshotFrom(a.matrixFor(s), s);
     final absolute = read.scale;
     // 拉窄、拉寬、轉直向，來回幾次。
-    for (final size in const [Size(404, 900), Size(1194, 834), Size(834, 1194)]) {
+    for (final size in const [
+      Size(404, 900),
+      Size(1194, 834),
+      Size(834, 1194),
+    ]) {
       final b = geo(size.width, size.height);
       final m = b.matrixFor(read);
       final back = b.snapshotFrom(m, read);

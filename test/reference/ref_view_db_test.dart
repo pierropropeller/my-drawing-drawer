@@ -65,7 +65,8 @@ void main() {
       NativeDatabase.memory(
         setup: (raw) {
           raw.execute('PRAGMA user_version = 9');
-          raw.execute('''
+          raw.execute(
+            '''
             CREATE TABLE pits (
               id TEXT NOT NULL PRIMARY KEY, created_at INTEGER NOT NULL,
               updated_at INTEGER NOT NULL, deleted_at INTEGER NULL,
@@ -75,7 +76,8 @@ void main() {
               draft_cover_file TEXT NULL, idea_cover_file TEXT NULL,
               piece_cover_file TEXT NULL, oshi_cover_file TEXT NULL,
               archived INTEGER NOT NULL DEFAULT 0 CHECK (archived IN (0, 1)),
-              junk_enabled INTEGER NOT NULL DEFAULT 0 CHECK (junk_enabled IN (0, 1)))''');
+              junk_enabled INTEGER NOT NULL DEFAULT 0 CHECK (junk_enabled IN (0, 1)))''',
+          );
           raw.execute(
             "INSERT INTO pits (id, created_at, updated_at, name) VALUES ('p1', 1, 1, '舊的坑')",
           );
@@ -111,7 +113,10 @@ void main() {
     });
 
     test('debounce 到時自動存檔', () async {
-      final store = RefViewStore(db, debounce: const Duration(milliseconds: 20));
+      final store = RefViewStore(
+        db,
+        debounce: const Duration(milliseconds: 20),
+      );
       store.update('a.png', const RefViewSnapshot(zoom: 3));
       await Future<void>.delayed(const Duration(milliseconds: 150));
       expect((await db.getRefViewState('a.png'))!.zoom, 3);
