@@ -152,10 +152,12 @@ class GoalSectionRow extends StatelessWidget {
     required this.title,
     this.trailing,
     this.padding = const EdgeInsets.only(top: 20, bottom: 10),
+    this.titleSize = 16,
   });
   final String title;
   final Widget? trailing;
   final EdgeInsets padding;
+  final double titleSize;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -165,7 +167,7 @@ class GoalSectionRow extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: titleSize),
         ),
         ?trailing,
       ],
@@ -254,6 +256,55 @@ class PeriodNav extends StatelessWidget {
             onNext,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 寬版（iPad）「＋ 新增」按鈕（Goal 稿）：主色底、白字 13/700、加號 16，視覺 36 高、觸控 44。
+class AddButton extends StatelessWidget {
+  const AddButton({super.key, required this.onTap, this.label});
+  final VoidCallback onTap;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        height: 44,
+        child: Center(
+          child: Container(
+            height: 36,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: t.accent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 4,
+              children: [
+                const SvgIcon(
+                  AppIcons.plus,
+                  size: 16,
+                  strokeWidth: 2.2,
+                  color: Colors.white,
+                ),
+                Text(
+                  label ?? context.l10n.commonAdd,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

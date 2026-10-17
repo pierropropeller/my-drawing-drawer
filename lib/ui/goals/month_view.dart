@@ -12,7 +12,19 @@ import 'goals_page.dart';
 
 /// 月度（Month）：月曆（當天有成圖，日期變成圓形圖片，預設最晚一張）＋月度小目標。
 class MonthView extends ConsumerStatefulWidget {
-  const MonthView({super.key, this.onYearChanged, this.onDayTap});
+  const MonthView({
+    super.key,
+    this.onYearChanged,
+    this.onDayTap,
+    this.wide = false,
+    this.side = 20,
+  });
+
+  /// iPad 並排版面（稿沒畫，由手機月頁推導）：左月曆、右月度目標，各自捲動。
+  final bool wide;
+
+  /// 寬版的左右留白。
+  final double side;
 
   /// 點日曆某一天：上層切到「日」並捲到該日（D-072）；沒給就另開一頁日頁。
   final ValueChanged<DateTime>? onDayTap;
@@ -56,65 +68,103 @@ class _MonthViewState extends ConsumerState<MonthView> {
       l.goalsWeekFri,
       l.goalsWeekSat,
     ];
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 32),
+    final nav = PeriodNav(
+      label: l.goalsMonthTitle(_month),
+      prevTooltip: l.goalsPrevMonth,
+      nextTooltip: l.goalsNextMonth,
+      onPrev: () => _shift(-1),
+      onNext: () => _shift(1),
+    );
+    final weekRow = Row(
       children: [
-        PeriodNav(
-          label: l.goalsMonthTitle(_month),
-          prevTooltip: l.goalsPrevMonth,
-          nextTooltip: l.goalsNextMonth,
-          onPrev: () => _shift(-1),
-          onNext: () => _shift(1),
-        ),
-        Row(
-          children: [
-            for (final w in wk)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Center(
-                    child: Text(
-                      w,
-                      style: TextStyle(color: t.text4, fontSize: 11),
+        for (final w in wk)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Center(
+                child: Text(w, style: TextStyle(color: t.text4, fontSize: 11)),
+              ),
+            ),
+          ),
+      ],
+    );
+    final calendar = GridView.count(
+      crossAxisCount: 7,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 2,
+      crossAxisSpacing: 2,
+      children: [
+        for (var i = 0; i < lead; i++) const SizedBox.shrink(),
+        for (var d = 1; d <= days; d++)
+          _DayCell(
+            day: d,
+            file: covers[d],
+            maxSize: widget.wide ? 52 : 40,
+            isToday:
+                today.year == _year && today.month == _month && today.day == d,
+            onTap: () {
+              final day = DateTime(_year, _month, d);
+              final cb = widget.onDayTap;
+              if (cb != null) {
+                cb(day);
+              } else {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => DayPage(day: day)),
+                );
+              }
+            },
+          ),
+      ],
+    );
+    if (widget.wide) {
+      return LayoutBuilder(
+        builder: (context, box) {
+          final inner = box.maxWidth - widget.side * 2;
+          final leftW = (inner * 0.5).clamp(320.0, 460.0);
+          return Padding(
+            padding: EdgeInsets.fromLTRB(widget.side, 26, widget.side, 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: leftW,
+                  child: ListView(
+                    padding: const EdgeInsets.only(bottom: 32),
+                    children: [
+                      nav,
+                      weekRow,
+                      const SizedBox(height: 2),
+                      calendar,
+                    ],
+                  ),
+                ),
+                SizedBox(width: inner >= 800 ? 32 : 24),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: 32),
+                    child: GoalList(
+                      period: GoalPeriod.month,
+                      year: _year,
+                      month: _month,
+                      topGap: 0,
+                      wide: true,
                     ),
                   ),
                 ),
-              ),
-          ],
-        ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 32),
+      children: [
+        nav,
+        weekRow,
         const SizedBox(height: 2),
-        GridView.count(
-          crossAxisCount: 7,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 2,
-          crossAxisSpacing: 2,
-          children: [
-            for (var i = 0; i < lead; i++) const SizedBox.shrink(),
-            for (var d = 1; d <= days; d++)
-              _DayCell(
-                day: d,
-                file: covers[d],
-                isToday:
-                    today.year == _year &&
-                    today.month == _month &&
-                    today.day == d,
-                onTap: () {
-                  final day = DateTime(_year, _month, d);
-                  final cb = widget.onDayTap;
-                  if (cb != null) {
-                    cb(day);
-                  } else {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => DayPage(day: day),
-                      ),
-                    );
-                  }
-                },
-              ),
-          ],
-        ),
+        calendar,
         GoalList(period: GoalPeriod.month, year: _year, month: _month),
       ],
     );
@@ -128,7 +178,9 @@ class _DayCell extends StatelessWidget {
     required this.file,
     required this.isToday,
     required this.onTap,
+    this.maxSize = 40,
   });
+  final double maxSize;
   final int day;
   final String? file;
   final bool isToday;
@@ -177,7 +229,7 @@ class _DayCell extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 40, maxHeight: 40),
+          constraints: BoxConstraints(maxWidth: maxSize, maxHeight: maxSize),
           child: AspectRatio(
             aspectRatio: 1,
             child: Container(

@@ -6,7 +6,6 @@ import '../../state/app_icon.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../common/app_icons.dart';
-import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import 'app_icon_image.dart';
 import 'me_widgets.dart';
@@ -14,56 +13,51 @@ import 'me_widgets.dart';
 /// App 圖示（AppIconPick）：兩欄大卡，選中＝主題色框＋右上勾；撳一下即換桌面圖示，
 /// 底部提示「桌面圖示已換成「三筆」」。沒有導覽列。卡片由 [appIconOptions] 清單產生。
 class AppIconPickPage extends ConsumerWidget {
-  const AppIconPickPage({super.key});
+  const AppIconPickPage({super.key, this.embedded = false});
+
+  /// 在 iPad「我的」右側面板裡顯示（沒有返回列、不藏導覽）。
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final current = ref.watch(currentAppIconProvider);
-    return HideNavBar(
-      child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              MeSubHeader(context.l10n.appiconTitle, bottom: 8),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                child: LayoutBuilder(
-                  builder: (context, box) {
-                    const gap = 14.0;
-                    final w = (box.maxWidth - gap) / 2;
-                    return Semantics(
-                      container: true,
-                      child: Wrap(
-                        spacing: gap,
-                        runSpacing: gap,
-                        children: [
-                          for (final o in appIconOptions)
-                            SizedBox(
-                              width: w,
-                              child: _IconCard(
-                                option: o,
-                                selected: o.key == current.key,
-                                onTap: () async {
-                                  if (o.key == current.key) return;
-                                  final l = context.l10n;
-                                  final ok = await selectAppIcon(ref, o);
-                                  if (ok && context.mounted) {
-                                    showSnack(
-                                      context,
-                                      l.appiconToast(o.name(l)),
-                                    );
-                                  }
-                                },
-                              ),
-                            ),
-                        ],
+    return MePageFrame(
+      title: context.l10n.appiconTitle,
+      bottom: 8,
+      embedded: embedded,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          child: LayoutBuilder(
+            builder: (context, box) {
+              const gap = 14.0;
+              final w = (box.maxWidth - gap) / 2;
+              return Semantics(
+                container: true,
+                child: Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    for (final o in appIconOptions)
+                      SizedBox(
+                        width: w,
+                        child: _IconCard(
+                          option: o,
+                          selected: o.key == current.key,
+                          onTap: () async {
+                            if (o.key == current.key) return;
+                            final l = context.l10n;
+                            final ok = await selectAppIcon(ref, o);
+                            if (ok && context.mounted) {
+                              showSnack(context, l.appiconToast(o.name(l)));
+                            }
+                          },
+                        ),
                       ),
-                    );
-                  },
+                  ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),

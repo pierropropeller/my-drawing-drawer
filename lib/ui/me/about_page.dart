@@ -6,7 +6,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
-import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import '../../state/app_icon.dart';
 import 'app_icon_image.dart';
@@ -33,7 +32,10 @@ String versionLabel(PackageInfo? info) {
 
 /// 關於 App（About）：圖示、名稱、版本、資料存放說明、開源授權。沒有導覽列。
 class AboutPage extends ConsumerWidget {
-  const AboutPage({super.key});
+  const AboutPage({super.key, this.embedded = false});
+
+  /// 在 iPad「我的」右側面板裡顯示（沒有返回列、不藏導覽）。
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,120 +45,105 @@ class AboutPage extends ConsumerWidget {
     final version = versionLabel(info);
     final divider = dark ? t.border : const Color(0xFFF1EADF);
     final chevron = dark ? t.text4 : const Color(0xFFB7ADA0);
-    return HideNavBar(
-      child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              MeSubHeader(context.l10n.meAbout, bottom: 8),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 18, 0, 26),
-                      child: Column(
+    return MePageFrame(
+      title: context.l10n.meAbout,
+      bottom: 8,
+      embedded: embedded,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 18, 0, 26),
+            child: Column(
+              children: [
+                AppIconImage(
+                  ref.watch(currentAppIconProvider),
+                  size: 84,
+                  radius: 22,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  appName,
+                  style: Theme.of(context).textTheme.headlineSmall
+                      ?.copyWith(fontSize: 22),
+                ),
+                if (version.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(version, style: TextStyle(fontSize: 13, color: t.text3)),
+                ],
+              ],
+            ),
+          ),
+          MePanel(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Material(
+              type: MaterialType.transparency,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: divider)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.l10n.meAboutDataTitle,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          context.l10n.meAboutDataBody,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            height: 1.55,
+                            color: t.text3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => showLicensePage(
+                      context: context,
+                      applicationName: appName,
+                      applicationVersion: version.isEmpty
+                          ? null
+                          : info!.version,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      child: Row(
                         children: [
-                          AppIconImage(
-                            ref.watch(currentAppIconProvider),
-                            size: 84,
-                            radius: 22,
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            appName,
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(fontSize: 22),
-                          ),
-                          if (version.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              version,
-                              style: TextStyle(fontSize: 13, color: t.text3),
+                          Expanded(
+                            child: Text(
+                              context.l10n.meAboutLicenses,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ],
+                          ),
+                          SvgIcon(
+                            AppIcons.chevronRight,
+                            size: 18,
+                            color: chevron,
+                            strokeWidth: 2,
+                          ),
                         ],
                       ),
                     ),
-                    MePanel(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Material(
-                        type: MaterialType.transparency,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(color: divider),
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    context.l10n.meAboutDataTitle,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    context.l10n.meAboutDataBody,
-                                    style: TextStyle(
-                                      fontSize: 12.5,
-                                      height: 1.55,
-                                      color: t.text3,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            InkWell(
-                              onTap: () => showLicensePage(
-                                context: context,
-                                applicationName: appName,
-                                applicationVersion: version.isEmpty
-                                    ? null
-                                    : info!.version,
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 15,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        context.l10n.meAboutLicenses,
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                    SvgIcon(
-                                      AppIcons.chevronRight,
-                                      size: 18,
-                                      color: chevron,
-                                      strokeWidth: 2,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -10,6 +10,7 @@ import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
+import '../common/window_class.dart';
 import 'day_page.dart';
 import 'day_timeline.dart';
 import 'goal_new_page.dart';
@@ -27,6 +28,9 @@ class GoalsPage extends StatefulWidget {
 }
 
 class _GoalsPageState extends State<GoalsPage> {
+  /// 內容區至少這麼寬才用並排版面（左 430 回顧卡＋右目標列表）。
+  static const _wideMin = 720.0;
+
   int _mode = 0;
   final _dayKey = GlobalKey<DayTimelineState>();
   int _year = DateTime.now().year; // 年度視圖的年份
@@ -42,86 +46,112 @@ class _GoalsPageState extends State<GoalsPage> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: ContentWidth(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
+        // 內容區（已扣掉側邊導覽）夠寬才用 iPad 並排版面；拉窄時同一棵樹自動退回手機版。
+        child: LayoutBuilder(
+          builder: (context, box) {
+            final wide =
+                WindowClass.of(context).isWide && box.maxWidth >= _wideMin;
+            final side = wide ? (box.maxWidth >= 900 ? 40.0 : 24.0) : 20.0;
+            final yearStep = _mode == 0
+                ? [
+                    _YearStep(
+                      icon: AppIcons.back,
+                      tooltip: context.l10n.goalsPrevYear,
+                      onTap: () => setState(() => _year--),
+                    ),
+                    _YearStep(
+                      icon: AppIcons.chevronRight,
+                      tooltip: context.l10n.goalsNextYear,
+                      onTap: () => setState(() => _year++),
+                    ),
+                  ]
+                : const <Widget>[];
+            final segmented = _Segmented(
+              labels: [
+                context.l10n.goalsModeYear,
+                context.l10n.goalsModeMonth,
+                context.l10n.goalsModeDay,
+              ],
+              selected: _mode,
+              onChanged: (i) => setState(() => _mode = i),
+            );
+            final titleStyle = Theme.of(context).textTheme.headlineMedium
+                ?.copyWith(
+                  fontSize: wide ? 30 : 24,
+                  fontWeight: FontWeight.w700,
+                );
+            final yearStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontSize: wide ? 22 : 18,
+              fontWeight: FontWeight.w400,
+              color: t.text3,
+            );
+            return ContentWidth(
+              maxWidth: wide ? double.infinity : 920,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: wide
+                        ? EdgeInsets.fromLTRB(side, 30, side, 0)
+                        : const EdgeInsets.fromLTRB(20, 10, 20, 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          context.l10n.goalsTitle,
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w700,
-                              ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(context.l10n.goalsTitle, style: titleStyle),
+                            SizedBox(width: wide ? 16 : 10),
+                            Text('$headerYear', style: yearStyle),
+                            const Spacer(),
+                            ...yearStep,
+                            // 寬版：年／月／日切換和標題同一列（Goal 稿 260 寬）。
+                            if (wide) ...[
+                              const SizedBox(width: 12),
+                              SizedBox(width: 260, child: segmented),
+                            ],
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Text(
-                          '$headerYear',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w400,
-                                color: t.text3,
-                              ),
-                        ),
-                        const Spacer(),
-                        if (_mode == 0) ...[
-                          _YearStep(
-                            icon: AppIcons.back,
-                            tooltip: context.l10n.goalsPrevYear,
-                            onTap: () => setState(() => _year--),
-                          ),
-                          _YearStep(
-                            icon: AppIcons.chevronRight,
-                            tooltip: context.l10n.goalsNextYear,
-                            onTap: () => setState(() => _year++),
-                          ),
-                        ],
+                        if (!wide) ...[const SizedBox(height: 14), segmented],
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    _Segmented(
-                      labels: [
-                        context.l10n.goalsModeYear,
-                        context.l10n.goalsModeMonth,
-                        context.l10n.goalsModeDay,
+                  ),
+                  Expanded(
+                    child: IndexedStack(
+                      index: _mode,
+                      children: [
+                        YearView(year: _year, wide: wide, side: side),
+                        MonthView(
+                          wide: wide,
+                          side: side,
+                          onYearChanged: (y) => setState(() => _years[0] = y),
+                          // 月頁點日曆：切到「日」並捲到該日（D-072）。
+                          onDayTap: (d) {
+                            setState(() => _mode = 2);
+                            _dayKey.currentState?.jumpToDay(d);
+                          },
+                        ),
+                        // 日：時間軸在寬版置中限寬（稿沒畫，沿用手機時間軸）。
+                        Align(
+                          alignment: Alignment.topCenter,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: wide ? 760 : double.infinity,
+                            ),
+                            child: DayView(
+                              timelineKey: _dayKey,
+                              onYearChanged: (y) =>
+                                  setState(() => _years[1] = y),
+                            ),
+                          ),
+                        ),
                       ],
-                      selected: _mode,
-                      onChanged: (i) => setState(() => _mode = i),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: IndexedStack(
-                  index: _mode,
-                  children: [
-                    YearView(year: _year),
-                    MonthView(
-                      onYearChanged: (y) => setState(() => _years[0] = y),
-                      // 月頁點日曆：切到「日」並捲到該日（D-072）。
-                      onDayTap: (d) {
-                        setState(() => _mode = 2);
-                        _dayKey.currentState?.jumpToDay(d);
-                      },
-                    ),
-                    DayView(
-                      timelineKey: _dayKey,
-                      onYearChanged: (y) => setState(() => _years[1] = y),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -234,19 +264,20 @@ class GoalList extends ConsumerWidget {
     required this.year,
     this.month,
     this.topGap,
+    this.wide = false,
   });
   final GoalPeriod period;
   final int year;
   final int? month;
 
+  /// iPad 並排版面：標題 17、「新增」是主色實心按鈕（Goal 稿）。
+  final bool wide;
+
   /// 標題上方的間距；預設年度 22（GoalEmpty）、月度 20，年度頁有商稿收入卡時是 20。
   final double? topGap;
 
-  void _new(BuildContext context) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => GoalNewPage(period: period, year: year, month: month),
-    ),
-  );
+  void _new(BuildContext context) =>
+      GoalNewPage.open(context, period: period, year: year, month: month);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -260,11 +291,16 @@ class GoalList extends ConsumerWidget {
       children: [
         GoalSectionRow(
           title: title,
+          titleSize: wide ? 17 : 16,
           padding: EdgeInsets.only(
             top: topGap ?? (period == GoalPeriod.year ? 22 : 20),
-            bottom: 10,
+            bottom: wide ? 4 : 10,
           ),
-          trailing: views.isEmpty ? null : AddLink(onTap: () => _new(context)),
+          trailing: views.isEmpty
+              ? null
+              : (wide
+                    ? AddButton(onTap: () => _new(context))
+                    : AddLink(onTap: () => _new(context))),
         ),
         if (views.isEmpty)
           DashedGoalEmpty(
@@ -371,15 +407,12 @@ class _GoalTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return GoalCard(
       view: view,
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => GoalNewPage(
-            period: period,
-            year: year,
-            month: month,
-            goalId: view.goal.id,
-          ),
-        ),
+      onTap: () => GoalNewPage.open(
+        context,
+        period: period,
+        year: year,
+        month: month,
+        goalId: view.goal.id,
       ),
     );
   }
