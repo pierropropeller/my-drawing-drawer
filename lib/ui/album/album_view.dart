@@ -9,13 +9,25 @@ import '../common/app_icons.dart';
 import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
+import '../common/window_class.dart';
 import 'album_actions.dart';
 import 'album_icons.dart';
 import 'album_image.dart';
 import 'image_masonry.dart';
 import 'image_preview_page.dart';
+import 'ipadlists_icons.dart';
 import 'move_sheet.dart';
 import 'tag_batch_sheet.dart';
+import 'wide_layout.dart';
+
+/// 寬版預覽面板的內容建構器：[image] 目前選取的圖，[openReference] 開參考檢視（目前＝全螢幕預覽），
+/// [dismiss] 圖被刪掉後關閉面板。
+typedef AlbumPanelBuilder = Widget Function(
+  BuildContext context,
+  AlbumImage image,
+  VoidCallback openReference,
+  VoidCallback dismiss,
+);
 
 /// 官方圖冊、同人圖、雜物共用：列表＋長按多選（下載／移動／tag／刪除，雜物沒有 tag、多一個分享）＋點擊預覽＋新增按鈕。
 /// 瀏覽時有底部導覽列，進入多選就隱藏（OfficialSelect／JunkSelect 沒畫 `<nav>`）。
@@ -40,6 +52,8 @@ class AlbumView extends ConsumerStatefulWidget {
     this.squares = false,
     this.shareInSelect = false,
     this.previewBuilder,
+    this.panelBuilder,
+    this.sectionTabs,
   });
 
   /// 這個列表是哪一格；多選的「移動」要用。省略就沒有「移動」。
@@ -53,6 +67,14 @@ class AlbumView extends ConsumerStatefulWidget {
 
   /// 點圖開啟的預覽頁；省略＝官方圖冊的 [ImagePreviewPage]。
   final Widget Function(List<AlbumImage> images, int index)? previewBuilder;
+
+  /// 平板的預覽面板（官方圖冊、同人圖才有）：≥840 固定在右側，600–839 點圖彈出底部 sheet，
+  /// ＜600 省略效果＝照舊進全螢幕預覽。
+  final AlbumPanelBuilder? panelBuilder;
+
+  /// 標題列下方（內容之上）的坑內分區 tab。
+  /// TODO(IPADPIT): 放 `PitSectionTabBar`（lib/ui/pits/pit_section_tabs.dart），由 Official／FanArt 頁傳入。
+  final Widget? sectionTabs;
 
   final String pitId;
   final String title;
@@ -91,6 +113,9 @@ class _AlbumViewState extends ConsumerState<AlbumView>
   bool _selecting = false;
   final Set<String> _selected = {};
 
+  /// 寬版預覽面板目前顯示的圖（狀態放在 State，拉窗不會丟）。
+  String? _panelId;
+
   void _toggle(AlbumImage im) {
     setState(() {
       if (!_selected.remove(im.id)) _selected.add(im.id);
@@ -121,6 +146,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
       widget.images.where((i) => _selected.contains(i.id)).toList();
 
   Future<void> _download() async {
+    if (_selected.isEmpty) return;
     final n = await downloadImages(ref, _picked);
     if (!mounted) return;
     showSnack(
@@ -132,11 +158,14 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     _exit();
   }
 
-  Future<void> _share() => shareImages(ref, _picked);
+  Future<void> _share() async {
+    if (_selected.isEmpty) return;
+    await shareImages(ref, _picked);
+  }
 
   Future<void> _move() async {
     final cell = widget.cell;
-    if (cell == null) return;
+    if (cell == null || _selected.isEmpty) return;
     final picked = _picked;
     // 所選圖都在同一個分組時預選它。
     final groups = {for (final p in picked) p.groupId};
@@ -179,7 +208,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
 
   Future<void> _tag() async {
     final cell = widget.cell;
-    if (cell == null) return;
+    if (cell == null || _selected.isEmpty) return;
     final applied = await showBatchTagSheet(
       context,
       pitId: widget.pitId,
@@ -191,6 +220,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
 
   Future<void> _delete() async {
     final picked = _picked;
+    if (picked.isEmpty) return;
     final ok = await confirmDelete(
       context,
       title: context.l10n.albumDeleteImagesTitle(picked.length),
@@ -200,11 +230,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     if (mounted) _exit();
   }
 
-  void _open(AlbumImage im, int i) {
-    if (_selecting) {
-      _toggle(im);
-      return;
-    }
+  void _openFullPreview(int i) {
     // 預覽頁自己會隱藏底部導覽列（HidesNavBar），走分頁的 Navigator，
     // 這樣 Android 返回手勢只會退一頁。
     Navigator.of(context).push(
@@ -216,6 +242,45 @@ class _AlbumViewState extends ConsumerState<AlbumView>
               images: widget.images,
               initialIndex: i,
             ),
+      ),
+    );
+  }
+
+  void _open(AlbumImage im, int i) {
+    if (_selecting) {
+      _toggle(im);
+      return;
+    }
+    final cls = WindowClass.of(context);
+    if (widget.panelBuilder != null && !cls.isCompact) {
+      if (cls.isWide) {
+        // 寬版：選中這張，右側面板顯示。
+        setState(() => _panelId = im.id);
+      } else {
+        _showPanelSheet(im);
+      }
+      return;
+    }
+    _openFullPreview(i);
+  }
+
+  /// 600–839：預覽面板放在底部 sheet。
+  Future<void> _showPanelSheet(AlbumImage im) async {
+    final index = widget.images.indexWhere((e) => e.id == im.id);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(ctx).height * 0.78,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: widget.panelBuilder!(ctx, im, () {
+              Navigator.pop(ctx);
+              _openFullPreview(index < 0 ? 0 : index);
+            }, () => Navigator.pop(ctx)),
+          ),
+        ),
       ),
     );
   }
@@ -237,7 +302,8 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     _selecting = !finished || _selected.isNotEmpty;
   });
 
-  Widget _grid() => widget.squares
+  Widget _grid({bool wide = false, bool showPanel = false, WideSpec? spec}) =>
+      widget.squares
       ? SquareGrid(
           images: widget.images,
           selecting: _selecting,
@@ -250,10 +316,42 @@ class _AlbumViewState extends ConsumerState<AlbumView>
           images: widget.images,
           selecting: _selecting,
           selected: _selected,
+          highlightId: showPanel ? _panelId : null,
+          padding: wide
+              ? EdgeInsets.fromLTRB(
+                  spec!.hpad,
+                  4,
+                  showPanel ? 0 : spec.hpad,
+                  96,
+                )
+              : const EdgeInsets.fromLTRB(20, 2, 20, 96),
           onLongPress: _longPress,
           onDragSelect: _dragSelect,
           onTap: _open,
         );
+
+  /// 寬版右側預覽面板：選了圖顯示該圖，沒選顯示提示。
+  Widget _panel(WideSpec spec) {
+    final sel = widget.images.where((e) => e.id == _panelId).firstOrNull;
+    return Padding(
+      padding: EdgeInsets.only(left: spec.gap, right: spec.hpad),
+      child: SizedBox(
+        width: spec.panel,
+        child: SidePanelFrame(
+          child: sel == null
+              ? WideEmptyHint(context.l10n.ipadListsPreviewEmpty)
+              : widget.panelBuilder!(
+                  context,
+                  sel,
+                  () => _openFullPreview(
+                    widget.images.indexWhere((e) => e.id == sel.id),
+                  ),
+                  () => setState(() => _panelId = null),
+                ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -262,6 +360,11 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     final pitName = ref.watch(pitProvider(widget.pitId)).value?.name;
     final total = widget.total ?? widget.images.length;
     final fullyEmpty = total == 0 && widget.images.isEmpty;
+    final cls = WindowClass.of(context);
+    // 寬版（≥840）且有預覽面板：列表＋右側面板；選取（多選）時面板收起。
+    final wide = cls.isWide && widget.panelBuilder != null;
+    final showPanel = wide && !_selecting;
+    final spec = WideSpec.of(MediaQuery.sizeOf(context).width);
     final serif = Theme.of(context).textTheme.titleLarge
         ?.copyWith(fontSize: 19, fontWeight: FontWeight.w700);
     return PopScope(
@@ -330,6 +433,15 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                 ]
               : [
                   ...widget.appBarActions,
+                  if (cls.isWide && widget.panelBuilder != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: WideIconButton(
+                        svg: IpadListsIcons.multiSelect,
+                        label: context.l10n.ipadListsMultiSelect,
+                        onTap: () => setState(() => _selecting = true),
+                      ),
+                    ),
                   Padding(
                     padding: EdgeInsets.only(
                       right: widget.searchAction == null ? 22 : 6,
@@ -439,21 +551,50 @@ class _AlbumViewState extends ConsumerState<AlbumView>
             : null,
         body: Column(
           children: [
-            if (!fullyEmpty) ?widget.filter,
+            ?widget.sectionTabs,
             Expanded(
-              child: widget.images.isEmpty
-                  ? EmptyState(
-                      icon: widget.emptyIcon,
-                      svg:
-                          widget.emptySvg ??
-                          (widget.emptyIcon == null ? AppIcons.image : null),
-                      text: widget.emptyLabel,
-                      color: widget.emptyColor,
-                      actionLabel:
-                          widget.emptyAction ?? context.l10n.albumAddImage,
-                      onAction: widget.onAdd,
-                    )
-                  : _grid(),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Column(
+                      children: [
+                        if (!fullyEmpty && widget.filter != null)
+                          // 寬版時 chips 與瀑布左緣對齊（chips 預設左邊距 20）。
+                          Padding(
+                            padding: EdgeInsets.only(
+                              left: wide ? spec.hpad - 20 : 0,
+                            ),
+                            child: widget.filter,
+                          ),
+                        Expanded(
+                          child: widget.images.isEmpty
+                              ? EmptyState(
+                                  icon: widget.emptyIcon,
+                                  svg:
+                                      widget.emptySvg ??
+                                      (widget.emptyIcon == null
+                                          ? AppIcons.image
+                                          : null),
+                                  text: widget.emptyLabel,
+                                  color: widget.emptyColor,
+                                  actionLabel:
+                                      widget.emptyAction ??
+                                      context.l10n.albumAddImage,
+                                  onAction: widget.onAdd,
+                                )
+                              : _grid(
+                                  wide: wide,
+                                  showPanel: showPanel,
+                                  spec: spec,
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (showPanel && !fullyEmpty) _panel(spec),
+                ],
+              ),
             ),
           ],
         ),

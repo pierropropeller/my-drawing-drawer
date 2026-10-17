@@ -8,6 +8,7 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import 'album_image.dart';
+import 'album_panels.dart';
 import 'album_view.dart';
 import 'group_manage_page.dart';
 import 'official_new_page.dart';
@@ -72,12 +73,21 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
       cell: AlbumCell.official,
       title: context.l10n.pitsOfficial,
       images: images,
+      // TODO(IPADPIT): sectionTabs: PitSectionTabBar(...)（lib/ui/pits/pit_section_tabs.dart），這裡是唯一的插入點。
       emptyLabel: context.l10n.albumOfficialEmpty,
       emptySvg: AppIcons.pitOfficial,
       total: total,
       emptyColor: t.official,
       onAdd: () => _add(groupId),
       onDelete: (picked) => db.deleteOfficial(picked.map((e) => e.id)),
+      panelBuilder: (context, image, openReference, dismiss) =>
+          OfficialPreviewPanel(
+            key: ValueKey(image.id),
+            pitId: widget.pitId,
+            image: image,
+            onReference: openReference,
+            onDismiss: dismiss,
+          ),
       filter: ChipRow(
         options: [for (final g in groups) (g.id, g.name)],
         selected: groupId,

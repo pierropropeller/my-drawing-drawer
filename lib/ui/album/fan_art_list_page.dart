@@ -8,6 +8,7 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import 'album_image.dart';
+import 'album_panels.dart';
 import 'album_view.dart';
 import 'fan_art_new_page.dart';
 import 'fan_art_preview_page.dart';
@@ -92,6 +93,7 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
       cell: AlbumCell.fan,
       title: context.l10n.pitsFanArt,
       images: images,
+      // TODO(IPADPIT): sectionTabs: PitSectionTabBar(...)（lib/ui/pits/pit_section_tabs.dart），這裡是唯一的插入點。
       emptyLabel: context.l10n.albumFanEmpty,
       emptySvg: AppIcons.pitFanArt,
       total: total,
@@ -114,6 +116,14 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
               fromDetail: true,
             ),
       ),
+      panelBuilder: (context, image, openReference, dismiss) =>
+          FanArtPreviewPanel(
+            key: ValueKey(image.id),
+            pitId: widget.pitId,
+            image: image,
+            onReference: openReference,
+            onDismiss: dismiss,
+          ),
       searchAction: SearchIconButton(pitId: widget.pitId),
       filter: Column(
         mainAxisSize: MainAxisSize.min,

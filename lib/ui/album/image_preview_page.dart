@@ -8,7 +8,6 @@ import '../common/app_icons.dart';
 import '../common/nav_bar_hidden.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
-import 'group_manage_page.dart';
 import 'preview_shell.dart';
 
 /// 官方圖冊的圖片預覽（ImagePreview）：深色全屏、圖片滿版；分享、下載、設為封面、編輯、刪除。
@@ -64,52 +63,14 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
 
   /// 編輯＝更換分組（官方圖只有分組一個欄位）。
   Future<void> _edit() async {
-    final db = ref.read(databaseProvider);
-    final im = _current;
-    final groups = await db.watchGroups(widget.pitId).first;
-    if (!mounted) return;
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      ctx.l10n.albumChangeGroup,
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => GroupManagePage(pitId: widget.pitId),
-                        ),
-                      );
-                    },
-                    child: Text(ctx.l10n.commonManage),
-                  ),
-                ],
-              ),
-            ),
-            for (final g in groups)
-              ListTile(
-                title: Text(g.name),
-                onTap: () => Navigator.pop(ctx, g.id),
-              ),
-          ],
-        ),
-      ),
+    final changed = await changeOfficialGroup(
+      context,
+      ref,
+      pitId: widget.pitId,
+      imageId: _current.id,
     );
-    if (picked != null) {
-      await db.setOfficialGroup(im.id, picked);
-      if (mounted) showSnack(context, context.l10n.albumGroupChanged);
+    if (changed && mounted) {
+      showSnack(context, context.l10n.albumGroupChanged);
     }
   }
 
