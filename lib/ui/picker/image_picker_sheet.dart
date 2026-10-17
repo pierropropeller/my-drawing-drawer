@@ -391,7 +391,7 @@ class _Pills extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
       child: Row(
         children: [
           for (final a in controller.albums) ...[

@@ -75,7 +75,8 @@ class _PitsPageState extends ConsumerState<PitsPage> {
             ),
             if (!nothingAtAll)
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                // 與列表的分組 pills 同一組間距（ChipRow：上 6、下 12）。
+                padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
                 child: Row(
                   children: [
                     _FilterChip(

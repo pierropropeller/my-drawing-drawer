@@ -167,41 +167,45 @@ class _PickerGridState extends State<PickerGrid> {
               itemCount: c.items.length,
               isSelected: c.isIndexSelected,
               onChanged: c.applyDrag,
-              child: Stack(
-                children: [
-                  CustomScrollView(
-                    controller: widget.scroll,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      SliverVariedExtentList.builder(
-                        itemCount: _rows.length,
-                        itemExtentBuilder: (i, _) => _extentOf(i),
-                        itemBuilder: _buildRow,
-                      ),
-                      const SliverToBoxAdapter(
-                        child: SizedBox(height: _kTailPadding),
-                      ),
-                    ],
-                  ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    top: 0,
-                    child: _StickyOverlay(
-                      scroll: widget.scroll,
-                      offset: _scrollOffset,
-                      dayAt: _dayAt,
-                      headerOffsets: _headerOffsets,
-                      controller: c,
-                      accent: widget.accent,
+              // 裁在格子區域內：被下一天標題推走的日期列要消失在相簿 pills 後面，
+              // 不能畫到 pills 上面。
+              child: ClipRect(
+                child: Stack(
+                  children: [
+                    CustomScrollView(
+                      controller: widget.scroll,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        SliverVariedExtentList.builder(
+                          itemCount: _rows.length,
+                          itemExtentBuilder: (i, _) => _extentOf(i),
+                          itemBuilder: _buildRow,
+                        ),
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: _kTailPadding),
+                        ),
+                      ],
                     ),
-                  ),
-                  _FastScroller(
-                    scroll: widget.scroll,
-                    accent: widget.accent,
-                    dateAt: _dayDateAt,
-                  ),
-                ],
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      child: _StickyOverlay(
+                        scroll: widget.scroll,
+                        offset: _scrollOffset,
+                        dayAt: _dayAt,
+                        headerOffsets: _headerOffsets,
+                        controller: c,
+                        accent: widget.accent,
+                      ),
+                    ),
+                    _FastScroller(
+                      scroll: widget.scroll,
+                      accent: widget.accent,
+                      dateAt: _dayDateAt,
+                    ),
+                  ],
+                ),
               ),
             );
           },
