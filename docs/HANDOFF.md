@@ -222,10 +222,11 @@
 Drive/App 專用資料夾/
   meta/            ← 每筆實體一個 JSON（或按坑分檔）
   images/{id}.jpg  ← 原圖
-  thumbs/{id}.jpg  ← 縮圖（可選，亦可本機生成）
+  thumbs/{id}.jpg  ← 縮圖（必做，長邊 480px，D-099）
 ```
 
-- **寫入**：本機 DB 寫完，把變更放進 `outbox` 佇列；有網絡就依序上傳。圖片先傳，meta 後傳。
+- **寫入**：本機 DB 寫完，把變更放進 `outbox` 佇列；有網絡就依序上傳。圖片（原圖＋縮圖）先傳，meta 後傳。
+- **下載次序**：meta → 全部縮圖 → 原圖（D-099）。同步 sheet 每行要有縮圖和「坑 · 格」位置。
 - **讀取**：App 在前台時按設定間隔拉取 Drive 變更（Drive Changes API／比對 `modifiedTime`），套用到本機。
 - **衝突**：以實體為單位，`updatedAt` 較新者勝（last-write-wins）。只有一個使用者、兩台裝置，這樣夠用。
 - **刪除**：軟刪除＋同步，過一段時間才真正清理。
