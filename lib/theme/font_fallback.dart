@@ -11,4 +11,12 @@ const List<String> kFontFamilyFallback = [
   'NotoSansKannada', // ಠ
   'NotoSansCanadianAboriginal', // ᐛ ᐕ
   'NotoSansYi', // ꒰ ꒱
+  // 第二批顏文字：其他文字系統的數字／符號。
+  'NotoSansArabic', // ٩ ۶ و
+  'NotoSansTelugu', // ౪
+  'NotoSansTamil', // இ
+  'NotoSansGurmukhi', // ੭
+  'NotoSansKhmer', // ៸
+  'NotoSansBatak', // ᯫ
+  'NotoSansMono', // ⎻ ╤ ╦ ─
 ];

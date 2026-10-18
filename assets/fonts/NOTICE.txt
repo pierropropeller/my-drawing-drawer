@@ -9,3 +9,4 @@ NotoSansThai-Regular               Copyright 2022 The Noto Project Authors (noto
 NotoSansKannada-Regular            Copyright 2022 The Noto Project Authors (notofonts/kannada)
 NotoSansCanadianAboriginal-Regular Copyright 2022 The Noto Project Authors (notofonts/canadian-aboriginal)
 NotoSansYi-Regular                 Copyright 2022 The Noto Project Authors (notofonts/yi)
+NotoSansArabic/Telugu/Tamil/Gurmukhi/Khmer/Batak/Mono-Regular  Copyright The Noto Project Authors (notofonts/<script>); Mono from google/fonts ofl/notosansmono

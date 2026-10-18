@@ -5,7 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/theme/font_fallback.dart';
 
-const _kaomoji = ['(≖ᴗ≖)✧', '(๑•̀ㅂ•́)و✧', 'ಠ_ಠ', 'ᐛ', '꒰ ꒱'];
+final _kaomoji = File('tool/kaomoji_samples.txt')
+    .readAsLinesSync()
+    .where((l) => l.isNotEmpty)
+    .toList();
 
 void main() {
   test('fallback 次序符合 D-090', () {
@@ -19,6 +22,13 @@ void main() {
       'NotoSansKannada',
       'NotoSansCanadianAboriginal',
       'NotoSansYi',
+      'NotoSansArabic',
+      'NotoSansTelugu',
+      'NotoSansTamil',
+      'NotoSansGurmukhi',
+      'NotoSansKhmer',
+      'NotoSansBatak',
+      'NotoSansMono',
     ]);
   });
 
