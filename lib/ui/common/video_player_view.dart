@@ -12,6 +12,7 @@ import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
+import 'dismissible_preview.dart';
 import 'media_badges.dart';
 import 'media_icons.dart';
 import 'media_source.dart';
@@ -371,6 +372,24 @@ class _VideoSurfaceState extends ConsumerState<VideoSurface> {
     }
   }
 
+  /// 點影片畫面。一般（詳情頁內嵌、全螢幕）只切換控制列；
+  /// 在全螢幕預覽頁裡（有 [PreviewScope]）要和頁面的標題列、操作列一起顯示／隱藏：
+  /// 控制列看得到＝全部收起，看不到＝全部叫出（暫停中也一樣可以收起來看畫面）。
+  void _onSurfaceTap() {
+    final preview = PreviewScope.maybeOf(context);
+    if (preview == null) {
+      _hide.toggle();
+      return;
+    }
+    if (_hide.visible) {
+      _hide.hide();
+      preview.setChrome(false);
+    } else {
+      _hide.show();
+      preview.setChrome(true);
+    }
+  }
+
   Future<void> _togglePlay() async {
     _hide.show();
     if (_p.isPlaying) {
@@ -425,7 +444,7 @@ class _VideoSurfaceState extends ConsumerState<VideoSurface> {
         children: [
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: _hide.toggle,
+            onTap: _onSurfaceTap,
             child: Center(
               child: AspectRatio(
                 aspectRatio: _p.aspectRatio,

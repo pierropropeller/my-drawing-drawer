@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/ref_view_queries.dart';
 import '../../state/providers.dart';
 import '../album/album_image.dart';
+import '../common/dismissible_preview.dart';
 import 'ref_geometry.dart';
 import 'ref_image.dart';
 
@@ -15,6 +16,8 @@ typedef RefOverlayBuilder = Widget Function(
   BuildContext context,
   ValueListenable<Matrix4> transform,
 );
+
+final _neverDragging = ValueNotifier<bool>(false);
 
 /// 灰階（檢視狀態，不改原檔）。
 const _grayFilter = ColorFilter.matrix(<double>[
@@ -59,6 +62,12 @@ class RefStageState extends ConsumerState<RefStage> {
   Size? _resolved;
   bool _sizeKnown = false;
 
+  // 在全螢幕預覽頁裡（有 PreviewScope）：不在「剛好 fit、置中」時回報成放大中（不觸發拖曳退出）；
+  // 拖曳退出開始時把這次手勢造成的平移還原，並在退出手勢進行中停用平移。
+  PreviewController? _preview;
+  Matrix4? _gestureStart;
+  bool _dragEngaged = false; // 這次手勢被拖曳退出接手過
+
   Size get _natural {
     final i = widget.image;
     if (i.width > 0 && i.height > 0) {
@@ -72,6 +81,38 @@ class RefStageState extends ConsumerState<RefStage> {
     super.initState();
     _sizeKnown = widget.image.width > 0 && widget.image.height > 0;
     if (!_sizeKnown) unawaited(_resolveSize());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final p = PreviewScope.maybeOf(context);
+    if (p == _preview) return;
+    _preview?.dragging.removeListener(_onPreviewDragging);
+    _preview = p;
+    _preview?.dragging.addListener(_onPreviewDragging);
+  }
+
+  void _onPreviewDragging() {
+    if (!_preview!.dragging.value) return;
+    _dragEngaged = true;
+    final start = _gestureStart;
+    if (start != null) _tc?.value = start.clone();
+  }
+
+  /// 是否剛好 fit 且置中（zoom≈1、位置≈中央）。
+  bool get _atRest {
+    final g = _geom;
+    final tc = _tc;
+    if (g == null || tc == null) return true;
+    final s = g.snapshotFrom(tc.value, widget.snapshot);
+    return (s.zoom - 1).abs() < 0.02 &&
+        (s.centerX - 0.5).abs() < 0.02 &&
+        (s.centerY - 0.5).abs() < 0.02;
+  }
+
+  void _reportZoomed() {
+    _preview?.setZoomed(this, !_atRest);
   }
 
   /// 資料裡沒有寬高時（舊資料）解碼一次取得。失敗就當成未知尺寸（鋪滿視窗）。
@@ -123,7 +164,10 @@ class RefStageState extends ConsumerState<RefStage> {
   /// 換掉矩陣：新建 controller（在 build 期間改 value 會通知 InteractiveViewer 重建而出錯）。
   void _swap(Matrix4 m) {
     final old = _tc;
-    _tc = TransformationController(m);
+    _tc = TransformationController(m)..addListener(_reportZoomed);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _reportZoomed();
+    });
     if (old != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
     }
@@ -152,6 +196,8 @@ class RefStageState extends ConsumerState<RefStage> {
     if (_geom != null && _tc != null) {
       widget.onChanged(_geom!.snapshotFrom(_tc!.value, widget.snapshot));
     }
+    _preview?.dragging.removeListener(_onPreviewDragging);
+    _preview?.setZoomed(this, false);
     _tc?.dispose();
     super.dispose();
   }
@@ -201,20 +247,42 @@ class RefStageState extends ConsumerState<RefStage> {
         return Stack(
           fit: StackFit.expand,
           children: [
-            ClipRect(
-              child: InteractiveViewer(
-                transformationController: _tc,
-                minScale: 0.2,
-                maxScale: 12,
-                // 鎖定縮放：雙指只能平移，不能縮放。
-                scaleEnabled: !snap.locked,
-                boundaryMargin: EdgeInsets.all(margin),
-                onInteractionEnd: (_) => commit(),
-                child: SizedBox(
-                  width: viewport.width,
-                  height: viewport.height,
-                  child: Center(
-                    child: SizedBox.fromSize(size: geom.fitted, child: image),
+            PreviewRawTap(
+              child: ClipRect(
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: _preview?.dragging ?? _neverDragging,
+                  builder: (context, dragging, child) => InteractiveViewer(
+                    transformationController: _tc,
+                    minScale: 0.2,
+                    maxScale: 12,
+                    // 鎖定縮放：雙指只能平移，不能縮放。拖曳退出進行中也不平移。
+                    scaleEnabled: !snap.locked && !dragging,
+                    panEnabled: !dragging,
+                    boundaryMargin: EdgeInsets.all(margin),
+                    onInteractionStart: (_) {
+                      _gestureStart = _tc?.value.clone();
+                      _dragEngaged = false;
+                    },
+                    onInteractionEnd: (_) {
+                      // 拖曳退出造成的平移不算數：還原，不存檔。
+                      // （指標事件先到拖曳退出的 Listener，所以這時 dragging 可能已經放掉。）
+                      if (_dragEngaged) {
+                        _dragEngaged = false;
+                        if (_gestureStart != null) {
+                          _tc?.value = _gestureStart!.clone();
+                        }
+                        return;
+                      }
+                      commit();
+                    },
+                    child: child!,
+                  ),
+                  child: SizedBox(
+                    width: viewport.width,
+                    height: viewport.height,
+                    child: Center(
+                      child: SizedBox.fromSize(size: geom.fitted, child: image),
+                    ),
                   ),
                 ),
               ),

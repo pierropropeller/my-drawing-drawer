@@ -7,6 +7,7 @@ import UIKit
   // 保留 channel，避免被釋放。
   private var mediaChannel: FlutterMethodChannel?
   private var appIconChannel: FlutterMethodChannel?
+  private var windowChannel: FlutterMethodChannel?
 
   override func application(
     _ application: UIApplication,
@@ -66,6 +67,41 @@ import UIKit
       }
     }
     appIconChannel = appIcon
+
+    // 視窗資訊（lib/ui/common/window_top_inset.dart）：iPad 視窗模式下頁面頂部要讓開視窗控制點。
+    // 取不到的欄位不放進去（Dart 端用保底值）；整個失敗回 nil。
+    let windowCh = FlutterMethodChannel(name: "io.molly.drawer/window", binaryMessenger: messenger)
+    windowCh.setMethodCallHandler { call, result in
+      switch call.method {
+      case "windowInsets":
+        DispatchQueue.main.async { result(AppDelegate.windowInsets()) }
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    windowChannel = windowCh
+  }
+
+  // MARK: - 視窗資訊
+
+  /// isPad、top（max(window safe inset top, 狀態列高度)）、leading、windowed（視窗小於整個螢幕）。
+  /// 只用長期穩定的 API（未使用 iOS 26 的 layoutGuide(for:)，避免舊 SDK 編譯失敗）。
+  private static func windowInsets() -> [String: Any]? {
+    let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+    guard let scene = scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first
+    else { return nil }
+    var out: [String: Any] = [:]
+    out["isPad"] = UIDevice.current.userInterfaceIdiom == .pad
+    let statusBar = Double(scene.statusBarManager?.statusBarFrame.height ?? 0)
+    if let win = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first {
+      out["top"] = max(Double(win.safeAreaInsets.top), statusBar)
+      out["leading"] = Double(win.safeAreaInsets.left)
+      let screen = scene.screen.bounds.size
+      out["windowed"] = win.bounds.width < screen.width - 1 || win.bounds.height < screen.height - 1
+    } else {
+      out["top"] = statusBar
+    }
+    return out
   }
 
   // MARK: - App 圖示

@@ -14,6 +14,7 @@ import 'state/providers.dart';
 import 'state/settings.dart';
 import 'theme/app_theme.dart';
 import 'ui/common/root_overlay_guard.dart';
+import 'ui/common/window_top_inset.dart';
 import 'ui/shell.dart';
 
 Future<void> main() async {
@@ -82,9 +83,10 @@ class HuaKengApp extends ConsumerWidget {
           accent: accent,
         ),
         themeMode: ref.watch(themeModeProvider),
-        builder: kDebugMode
-            ? (context, child) => InputDiagnosticsOverlay(child: child!)
-            : null,
+        // iPad：頁面頂部讓開視窗控制點／狀態列（見 TabletTopInsetGuard）；其他裝置原樣。
+        builder: (context, child) => TabletTopInsetGuard(
+          child: kDebugMode ? InputDiagnosticsOverlay(child: child!) : child!,
+        ),
         home: const AppShell(),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
 import '../common/app_icons.dart';
+import '../common/dismissible_preview.dart';
 import '../common/svg_icon.dart';
 import '../common/media_widgets.dart';
 
@@ -73,85 +74,95 @@ class PreviewShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: PreviewPalette.bg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
-              child: Row(
-                children: [
-                  IconButton(
-                    tooltip: context.l10n.commonBack,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints.tightFor(
-                      width: 40,
-                      height: 40,
-                    ),
-                    icon: const SvgIcon(
-                      AppIcons.back,
-                      color: PreviewPalette.text,
-                      strokeWidth: 1.9,
-                    ),
-                    onPressed: () => Navigator.of(context).maybePop(),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: PreviewPalette.text,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+    // 套用共用的預覽手勢（見 dismissible_preview.dart）：點一下圖片收起／叫出 UI、
+    // 垂直拖曳（或第一張往右／最後一張往左的水平拖曳）退出。
+    return DismissiblePreview(
+      background: PreviewPalette.bg,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: Column(
+            children: [
+              PreviewChrome(child: _header(context)),
+              Expanded(
+                child: PreviewMediaArea(
+                  pageController: controller,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: PreviewPageView(
+                      controller: controller,
+                      itemCount: media.length,
+                      onPageChanged: onPageChanged,
+                      // 圖片與 GIF 可縮放；影片用自己的控制列（同詳情頁），不縮放。
+                      itemBuilder: (_, i) => MediaViewer(
+                        media[i],
+                        active: i == currentIndex,
+                        zoomable: true,
                       ),
                     ),
-                  ),
-                  if (headerTrailing != null) ...[
-                    headerTrailing!,
-                    const SizedBox(width: 8),
-                  ],
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Text(
-                      counter,
-                      style: const TextStyle(
-                        color: PreviewPalette.muted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: PageView.builder(
-                  controller: controller,
-                  itemCount: media.length,
-                  onPageChanged: onPageChanged,
-                  // 圖片與 GIF 可縮放；影片用自己的控制列（同詳情頁），不縮放。
-                  itemBuilder: (_, i) => MediaViewer(
-                    media[i],
-                    active: i == currentIndex,
-                    zoomable: true,
                   ),
                 ),
               ),
-            ),
-            info,
-            Container(
-              padding: const EdgeInsets.fromLTRB(10, 6, 10, 18),
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Color(0x14FFFFFF))),
+              PreviewChrome(child: info),
+              PreviewChrome(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(10, 6, 10, 18),
+                  decoration: const BoxDecoration(
+                    border: Border(top: BorderSide(color: Color(0x14FFFFFF))),
+                  ),
+                  child: Row(
+                    children: [for (final a in actions) _ActionButton(a)],
+                  ),
+                ),
               ),
-              child: Row(children: [for (final a in actions) _ActionButton(a)]),
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _header(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: context.l10n.commonBack,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+            icon: const SvgIcon(
+              AppIcons.back,
+              color: PreviewPalette.text,
+              strokeWidth: 1.9,
+            ),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: PreviewPalette.text,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          if (headerTrailing != null) ...[
+            headerTrailing!,
+            const SizedBox(width: 8),
+          ],
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Text(
+              counter,
+              style: const TextStyle(color: PreviewPalette.muted, fontSize: 12),
+            ),
+          ),
+        ],
       ),
     );
   }
