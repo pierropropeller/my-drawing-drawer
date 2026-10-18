@@ -2505,6 +2505,54 @@ abstract class AppLocalizations {
   /// **'加圖來源'**
   String get ipadmediaMenuLabel;
 
+  /// No description provided for @ipadmediaSheetTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'加圖'**
+  String get ipadmediaSheetTitle;
+
+  /// No description provided for @ipadmediaSheetHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'照片可多選，並保留選取順序；檔案支援 CSP 匯出的 PNG／JPG。'**
+  String get ipadmediaSheetHint;
+
+  /// No description provided for @ipadmediaTilePhotos.
+  ///
+  /// In zh, this message translates to:
+  /// **'照片'**
+  String get ipadmediaTilePhotos;
+
+  /// No description provided for @ipadmediaTileFiles.
+  ///
+  /// In zh, this message translates to:
+  /// **'檔案'**
+  String get ipadmediaTileFiles;
+
+  /// No description provided for @ipadmediaTileMaterials.
+  ///
+  /// In zh, this message translates to:
+  /// **'素材庫'**
+  String get ipadmediaTileMaterials;
+
+  /// No description provided for @ipadmediaTileCamera.
+  ///
+  /// In zh, this message translates to:
+  /// **'拍照'**
+  String get ipadmediaTileCamera;
+
+  /// No description provided for @ipadmediaClipboardTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'剪貼簿'**
+  String get ipadmediaClipboardTitle;
+
+  /// No description provided for @ipadmediaClipboardSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'剛剛複製的圖片'**
+  String get ipadmediaClipboardSub;
+
   /// No description provided for @ipadmediaPhotos.
   ///
   /// In zh, this message translates to:

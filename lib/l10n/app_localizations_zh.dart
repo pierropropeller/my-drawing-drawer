@@ -1373,6 +1373,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ipadmediaMenuLabel => '加圖來源';
 
   @override
+  String get ipadmediaSheetTitle => '加圖';
+
+  @override
+  String get ipadmediaSheetHint => '照片可多選，並保留選取順序；檔案支援 CSP 匯出的 PNG／JPG。';
+
+  @override
+  String get ipadmediaTilePhotos => '照片';
+
+  @override
+  String get ipadmediaTileFiles => '檔案';
+
+  @override
+  String get ipadmediaTileMaterials => '素材庫';
+
+  @override
+  String get ipadmediaTileCamera => '拍照';
+
+  @override
+  String get ipadmediaClipboardTitle => '剪貼簿';
+
+  @override
+  String get ipadmediaClipboardSub => '剛剛複製的圖片';
+
+  @override
   String get ipadmediaPhotos => '從「照片」選取';
 
   @override
