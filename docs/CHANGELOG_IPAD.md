@@ -32,9 +32,9 @@
   - 參考圖檢視本來就是深色，不用改。
   - 需要逐一確認的元件：sidebar（260）、icon rail（84）、坑內分區 tab bar、列表＋詳情並排、form sheet（所有新增頁）、加圖 popover、同步頭像環＋popover、影片／GIF 預覽面板、拖放接收區（`rgba(61,42,36,.78)` 底＋accent 虛線框）。
   - Artboard：`MainDark`、`IdeasDark`、`SyncPopoverDark`、`MediaMenuDark`、`NewDraftDark`、`MediaDropDark`、`MediaVideoDark`、`MediaPickerDark`、`MediaMenu400Dark`。規則也寫在 `RespSpec` 底部。
-- **P-023** **iOS App 圖示補深色／tinted 版本**（iOS 18 起桌面可以選深色或單色圖示）。目前 `AppIcon.appiconset`、`IconHuati.appiconset` 只有一般版本。
-  - 用 Molly 手上的 `appicon-ios.zip`（Claude 在 2026-10-18 給的）覆蓋兩個 appiconset：每套有 `{key}-1024.png`（不透明）、`{key}-dark-1024.png`（透明底前景）、`{key}-tinted-1024.png`（單色），`Contents.json` 已寫好 `luminosity` appearances，只用單一 1024 尺寸（Xcode 會自動縮）。
-  - 注意 zip 內的 set 名稱是 `AppIcon-Huati`，專案現在用 `IconHuati`：**保留專案現有名稱**，把 zip 內容放進 `IconHuati.appiconset`，`ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES` 不用改。
+- **P-023** **iOS App 圖示補深色／tinted 版本**（iOS 18 起桌面可以選深色或單色圖示）。目前 `AppIcon.appiconset`、`IconHuati.appiconset` 只有一般版本。 ✅ 2026-10-19 圖示已覆蓋（真機驗證待確認）
+  - 用 Molly 給的 `appicon-ios.zip`（2026-10-19 版）：先刪掉兩個 appiconset 裡舊的 `Icon-App-*.png`，再把 zip 的 png＋`Contents.json` 覆蓋進去。每套有 `{key}-1024.png`（白底、無 alpha）、`{key}-dark-1024.png`（透明底前景）、`{key}-tinted-1024.png`（單色），`Contents.json` 已寫好 `luminosity` appearances，只用單一 1024 尺寸（Xcode 會自動縮）。
+  - zip 內的 set 名稱已對齊專案（`AppIcon`、`IconHuati`），Build Settings 和 Swift 切換程式都不用改。
   - 驗證：iPad 長按桌面 → 編輯 → 自訂 → 深色／著色，兩款圖示都要正常顯示。
 - **P-024** **相簿／相機權限說明文字加英文、日文**（目前 `Info.plist` 只有中文）。新增 `ios/Runner/en.lproj/InfoPlist.strings`、`ja.lproj/InfoPlist.strings`、`zh-Hant.lproj/InfoPlist.strings`，並在 Xcode 專案加入這幾個 localization：
   - `NSPhotoLibraryUsageDescription`：繁中沿用現有字句；英「Drawer needs access to your photo library to add images and videos to your collection.」；日「画匣は写真ライブラリにアクセスして、画像や動画を追加します。」
