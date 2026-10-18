@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../l10n/l10n.dart';
+import '../../theme/tokens.dart';
 import 'media_icons.dart';
+import 'svg_icon.dart';
 import 'media_source.dart';
 
 /// 標記的半透明深色底（MediaBadges artboard：`rgba(43,38,34,.62)`，固定色，不隨主題）。
@@ -150,6 +152,34 @@ class MediaPlayButton extends StatelessWidget {
         MediaIcons.playBig,
         width: MediaIcons.playBigWidth,
         height: MediaIcons.playBigHeight,
+      ),
+    ),
+  );
+}
+
+/// 影片還沒有 poster（正在補、或補不出來）時的佔位：深色底＋小 ▶，一看就知道是影片
+/// （不用米色的圖片佔位，避免被當成壞掉的圖）。顏色取自主題 token，不寫死。
+class VideoPlaceholder extends StatelessWidget {
+  const VideoPlaceholder({super.key});
+
+  /// 深色底：亮色主題用 `ink`（深棕）、深色主題用比 `surface` 更深一點的色。
+  static Color colorOf(BuildContext context) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return dark ? Color.lerp(t.surface, Colors.black, .45)! : t.ink;
+  }
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+    key: const ValueKey('videoPlaceholder'),
+    color: colorOf(context),
+    child: Center(
+      child: SvgIcon(
+        MediaIcons.play,
+        size: 26,
+        fill: 'currentColor',
+        strokeWidth: 0,
+        color: Colors.white.withValues(alpha: .6),
       ),
     ),
   );

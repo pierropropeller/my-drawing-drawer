@@ -698,7 +698,8 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
             file: widget.file,
             poster: widget.poster,
             builder: (context, poster) => poster == null || poster.isEmpty
-                ? const SizedBox.shrink()
+                // 沒有截圖：深色底（大 ▶ 疊在上面），不要讓播放鍵浮在米色頁面上。
+                ? ColoredBox(color: VideoPlaceholder.colorOf(context))
                 : StoredImage(poster, fit: BoxFit.contain, cacheWidth: 1000),
           ),
           if (_loading)
