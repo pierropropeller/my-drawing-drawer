@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 
 import 'album_queries.dart';
@@ -150,15 +152,58 @@ class PieceView {
 }
 
 /// 先取一次，之後每當相關資料表有變動就重新取。
+///
+/// 先訂閱資料表變動、再取第一次：取資料的期間（手機上可能要好幾百毫秒）有寫入的話，
+/// 不會漏掉，取完會再取一次。變動連續來時合併成一次；單次取資料失敗只送出錯誤，之後的變動仍會更新。
 Stream<T> watchAssembled<T>(
   AppDatabase db,
   Set<TableInfo> tables,
   Future<T> Function() load,
-) async* {
-  yield await load();
-  await for (final _ in db.tableUpdates(TableUpdateQuery.onAllTables(tables))) {
-    yield await load();
+) {
+  late final StreamController<T> out;
+  StreamSubscription<void>? sub;
+  var running = false;
+  var dirty = false;
+  var closed = false;
+
+  Future<void> pump() async {
+    if (running) {
+      dirty = true;
+      return;
+    }
+    running = true;
+    try {
+      do {
+        dirty = false;
+        try {
+          final value = await load();
+          if (closed) return;
+          out.add(value);
+        } catch (e, st) {
+          if (closed) return;
+          out.addError(e, st);
+        }
+      } while (dirty && !closed);
+    } finally {
+      running = false;
+    }
   }
+
+  out = StreamController<T>(
+    onListen: () {
+      sub = db
+          .tableUpdates(TableUpdateQuery.onAllTables(tables))
+          .listen((_) => unawaited(pump()));
+      unawaited(pump());
+    },
+    onCancel: () {
+      closed = true;
+      // 不等取消完成：在假時鐘的測試裡等它會卡住，真機上也沒有需要等的。
+      unawaited(sub?.cancel());
+      sub = null;
+    },
+  );
+  return out.stream;
 }
 
 extension EntityQueries on AppDatabase {
