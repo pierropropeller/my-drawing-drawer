@@ -49,7 +49,6 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
       ? PitStatus.shallow
       : PitStatus.active;
   final Set<PitSectionKey> _sections = {};
-  String? _cover;
 
   bool get _shallow => _status == PitStatus.shallow;
 
@@ -70,15 +69,9 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
           description: desc.isEmpty ? null : desc,
           status: _status,
           enabledSections: _shallow ? _sections : const {},
-          coverFile: _shallow ? _cover : null,
         );
     // 回傳新坑的 id（分享進來的「開新坑」要接著選它，D-053）。
     if (mounted) Navigator.of(context).pop(id);
-  }
-
-  Future<void> _pickCover() async {
-    final file = await pickShallowCoverFile(context, ref);
-    if (file != null && mounted) setState(() => _cover = file);
   }
 
   String? _validateName(String? v) =>
@@ -93,7 +86,6 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
         allowArchive: false,
         onChanged: (s) => setState(() => _status = s),
       ),
-      if (_shallow) PitCoverPickTile(file: _cover, onTap: _pickCover),
       PitFieldLabel(context.l10n.pitsFieldName),
       TextFormField(
         key: const ValueKey('pit-name'),

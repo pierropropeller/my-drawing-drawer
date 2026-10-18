@@ -77,10 +77,6 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
   /// 使用者已在確認框同意「關閉並刪除」的格子（存檔時才真的刪除）。
   final Set<PitSectionKey> _confirmedClose = {};
 
-  // 淺坑從相簿選的新封面（先暫存，按「儲存」才寫入；null＝清除）。
-  bool _shallowCoverTouched = false;
-  String? _shallowCover;
-
   // modal 的封面選擇：選了先暫存，按「儲存」才寫入（取消不動）。
   late String? _coverId = widget.pit.coverImageId;
   String? _coverKind; // 候選篩選：null＝全部，official／fan／piece
@@ -139,16 +135,6 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     });
   }
 
-  Future<void> _pickShallowCover() async {
-    final file = await pickShallowCoverFile(context, ref);
-    if (file != null && mounted) {
-      setState(() {
-        _shallowCoverTouched = true;
-        _shallowCover = file;
-      });
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -187,9 +173,6 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
       junkEnabled: _shallow ? null : _junk,
       deleteClosedContent: _shallow,
     );
-    if (_shallow && _shallowCoverTouched) {
-      await db.setPitCoverFile(pit.id, _shallowCover);
-    }
     if (_coverId != pit.coverImageId) {
       await db.setCover(pit.id, _coverId);
     }
@@ -239,11 +222,9 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
 
   Widget _coverSection(String? ownedCover) {
     final t = context.tokens;
-    // 淺坑：封面從手機相簿選（暫存的新封面優先）；現坑：從坑內的圖挑。
-    final coverFile = _shallow && _shallowCoverTouched
-        ? _shallowCover
-        : ownedCover;
-    final pick = _shallow ? _pickShallowCover : _pickCover;
+    // 淺坑和現坑一樣：封面從坑內的圖挑（圖都留在坑裡，之後找得到、下載得了）。
+    final coverFile = ownedCover;
+    final pick = _pickCover;
     final Widget tile;
     if (coverFile == null) {
       // 有圖但還沒設封面：虛線正方框＋號，點了進選擇封面。
@@ -382,69 +363,8 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     );
   }
 
-  /// modal 左欄（淺坑）：封面預覽，加上從手機相簿選圖的按鈕（淺坑通常還沒有坑內的圖可挑）。
-  Widget _shallowCoverPane() {
-    final t = context.tokens;
-    final l = context.l10n;
-    final own = ref.watch(coverFileProvider(widget.pit.id)).value;
-    final file = _shallowCoverTouched ? _shallowCover : own;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-      children: [
-        PitFieldLabel(l.pitsFieldCover),
-        SizedBox(
-          height: 190,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: SizedBox.expand(
-              child: file != null
-                  ? StoredImage(file, cacheWidth: 600)
-                  : ColoredBox(
-                      color: t.official.bg,
-                      child: Center(
-                        child: SvgIcon(
-                          AppIcons.image,
-                          size: 34,
-                          strokeWidth: 1.5,
-                          color: t.ink.withValues(alpha: .26),
-                        ),
-                      ),
-                    ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: GestureDetector(
-            onTap: _pickShallowCover,
-            child: Container(
-              height: 36,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: t.surface,
-                border: Border.all(color: t.border),
-                borderRadius: BorderRadius.circular(Radii.chip),
-              ),
-              child: Text(
-                file == null ? l.pitsSelectCover : l.pitsChangeCover,
-                style: TextStyle(
-                  color: t.text2,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   /// modal 左欄：封面預覽、從坑內選圖（篩選＋4 欄候選）。
   Widget _coverPane() {
-    if (_shallow) return _shallowCoverPane();
     final t = context.tokens;
     final l = context.l10n;
     final all =
@@ -711,7 +631,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                               value: _status,
                               onChanged: _setStatus,
                             ),
-                            if (hasImages || _shallow) _coverSection(coverFile),
+                            if (hasImages) _coverSection(coverFile),
                             PitFieldLabel(context.l10n.pitsFieldName),
                             TextFormField(
                               key: const ValueKey('pit-name'),

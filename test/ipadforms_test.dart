@@ -42,7 +42,8 @@ void main() {
     db = AppDatabase(NativeDatabase.memory());
     dir = await Directory.systemTemp.createTemp('ipadforms');
     await Directory('${dir.path}/images').create();
-    png = File('${dir.path}/one.png')..writeAsBytesSync(Uint8List.fromList(_png));
+    png = File('${dir.path}/one.png')
+      ..writeAsBytesSync(Uint8List.fromList(_png));
     pitId = await db.createPit(name: '坑A');
   });
   tearDown(() async {
@@ -158,12 +159,7 @@ void main() {
     group(name, () {
       tw('新增腦洞：存檔並關閉', (tester) async {
         final r = <Object?>[];
-        await pumpHost(
-          tester,
-          size,
-          (c) => openIdeaForm(c, pitId: pitId),
-          r,
-        );
+        await pumpHost(tester, size, (c) => openIdeaForm(c, pitId: pitId), r);
         expectMode(modal);
         expect(find.text('新增腦洞'), findsOneWidget);
         expect(find.text('建立腦洞'), findsOneWidget);
@@ -182,12 +178,7 @@ void main() {
 
       tw('取消不存', (tester) async {
         final r = <Object?>[];
-        await pumpHost(
-          tester,
-          size,
-          (c) => openDraftForm(c, pitId: pitId),
-          r,
-        );
+        await pumpHost(tester, size, (c) => openDraftForm(c, pitId: pitId), r);
         expectMode(modal);
         if (modal) {
           await tester.tap(find.text('取消'));
@@ -207,7 +198,8 @@ void main() {
         await pumpHost(
           tester,
           size,
-          (c) => openDraftForm(c, pitId: pitId, initialImages: [XFile(png.path)]),
+          (c) =>
+              openDraftForm(c, pitId: pitId, initialImages: [XFile(png.path)]),
           r,
         );
         expectMode(modal);
@@ -224,7 +216,8 @@ void main() {
         await pumpHost(
           tester,
           size,
-          (c) => openPieceForm(c, pitId: pitId, initialImages: [XFile(png.path)]),
+          (c) =>
+              openPieceForm(c, pitId: pitId, initialImages: [XFile(png.path)]),
           r,
         );
         expectMode(modal);
@@ -259,7 +252,9 @@ void main() {
         await reveal(tester, find.text('建立紀錄'));
         await tester.tap(find.text('建立紀錄'));
         await settleLong(tester);
-        final rows = await tester.runAsync(() => db.select(db.oshiRecords).get());
+        final rows = await tester.runAsync(
+          () => db.select(db.oshiRecords).get(),
+        );
         expect(rows!.single.title, '一週年展');
       });
 
@@ -268,7 +263,11 @@ void main() {
         await pumpHost(
           tester,
           size,
-          (c) => openOfficialNew(c, pitId: pitId, initialImages: [XFile(png.path)]),
+          (c) => openOfficialNew(
+            c,
+            pitId: pitId,
+            initialImages: [XFile(png.path)],
+          ),
           r,
         );
         expectMode(modal);
@@ -278,7 +277,9 @@ void main() {
         }
         await tester.tap(find.text('加入官方圖冊'));
         await settleLong(tester);
-        final rows = await tester.runAsync(() => db.select(db.officialImages).get());
+        final rows = await tester.runAsync(
+          () => db.select(db.officialImages).get(),
+        );
         expect(rows, hasLength(1));
         expect(find.text('新增官方圖'), findsNothing);
       });
@@ -288,7 +289,8 @@ void main() {
         await pumpHost(
           tester,
           size,
-          (c) => openFanArtNew(c, pitId: pitId, initialImages: [XFile(png.path)]),
+          (c) =>
+              openFanArtNew(c, pitId: pitId, initialImages: [XFile(png.path)]),
           r,
         );
         expectMode(modal);
@@ -332,7 +334,12 @@ void main() {
         tagIds: const [],
         images: [const NewImage(file: 'a.png')],
       );
-      await pumpHost(tester, landscape, (c) => openIdeaForm(c, pitId: pitId), []);
+      await pumpHost(
+        tester,
+        landscape,
+        (c) => openIdeaForm(c, pitId: pitId),
+        [],
+      );
       expect(find.byType(Dialog), findsOneWidget);
       await tester.enterText(find.byType(TextFormField).first, '標題X');
       final choose = find.text('選擇');
@@ -426,10 +433,12 @@ void main() {
       );
       expect(find.byType(Dialog), findsOneWidget);
       final box = tester.getRect(
-        find.descendant(
-          of: find.byType(Dialog),
-          matching: find.byType(SizedBox),
-        ).first,
+        find
+            .descendant(
+              of: find.byType(Dialog),
+              matching: find.byType(SizedBox),
+            )
+            .first,
       );
       expect(box.width, 720);
       expect(box.height, 760);

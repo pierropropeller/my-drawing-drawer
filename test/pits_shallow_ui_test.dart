@@ -24,16 +24,6 @@ import 'package:huakeng/ui/pits/pit_page.dart';
 import 'package:huakeng/ui/pits/pit_rows.dart';
 import 'package:huakeng/ui/pits/pit_type_widgets.dart';
 import 'package:huakeng/ui/pits/pits_page.dart';
-import 'package:image_picker/image_picker.dart';
-
-const _png1x1 = <int>[
-  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, //
-  0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-  0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
-  0x0D, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0xF8, 0xFF, 0xFF, 0x3F,
-  0x00, 0x05, 0xFE, 0x02, 0xFE, 0xA7, 0x35, 0x81, 0x84, 0x00, 0x00, 0x00,
-  0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
-];
 
 /// 淺坑／封存坑的 UI（D-088）：主頁三分頁、開新坑／編輯坑類型與格子開關、關閉格子的確認框、空白狀態、iPad 版面。
 void main() {
@@ -71,14 +61,6 @@ void main() {
   }
 
   /// 要等真正的檔案 I/O（匯入選到的圖）。
-  Future<void> settleLong(WidgetTester tester) async {
-    for (var i = 0; i < 30; i++) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 40)),
-      );
-      await tester.pump(const Duration(milliseconds: 50));
-    }
-  }
 
   List<Override> baseOverrides() => [
     databaseProvider.overrideWithValue(db),
@@ -457,7 +439,7 @@ void main() {
         findsNothing,
       );
       await tapSeg(tester, '淺坑');
-      expect(find.text('封面'), findsOneWidget);
+      expect(find.text('封面'), findsNothing); // 淺坑也沒有封面欄位
       expect(find.text('開啟的格子'), findsOneWidget);
       expect(find.byType(AppSwitch), findsNWidgets(7));
       for (final l in ['官方圖冊', '好看同人圖', '我的腦洞', '我的摸魚', '我的成圖', '推活', '雜物']) {
@@ -466,21 +448,11 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('建立淺坑：封面（單張選圖）、描述、開啟的格子都寫進去；也可以一個都不開', (tester) async {
+    testWidgets('建立淺坑：沒有封面欄位（封面之後從坑裡的圖挑）；描述、開啟的格子都寫進去', (tester) async {
       phoneView(tester);
-      final src = File('${tmp.path}/pick.png')..writeAsBytesSync(_png1x1);
-      await pumpLaunch(
-        tester,
-        const PitNewPage(),
-        overrides: [
-          pitCoverPickerProvider.overrideWithValue(
-            (_) async => [XFile(src.path)],
-          ),
-        ],
-      );
+      await pumpLaunch(tester, const PitNewPage());
       await tapSeg(tester, '淺坑');
-      await tester.tap(find.byType(DashedBox));
-      await settleLong(tester);
+      expect(find.byType(DashedBox), findsNothing); // 沒有手機相簿封面欄位
       await tester.enterText(find.byKey(const ValueKey('pit-name')), '新淺坑');
       await tester.enterText(find.byKey(const ValueKey('pit-desc')), '先看看');
       await tapSwitch(tester, '官方圖冊');
@@ -501,8 +473,7 @@ void main() {
       expect(p.description, '先看看');
       expect(p.enabledSections, {PitSectionKey.official, PitSectionKey.junk});
       expect(p.junkEnabled, isTrue);
-      expect(p.coverFile, isNotNull);
-      expect(File('${tmp.path}/images/${p.coverFile}').existsSync(), isTrue);
+      expect(p.coverFile, isNull); // 淺坑沒有手機相簿封面
       await unmount(tester);
     });
 
@@ -710,36 +681,32 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('淺坑：更換封面走相簿選圖器（單張），存檔寫入 coverFile', (tester) async {
+    testWidgets('淺坑沒有圖：不顯示封面區；有圖：和現坑一樣從坑內的圖挑', (tester) async {
       final id = (await tester.runAsync(
-        () => db.createPit(name: '淺', status: PitStatus.shallow),
+        () => db.createPit(
+          name: '淺',
+          status: PitStatus.shallow,
+          enabledSections: {PitSectionKey.official},
+        ),
       ))!;
-      final src = File('${tmp.path}/pick2.png')..writeAsBytesSync(_png1x1);
-      final pit = await pitOf(tester, id);
       phoneView(tester);
-      await pumpLaunch(
-        tester,
-        PitEditPage(pit: pit),
-        overrides: [
-          pitCoverPickerProvider.overrideWithValue(
-            (_) async => [XFile(src.path)],
-          ),
-        ],
-      );
-      // 淺坑沒有圖也有封面欄位（虛線＋號）
+      var pit = await pitOf(tester, id);
+      await pumpLaunch(tester, PitEditPage(pit: pit));
+      expect(find.text('更換封面'), findsNothing);
+      await unmount(tester);
+
+      await tester.runAsync(() => addOfficial(id, 1));
+      pit = await pitOf(tester, id);
+      phoneView(tester);
+      await pumpLaunch(tester, PitEditPage(pit: pit));
       await tester.tap(find.byType(DashedBox));
-      await settleLong(tester);
-      expect(find.text('更換封面'), findsOneWidget);
-      await tester.drag(find.byType(CustomScrollView), const Offset(0, -800));
       await settle(tester);
-      await tester.tap(find.text('儲存'));
-      await settle(tester);
-      expect((await pitOf(tester, id)).coverFile, isNotNull);
+      expect(find.byType(CoverPickPage), findsOneWidget);
       await unmount(tester);
     });
   });
 
-  group('封面區（現坑沒圖＝隱藏；淺坑＝手機相簿）', () {
+  group('封面區（沒圖＝隱藏；有圖＝從坑內的圖挑，淺坑同現坑）', () {
     testWidgets('現坑沒有圖：不顯示封面區（PitEdit-ntnf）', (tester) async {
       final pit = await pitOf(tester, active);
       phoneView(tester);
@@ -862,7 +829,7 @@ void main() {
       );
     }
 
-    testWidgets('NewPit modal 1194：類型分段；淺坑多出封面與格子清單', (tester) async {
+    testWidgets('NewPit modal 1194：類型分段；淺坑多出格子清單', (tester) async {
       setView(tester, 1194, 834);
       await pumpPage(
         tester,
