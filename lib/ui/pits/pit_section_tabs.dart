@@ -106,13 +106,25 @@ class PitSectionTabBar extends ConsumerStatefulWidget {
     String pitId,
     PitSection section,
   ) {
+    final settings = RouteSettings(name: 'pit-section-${section.name}');
+    final isCupertino = switch (Theme.of(context).platform) {
+      TargetPlatform.iOS || TargetPlatform.macOS => true,
+      _ => false,
+    };
     Navigator.of(context).pushReplacement(
-      PageRouteBuilder<void>(
-        settings: RouteSettings(name: 'pit-section-${section.name}'),
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
-        pageBuilder: (_, _, _) => section.page(pitId),
-      ),
+      // iOS：要有邊緣右滑返回，所以用走主題轉場（Cupertino）的 MaterialPageRoute，只是推入時不播動畫；
+      // 其他平台維持原本的無轉場 PageRouteBuilder（Android 返回行為不變）。
+      isCupertino
+          ? InstantPageRoute<void>(
+              settings: settings,
+              builder: (_) => section.page(pitId),
+            )
+          : PageRouteBuilder<void>(
+              settings: settings,
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+              pageBuilder: (_, _, _) => section.page(pitId),
+            ),
     );
   }
 
@@ -241,4 +253,13 @@ class _Tab extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 推入時不播轉場動畫、但仍使用主題的頁面轉場（iOS 為 Cupertino，因此有邊緣右滑返回）的路由。
+/// 手勢返回與 `pop` 的動畫照主題轉場走。
+class InstantPageRoute<T> extends MaterialPageRoute<T> {
+  InstantPageRoute({required super.builder, super.settings});
+
+  @override
+  Duration get transitionDuration => Duration.zero;
 }

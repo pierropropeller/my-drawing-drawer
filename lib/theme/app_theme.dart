@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -60,8 +61,15 @@ ThemeData buildTheme(
     textTheme: textTheme,
     dividerColor: t.border,
     // Android 預設的預測式返回轉場，外面包返回護欄（sheet 開著時返回只關 sheet）。
+    // iOS／macOS 必須明講用 Cupertino 轉場：`builders` 一旦給了 map，沒列到的平台
+    // 會退回 Zoom 轉場（Flutter 的 PageTransitionsTheme 行為），而 Zoom 轉場沒有
+    // 邊緣右滑返回手勢——這就是 iOS 上一般頁面不能滑回上一頁的原因。
     pageTransitionsTheme: const PageTransitionsTheme(
-      builders: {TargetPlatform.android: RootOverlayGuardTransitionsBuilder()},
+      builders: {
+        TargetPlatform.android: RootOverlayGuardTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      },
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: t.ground,

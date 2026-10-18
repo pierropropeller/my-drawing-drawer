@@ -79,15 +79,19 @@ Future<Set<String>> openReferenceViewer(
   final start = list.indexWhere(
     (e) => e.id == current.id && e.file == current.file,
   );
-  final removed = await navigator.push<Set<String>>(
+  // 被刪除的圖 id 由檢視器直接寫進 [removed]（不靠 pop 的回傳值），
+  // 這樣頁面不必用 `PopScope(canPop: false)` 攔截返回——攔截會讓 iOS 的邊緣右滑返回失效。
+  final removed = <String>{};
+  await navigator.push<Set<String>>(
     MaterialPageRoute<Set<String>>(
       builder: (_) => ReferenceViewerPage(
         images: list,
         initialIndex: start < 0 ? 0 : start,
+        removed: removed,
       ),
     ),
   );
-  return removed ?? const {};
+  return removed;
 }
 
 /// 預覽頁頂欄上的「參考檢視」入口 chip（Official／FanArt 預覽面板上的樣式）。
@@ -149,10 +153,14 @@ class ReferenceViewerPage extends StatefulWidget {
     super.key,
     required this.images,
     required this.initialIndex,
+    this.removed,
   });
 
   final List<RefImage> images;
   final int initialIndex;
+
+  /// 收集被刪除的圖 id（`RefImage.id`）；呼叫端在頁面關閉後讀它。null＝頁面自己收，不回傳。
+  final Set<String>? removed;
 
   @override
   State<ReferenceViewerPage> createState() => _ReferenceViewerPageState();
@@ -160,23 +168,17 @@ class ReferenceViewerPage extends StatefulWidget {
 
 class _ReferenceViewerPageState extends State<ReferenceViewerPage>
     with HidesNavBar<ReferenceViewerPage> {
-  final _removed = <String>{};
+  late final Set<String> _removed = widget.removed ?? <String>{};
 
   @override
   Widget build(BuildContext context) {
-    return PopScope<Set<String>>(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) Navigator.of(context).pop(_removed);
-      },
-      child: Scaffold(
-        backgroundColor: RefPalette.dark.pane,
-        body: ReferenceViewer(
-          images: widget.images,
-          initialIndex: widget.initialIndex,
-          onClose: () => Navigator.of(context).pop(_removed),
-          onRemoved: _removed.add,
-        ),
+    return Scaffold(
+      backgroundColor: RefPalette.dark.pane,
+      body: ReferenceViewer(
+        images: widget.images,
+        initialIndex: widget.initialIndex,
+        onClose: () => Navigator.of(context).pop(_removed),
+        onRemoved: _removed.add,
       ),
     );
   }
