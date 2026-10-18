@@ -17,6 +17,7 @@ import 'package:huakeng/ui/album/album_image.dart';
 import 'package:huakeng/ui/pits/pit_page.dart';
 import 'package:huakeng/main.dart';
 import 'package:huakeng/state/providers.dart';
+import 'package:huakeng/sync/sync_controller.dart';
 import 'package:huakeng/ui/common/app_switch.dart';
 import 'package:huakeng/ui/junk/junk_list_page.dart';
 import 'package:huakeng/ui/oshi/oshi_list_page.dart';
@@ -320,7 +321,17 @@ void main() {
       final id = await addImageAsync(db, pitId, 'cover.png');
       await db.setCover(pitId, id);
     });
+    // 沒連結同步：只畫缺圖占位，不顯示下載角標（D-052 一致規則）。
     await pumpApp(tester);
+    await settle(tester);
+    expect(find.bySemanticsLabel('尚未下載'), findsNothing);
+    await unmount(tester);
+
+    // 已連結同步：本機沒有的封面蓋淡色＋下載角標。
+    await pumpApp(
+      tester,
+      overrides: [syncLinkedProvider.overrideWithValue(true)],
+    );
     await settle(tester);
     expect(find.bySemanticsLabel('尚未下載'), findsOneWidget);
 
@@ -332,7 +343,10 @@ void main() {
     await unmount(tester);
 
     // 檔案已經在本機：重新進入主頁不再有遮罩。
-    await pumpApp(tester);
+    await pumpApp(
+      tester,
+      overrides: [syncLinkedProvider.overrideWithValue(true)],
+    );
     await settle(tester);
     expect(find.bySemanticsLabel('尚未下載'), findsNothing);
     await unmount(tester);

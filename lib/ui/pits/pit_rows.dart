@@ -122,21 +122,25 @@ class PitRow extends ConsumerWidget {
       child: SizedBox(
         width: 56,
         height: 56,
-        child: coverFile != null
-            ? StoredImage(coverFile, cacheWidth: 168, placeholderColor: tint)
-            : ColoredBox(
-                color: tint,
-                child: Center(
-                  child: Text(
-                    first,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: t.text2,
-                    ),
-                  ),
+        child: PitCoverImage(
+          file: coverFile,
+          hasCoverRef: pit.hasCoverRef,
+          cacheWidth: 168,
+          placeholderColor: tint,
+          fallback: ColoredBox(
+            color: tint,
+            child: Center(
+              child: Text(
+                first,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: t.text2,
                 ),
               ),
+            ),
+          ),
+        ),
       ),
     );
     return GestureDetector(

@@ -277,9 +277,13 @@ class PitPageTablet extends ConsumerWidget {
                     height: 76,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(18),
-                      child: coverFile != null
-                          ? StoredImage(coverFile, cacheWidth: 300)
-                          : coverPlaceholder(28),
+                      child: PitCoverImage(
+                        file: coverFile,
+                        hasCoverRef: pit.hasCoverRef,
+                        cacheWidth: 300,
+                        placeholderColor: t.official.bg,
+                        fallback: coverPlaceholder(28),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 18),
@@ -328,9 +332,13 @@ class PitPageTablet extends ConsumerWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      coverFile != null
-                          ? StoredImage(coverFile, cacheWidth: 900)
-                          : coverPlaceholder(40),
+                      PitCoverImage(
+                        file: coverFile,
+                        hasCoverRef: pit.hasCoverRef,
+                        cacheWidth: 900,
+                        placeholderColor: t.official.bg,
+                        fallback: coverPlaceholder(40),
+                      ),
                       Positioned(
                         right: 14,
                         bottom: 14,
