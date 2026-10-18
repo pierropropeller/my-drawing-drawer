@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../common/svg_icon.dart';
+import '../common/window_class.dart';
 import 'media_source_icons.dart';
 import 'media_source_services.dart';
 
@@ -114,28 +115,118 @@ PopoverPlacement computePopoverPlacement({
   return centered;
 }
 
-/// 打開加圖來源選單。選了回傳該項；點外面／返回回傳 null。
-/// [anchor] 是加圖格的螢幕範圍（沒有＝置中）。蓋在根 Navigator 上，不受頁面導覽影響。
+/// 打開加圖來源選單。選了回傳該項；點外面／返回／取消回傳 null。
+/// 視窗 ≥600：[anchor]（加圖格的螢幕範圍，沒有＝置中）旁的 popover（MediaMenu）；
+/// 視窗 ＜600（iPad 分屏約 400）：底部 action sheet，另有獨立的「取消」鈕（MediaMenu400）。
+/// 蓋在根 Navigator 上，不受頁面導覽影響。
 Future<AddSource?> showMediaSourceMenu(
   BuildContext context, {
   required AddSourceOptions options,
   Rect? anchor,
 }) {
+  final sheet = MediaQuery.sizeOf(context).width < WindowClass.mediumMin;
   return showGeneralDialog<AddSource>(
     context: context,
     useRootNavigator: true,
     barrierDismissible: true,
     barrierLabel: context.l10n.commonClose,
-    barrierColor: Colors.transparent,
-    transitionDuration: const Duration(milliseconds: 120),
-    transitionBuilder: (context, anim, _, child) =>
-        FadeTransition(opacity: anim, child: child),
-    pageBuilder: (context, _, _) => MediaSourcePopover(
-      options: options,
-      anchor: anchor,
-      onSelected: (s) => Navigator.of(context, rootNavigator: true).pop(s),
-    ),
+    barrierColor: sheet ? const Color(0x6B1E1A17) : Colors.transparent,
+    transitionDuration: Duration(milliseconds: sheet ? 220 : 120),
+    transitionBuilder: (context, anim, _, child) => sheet
+        ? SlideTransition(
+            position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+                .animate(
+                  CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+                ),
+            child: child,
+          )
+        : FadeTransition(opacity: anim, child: child),
+    pageBuilder: (context, _, _) {
+      void pick(AddSource s) =>
+          Navigator.of(context, rootNavigator: true).pop(s);
+      return sheet
+          ? MediaSourceActionSheet(options: options, onSelected: pick)
+          : MediaSourcePopover(
+              options: options,
+              anchor: anchor,
+              onSelected: pick,
+            );
+    },
   );
+}
+
+/// 窄視窗（＜600）的底部 action sheet（MediaMenu400）：左右各留 10、貼底留 14，
+/// 選單（圓角 18、「加圖來源」小標）下面另有一顆獨立的「取消」。
+class MediaSourceActionSheet extends StatelessWidget {
+  const MediaSourceActionSheet({
+    super.key,
+    required this.options,
+    required this.onSelected,
+  });
+
+  final AddSourceOptions options;
+  final ValueChanged<AddSource> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final mq = MediaQuery.of(context);
+    return Material(
+      type: MaterialType.transparency,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 14),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: mq.size.height - 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Flexible(
+                    child: MediaSourceMenu(
+                      options: options,
+                      onSelected: onSelected,
+                      sheet: true,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Semantics(
+                    button: true,
+                    child: Material(
+                      color: t.surface,
+                      borderRadius: BorderRadius.circular(18),
+                      child: InkWell(
+                        key: const Key('media-source-cancel'),
+                        borderRadius: BorderRadius.circular(18),
+                        onTap: () =>
+                            Navigator.of(context, rootNavigator: true).pop(),
+                        child: SizedBox(
+                          height: 56,
+                          child: Center(
+                            child: Text(
+                              context.l10n.commonCancel,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: t.ink,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// popover 本體：選單＋箭頭，位置由 [computePopoverPlacement] 決定。
@@ -260,10 +351,14 @@ class MediaSourceMenu extends StatelessWidget {
     super.key,
     required this.options,
     required this.onSelected,
+    this.sheet = false,
   });
 
   final AddSourceOptions options;
   final ValueChanged<AddSource> onSelected;
+
+  /// true＝底部 action sheet 版（MediaMenu400）：圓角 18、上下內距 6、頂端有「加圖來源」小標。
+  final bool sheet;
 
   @override
   Widget build(BuildContext context) {
@@ -298,20 +393,42 @@ class MediaSourceMenu extends StatelessWidget {
       container: true,
       label: l.ipadmediaMenuLabel,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: sheet ? 6 : 8),
         decoration: BoxDecoration(
           color: t.surface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x3D1E1B18),
-              blurRadius: 44,
-              offset: Offset(0, 16),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(sheet ? 18 : 16),
+          boxShadow: sheet
+              ? const [
+                  BoxShadow(
+                    color: Color(0x2E000000),
+                    blurRadius: 30,
+                    offset: Offset(0, 10),
+                  ),
+                ]
+              : const [
+                  BoxShadow(
+                    color: Color(0x3D1E1B18),
+                    blurRadius: 44,
+                    offset: Offset(0, 16),
+                  ),
+                ],
         ),
         child: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: rows),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (sheet)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 8, 0, 6),
+                  child: Text(
+                    l.ipadmediaMenuLabel,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12.5, color: t.text3),
+                  ),
+                ),
+              ...rows,
+            ],
+          ),
         ),
       ),
     );

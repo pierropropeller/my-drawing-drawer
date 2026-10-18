@@ -10,6 +10,7 @@ import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import '../common/window_class.dart';
+import '../reference/reference_viewer.dart';
 import 'album_actions.dart';
 import 'album_icons.dart';
 import 'album_image.dart';
@@ -20,7 +21,7 @@ import 'move_sheet.dart';
 import 'tag_batch_sheet.dart';
 import 'wide_layout.dart';
 
-/// 寬版預覽面板的內容建構器：[image] 目前選取的圖，[openReference] 開參考檢視（目前＝全螢幕預覽），
+/// 寬版預覽面板的內容建構器：[image] 目前選取的圖，[openReference] 開參考檢視（`openReferenceViewer`），
 /// [dismiss] 圖被刪掉後關閉面板。
 typedef AlbumPanelBuilder = Widget Function(
   BuildContext context,
@@ -246,6 +247,23 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     );
   }
 
+  /// 開參考圖檢視（RefFull／RefSplit／RespRef400／RespRef900，版型按檢視器自己的闊度）。
+  /// 預覽面板的「參考檢視」入口走這裡，不再退回手機版的深色預覽頁。
+  Future<void> _openReference(int i) async {
+    final pitName = ref.read(pitProvider(widget.pitId)).value?.name;
+    final title = pitName == null
+        ? widget.title
+        : context.l10n.albumTitleWithPit(pitName, widget.title);
+    await openReferenceViewer(
+      context,
+      images: [
+        for (final im in widget.images)
+          RefImage.fromAlbum(im, pitId: widget.pitId, title: title),
+      ],
+      index: i < 0 ? 0 : i,
+    );
+  }
+
   void _open(AlbumImage im, int i) {
     if (_selecting) {
       _toggle(im);
@@ -277,7 +295,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: widget.panelBuilder!(ctx, im, () {
               Navigator.pop(ctx);
-              _openFullPreview(index < 0 ? 0 : index);
+              _openReference(index);
             }, () => Navigator.pop(ctx)),
           ),
         ),
@@ -343,7 +361,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
               : widget.panelBuilder!(
                   context,
                   sel,
-                  () => _openFullPreview(
+                  () => _openReference(
                     widget.images.indexWhere((e) => e.id == sel.id),
                   ),
                   () => setState(() => _panelId = null),

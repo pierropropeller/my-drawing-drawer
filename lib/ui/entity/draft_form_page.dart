@@ -163,7 +163,15 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
         ? context.l10n.draftFormCreate
         : context.l10n.commonSave;
     final imageField = [
-      FormLabel(context.l10n.draftFormImages),
+      FormLabel(
+        // 彈出頁（form sheet／page sheet）標題帶張數：「摸魚圖 · 2 張」。
+        widget.asModal
+            ? context.l10n.ipadauditImagesCount(
+                context.l10n.draftFormImages,
+                _images.length,
+              )
+            : context.l10n.draftFormImages,
+      ),
       FormImageGrid(
         items: _images,
         size: 84,
@@ -241,6 +249,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
       return ModalFormShell(
         title: title,
         actionLabel: actionLabel,
+        compactActionLabel: isNew ? context.l10n.pitsCreate : null,
         loaded: _loaded,
         onAction: () {
           if (!_saving) _save();

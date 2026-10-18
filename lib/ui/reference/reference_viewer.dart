@@ -187,6 +187,39 @@ class _ReferenceViewerPageState extends State<ReferenceViewerPage>
   }
 }
 
+/// iPad 上官方圖冊／同人圖的「預覽頁」：不用手機版的深色預覽，整頁就是參考圖檢視
+/// （RefFull／RefSplit／RespRef400／RespRef900，版型按自己的闊度）。
+///
+/// 預覽頁（`ImagePreviewPage`／`FanArtPreviewPage`）在 [isTabletDevice] 時回傳它；
+/// 手機仍是原本的預覽頁。刪除等動作的結果由資料庫串流回到列表，不用回傳。
+class AlbumReferenceScreen extends StatelessWidget {
+  const AlbumReferenceScreen({
+    super.key,
+    required this.images,
+    required this.index,
+    required this.pitId,
+    required this.title,
+  });
+  final List<AlbumImage> images;
+  final int index;
+  final String pitId;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: RefPalette.dark.pane,
+    body: ReferenceViewer(
+      key: const ValueKey('album-reference'),
+      images: [
+        for (final i in images)
+          RefImage.fromAlbum(i, pitId: pitId, title: title),
+      ],
+      initialIndex: index,
+      onClose: () => Navigator.of(context).maybePop(),
+    ),
+  );
+}
+
 /// 自適應的參考圖檢視器本體（按自己的闊度切版型，見檔頭）。
 ///
 /// 需要 Material 祖先（[ReferenceViewerPage] 的 Scaffold 即可）。

@@ -43,6 +43,10 @@ Future<List<XFile>?> showAppImagePicker(
     barrierColor: const Color(0x8C000000), // rgba(0,0,0,.55)
     elevation: 0,
     enableDrag: false, // 拉高拉低由 DraggableScrollableSheet 處理
+    // 視窗 ≥600（MediaPicker）：置中、最寬 760、6 欄；較窄是全闊 4 欄（MediaPicker400）。
+    constraints: MediaQuery.sizeOf(context).width >= 600
+        ? const BoxConstraints(maxWidth: 760)
+        : null,
     builder: (_) => ImagePickerSheet(
       repository: repository ?? PhotoManagerGallery(),
       single: single,

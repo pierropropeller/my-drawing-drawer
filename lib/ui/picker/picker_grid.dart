@@ -79,19 +79,23 @@ class _PickerGridState extends State<PickerGrid> {
   List<double> _headerOffsets = const [];
   double _cell = 0;
 
+  /// 欄數：窄（＜560，手機與 iPad 分屏，MediaPicker400）4 欄；寬（MediaPicker 的置中 sheet）6 欄。
+  int _cols = 4;
+
   PickerController get c => widget.controller;
 
   void _layout(double width) {
     if (_version == c.layoutVersion && _width == width) return;
     _version = c.layoutVersion;
     _width = width;
-    _cell = (width - 3 * _kGap) / 4;
+    _cols = width >= 560 ? 6 : 4;
+    _cell = (width - (_cols - 1) * _kGap) / _cols;
     final rows = <_Row>[];
     for (var d = 0; d < c.days.length; d++) {
       rows.add(_Row.header(d));
       final n = c.days[d].items.length;
-      for (var s = 0; s < n; s += 4) {
-        rows.add(_Row.cells(d, s, math.min(4, n - s)));
+      for (var s = 0; s < n; s += _cols) {
+        rows.add(_Row.cells(d, s, math.min(_cols, n - s)));
       }
     }
     final offsets = <double>[0];
@@ -230,7 +234,7 @@ class _PickerGridState extends State<PickerGrid> {
       padding: EdgeInsets.only(bottom: lastInDay ? 0 : _kGap),
       child: Row(
         children: [
-          for (var k = 0; k < 4; k++) ...[
+          for (var k = 0; k < _cols; k++) ...[
             if (k > 0) const SizedBox(width: _kGap),
             Expanded(
               child: k < r.count

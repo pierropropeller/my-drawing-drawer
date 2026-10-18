@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../theme/tokens.dart';
 import '../media_source/media_menu_anchor.dart';
+import 'adaptive_modal.dart';
 import 'dashed_box.dart';
 
 /// 表單圖片格的拖曳排序（D-082，`ImageReorder`）。
@@ -31,6 +32,8 @@ class ReorderableImageGrid extends StatefulWidget {
     this.onReorder,
     this.spacing = 8,
     this.columns = 5,
+    this.dialogColumns = 3,
+    this.dialogSpacing = 12,
   });
 
   final int count;
@@ -42,6 +45,11 @@ class ReorderableImageGrid extends StatefulWidget {
   /// 傳 null＝用固定的 [size]。
   final int? columns;
   final double spacing;
+
+  /// 在置中 form sheet（≥600 的新增頁）裡的欄數／間距：稿是 3 欄方形、間距 12
+  /// （NewOfficial／NewFanArt／NewDraft／NewPiece／NewOshi）；傳 null＝用固定的 [size]（NewIdea 的 72×72）。
+  final int? dialogColumns;
+  final double dialogSpacing;
   final Widget Function(BuildContext context, int index, bool hideActions)
   itemBuilder;
 
@@ -94,7 +102,8 @@ class _ReorderableImageGridState extends State<ReorderableImageGrid> {
   }
 
   double _size = 84;
-  double get _pitch => _size + widget.spacing;
+  double _gap = 8;
+  double get _pitch => _size + _gap;
 
   Offset _slotOffset(int slot) =>
       Offset((slot % _cols) * _pitch, (slot ~/ _cols) * _pitch);
@@ -103,7 +112,7 @@ class _ReorderableImageGridState extends State<ReorderableImageGrid> {
   int _slotAt(Offset p) {
     final total = widget.count + (widget.trailing != null ? 1 : 0);
     final rows = (total + _cols - 1) ~/ _cols;
-    final height = rows * _pitch - widget.spacing;
+    final height = rows * _pitch - _gap;
     final last = widget.count - 1;
     if (p.dx < 0 || p.dx > _width || p.dy < 0 || p.dy > height) return last;
     final col = (p.dx ~/ _pitch).clamp(0, _cols - 1);
@@ -111,8 +120,12 @@ class _ReorderableImageGridState extends State<ReorderableImageGrid> {
     return (row * _cols + col).clamp(0, last);
   }
 
+  /// 格子區（Stack）自己的座標；橫向捲動時不能用整個元件的座標。
+  final _stackKey = GlobalKey();
+
   Offset _toLocal(Offset global) =>
-      (context.findRenderObject() as RenderBox).globalToLocal(global);
+      ((_stackKey.currentContext ?? context).findRenderObject() as RenderBox)
+          .globalToLocal(global);
 
   int? _hitIndex(Offset p) {
     if (p.dx < 0 || p.dy < 0) return null;
@@ -205,20 +218,37 @@ class _ReorderableImageGridState extends State<ReorderableImageGrid> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final sheet = AdaptiveModalScope.sheetOf(context);
+    final dialog = !sheet && AdaptiveModalScope.of(context);
     return LayoutBuilder(
       builder: (context, c) {
-        final cols = widget.columns;
-        _size = cols != null && c.maxWidth.isFinite
-            ? ((c.maxWidth - widget.spacing * (cols - 1)) / cols)
-                  .floorToDouble()
-                  .clamp(40.0, 400.0)
+        final total = widget.count + (widget.trailing != null ? 1 : 0);
+        // page sheet（NewXxx400）：76 的縮圖排成一列、往右捲（gap 10）。
+        final horizontal = sheet;
+        _gap = horizontal
+            ? 10
+            : dialog
+            ? widget.dialogSpacing
+            : widget.spacing;
+        final cols = dialog ? widget.dialogColumns : widget.columns;
+        _size = horizontal
+            ? 76
+            : cols != null && c.maxWidth.isFinite
+            ? ((c.maxWidth - _gap * (cols - 1)) / cols).floorToDouble().clamp(
+                40.0,
+                400.0,
+              )
             : widget.size;
         final size = _size;
-        _width = c.maxWidth.isFinite ? c.maxWidth : 5 * _pitch;
-        _cols = ((_width + widget.spacing) ~/ _pitch).clamp(1, 1 << 20);
-        final total = widget.count + (widget.trailing != null ? 1 : 0);
+        if (horizontal) {
+          _cols = total < 1 ? 1 : total;
+          _width = _cols * _pitch - _gap;
+        } else {
+          _width = c.maxWidth.isFinite ? c.maxWidth : 5 * _pitch;
+          _cols = ((_width + _gap) ~/ _pitch).clamp(1, 1 << 20);
+        }
         final rows = total == 0 ? 0 : (total + _cols - 1) ~/ _cols;
-        final height = rows == 0 ? 0.0 : rows * _pitch - widget.spacing;
+        final height = rows == 0 ? 0.0 : rows * _pitch - _gap;
 
         // 各圖目前的格位：被拖的那張抽掉、插到 _slot，其餘依序排。
         final from = _from;
@@ -245,7 +275,8 @@ class _ReorderableImageGridState extends State<ReorderableImageGrid> {
         }
 
         final stack = SizedBox(
-          width: double.infinity,
+          key: _stackKey,
+          width: horizontal ? _width : double.infinity,
           height: height,
           child: Stack(
             clipBehavior: Clip.none,
@@ -280,25 +311,36 @@ class _ReorderableImageGridState extends State<ReorderableImageGrid> {
             ],
           ),
         );
-        if (widget.onReorder == null) return stack;
-        return RawGestureDetector(
-          behavior: HitTestBehavior.translucent,
-          gestures: {
-            LongPressGestureRecognizer:
-                GestureRecognizerFactoryWithHandlers<
-                  LongPressGestureRecognizer
-                >(
-                  () => LongPressGestureRecognizer(
-                    duration: const Duration(milliseconds: 300),
+        Widget wrap(Widget child) => horizontal
+            ? SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                clipBehavior: Clip.none,
+                // 「×」凸出縮圖右上角 6px，上方留 6（稿：padding-top 6）。
+                padding: const EdgeInsets.only(top: 6, right: 6),
+                child: child,
+              )
+            : child;
+        if (widget.onReorder == null) return wrap(stack);
+        return wrap(
+          RawGestureDetector(
+            behavior: HitTestBehavior.translucent,
+            gestures: {
+              LongPressGestureRecognizer:
+                  GestureRecognizerFactoryWithHandlers<
+                    LongPressGestureRecognizer
+                  >(
+                    () => LongPressGestureRecognizer(
+                      duration: const Duration(milliseconds: 300),
+                    ),
+                    (r) => r
+                      ..onLongPressStart = _start
+                      ..onLongPressMoveUpdate = ((d) => _move(d.globalPosition))
+                      ..onLongPressEnd = ((_) => _end())
+                      ..onLongPressCancel = _cancel,
                   ),
-                  (r) => r
-                    ..onLongPressStart = _start
-                    ..onLongPressMoveUpdate = ((d) => _move(d.globalPosition))
-                    ..onLongPressEnd = ((_) => _end())
-                    ..onLongPressCancel = _cancel,
-                ),
-          },
-          child: stack,
+            },
+            child: stack,
+          ),
         );
       },
     );

@@ -11,6 +11,7 @@ import '../../data/image_store.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../album/album_actions.dart' show showSnack;
+import '../common/device_class.dart';
 import '../common/window_class.dart';
 import 'material_pick_sheet.dart';
 import 'media_menu_anchor.dart';
@@ -22,8 +23,9 @@ typedef ProviderReader = T Function<T>(ProviderListenable<T> provider);
 
 /// 表單「加圖」的唯一入口（iPad：MediaMenu）。
 ///
-/// - 視窗 ＜600（手機）：直接開自家選擇器（D-084），和以前完全一樣。
+/// - 視窗 ＜600 的手機：直接開自家選擇器（D-084），和以前完全一樣。
 /// - 視窗 ≥600：在加圖格旁彈出來源選單（照片／檔案／素材庫／拍照／貼上），選了再走對應流程。
+/// - 視窗 ＜600 的 iPad（分屏約 400）：同一份選項改成底部 action sheet（MediaMenu400）。
 ///
 /// 回傳選到的檔案（可直接交給 `importPickedMedia`）；取消或失敗回傳空清單。
 /// 所有呼叫 `ref.read(imagePickerProvider)(context)` 的地方經由 [imagePickerProvider] 自動走這裡；
@@ -37,7 +39,10 @@ Future<List<XFile>> pickImagesWith(
   ProviderReader read,
 ) async {
   final direct = read(photoPickerProvider);
-  if (WindowClass.of(context).isCompact) return direct(context);
+  // 手機（＜600 的非 iPad）：直接開自家選擇器；iPad 分屏窄視窗（約 400）改開底部 action sheet。
+  if (WindowClass.of(context).isCompact && !isTabletDevice(context)) {
+    return direct(context);
+  }
 
   final services = read(mediaSourceServicesProvider);
   final anchor = MediaMenuAnchor.take();

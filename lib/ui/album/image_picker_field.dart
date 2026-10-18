@@ -8,6 +8,7 @@ import '../../data/album_queries.dart';
 import '../../data/image_store.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
+import '../common/add_tile_content.dart';
 import '../common/app_icons.dart';
 import '../../data/media.dart';
 import '../../media/media_import.dart';
@@ -198,11 +199,7 @@ class ImagePickerField extends ConsumerWidget {
                     color: t.dashed,
                     radius: Radii.image,
                     child: Center(
-                      child: SvgIcon(
-                        AppIcons.plus,
-                        size: 26,
-                        color: t.dashedText,
-                      ),
+                      child: AddTileContent(label: context.l10n.albumAddImage),
                     ),
                   ),
                 ),

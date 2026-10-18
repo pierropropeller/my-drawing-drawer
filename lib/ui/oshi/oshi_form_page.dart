@@ -205,7 +205,15 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage>
         ? context.l10n.oshiFormCreate
         : context.l10n.commonSave;
     final imageField = [
-      FormLabel(context.l10n.oshiFieldImages),
+      FormLabel(
+        // 彈出頁（form sheet／page sheet）標題帶張數：「圖片 · 2 張」。
+        widget.asModal
+            ? context.l10n.ipadauditImagesCount(
+                context.l10n.oshiFieldImages,
+                _images.length,
+              )
+            : context.l10n.oshiFieldImages,
+      ),
       ImagePickerField(
         items: _images,
         onAdd: _addImages,
@@ -301,6 +309,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage>
       return ModalFormShell(
         title: title,
         actionLabel: actionLabel,
+        compactActionLabel: _isNew ? context.l10n.pitsCreate : null,
         loaded: _loaded,
         onAction: () {
           if (!_saving) _save(validIds);

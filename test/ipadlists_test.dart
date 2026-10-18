@@ -18,6 +18,7 @@ import 'package:huakeng/state/settings.dart';
 import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/ui/album/fan_art_list_page.dart';
 import 'package:huakeng/ui/album/fan_art_preview_page.dart';
+import 'package:huakeng/ui/reference/reference_viewer.dart';
 import 'package:huakeng/ui/album/image_preview_page.dart';
 import 'package:huakeng/ui/album/official_list_page.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
@@ -268,7 +269,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('同人圖面板：作者、沒有分享鈕；參考檢視入口退回全螢幕預覽', (tester) async {
+    testWidgets('同人圖面板：作者、沒有分享鈕；參考檢視入口開參考圖檢視（不是手機預覽）', (tester) async {
       await show(tester, FanArtListPage(pitId: pitId), big);
       final l = AppLocalizations.of(tester.element(find.byType(Scaffold)));
       await tester.tap(firstThumb());
@@ -278,7 +279,8 @@ void main() {
       expect(find.text(l.commonShare), findsNothing);
       await tester.tap(find.text(l.ipadListsReferenceView));
       await settle(tester);
-      expect(find.byType(FanArtPreviewPage), findsOneWidget);
+      expect(find.byType(ReferenceViewerPage), findsOneWidget);
+      expect(find.byType(FanArtPreviewPage), findsNothing);
       await unmount(tester);
     });
 

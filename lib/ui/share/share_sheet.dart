@@ -19,6 +19,7 @@ import '../album/album_actions.dart';
 import '../album/image_picker_field.dart' show ImageItem, ImageItemThumb;
 import '../common/adaptive_modal.dart';
 import '../common/dashed_box.dart';
+import '../common/device_class.dart';
 import '../common/svg_icon.dart';
 import '../entity/entity_widgets.dart';
 import '../goals/pit_pill.dart' show mockLine;
@@ -125,8 +126,10 @@ const _kMaterialKey = 'shareLastMaterial';
 
 /// 分享進來的「加入到」bottom sheet（ShareImport，D-053／D-059／D-064）。
 ///
-/// 視窗 ≥840（iPad 設計稿 ShareImport）改成置中的 720×760 對話框：取消／標題／張數 標題列、
-/// 位置 7 欄一排；其餘欄位與手機版相同。較窄維持 bottom sheet。
+/// 視窗 ≥600（iPad 設計稿 ShareImport）改成置中的 720×760 sheet：取消／標題／張數 標題列、
+/// 位置 7 欄一排、坑用換行排列、作者和出處左右並排；
+/// 視窗 ＜600 的 iPad（分屏約 400，ShareImport400）是全闊 page sheet：位置 4 欄一排、作者／出處上下排。
+/// 手機維持 bottom sheet。
 Future<ShareChoice?> showShareSheet(
   BuildContext context, {
   required List<String> paths,
@@ -134,21 +137,20 @@ Future<ShareChoice?> showShareSheet(
   ShareSection? section,
   String? groupId,
 }) {
-  if (MediaQuery.sizeOf(context).width >= WindowClass.expandedMin) {
-    return showDialog<ShareChoice>(
-      context: context,
-      useRootNavigator: true,
+  if (MediaQuery.sizeOf(context).width >= WindowClass.mediumMin ||
+      isTabletDevice(context)) {
+    return showAdaptiveModal<ShareChoice>(
+      context,
+      width: 720,
+      height: 760,
       barrierColor: const Color(0x591E1A17),
-      builder: (_) => AdaptiveModalDialog(
-        width: 720,
-        height: 760,
-        child: ShareSheet(
-          paths: paths,
-          initialPitId: pitId,
-          initialSection: section,
-          initialGroupId: groupId,
-          asDialog: true,
-        ),
+      sheetChrome: false,
+      builder: (_, _) => ShareSheet(
+        paths: paths,
+        initialPitId: pitId,
+        initialSection: section,
+        initialGroupId: groupId,
+        asDialog: true,
       ),
     );
   }
@@ -327,6 +329,54 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
       media.size.height - media.viewInsets.bottom - media.padding.top,
     );
     final asDialog = widget.asDialog;
+    // 彈出頁在窄視窗（＜600，ShareImport400）是 page sheet。
+    final narrow = asDialog && AdaptiveModalScope.sheetOf(context);
+    final pitChips = <Widget>[
+      for (final p in pits)
+        _PitChip(
+          pit: p,
+          selected: p.id == pit?.id,
+          onTap: () => setState(() {
+            if (_pitId != p.id) {
+              _groupId = null;
+              _fanGroupId = null;
+              _tagIds.clear();
+            }
+            _pitId = p.id;
+          }),
+        ),
+    ];
+    final authorField = TextField(
+      key: const ValueKey('shareAuthor'),
+      controller: _author,
+      style: TextStyle(fontSize: 15, color: t.ink),
+      decoration: InputDecoration(
+        isDense: true,
+        filled: true,
+        fillColor: t.surface,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 10,
+        ),
+        border: _fieldBorder(context),
+        enabledBorder: _fieldBorder(context),
+        focusedBorder: _fieldBorder(context),
+      ),
+    );
+    final sourceChips = <Widget>[
+      for (final g in fanGroups)
+        _GroupChip(
+          label: g.name,
+          selected: g.id == fanGroup?.id,
+          // 再點一次已選的出處＝取消（出處可留空）。
+          onTap: () =>
+              setState(() => _fanGroupId = g.id == fanGroup?.id ? null : g.id),
+        ),
+    ];
+    final newPitChip = _NewPitChip(
+      label: l.pitsNewTitle,
+      onTap: () => _finish(ShareAction.newPit, pit?.id, section, group?.id),
+    );
     final sheet = Column(
       mainAxisSize: asDialog ? MainAxisSize.max : MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -439,48 +489,33 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
                   ),
                 ] else ...[
                   _Label(l.shareFieldPit),
-                  SizedBox(
-                    height: 38,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      children: [
-                        for (final p in pits)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: _PitChip(
-                              pit: p,
-                              selected: p.id == pit?.id,
-                              onTap: () => setState(() {
-                                if (_pitId != p.id) {
-                                  _groupId = null;
-                                  _fanGroupId = null;
-                                  _tagIds.clear();
-                                }
-                                _pitId = p.id;
-                              }),
+                  if (asDialog)
+                    // 對話框／page sheet：坑換行排列（ShareImport／ShareImport400）。
+                    _ChipWrap(children: [...pitChips, newPitChip])
+                  else
+                    SizedBox(
+                      height: 38,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        children: [
+                          for (final c in pitChips)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: c,
                             ),
-                          ),
-                        _NewPitChip(
-                          label: l.pitsNewTitle,
-                          onTap: () => _finish(
-                            ShareAction.newPit,
-                            pit?.id,
-                            section,
-                            group?.id,
-                          ),
-                        ),
-                      ],
+                          newPitChip,
+                        ],
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 14),
                   _Label(l.shareFieldPosition),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: LayoutBuilder(
                       builder: (_, c) {
-                        // 手機 4 欄、對話框 7 欄（一排），欄距 8。
-                        final cols = asDialog ? 7 : 4;
+                        // 手機和 page sheet 4 欄、對話框 7 欄（一排），欄距 8。
+                        final cols = asDialog && !narrow ? 7 : 4;
                         final w = (c.maxWidth - 8 * (cols - 1)) / cols;
                         return Wrap(
                           spacing: 8,
@@ -518,45 +553,48 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
                   ],
                   if (section == ShareSection.fan) ...[
                     const SizedBox(height: 14),
-                    _Label(l.albumFieldAuthor),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: TextField(
-                        key: const ValueKey('shareAuthor'),
-                        controller: _author,
-                        style: TextStyle(fontSize: 15, color: t.ink),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          filled: true,
-                          fillColor: t.surface,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          border: _fieldBorder(context),
-                          enabledBorder: _fieldBorder(context),
-                          focusedBorder: _fieldBorder(context),
-                        ),
-                      ),
-                    ),
-                    if (fanGroups.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      _Label(l.albumFieldSource),
-                      _ChipWrap(
-                        children: [
-                          for (final g in fanGroups)
-                            _GroupChip(
-                              label: g.name,
-                              selected: g.id == fanGroup?.id,
-                              // 再點一次已選的出處＝取消（出處可留空）。
-                              onTap: () => setState(
-                                () => _fanGroupId = g.id == fanGroup?.id
-                                    ? null
-                                    : g.id,
+                    if (asDialog && !narrow)
+                      // 對話框（ShareImport）：作者 220 寬在左、出處在右並排。
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 220,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _Label(l.albumFieldAuthor, left: 2),
+                                  authorField,
+                                ],
                               ),
                             ),
-                        ],
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _Label(l.albumFieldSource, left: 2),
+                                  _ChipWrap(pad: false, children: sourceChips),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else ...[
+                      // 手機和 page sheet（ShareImport400）：作者、出處上下排。
+                      _Label(l.albumFieldAuthor),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: authorField,
                       ),
+                      if (fanGroups.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        _Label(l.albumFieldSource),
+                        _ChipWrap(children: sourceChips),
+                      ],
                     ],
                   ],
                   if (section.hasTags && pit != null) ...[
@@ -715,23 +753,27 @@ class _DestToggle extends StatelessWidget {
 }
 
 class _ChipWrap extends StatelessWidget {
-  const _ChipWrap({required this.children});
+  const _ChipWrap({required this.children, this.pad = true});
   final List<Widget> children;
+
+  /// 左右各留 20（單獨一列時）；放進別的版面裡時傳 false。
+  final bool pad;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 20),
+    padding: EdgeInsets.symmetric(horizontal: pad ? 20 : 0),
     child: Wrap(spacing: 6, runSpacing: 6, children: children),
   );
 }
 
 class _Label extends StatelessWidget {
-  const _Label(this.text);
+  const _Label(this.text, {this.left = 22});
   final String text;
+  final double left;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(22, 0, 20, 8),
+    padding: EdgeInsets.fromLTRB(left, 0, 20, 8),
     child: Text(
       text,
       style: TextStyle(

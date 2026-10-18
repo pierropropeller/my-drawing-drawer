@@ -17,13 +17,15 @@ import '../common/svg_icon.dart';
 import 'pit_form.dart';
 import 'pit_type_widgets.dart';
 
-/// 編輯坑的單一入口：視窗 ≥840 開置中 modal（PitEdit，860×690，縮到不超出視窗），
+/// 編輯坑的單一入口：視窗 ≥600 開置中 modal（PitEdit，860×690，縮到不超出視窗），
 /// 較窄開整頁（手機版）。刪除坑後會回到主頁（越過坑內頁）。
 Future<void> openPitEdit(BuildContext context, Pit pit) async {
   final deleted = await showAdaptiveModal<bool>(
     context,
     width: 860,
     height: 690,
+    // 編輯坑沒有 400 稿：窄視窗照手機版開整頁。
+    sheetBelowMedium: false,
     builder: (_, asModal) => PitEditPage(pit: pit, asModal: asModal),
   );
   // modal 在最上層 Navigator，刪除後要由呼叫端把坑分頁退回主頁；整頁模式由頁面自己退。

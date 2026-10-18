@@ -12,6 +12,7 @@ import '../entity/entity_widgets.dart';
 import '../common/app_icons.dart';
 import '../common/adaptive_modal.dart';
 import '../common/app_switch.dart';
+import '../common/modal_form_layout.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import 'goal_name.dart';
@@ -32,7 +33,7 @@ class GoalNewPage extends ConsumerStatefulWidget {
   final int? month;
   final String? goalId;
 
-  /// 開新增／編輯目標：≥840 是置中對話框（NewGoal），其餘是整頁。
+  /// 開新增／編輯目標：≥600 是置中對話框（NewGoal），＜600 的 iPad 是 page sheet（NewGoal400），手機是整頁。
   static Future<void> open(
     BuildContext context, {
     required GoalPeriod period,
@@ -548,123 +549,39 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
     );
   }
 
-  /// iPad 對話框版（NewGoal）：頂欄「取消／標題／建立目標」，左欄預覽＋名稱＋種類＋數量，
-  /// 右欄目標坑＋tag＋互動量。對話框被拉窄（＜700）時改單欄捲動。
+  /// iPad 彈出版（NewGoal／NewGoal400）：頂欄「取消／標題／建立目標」，左欄預覽＋名稱＋種類＋數量，
+  /// 右欄目標坑＋tag＋互動量。對話框被拉窄或在 page sheet（＜600）時改單欄捲動，主按鈕縮成「建立」。
   Widget _buildModal(
     BuildContext context, {
     required String title,
     required List<Widget> left,
     required List<Widget> right,
   }) {
-    final t = context.tokens;
     final l = context.l10n;
     final editing = widget.goalId != null;
-    final header = Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: t.border)),
-      ),
-      child: Row(
-        children: [
-          TextButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            style: TextButton.styleFrom(
-              minimumSize: const Size(44, 44),
-              foregroundColor: t.text2,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              textStyle: const TextStyle(fontSize: 15),
-            ),
-            child: Text(l.commonCancel),
-          ),
-          Expanded(
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontSize: 19, fontWeight: FontWeight.w700),
-            ),
-          ),
-          if (editing) _deleteButton(context),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: _loaded ? _save : null,
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: t.accent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                editing ? l.commonSave : l.goalsCreateGoal,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    Widget col(List<Widget> children, EdgeInsets pad) => SingleChildScrollView(
-      padding: pad,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: children,
-      ),
-    );
     return ScaffoldMessenger(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Column(
-          children: [
-            header,
-            Expanded(
-              child: !_loaded
-                  ? const Center(child: CircularProgressIndicator())
-                  : LayoutBuilder(
-                      builder: (context, box) {
-                        if (box.maxWidth < 700) {
-                          return col([
-                            ...left,
-                            const SizedBox(height: 18),
-                            ...right,
-                          ], const EdgeInsets.fromLTRB(24, 22, 24, 24));
-                        }
-                        final leftW = (box.maxWidth * 0.49).clamp(340.0, 430.0);
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Container(
-                              width: leftW,
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  right: BorderSide(color: t.border),
-                                ),
-                              ),
-                              child: col(
-                                left,
-                                const EdgeInsets.fromLTRB(24, 22, 24, 22),
-                              ),
-                            ),
-                            Expanded(
-                              child: col(
-                                right,
-                                const EdgeInsets.fromLTRB(24, 22, 24, 22),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-            ),
+        body: ModalFormFrame(
+          title: title,
+          actionLabel: editing ? l.commonSave : l.goalsCreateGoal,
+          compactActionLabel: editing ? null : l.pitsCreate,
+          onAction: () {
+            if (_loaded) _save();
+          },
+          extraActions: [
+            if (editing) _deleteButton(context),
+            const SizedBox(width: 4),
           ],
+          expandBody: true,
+          child: !_loaded
+              ? const Center(child: CircularProgressIndicator())
+              : ModalFormPanes(
+                  panes: [
+                    ModalPane(width: 430, children: left),
+                    ModalPane(children: right),
+                  ],
+                ),
         ),
       ),
     );

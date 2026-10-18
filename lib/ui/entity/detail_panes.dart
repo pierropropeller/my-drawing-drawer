@@ -21,7 +21,7 @@ import 'draft_form_page.dart';
 import 'entity_widgets.dart';
 import 'idea_detail_page.dart';
 import 'idea_form_page.dart';
-import 'image_gallery_page.dart';
+import '../reference/reference_viewer.dart';
 import 'piece_detail_page.dart';
 import 'piece_platform.dart';
 
@@ -364,6 +364,10 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
     final n = imgs.length;
     final index = n == 0 ? 0 : _index.clamp(0, n - 1);
     final title = d.title ?? '';
+    final pitName = ref.watch(pitProvider(widget.pitId)).value?.name;
+    final refTitle = pitName == null
+        ? l.pitsDrafts
+        : l.albumTitleWithPit(pitName, l.pitsDrafts);
     return LayoutBuilder(
       builder: (context, c) {
         final stageH = (c.maxHeight * 0.52).clamp(240.0, 420.0);
@@ -419,16 +423,24 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                               right: 12,
                               bottom: 12,
                               child: GestureDetector(
-                                // TODO(REFVIEW): 參考檢視器完成後改成
-                                // openReferenceViewer(context, images: …, index: …)；
-                                // 目前退回既有的全螢幕看圖。
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => ImageGalleryPage(
-                                      images: imgs,
-                                      initialIndex: index,
-                                    ),
-                                  ),
+                                // 參考檢視（RefFull／RefSplit／RespRef400…）；影片會開影片參考檢視。
+                                onTap: () => openReferenceViewer(
+                                  context,
+                                  images: [
+                                    for (var i = 0; i < imgs.length; i++)
+                                      RefImage(
+                                        id: '${d.id}#$i',
+                                        file: imgs[i].file,
+                                        width: imgs[i].width,
+                                        height: imgs[i].height,
+                                        kind: imgs[i].kind,
+                                        durationMs: imgs[i].durationMs,
+                                        posterFile: imgs[i].poster,
+                                        title: refTitle,
+                                        addedAt: d.createdAt,
+                                      ),
+                                  ],
+                                  index: index,
                                 ),
                                 child: Container(
                                   height: 44,

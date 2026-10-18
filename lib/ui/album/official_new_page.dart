@@ -196,7 +196,15 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
               ? widget.initialGroupId
               : (groups.isEmpty ? null : groups.first.id));
     final imageField = [
-      AlbumFieldLabel(context.l10n.albumFieldImage),
+      AlbumFieldLabel(
+        // 彈出頁（form sheet／page sheet）新增時標題帶張數：「圖片 · 2 張」。
+        widget.asModal && !_editing
+            ? context.l10n.ipadauditImagesCount(
+                context.l10n.albumFieldImage,
+                _files.length,
+              )
+            : context.l10n.albumFieldImage,
+      ),
       if (_editing)
         ImagePickerField(
           items: [ImageItem.stored(_editImage!)],
@@ -232,6 +240,7 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
         actionLabel: _editing
             ? context.l10n.commonSave
             : context.l10n.albumOfficialAdd,
+        compactActionLabel: _editing ? null : context.l10n.shareAdd,
         onAction: () {
           if (!_saving && groupId != null) _save(groupId);
         },

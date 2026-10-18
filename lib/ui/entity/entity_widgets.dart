@@ -6,6 +6,7 @@ import '../../data/entity_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../album/image_picker_field.dart';
+import '../common/add_tile_content.dart';
 import '../common/app_icons.dart';
 import '../common/media_widgets.dart';
 import '../common/media_mini.dart';
@@ -648,12 +649,7 @@ class DashedAddTile extends StatelessWidget {
             color: t.dashed,
             radius: Radii.image,
             child: Center(
-              child: SvgIcon(
-                AppIcons.plus,
-                size: iconSize,
-                strokeWidth: 1.8,
-                color: t.dashedText,
-              ),
+              child: AddTileContent(label: semanticLabel, iconSize: iconSize),
             ),
           ),
         ),
@@ -672,8 +668,14 @@ class FormImageGrid extends ConsumerWidget {
     required this.onRemove,
     this.onReorder,
     this.size = 72,
+    this.dialogColumns = 3,
+    this.dialogSpacing = 12,
   });
   final List<ImageItem> items;
+
+  /// 置中 form sheet 裡的欄數／間距（見 [ReorderableImageGrid.dialogColumns]）；腦洞傳 null＝固定 72。
+  final int? dialogColumns;
+  final double dialogSpacing;
   final VoidCallback onAdd;
   final void Function(int index) onRemove;
 
@@ -686,6 +688,8 @@ class FormImageGrid extends ConsumerWidget {
     return ReorderableImageGrid(
       count: items.length,
       size: size,
+      dialogColumns: dialogColumns,
+      dialogSpacing: dialogSpacing,
       onReorder: onReorder,
       itemBuilder: (context, i, hide) => SizedBox(
         width: size,

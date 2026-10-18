@@ -235,13 +235,17 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('834×1194（medium）新增目標＝整頁，藏導覽', (tester) async {
+    testWidgets('834×1194（medium）新增目標＝置中對話框，不藏導覽', (tester) async {
       await show(tester, const GoalsPage(), size: sizes['834×1194']!);
       await tester.tap(find.text('新增目標'));
       await settle(tester);
-      expect(find.byType(AdaptiveModalDialog), findsNothing);
+      expect(find.byType(AdaptiveModalDialog), findsOneWidget);
       expect(find.byType(GoalNewPage), findsOneWidget);
-      expect(navBarHiddenCount.value, 1);
+      // 對話框縮到 786 寬仍放得下兩欄。
+      final preview = tester.getTopLeft(find.text('預覽'));
+      final pit = tester.getTopLeft(find.text('目標坑'));
+      expect(pit.dx, greaterThan(preview.dx + 300));
+      expect(navBarHiddenCount.value, 0);
       await unmount(tester);
     });
 
@@ -396,7 +400,7 @@ void main() {
     });
   });
 
-  testWidgets('showAdaptiveModal：窄視窗是整頁、寬視窗是對話框', (tester) async {
+  testWidgets('showAdaptiveModal：手機窄視窗是整頁、≥600 是對話框', (tester) async {
     Future<void> open(Size size) async {
       await show(
         tester,
@@ -417,8 +421,13 @@ void main() {
       await settle(tester);
     }
 
-    await open(sizes['834×1194']!);
+    await open(const Size(390, 844));
     expect(find.byType(AdaptiveModalDialog), findsNothing);
+    expect(find.text('modal-body'), findsOneWidget);
+    await unmount(tester);
+
+    await open(sizes['834×1194']!);
+    expect(find.byType(AdaptiveModalDialog), findsOneWidget);
     expect(find.text('modal-body'), findsOneWidget);
     await unmount(tester);
 

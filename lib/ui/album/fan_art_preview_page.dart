@@ -6,6 +6,7 @@ import '../../data/database.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/app_icons.dart';
+import '../common/device_class.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/window_class.dart';
 import '../reference/reference_viewer.dart';
@@ -147,6 +148,15 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
     final title = pitName == null
         ? context.l10n.pitsFanArt
         : context.l10n.albumTitleWithPit(pitName, context.l10n.pitsFanArt);
+    // iPad：預覽頁就是參考圖檢視（RespRef400／RefFull…），不用手機版的深色預覽。
+    if (isTabletDevice(context)) {
+      return AlbumReferenceScreen(
+        images: _items,
+        index: _index,
+        pitId: widget.pitId,
+        title: title,
+      );
+    }
     return PreviewShell(
       title: title,
       headerTrailing: WindowClass.of(context).isCompact
