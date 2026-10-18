@@ -77,6 +77,15 @@ jobs:
           set -euo pipefail
           APP=build/ios/iphoneos/Runner.app
           test -d "$APP"
+          # 分享擴充（docs/IOS_SHARE_EXTENSION.md）應該已被 Xcode 內嵌在 Runner.app/PlugIns/；
+          # 沒有也不擋 IPA（其餘功能照常），但留下警告。
+          if [ -d "$APP/PlugIns/ShareExtension.appex" ]; then
+            echo "ShareExtension.appex 已內嵌："
+            ls -l "$APP/PlugIns/ShareExtension.appex"
+            /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$APP/PlugIns/ShareExtension.appex/Info.plist" || true
+          else
+            echo "::warning::Runner.app/PlugIns/ShareExtension.appex 不存在，分享清單不會出現畫匣。"
+          fi
           rm -rf Payload
           mkdir Payload
           cp -R "$APP" Payload/Runner.app
