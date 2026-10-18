@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/theme/font_fallback.dart';
@@ -11,33 +12,21 @@ final _kaomoji = File('tool/kaomoji_samples.txt')
     .toList();
 
 void main() {
-  test('fallback 次序符合 D-090', () {
-    expect(kFontFamilyFallback, [
-      'NotoSansTC',
-      'NotoSans',
-      'NotoSansSymbols',
-      'NotoSansSymbols2',
-      'NotoSansMath',
-      'NotoSansThai',
-      'NotoSansKannada',
-      'NotoSansCanadianAboriginal',
-      'NotoSansYi',
-      'NotoSansArabic',
-      'NotoSansTelugu',
-      'NotoSansTamil',
-      'NotoSansGurmukhi',
-      'NotoSansKhmer',
-      'NotoSansBatak',
-      'NotoSansMono',
-    ]);
+  test('fallback 只有單一合併 family，且 pubspec 有註冊、檔案存在', () {
+    expect(kFontFamilyFallback, ['DrawerSymbols']);
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    expect(pubspec, contains('family: DrawerSymbols'));
+    expect(pubspec, contains('assets/fonts/DrawerSymbols-Regular.ttf'));
+    expect(File('assets/fonts/DrawerSymbols-Regular.ttf').existsSync(), isTrue);
   });
 
-  test('pubspec 有註冊 fallback 字型，且檔案存在', () {
-    final pubspec = File('pubspec.yaml').readAsStringSync();
-    for (final f in kFontFamilyFallback.skip(1)) {
-      expect(pubspec, contains('family: $f'));
-      expect(File('assets/fonts/$f-Regular.ttf').existsSync(), isTrue);
-    }
+  testWidgets('FontManifest 有 DrawerSymbols，且字型檔真的被打包', (tester) async {
+    await tester.runAsync(() async {
+      final manifest = await rootBundle.loadString('FontManifest.json');
+      expect(manifest, contains('"family":"DrawerSymbols"'));
+      final data = await rootBundle.load('assets/fonts/DrawerSymbols-Regular.ttf');
+      expect(data.lengthInBytes, greaterThan(100000));
+    });
   });
 
   for (final b in Brightness.values) {
