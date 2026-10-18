@@ -247,19 +247,31 @@ class _DetailImageStageState extends State<DetailImageStage> {
                 label: context.l10n.draftDetailImageLabel(i + 1),
                 child: GestureDetector(
                   onTap: () => _controller.jumpToPage(i),
-                  child: Container(
+                  // 圖片先裁成 10px 圓角、選中框畫在圖上面（外緣圓角同為 10），
+                  // 內緣圓角才會貼合（框畫在 clip 外面時內角是方的，會很醜）。
+                  child: SizedBox(
                     width: 56,
                     height: 56,
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: i == _index
-                          ? Border.all(color: t.accent, width: 2)
-                          : null,
-                    ),
-                    child: MiniMediaThumb(
-                      MediaSource.fromImageRef(images[i]),
-                      cacheWidth: 200,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: MiniMediaThumb(
+                            MediaSource.fromImageRef(images[i]),
+                            cacheWidth: 200,
+                          ),
+                        ),
+                        if (i == _index)
+                          IgnorePointer(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: t.accent, width: 2),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
