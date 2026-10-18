@@ -22,7 +22,9 @@ import '../data/timeline_queries.dart';
 import '../media/gallery_repository.dart';
 import '../media/media_import.dart';
 import '../media/photo_manager_gallery.dart';
+import '../media/player_frame_poster_generator.dart';
 import '../media/video_probe.dart';
+import '../ui/common/video_player_view.dart' show playbackFactoryProvider;
 import '../ui/media_source/pick_images_for.dart';
 import '../ui/picker/image_picker_sheet.dart';
 
@@ -111,6 +113,21 @@ final avatarPickerProvider =
               const [],
     );
 
+/// 播放器備援擷取的承載位置；由 App 最上層的 `PosterCaptureScope` 畫出來（見 main.dart）。
+final posterCaptureSlotProvider = Provider<PosterCaptureSlot>((ref) {
+  final slot = PosterCaptureSlot();
+  ref.onDispose(slot.dispose);
+  return slot;
+});
+
+/// 原生探測取不到截圖時，用播放器的解碼器擷取一格（測試可 override 成假的）。
+final posterFrameGeneratorProvider = Provider<PosterFrameGenerator?>(
+  (ref) => PlayerFramePosterGenerator(
+    slot: ref.watch(posterCaptureSlotProvider),
+    playbackFactory: ref.watch(playbackFactoryProvider),
+  ),
+);
+
 /// 背景補影片截圖（D-080）：啟動時與影片檔寫入後（匯入、同步下載完成）跑，由 App 根 widget 監看。
 /// 圖庫還沒準備好時是 null。
 final posterFixerProvider = Provider<PosterFixer?>((ref) {
@@ -120,6 +137,7 @@ final posterFixerProvider = Provider<PosterFixer?>((ref) {
     ref.watch(databaseProvider),
     store,
     probe: ref.watch(videoProbeProvider),
+    player: ref.watch(posterFrameGeneratorProvider),
   )..start();
   ref.onDispose(fixer.dispose);
   return fixer;

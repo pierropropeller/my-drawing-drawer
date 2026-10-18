@@ -4,6 +4,15 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.graphics.Rect
+import android.graphics.YuvImage
+import android.media.Image
+import android.media.MediaCodec
+import android.media.MediaCodecInfo
+import android.media.MediaExtractor
+import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
@@ -239,7 +248,8 @@ class MainActivity : FlutterActivity() {
                 mmr.release()
             } catch (_: Throwable) {
             }
-            return null
+            // MediaMetadataRetriever 讀不開（部分 Twitter 轉出的小 mp4）：改用 MediaExtractor＋MediaCodec 試試。
+            return probeByDecoder(path, maxSide)
         }
         try {
             var w = metaInt(mmr, MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
@@ -259,6 +269,9 @@ class MainActivity : FlutterActivity() {
             var poster: ByteArray? = null
             try {
                 var bitmap = grabPosterFrame(mmr, duration, w, h, maxSide)
+                    ?: grabPosterFrameExtra(mmr, duration)
+                    // 最後手段：自己用 MediaCodec 解第一個可解的畫面（系統縮圖器取不到、ExoPlayer 卻能播的檔案）。
+                    ?: decodeFirstFrame(path, maxSide, DECODE_LIMIT_MS)
                 if (bitmap != null) {
                     bitmap = fixOrientation(bitmap, rotation, w, h)
                     if (w == 0 || h == 0) {
@@ -361,6 +374,344 @@ class MainActivity : FlutterActivity() {
         } catch (_: Throwable) {
         }
         return null
+    }
+
+    /**
+     * 第二輪：試更多時間點與選項。很短的片（不到 1 秒）、第一個時間戳不是 0、沒有 t=0 的關鍵格
+     * 的檔案，常常只有特定組合取得到。整輪有時間上限，避免壞檔卡住執行緒。
+     * 順序：各時間點 × 四種 option；`getFrameAtTime(-1)`；API 28+ 的 primaryImage 與 imageAtIndex。
+     */
+    private fun grabPosterFrameExtra(mmr: MediaMetadataRetriever, durationMs: Long?): Bitmap? {
+        val deadline = System.nanoTime() + EXTRA_LIMIT_MS * 1_000_000L
+        val dur = durationMs ?: 0L
+        val times = linkedSetOf(0L, 100L, 250L, 500L)
+        if (dur > 0) {
+            times.add(dur / 2)
+            times.add(maxOf(0L, dur - 100L))
+        }
+        val options = intArrayOf(
+            MediaMetadataRetriever.OPTION_CLOSEST,
+            MediaMetadataRetriever.OPTION_NEXT_SYNC,
+            MediaMetadataRetriever.OPTION_PREVIOUS_SYNC,
+            MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+        )
+        for (t in times) {
+            if (dur > 0 && t > dur) continue
+            for (opt in options) {
+                if (System.nanoTime() > deadline) return null
+                try {
+                    val b = mmr.getFrameAtTime(t * 1000L, opt)
+                    if (b != null) return b
+                } catch (_: Throwable) {
+                }
+            }
+        }
+        try {
+            val b = mmr.getFrameAtTime(-1)
+            if (b != null) return b
+        } catch (_: Throwable) {
+        }
+        if (Build.VERSION.SDK_INT >= 28) {
+            try {
+                val b = mmr.primaryImage
+                if (b != null) return b
+            } catch (_: Throwable) {
+            }
+            val count = maxOf(
+                1,
+                minOf(8, metaInt(mmr, MediaMetadataRetriever.METADATA_KEY_IMAGE_COUNT)),
+            )
+            for (i in 0 until count) {
+                if (System.nanoTime() > deadline) return null
+                try {
+                    val b = mmr.getImageAtIndex(i)
+                    if (b != null) return b
+                } catch (_: Throwable) {
+                }
+            }
+        }
+        return null
+    }
+
+    /**
+     * MediaMetadataRetriever 完全讀不開時：只用 MediaExtractor 取寬高與長度，
+     * 再 [decodeFirstFrame] 解畫面。連寬高都拿不到且解碼失敗＝null。
+     */
+    private fun probeByDecoder(path: String, maxSide: Int): Map<String, Any?>? {
+        val ex = MediaExtractor()
+        try {
+            ex.setDataSource(path)
+            var w = 0
+            var h = 0
+            var durationUs = 0L
+            var rotation = 0
+            for (i in 0 until ex.trackCount) {
+                val f = ex.getTrackFormat(i)
+                val mime = f.getString(MediaFormat.KEY_MIME) ?: continue
+                if (!mime.startsWith("video/")) continue
+                if (f.containsKey(MediaFormat.KEY_WIDTH)) w = f.getInteger(MediaFormat.KEY_WIDTH)
+                if (f.containsKey(MediaFormat.KEY_HEIGHT)) h = f.getInteger(MediaFormat.KEY_HEIGHT)
+                if (f.containsKey(MediaFormat.KEY_DURATION)) {
+                    durationUs = f.getLong(MediaFormat.KEY_DURATION)
+                }
+                if (Build.VERSION.SDK_INT >= 23 && f.containsKey(MediaFormat.KEY_ROTATION)) {
+                    rotation = f.getInteger(MediaFormat.KEY_ROTATION)
+                }
+                break
+            }
+            if (rotation == 90 || rotation == 270) {
+                val t = w
+                w = h
+                h = t
+            }
+            var poster: ByteArray? = null
+            try {
+                var bitmap = decodeFirstFrame(path, maxSide, DECODE_LIMIT_MS)
+                if (bitmap != null) {
+                    bitmap = fixOrientation(bitmap, rotation, w, h)
+                    if (w == 0 || h == 0) {
+                        w = bitmap.width
+                        h = bitmap.height
+                    }
+                    poster = scaledJpeg(bitmap, maxSide)
+                }
+            } catch (_: Throwable) {
+                poster = null
+            }
+            if (w == 0 && h == 0 && poster == null) return null
+            return mapOf(
+                "width" to w,
+                "height" to h,
+                "durationMs" to (if (durationUs > 0) (durationUs / 1000L).toInt() else null),
+                "poster" to poster,
+            )
+        } catch (_: Throwable) {
+            return null
+        } finally {
+            try {
+                ex.release()
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
+    private fun scaledJpeg(src: Bitmap, maxSide: Int): ByteArray? {
+        var bitmap = src
+        val longest = maxOf(bitmap.width, bitmap.height)
+        if (longest > maxSide) {
+            val s = maxSide.toDouble() / longest
+            bitmap = Bitmap.createScaledBitmap(
+                bitmap,
+                maxOf(1, Math.round(bitmap.width * s).toInt()),
+                maxOf(1, Math.round(bitmap.height * s).toInt()),
+                true,
+            )
+        }
+        val bytes = ByteArrayOutputStream()
+        return if (bitmap.compress(Bitmap.CompressFormat.JPEG, 85, bytes)) bytes.toByteArray() else null
+    }
+
+    /**
+     * 最後手段：MediaExtractor 從頭讀樣本餵給 MediaCodec（不接 Surface，取 Image／ByteBuffer 輸出），
+     * 第一個有內容的輸出畫面轉成 Bitmap。整個流程有 [limitMs] 毫秒上限；
+     * extractor 與 codec 一律在 finally 釋放。任何錯誤（含 OOM）＝null。
+     */
+    private fun decodeFirstFrame(path: String, maxSide: Int, limitMs: Long): Bitmap? {
+        val deadline = System.nanoTime() + limitMs * 1_000_000L
+        var extractor: MediaExtractor? = null
+        var codec: MediaCodec? = null
+        try {
+            extractor = MediaExtractor()
+            extractor.setDataSource(path)
+            var track = -1
+            var format: MediaFormat? = null
+            for (i in 0 until extractor.trackCount) {
+                val f = extractor.getTrackFormat(i)
+                val mime = f.getString(MediaFormat.KEY_MIME) ?: continue
+                if (mime.startsWith("video/")) {
+                    track = i
+                    format = f
+                    break
+                }
+            }
+            if (track < 0 || format == null) return null
+            extractor.selectTrack(track)
+            val mime = format.getString(MediaFormat.KEY_MIME) ?: return null
+            try {
+                format.setInteger(
+                    MediaFormat.KEY_COLOR_FORMAT,
+                    MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible,
+                )
+            } catch (_: Throwable) {
+            }
+            codec = MediaCodec.createDecoderByType(mime)
+            codec.configure(format, null, null, 0)
+            codec.start()
+            val info = MediaCodec.BufferInfo()
+            var inputDone = false
+            while (System.nanoTime() < deadline) {
+                if (!inputDone) {
+                    val idx = codec.dequeueInputBuffer(10_000L)
+                    if (idx >= 0) {
+                        val buf = codec.getInputBuffer(idx)
+                        val size = if (buf != null) extractor.readSampleData(buf, 0) else -1
+                        if (size < 0) {
+                            codec.queueInputBuffer(
+                                idx, 0, 0, 0L, MediaCodec.BUFFER_FLAG_END_OF_STREAM,
+                            )
+                            inputDone = true
+                        } else {
+                            codec.queueInputBuffer(idx, 0, size, maxOf(0L, extractor.sampleTime), 0)
+                            extractor.advance()
+                        }
+                    }
+                }
+                val out = codec.dequeueOutputBuffer(info, 10_000L)
+                if (out >= 0) {
+                    val eos = (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0
+                    var bmp: Bitmap? = null
+                    if (info.size > 0 && (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) == 0) {
+                        bmp = try {
+                            outputToBitmap(codec, out, info, maxSide)
+                        } catch (_: Throwable) {
+                            null
+                        }
+                    }
+                    codec.releaseOutputBuffer(out, false)
+                    if (bmp != null) return bmp
+                    if (eos) return null
+                }
+            }
+            return null
+        } catch (_: Throwable) {
+            return null
+        } finally {
+            try {
+                codec?.stop()
+            } catch (_: Throwable) {
+            }
+            try {
+                codec?.release()
+            } catch (_: Throwable) {
+            }
+            try {
+                extractor?.release()
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
+    /** 先用 getOutputImage（YUV_420_888，有 stride 資訊）；取不到再依輸出格式手動解 NV12／I420。 */
+    private fun outputToBitmap(
+        codec: MediaCodec,
+        index: Int,
+        info: MediaCodec.BufferInfo,
+        maxSide: Int,
+    ): Bitmap? {
+        val image: Image? = try {
+            codec.getOutputImage(index)
+        } catch (_: Throwable) {
+            null
+        }
+        if (image != null) {
+            try {
+                return yuvImageToBitmap(image, maxSide)
+            } finally {
+                try {
+                    image.close()
+                } catch (_: Throwable) {
+                }
+            }
+        }
+        val buf = codec.getOutputBuffer(index) ?: return null
+        val fmt = codec.outputFormat
+        val colorFormat = if (fmt.containsKey(MediaFormat.KEY_COLOR_FORMAT)) {
+            fmt.getInteger(MediaFormat.KEY_COLOR_FORMAT)
+        } else {
+            0
+        }
+        val w0 = fmt.getInteger(MediaFormat.KEY_WIDTH)
+        val h0 = fmt.getInteger(MediaFormat.KEY_HEIGHT)
+        val stride = if (fmt.containsKey("stride")) fmt.getInteger("stride") else w0
+        val slice = if (fmt.containsKey("slice-height")) fmt.getInteger("slice-height") else h0
+        val w = w0 and 1.inv()
+        val h = h0 and 1.inv()
+        if (w <= 0 || h <= 0) return null
+        val semiPlanar =
+            colorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar
+        val planar = colorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar
+        if (!semiPlanar && !planar) return null
+        val base = info.offset
+        val nv21 = ByteArray(w * h * 3 / 2)
+        for (row in 0 until h) {
+            buf.position(base + row * stride)
+            buf.get(nv21, row * w, w)
+        }
+        val cBase = base + stride * slice
+        for (row in 0 until h / 2) {
+            for (col in 0 until w / 2) {
+                val u: Byte
+                val v: Byte
+                if (semiPlanar) {
+                    u = buf.get(cBase + row * stride + col * 2)
+                    v = buf.get(cBase + row * stride + col * 2 + 1)
+                } else {
+                    val cs = stride / 2
+                    u = buf.get(cBase + row * cs + col)
+                    v = buf.get(cBase + (slice / 2) * cs + row * cs + col)
+                }
+                nv21[w * h + row * w + col * 2] = v
+                nv21[w * h + row * w + col * 2 + 1] = u
+            }
+        }
+        return nv21ToBitmap(nv21, w, h, maxSide)
+    }
+
+    private fun yuvImageToBitmap(image: Image, maxSide: Int): Bitmap? {
+        val planes = image.planes
+        if (planes.size < 3) return null
+        val crop = image.cropRect
+        val left = crop.left and 1.inv()
+        val top = crop.top and 1.inv()
+        val w = crop.width() and 1.inv()
+        val h = crop.height() and 1.inv()
+        if (w <= 0 || h <= 0) return null
+        val y = planes[0]
+        val u = planes[1]
+        val v = planes[2]
+        val yBuf = y.buffer
+        val uBuf = u.buffer
+        val vBuf = v.buffer
+        val nv21 = ByteArray(w * h * 3 / 2)
+        for (row in 0 until h) {
+            val rowStart = (row + top) * y.rowStride
+            for (col in 0 until w) {
+                nv21[row * w + col] = yBuf.get(rowStart + (col + left) * y.pixelStride)
+            }
+        }
+        for (row in 0 until h / 2) {
+            val uStart = (row + top / 2) * u.rowStride
+            val vStart = (row + top / 2) * v.rowStride
+            for (col in 0 until w / 2) {
+                val o = w * h + row * w + col * 2
+                nv21[o] = vBuf.get(vStart + (col + left / 2) * v.pixelStride)
+                nv21[o + 1] = uBuf.get(uStart + (col + left / 2) * u.pixelStride)
+            }
+        }
+        return nv21ToBitmap(nv21, w, h, maxSide)
+    }
+
+    private fun nv21ToBitmap(nv21: ByteArray, w: Int, h: Int, maxSide: Int): Bitmap? {
+        val jpeg = ByteArrayOutputStream()
+        val ok = YuvImage(nv21, ImageFormat.NV21, w, h, null)
+            .compressToJpeg(Rect(0, 0, w, h), 90, jpeg)
+        if (!ok) return null
+        val opts = BitmapFactory.Options()
+        var sample = 1
+        while (maxOf(w, h) / (sample * 2) >= maxSide * 2) sample *= 2
+        opts.inSampleSize = sample
+        val bytes = jpeg.toByteArray()
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
     }
 
     /**
@@ -605,5 +956,9 @@ class MainActivity : FlutterActivity() {
         private const val CHANNEL = "io.molly.drawer/share"
         private const val MEDIA_CHANNEL = "io.molly.drawer/media"
         private const val APP_ICON_CHANNEL = "io.molly.drawer/appicon"
+
+        // 第二輪 MediaMetadataRetriever 嘗試與手動解碼的時間上限（毫秒）。
+        private const val EXTRA_LIMIT_MS = 6000L
+        private const val DECODE_LIMIT_MS = 2000L
     }
 }

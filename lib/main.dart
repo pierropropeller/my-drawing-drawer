@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'media/player_frame_poster_generator.dart';
 import 'share/share_inbox.dart';
 import 'state/app_icon.dart';
 import 'state/providers.dart';
@@ -33,7 +34,11 @@ class _PosterFixerHost extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(posterFixerProvider);
-    return child;
+    // 播放器備援擷取影片截圖用的隱形畫布（畫在螢幕外，平常是空的）。
+    return PosterCaptureScope(
+      slot: ref.watch(posterCaptureSlotProvider),
+      child: child,
+    );
   }
 }
 

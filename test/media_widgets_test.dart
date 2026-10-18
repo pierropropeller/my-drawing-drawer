@@ -191,7 +191,8 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.byType(MediaPlaceholder), findsOneWidget);
+      expect(find.byType(VideoPlaceholder), findsOneWidget);
+      expect(find.byType(MediaPlaceholder), findsNothing);
       expect(find.text('0:05'), findsOneWidget);
     });
   });

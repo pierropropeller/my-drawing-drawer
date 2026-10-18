@@ -7,6 +7,7 @@ import '../data/database.dart';
 import '../data/image_store.dart';
 import '../data/media.dart';
 import '../data/media_queries.dart';
+import 'player_frame_poster_generator.dart';
 import 'video_probe.dart';
 
 /// 匯入一個從相簿／分享選到的媒體（D-080）：圖片、GIF、影片都走這一條。
@@ -63,12 +64,18 @@ Future<NewImage> _withVideoMeta(
 ///
 /// - [shouldTry]：回傳 false 的檔案這次略過（呼叫端用來做失敗後的冷卻）。
 /// - [onResult]：每支嘗試過的影片回報一次（成功時帶 poster 檔名，失敗帶 null）。
+/// - [player]：原生探測取不到截圖（或整支讀不開）時的備援，用播放器解碼器擷取一格
+///   （見 [PlayerFramePosterGenerator]）。[shouldTryPlayer] 回傳 false 的檔案略過備援；
+///   真的去試了（`player.available`）會呼叫 [onPlayerTried]。
 Future<int> generateMissingPosters(
   AppDatabase db,
   ImageStore store, {
   VideoProbe probe = const ChannelVideoProbe(),
   bool Function(String file)? shouldTry,
   void Function(String file, String? poster)? onResult,
+  PosterFrameGenerator? player,
+  bool Function(String file)? shouldTryPlayer,
+  void Function(String file)? onPlayerTried,
 }) async {
   try {
     await db.repairVideoKinds();
@@ -81,12 +88,53 @@ Future<int> generateMissingPosters(
     if (!store.exists(file)) continue;
     if (shouldTry != null && !shouldTry(file)) continue;
     try {
-      final meta = await probe.probe(store.fileOf(file).path);
-      if (meta == null) {
-        onResult?.call(file, null);
+      final path = store.fileOf(file).path;
+      final meta = await probe.probe(path);
+      if (meta != null && meta.hasPoster) {
+        final poster = await store.savePoster(meta.poster!);
+        await db.setMediaMeta(
+          file,
+          width: meta.width > 0 ? meta.width : null,
+          height: meta.height > 0 ? meta.height : null,
+          durationMs: meta.durationMs,
+          posterFile: poster,
+        );
+        done++;
+        onResult?.call(file, poster);
         continue;
       }
-      if (!meta.hasPoster) {
+      // 原生取不到截圖：改用播放器的解碼器擷取（每支影片每次執行只試一次，由呼叫端控制）。
+      PosterFrame? frame;
+      if (player != null &&
+          (shouldTryPlayer == null || shouldTryPlayer(file)) &&
+          player.available) {
+        onPlayerTried?.call(file);
+        try {
+          frame = await player.generate(
+            path,
+            width: meta?.width,
+            height: meta?.height,
+          );
+        } catch (_) {
+          frame = null;
+        }
+      }
+      if (frame != null) {
+        final poster = await store.savePoster(frame.bytes, ext: frame.ext);
+        final hasSize = (meta?.width ?? 0) > 0 && (meta?.height ?? 0) > 0;
+        await db.setMediaMeta(
+          file,
+          // 原生沒讀到寬高時用截圖的（比例正確）。
+          width: hasSize ? meta!.width : frame.width,
+          height: hasSize ? meta!.height : frame.height,
+          durationMs: meta?.durationMs ?? frame.durationMs,
+          posterFile: poster,
+        );
+        done++;
+        onResult?.call(file, poster);
+        continue;
+      }
+      if (meta != null) {
         // 截圖失敗也先把寬高與長度寫回（避免只剩光禿禿的 ▶），截圖之後再試。
         await db.setMediaMeta(
           file,
@@ -94,19 +142,8 @@ Future<int> generateMissingPosters(
           height: meta.height > 0 ? meta.height : null,
           durationMs: meta.durationMs,
         );
-        onResult?.call(file, null);
-        continue;
       }
-      final poster = await store.savePoster(meta.poster!);
-      await db.setMediaMeta(
-        file,
-        width: meta.width > 0 ? meta.width : null,
-        height: meta.height > 0 ? meta.height : null,
-        durationMs: meta.durationMs,
-        posterFile: poster,
-      );
-      done++;
-      onResult?.call(file, poster);
+      onResult?.call(file, null);
     } catch (_) {
       // 單支影片失敗不影響其他。
       onResult?.call(file, null);
@@ -123,6 +160,7 @@ class PosterFixer {
     this.db,
     this.store, {
     this.probe = const ChannelVideoProbe(),
+    this.player,
     this.debounce = const Duration(seconds: 2),
     this.requestDebounce = const Duration(milliseconds: 300),
     this.retryAfter = const Duration(seconds: 20),
@@ -132,6 +170,9 @@ class PosterFixer {
   final AppDatabase db;
   final ImageStore store;
   final VideoProbe probe;
+
+  /// 原生探測失敗時的備援（用播放器解碼器擷取一格）；null＝不用。
+  final PosterFrameGenerator? player;
   final Duration debounce;
 
   /// UI 發現某支影片沒有截圖（[request]）後，等多久才跑（合併同時出現的一整頁）。
@@ -141,6 +182,8 @@ class PosterFixer {
   final Duration retryAfter;
   final int maxAttempts;
 
+  // 這次執行期間已經用播放器備援試過的影片（每支只試一次，成敗都算）。
+  final _playerTried = <String>{};
   final _attempts = <String, int>{};
   final _lastTry = <String, DateTime>{};
   final _healed = <String, String>{};
@@ -155,7 +198,9 @@ class PosterFixer {
 
   bool _mayTry(String file) {
     final n = _attempts[file] ?? 0;
-    if (n >= maxAttempts) return false;
+    // 原生次數用完了，但播放器備援還沒輪到（例如當時 App 在背景）：還是准許再來一次。
+    final playerPending = player != null && !_playerTried.contains(file);
+    if (n >= maxAttempts && !playerPending) return false;
     final last = _lastTry[file];
     if (last != null && DateTime.now().difference(last) < retryAfter) {
       return false;
@@ -166,7 +211,10 @@ class PosterFixer {
   void _onResult(String file, String? poster) {
     _lastTry[file] = DateTime.now();
     if (poster == null) {
-      _attempts[file] = (_attempts[file] ?? 0) + 1;
+      // 播放器備援也失敗＝這支影片這次執行不會再有辦法，不要再反覆跑原生探測。
+      _attempts[file] = _playerTried.contains(file)
+          ? maxAttempts
+          : (_attempts[file] ?? 0) + 1;
       return;
     }
     _attempts.remove(file);
@@ -189,11 +237,18 @@ class PosterFixer {
 
   /// 開始監聽並立刻補一次。
   void start() {
+    player?.availabilityChanges?.addListener(_onPlayerAvailable);
     _sub ??= store.changes.listen((name) {
       if (mediaKindFromExtension(name) != MediaKind.video) return;
       _schedule();
     });
     unawaited(run());
+  }
+
+  // 播放器備援剛變成可用（承載容器掛上）：補做先前因為不能擷取而略過的影片。
+  void _onPlayerAvailable() {
+    if (_disposed || !(player?.available ?? false)) return;
+    _schedule();
   }
 
   void _schedule() {
@@ -219,6 +274,9 @@ class PosterFixer {
           probe: probe,
           shouldTry: _mayTry,
           onResult: _onResult,
+          player: player,
+          shouldTryPlayer: (f) => !_playerTried.contains(f),
+          onPlayerTried: _playerTried.add,
         );
       } while (_again && !_disposed);
     } catch (_) {
@@ -231,6 +289,7 @@ class PosterFixer {
 
   void dispose() {
     _disposed = true;
+    player?.availabilityChanges?.removeListener(_onPlayerAvailable);
     _timer?.cancel();
     _sub?.cancel();
     _healedCtl.close();

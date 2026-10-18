@@ -97,7 +97,7 @@ class StaticMediaImage extends StatelessWidget {
         file: media.file,
         poster: media.poster,
         builder: (context, poster) => poster == null || poster.isEmpty
-            ? MediaPlaceholder(color: placeholderColor)
+            ? const VideoPlaceholder()
             : StoredImage(
                 poster,
                 cacheWidth: cacheWidth,

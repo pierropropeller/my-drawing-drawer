@@ -285,7 +285,8 @@ void main() {
         const MediaThumb(MediaSource(file: 'v.mp4', kind: MediaKind.video)),
         requests,
       );
-      expect(find.byType(MediaPlaceholder), findsOneWidget);
+      expect(find.byType(VideoPlaceholder), findsOneWidget);
+      expect(find.byType(MediaPlaceholder), findsNothing);
       expect(requests, ['v.mp4']);
     });
 
