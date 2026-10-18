@@ -347,7 +347,8 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
       await tester.tap(find.byType(PieceDateField));
       await settle(tester);
-      final day = today().day == 27 ? 26 : 27;
+      // D-096：日期不能選未來，挑本月 1 日。
+      const day = 1;
       await pickDay(tester, day);
       final picked = DateTime(today().year, today().month, day);
       expect(find.text(fmtSlash(picked)), findsOneWidget);

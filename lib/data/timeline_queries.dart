@@ -52,7 +52,7 @@ int _byTimeDesc(_Raw a, _Raw b) {
 }
 
 /// 目標 · 日頁的連續時間軸（D-072）：腦洞／草稿（`date`）與成圖（`finishedAt`）合併，
-/// 依時間新到舊分頁載入。沒有內容的日子不會出現；已刪除的不算。
+/// 依時間新到舊分頁載入。沒有內容的日子不會出現；已刪除的不算；封存坑的內容不顯示（D-098）。
 extension TimelineQueries on AppDatabase {
   /// 載入一頁。[after] 為 null＝從最新開始；否則接在該游標之後（不含游標那一筆）。
   /// 頁與頁之間不重複、不跳過（同一時間的多筆以 id 排定先後）。
@@ -110,18 +110,21 @@ extension TimelineQueries on AppDatabase {
       n += await _count(
         ideas,
         (ideas.deletedAt.isNull() &
+            notInArchivedPit(ideas.pitId) &
             ideas.date.isBiggerOrEqualValue(start) &
             ideas.date.isSmallerThanValue(end)),
       );
       n += await _count(
         drafts,
         (drafts.deletedAt.isNull() &
+            notInArchivedPit(drafts.pitId) &
             drafts.date.isBiggerOrEqualValue(start) &
             drafts.date.isSmallerThanValue(end)),
       );
       n += await _count(
         pieces,
         (pieces.deletedAt.isNull() &
+            notInArchivedPit(pieces.pitId) &
             pieces.finishedAt.isBiggerOrEqualValue(start) &
             pieces.finishedAt.isSmallerThanValue(end)),
       );
@@ -144,6 +147,7 @@ extension TimelineQueries on AppDatabase {
             ideas,
             drafts,
             pieces,
+            pits,
             entityImages,
             tags,
             tagLinks,
@@ -176,7 +180,10 @@ extension TimelineQueries on AppDatabase {
     final i =
         await (select(ideas)
               ..where(
-                (x) => x.deletedAt.isNull() & x.date.isSmallerThanValue(t),
+                (x) =>
+                    x.deletedAt.isNull() &
+                    notInArchivedPit(x.pitId) &
+                    x.date.isSmallerThanValue(t),
               )
               ..orderBy([(x) => OrderingTerm.desc(x.date)])
               ..limit(1))
@@ -185,7 +192,10 @@ extension TimelineQueries on AppDatabase {
     final d =
         await (select(drafts)
               ..where(
-                (x) => x.deletedAt.isNull() & x.date.isSmallerThanValue(t),
+                (x) =>
+                    x.deletedAt.isNull() &
+                    notInArchivedPit(x.pitId) &
+                    x.date.isSmallerThanValue(t),
               )
               ..orderBy([(x) => OrderingTerm.desc(x.date)])
               ..limit(1))
@@ -195,7 +205,9 @@ extension TimelineQueries on AppDatabase {
         await (select(pieces)
               ..where(
                 (x) =>
-                    x.deletedAt.isNull() & x.finishedAt.isSmallerThanValue(t),
+                    x.deletedAt.isNull() &
+                    notInArchivedPit(x.pitId) &
+                    x.finishedAt.isSmallerThanValue(t),
               )
               ..orderBy([(x) => OrderingTerm.desc(x.finishedAt)])
               ..limit(1))
@@ -229,7 +241,12 @@ extension TimelineQueries on AppDatabase {
 
     final i =
         await (select(ideas)
-              ..where((x) => x.deletedAt.isNull() & pos(x.date, x.id))
+              ..where(
+                (x) =>
+                    x.deletedAt.isNull() &
+                    notInArchivedPit(x.pitId) &
+                    pos(x.date, x.id),
+              )
               ..orderBy([
                 (x) => OrderingTerm.desc(x.date),
                 (x) => OrderingTerm.desc(x.id),
@@ -238,7 +255,12 @@ extension TimelineQueries on AppDatabase {
             .get();
     final d =
         await (select(drafts)
-              ..where((x) => x.deletedAt.isNull() & pos(x.date, x.id))
+              ..where(
+                (x) =>
+                    x.deletedAt.isNull() &
+                    notInArchivedPit(x.pitId) &
+                    pos(x.date, x.id),
+              )
               ..orderBy([
                 (x) => OrderingTerm.desc(x.date),
                 (x) => OrderingTerm.desc(x.id),
@@ -247,7 +269,12 @@ extension TimelineQueries on AppDatabase {
             .get();
     final p =
         await (select(pieces)
-              ..where((x) => x.deletedAt.isNull() & pos(x.finishedAt, x.id))
+              ..where(
+                (x) =>
+                    x.deletedAt.isNull() &
+                    notInArchivedPit(x.pitId) &
+                    pos(x.finishedAt, x.id),
+              )
               ..orderBy([
                 (x) => OrderingTerm.desc(x.finishedAt),
                 (x) => OrderingTerm.desc(x.id),

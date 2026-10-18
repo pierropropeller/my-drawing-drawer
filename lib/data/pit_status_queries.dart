@@ -103,6 +103,15 @@ extension PitStatusQueries on AppDatabase {
       p.id,
   };
 
+  /// 「所屬的坑不是封存坑」的條件（D-098：時間軸、月曆不顯示封存坑的內容）。
+  /// 用子查詢，不載入 id 集合；轉回現坑／淺坑後立即重新符合（不動資料）。
+  Expression<bool> notInArchivedPit(GeneratedColumn<String> pitId) =>
+      pitId.isNotInQuery(
+        selectOnly(pits)
+          ..addColumns([pits.id])
+          ..where(pits.status.equals(PitStatus.archived.name)),
+      );
+
   // ---- 封面 ----
 
   /// 淺坑自己的封面（從手機相簿直接選的圖檔；null＝清除）。
