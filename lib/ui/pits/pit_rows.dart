@@ -6,6 +6,7 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
+import '../album/cover_pick_page.dart';
 import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/responsive.dart';
@@ -144,6 +145,14 @@ class PitRow extends ConsumerWidget {
       onTap: () => Navigator.of(
         context,
       ).push(MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pit.id))),
+      // 淺坑列長按：和現坑卡片一樣，從坑內的圖挑這個坑的封面（沒有圖時頁面顯示空狀態，與現坑卡片一致）。
+      onLongPress: status == PitStatus.shallow
+          ? () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => CoverPickPage(pitId: pit.id),
+              ),
+            )
+          : null,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(

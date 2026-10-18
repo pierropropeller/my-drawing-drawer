@@ -7,7 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../l10n/l10n.dart';
+import '../../media/video_playback_gate.dart';
 import '../../state/providers.dart';
+import '../../state/settings.dart';
+import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import 'media_badges.dart';
 import 'media_icons.dart';
@@ -39,6 +42,10 @@ abstract class MediaPlayback implements Listenable {
   Future<void> seekTo(Duration position);
   Future<void> setVolume(double volume);
 
+  /// 循環播放（到尾自動從頭）。
+  bool get isLooping;
+  Future<void> setLooping(bool looping);
+
   /// 影片畫面本體（沒有控制列）。
   Widget buildView(BuildContext context);
   void dispose();
@@ -67,6 +74,8 @@ class VideoPlayerPlayback implements MediaPlayback {
 
   @override
   double get volume => _c.value.volume;
+  @override
+  bool get isLooping => _c.value.isLooping;
 
   @override
   Future<void> initialize() => _c.initialize();
@@ -78,6 +87,8 @@ class VideoPlayerPlayback implements MediaPlayback {
   Future<void> seekTo(Duration position) => _c.seekTo(position);
   @override
   Future<void> setVolume(double volume) => _c.setVolume(volume);
+  @override
+  Future<void> setLooping(bool looping) => _c.setLooping(looping);
 
   @override
   Widget buildView(BuildContext context) => VideoPlayer(_c);
@@ -261,7 +272,7 @@ class VideoScrubber extends StatelessWidget {
 
 /// 播放中的畫面：影片置中 contain、點一下顯示／收起控制列、底部控制列
 /// （暫停／播放、進度條、「0:08 / 0:24」、靜音、全螢幕）。
-class VideoSurface extends StatefulWidget {
+class VideoSurface extends ConsumerStatefulWidget {
   const VideoSurface({
     super.key,
     required this.playback,
@@ -280,12 +291,24 @@ class VideoSurface extends StatefulWidget {
   final Color? background;
 
   @override
-  State<VideoSurface> createState() => _VideoSurfaceState();
+  ConsumerState<VideoSurface> createState() => _VideoSurfaceState();
 }
 
-class _VideoSurfaceState extends State<VideoSurface> {
+/// 位置文字／進度條的最短更新間隔（約 10 Hz）；位置跳動超過 [_posJump] 時不等。
+const _posInterval = Duration(milliseconds: 100);
+const _posJump = Duration(milliseconds: 250);
+
+/// 效能：播放器每次通知（位置、狀態）**不** `setState` 整個畫面。影片畫面（Texture）
+/// 放在 RepaintBoundary 裡、build 只在初始化時跑一次；控制列各部分用 [ValueNotifier]
+/// 只重建自己（播放鍵、靜音、時間＋進度條），位置更新再節流。
+class _VideoSurfaceState extends ConsumerState<VideoSurface> {
   late final ControlsAutoHide _hide = ControlsAutoHide(delay: widget.hideDelay);
-  double? _drag; // 拖曳中的進度比例
+  final _drag = ValueNotifier<double?>(null); // 拖曳中的進度比例
+  late final _playing = ValueNotifier<bool>(_p.isPlaying);
+  late final _volume = ValueNotifier<double>(_p.volume);
+  late final _pos = ValueNotifier<Duration>(_p.position);
+  final _clock = Stopwatch()..start();
+  Duration _lastPosPush = Duration.zero;
 
   MediaPlayback get _p => widget.playback;
 
@@ -295,6 +318,9 @@ class _VideoSurfaceState extends State<VideoSurface> {
     _hide.show();
     _hide.setHold(!_p.isPlaying);
     _p.addListener(_onPlayback);
+    // 套用裝置上記住的循環設定（內嵌與全螢幕共用同一個播放器，這裡讓兩邊都生效）。
+    final loop = ref.read(settingsProvider).videoLoop;
+    if (_p.isLooping != loop) unawaited(_p.setLooping(loop));
   }
 
   @override
@@ -303,6 +329,7 @@ class _VideoSurfaceState extends State<VideoSurface> {
     if (old.playback != widget.playback) {
       old.playback.removeListener(_onPlayback);
       widget.playback.addListener(_onPlayback);
+      _onPlayback();
     }
   }
 
@@ -310,12 +337,24 @@ class _VideoSurfaceState extends State<VideoSurface> {
   void dispose() {
     _p.removeListener(_onPlayback);
     _hide.dispose();
+    _drag.dispose();
+    _playing.dispose();
+    _volume.dispose();
+    _pos.dispose();
     super.dispose();
   }
 
   void _onPlayback() {
-    _hide.setHold(!_p.isPlaying || _drag != null);
-    if (mounted) setState(() {});
+    _hide.setHold(!_p.isPlaying || _drag.value != null);
+    _playing.value = _p.isPlaying;
+    _volume.value = _p.volume;
+    final now = _clock.elapsed;
+    final p = _p.position;
+    final jumped = (p - _pos.value).abs() >= _posJump;
+    if (jumped || now - _lastPosPush >= _posInterval) {
+      _lastPosPush = now;
+      _pos.value = p;
+    }
   }
 
   Future<void> _togglePlay() async {
@@ -337,16 +376,31 @@ class _VideoSurfaceState extends State<VideoSurface> {
     await _p.setVolume(_p.volume > 0 ? 0 : 1);
   }
 
+  Future<void> _toggleLoop() async {
+    _hide.show();
+    final next = !ref.read(settingsProvider).videoLoop;
+    ref.read(settingsProvider.notifier).setVideoLoop(next);
+    await _p.setLooping(next);
+  }
+
+  Duration _shown(Duration total) {
+    final d = _drag.value;
+    return d != null
+        ? Duration(milliseconds: (total.inMilliseconds * d).round())
+        : _pos.value;
+  }
+
+  static double _fractionOf(Duration shown, Duration total) =>
+      total.inMilliseconds <= 0
+      ? 0.0
+      : (shown.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final t = context.tokens;
     final total = _p.duration;
-    final shown = _drag != null
-        ? Duration(milliseconds: (total.inMilliseconds * _drag!).round())
-        : _p.position;
-    final fraction = total.inMilliseconds <= 0
-        ? 0.0
-        : (shown.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
+    final loop = ref.watch(settingsProvider.select((s) => s.videoLoop));
     final bottomInset = widget.fullscreen
         ? MediaQuery.paddingOf(context).bottom
         : 0.0;
@@ -361,7 +415,8 @@ class _VideoSurfaceState extends State<VideoSurface> {
             child: Center(
               child: AspectRatio(
                 aspectRatio: _p.aspectRatio,
-                child: _p.buildView(context),
+                // 影片自成一層：控制列、進度條重繪不會連帶重繪影片，也沒有 saveLayer 的祖先。
+                child: RepaintBoundary(child: _p.buildView(context)),
               ),
             ),
           ),
@@ -392,70 +447,93 @@ class _VideoSurfaceState extends State<VideoSurface> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      VideoScrubber(
-                        key: const ValueKey('videoScrubber'),
-                        fraction: fraction,
-                        onChangeStart: () {
-                          _drag = fraction;
-                          _hide.setHold(true);
-                        },
-                        onChanged: (f) {
-                          _hide.show();
-                          setState(() => _drag = f);
-                        },
-                        onChangeEnd: (f) async {
-                          final target = Duration(
-                            milliseconds: (total.inMilliseconds * f).round(),
-                          );
-                          setState(() => _drag = null);
-                          _hide.setHold(!_p.isPlaying);
-                          _hide.show();
-                          await _p.seekTo(target);
-                        },
+                      ListenableBuilder(
+                        listenable: Listenable.merge([_pos, _drag]),
+                        builder: (context, _) => VideoScrubber(
+                          key: const ValueKey('videoScrubber'),
+                          fraction: _fractionOf(_shown(total), total),
+                          onChangeStart: () {
+                            _drag.value = _fractionOf(_pos.value, total);
+                            _hide.setHold(true);
+                          },
+                          onChanged: (f) {
+                            _hide.show();
+                            _drag.value = f;
+                          },
+                          onChangeEnd: (f) async {
+                            final target = Duration(
+                              milliseconds: (total.inMilliseconds * f).round(),
+                            );
+                            _drag.value = null;
+                            _pos.value = target;
+                            _hide.setHold(!_p.isPlaying);
+                            _hide.show();
+                            await _p.seekTo(target);
+                          },
+                        ),
                       ),
                       Row(
                         children: [
-                          _BarButton(
-                            key: const ValueKey('videoPlayPause'),
-                            label: _p.isPlaying
-                                ? l10n.mediaPause
-                                : l10n.mediaPlay,
-                            onTap: _togglePlay,
-                            child: SvgIcon(
-                              _p.isPlaying ? MediaIcons.pause : MediaIcons.play,
-                              size: 20,
-                              fill: 'currentColor',
-                              strokeWidth: 0,
-                              color: Colors.white,
+                          ValueListenableBuilder<bool>(
+                            valueListenable: _playing,
+                            builder: (context, playing, _) => _BarButton(
+                              key: const ValueKey('videoPlayPause'),
+                              label: playing ? l10n.mediaPause : l10n.mediaPlay,
+                              onTap: _togglePlay,
+                              child: SvgIcon(
+                                playing ? MediaIcons.pause : MediaIcons.play,
+                                size: 20,
+                                fill: 'currentColor',
+                                strokeWidth: 0,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.only(left: 4),
-                              child: Text(
-                                '${formatMediaDuration(shown.inMilliseconds)} / '
-                                '${formatMediaDuration(total.inMilliseconds)}',
-                                key: const ValueKey('videoTime'),
-                                style: const TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
+                              child: ListenableBuilder(
+                                listenable: Listenable.merge([_pos, _drag]),
+                                builder: (context, _) => Text(
+                                  '${formatMediaDuration(_shown(total).inMilliseconds)} / '
+                                  '${formatMediaDuration(total.inMilliseconds)}',
+                                  key: const ValueKey('videoTime'),
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                           _BarButton(
-                            key: const ValueKey('videoMute'),
-                            label: _p.volume > 0
-                                ? l10n.mediaMute
-                                : l10n.mediaUnmute,
-                            onTap: _toggleMute,
+                            key: const ValueKey('videoLoop'),
+                            label: l10n.videoloopLoop,
+                            tooltip: loop
+                                ? l10n.videoloopLoopOn
+                                : l10n.videoloopLoopOff,
+                            selected: loop,
+                            onTap: _toggleLoop,
                             child: SvgIcon(
-                              _p.volume > 0
-                                  ? MediaIcons.volume
-                                  : MediaIcons.volumeOff,
+                              MediaIcons.loop,
                               size: 20,
-                              color: Colors.white,
+                              color: loop ? t.accent : Colors.white,
+                            ),
+                          ),
+                          ValueListenableBuilder<double>(
+                            valueListenable: _volume,
+                            builder: (context, vol, _) => _BarButton(
+                              key: const ValueKey('videoMute'),
+                              label: vol > 0 ? l10n.mediaMute : l10n.mediaUnmute,
+                              onTap: _toggleMute,
+                              child: SvgIcon(
+                                vol > 0
+                                    ? MediaIcons.volume
+                                    : MediaIcons.volumeOff,
+                                size: 20,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                           _BarButton(
@@ -496,21 +574,34 @@ class _BarButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     required this.child,
+    this.tooltip,
+    this.selected,
   });
   final String label;
   final VoidCallback onTap;
   final Widget child;
 
+  /// 長按提示（開關鈕用，說明目前狀態）。
+  final String? tooltip;
+
+  /// 非 null＝開關鈕，語意上帶「已開啟／未開啟」。
+  final bool? selected;
+
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: label,
-    child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: SizedBox(width: 32, height: 32, child: Center(child: child)),
-    ),
-  );
+  Widget build(BuildContext context) {
+    Widget w = SizedBox(width: 32, height: 32, child: Center(child: child));
+    if (tooltip != null) w = Tooltip(message: tooltip!, child: w);
+    return Semantics(
+      button: true,
+      label: label,
+      toggled: selected,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: w,
+      ),
+    );
+  }
 }
 
 // ───────────────────────── 詳情／預覽用的整合元件 ─────────────────────────
@@ -572,6 +663,14 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
 
   bool get _started => _playback != null && _playback!.isInitialized;
 
+  // 擁有播放器期間佔著全域閘門：背景補截圖不得另開播放器／解碼器（見 VideoPlaybackGate）。
+  bool _gateHeld = false;
+  void _holdGate(bool hold) {
+    if (hold == _gateHeld) return;
+    _gateHeld = hold;
+    hold ? videoPlaybackGate.acquire() : videoPlaybackGate.release();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -587,7 +686,8 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
   @override
   void didUpdateWidget(VideoPlayerView old) {
     super.didUpdateWidget(old);
-    if (old.active && !widget.active) _pause();
+    // 滑到別頁／被蓋住：直接釋放播放器（回到截圖），同時只留一個 ExoPlayer 在用。
+    if (old.active && !widget.active) _deactivate();
     if (old.file != widget.file) {
       _release();
       setState(() {
@@ -613,10 +713,18 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
   void _release() {
     final p = _playback;
     _playback = null;
+    _holdGate(false);
     if (p != null) {
       p.pause();
       p.dispose();
     }
+  }
+
+  /// 釋放播放器並回到截圖畫面。
+  void _deactivate() {
+    if (_playback == null) return;
+    _release();
+    if (mounted) setState(() {});
   }
 
   void _pause() {
@@ -634,10 +742,12 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
       _failed = false;
     });
     final p = ref.read(playbackFactoryProvider)(store.fileOf(widget.file));
+    _holdGate(true);
     try {
       await p.initialize();
       if (_disposed) {
         p.dispose();
+        _holdGate(false);
         return;
       }
       if (from != null && from > Duration.zero) await p.seekTo(from);
@@ -645,6 +755,7 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
       if (autoPlay && widget.active) await p.play();
     } catch (_) {
       p.dispose();
+      _holdGate(false);
       if (!_disposed) {
         setState(() {
           _loading = false;
@@ -655,6 +766,7 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
     }
     if (_disposed) {
       p.dispose();
+      _holdGate(false);
       return;
     }
     setState(() {
@@ -670,7 +782,10 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
     if (cb != null) {
       final playing = p.isPlaying;
       await p.pause();
-      cb(p.position, playing);
+      final pos = p.position;
+      // 交給預覽頁接手播放：這邊的播放器先釋放，避免兩個 ExoPlayer 同時活著。
+      _deactivate();
+      cb(pos, playing);
       return;
     }
     await openVideoFullscreen(context, p);

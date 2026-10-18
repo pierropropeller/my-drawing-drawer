@@ -25,9 +25,13 @@ class AppSettings {
     this.defaultCurrency = 'CNY',
     this.syncedAccount,
     this.appIcon = 'sanbi',
+    this.videoLoop = false,
   });
 
   final ThemeMode themeMode;
+
+  /// 影片播放控制列的「循環播放」開關；本機設定，不同步，預設關。
+  final bool videoLoop;
 
   /// 桌面／App 內顯示的圖示 key（D-086，`appIconOptions` 的 key）；本機設定，不同步。
   /// 啟動時會以平台實際啟用的 alias 校正。
@@ -68,7 +72,9 @@ class AppSettings {
     String? defaultCurrency,
     Object? syncedAccount = _keep,
     String? appIcon,
+    bool? videoLoop,
   }) => AppSettings(
+    videoLoop: videoLoop ?? this.videoLoop,
     appIcon: appIcon ?? this.appIcon,
     themeMode: themeMode ?? this.themeMode,
     accent: accent ?? this.accent,
@@ -138,7 +144,13 @@ class SettingsNotifier extends Notifier<AppSettings> {
       defaultCurrency: p.getString('defaultCurrency') ?? 'CNY',
       syncedAccount: p.getString('syncedAccount'),
       appIcon: p.getString('appIcon') ?? 'sanbi',
+      videoLoop: p.getBool('videoLoop') ?? false,
     );
+  }
+
+  void setVideoLoop(bool v) {
+    state = state.copyWith(videoLoop: v);
+    _p?.setBool('videoLoop', v);
   }
 
   void setAppIcon(String key) {

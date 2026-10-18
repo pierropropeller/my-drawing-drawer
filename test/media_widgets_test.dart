@@ -14,7 +14,9 @@ import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/data/media_queries.dart';
 import 'package:huakeng/l10n/l10n.dart';
 import 'package:huakeng/media/media_import.dart';
+import 'package:huakeng/media/video_playback_gate.dart';
 import 'package:huakeng/media/video_probe.dart';
+import 'package:huakeng/state/settings.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/sync/sync_controller.dart';
 import 'package:huakeng/theme/app_theme.dart';
@@ -22,6 +24,7 @@ import 'package:huakeng/ui/common/detail_carousel.dart';
 import 'package:huakeng/ui/common/media_widgets.dart';
 import 'package:huakeng/ui/entity/image_gallery_page.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 影片與 GIF（D-080）：標記、GIF 只在畫面上時動、影片不自動播、控制列自動隱藏、匯入判斷。
 void main() {
@@ -544,6 +547,120 @@ void main() {
       expect(fake.isPlaying, isFalse);
     });
 
+    testWidgets('循環鈕：切換 setLooping、記住設定（裝置設定 videoLoop）、有開啟狀態語意', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      await pumpApp(
+        tester,
+        SizedBox(
+          width: 360,
+          height: 450,
+          child: VideoPlayerView(file: 'v.mp4', poster: 'v.jpg'),
+        ),
+        overrides: [
+          playbackFactoryProvider.overrideWithValue((f) => fake),
+          sharedPrefsProvider.overrideWithValue(prefs),
+        ],
+      );
+      await startPlaying(tester);
+      expect(fake.isLooping, isFalse); // 預設關
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(VideoPlayerView)),
+      );
+      expect(container.read(settingsProvider).videoLoop, isFalse);
+      expect(find.byKey(const ValueKey('videoLoop')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('videoLoop')));
+      await tester.pump();
+      expect(fake.log, contains('loop true'));
+      expect(fake.isLooping, isTrue);
+      expect(container.read(settingsProvider).videoLoop, isTrue);
+      expect(prefs.getBool('videoLoop'), isTrue);
+      expect(find.bySemanticsLabel('循環播放'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('videoLoop')));
+      await tester.pump();
+      expect(fake.isLooping, isFalse);
+      expect(prefs.getBool('videoLoop'), isFalse);
+    });
+
+    testWidgets('已記住循環：新開的播放器（含全螢幕共用同一個）一開始就套用', (tester) async {
+      SharedPreferences.setMockInitialValues({'videoLoop': true});
+      final prefs = await SharedPreferences.getInstance();
+      await pumpApp(
+        tester,
+        SizedBox(
+          width: 360,
+          height: 450,
+          child: VideoPlayerView(file: 'v.mp4', poster: 'v.jpg'),
+        ),
+        overrides: [
+          playbackFactoryProvider.overrideWithValue((f) => fake),
+          sharedPrefsProvider.overrideWithValue(prefs),
+        ],
+      );
+      await startPlaying(tester);
+      expect(fake.isLooping, isTrue);
+    });
+
+    testWidgets('位置更新只重建時間／進度條：影片畫面不被重建', (tester) async {
+      await mount(tester);
+      await startPlaying(tester);
+      final builds = fake.viewBuilds;
+      expect(builds, greaterThan(0));
+      for (var i = 1; i <= 20; i++) {
+        fake.tick(Duration(milliseconds: 8000 + i * 500));
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(fake.viewBuilds, builds, reason: '位置通知不得讓整個播放畫面重建');
+      expect(find.text('0:18 / 0:24'), findsOneWidget); // 時間文字有跟著更新
+    });
+
+    testWidgets('影片放在獨立的 RepaintBoundary 裡', (tester) async {
+      await mount(tester);
+      await startPlaying(tester);
+      expect(
+        find.ancestor(
+          of: find.byKey(const ValueKey('fakeVideoView')),
+          matching: find.byType(RepaintBoundary),
+        ),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('全域閘門：擁有播放器期間為 true，滑到別頁釋放播放器後放開', (tester) async {
+      videoPlaybackGate.reset();
+      await mount(tester);
+      expect(videoPlaybackGate.active, isFalse);
+      await startPlaying(tester);
+      expect(videoPlaybackGate.active, isTrue);
+      await mount(tester, active: false);
+      await tester.pump();
+      expect(videoPlaybackGate.active, isFalse);
+      expect(find.byKey(const ValueKey('videoPoster')), findsOneWidget);
+    });
+
+    testWidgets('全螢幕交給預覽頁時，這邊的播放器先釋放（不會同時兩個 ExoPlayer）', (tester) async {
+      videoPlaybackGate.reset();
+      await mount(tester, onFullscreen: (pos, playing) {});
+      await startPlaying(tester);
+      await tester.tap(find.byKey(const ValueKey('videoFullscreen')));
+      await tester.pump();
+      await tester.pump();
+      expect(videoPlaybackGate.active, isFalse);
+      expect(find.byKey(const ValueKey('videoPoster')), findsOneWidget);
+    });
+
+    testWidgets('循環鈕不影響控制列自動隱藏', (tester) async {
+      await mount(tester);
+      await startPlaying(tester);
+      await tester.tap(find.byKey(const ValueKey('videoLoop')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 2100));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(barOpacity(tester), 0);
+    });
+
     testWidgets('初始化失敗：顯示錯誤文字，不丟例外', (tester) async {
       fake.failInit = true;
       await mount(tester);
@@ -754,9 +871,30 @@ class FakePlayback extends ChangeNotifier implements MediaPlayback {
     notifyListeners();
   }
 
+  bool _loop = false;
   @override
-  Widget buildView(BuildContext context) =>
-      const SizedBox.expand(key: ValueKey('fakeVideoView'));
+  bool get isLooping => _loop;
+  @override
+  Future<void> setLooping(bool looping) async {
+    log.add('loop $looping');
+    _loop = looping;
+    notifyListeners();
+  }
+
+  /// buildView 被呼叫的次數（量「整個畫面有沒有被重建」）。
+  int viewBuilds = 0;
+
+  /// 測試用：直接改位置並通知。
+  void tick(Duration pos) {
+    _pos = pos;
+    notifyListeners();
+  }
+
+  @override
+  Widget buildView(BuildContext context) {
+    viewBuilds++;
+    return const SizedBox.expand(key: ValueKey('fakeVideoView'));
+  }
 }
 
 const _gif1x1 = <int>[
