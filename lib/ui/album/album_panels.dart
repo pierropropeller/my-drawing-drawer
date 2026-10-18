@@ -34,17 +34,87 @@ class AlbumPreviewPanel extends StatelessWidget {
   final List<Widget> info;
   final List<PanelAction> actions;
 
-  /// 「參考檢視」入口。
-  /// TODO(REFVIEW): 參考檢視器完成後，由呼叫端改成
-  /// `openReferenceViewer(context, images: …, index: …)`；目前退回既有的全螢幕預覽頁。
+  /// 「參考檢視」入口：呼叫端（`AlbumView`）接到 `openReferenceViewer`。
   final VoidCallback onReference;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final media = image.media;
     return LayoutBuilder(
       builder: (context, c) {
-        final coverH = (c.maxHeight * 0.5).clamp(200.0, 400.0);
+        final coverH = (c.maxHeight * 0.5).clamp(200.0, 420.0);
+        // 影片／GIF（MediaVideo）：影片在面板裡點播放鈕才播（控制列的全螢幕鍵＝參考檢視），
+        // GIF 預覽時自動循環；圖片仍是靜態圖＋右下角「參考檢視」。
+        final Widget cover;
+        if (media.isVideo) {
+          cover = SizedBox(
+            height: coverH,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: ColoredBox(
+                color: const Color(0xFF1E1B18),
+                child: VideoPlayerView(
+                  key: ValueKey('panel-video-${image.id}'),
+                  file: media.file,
+                  poster: media.poster,
+                  durationMs: media.durationMs,
+                  badgeInset: 10,
+                  onFullscreen: (_, _) => onReference(),
+                ),
+              ),
+            ),
+          );
+        } else {
+          cover = Semantics(
+            button: true,
+            label: context.l10n.ipadListsReferenceView,
+            child: GestureDetector(
+              onTap: onReference,
+              child: SizedBox(
+                height: coverH,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ColoredBox(color: t.chipBg),
+                      if (media.isGif)
+                        MediaViewer(media, cacheWidth: 900)
+                      else
+                        MediaThumb(
+                          media,
+                          cacheWidth: 900,
+                          fit: BoxFit.contain,
+                          badgeInset: 10,
+                        ),
+                      if (media.isGif)
+                        Positioned(
+                          left: 10,
+                          bottom: 10,
+                          child: _PanelBadge(context.l10n.ipadauditGifLoop),
+                        ),
+                      Positioned(
+                        right: 10,
+                        bottom: 10,
+                        child: _ReferencePill(
+                          context.l10n.ipadListsReferenceView,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+        final meta = media.isVideo
+            ? context.l10n.ipadauditVideoMeta(
+                formatMediaDuration(media.durationMs),
+              )
+            : media.isGif
+            ? context.l10n.ipadauditGifMeta
+            : null;
         return Column(
           children: [
             Expanded(
@@ -52,40 +122,18 @@ class AlbumPreviewPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Semantics(
-                      button: true,
-                      label: context.l10n.ipadListsReferenceView,
-                      child: GestureDetector(
-                        onTap: onReference,
-                        child: SizedBox(
-                          height: coverH,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                ColoredBox(color: t.chipBg),
-                                MediaThumb(
-                                  image.media,
-                                  cacheWidth: 900,
-                                  fit: BoxFit.contain,
-                                  badgeInset: 10,
-                                ),
-                                Positioned(
-                                  right: 10,
-                                  bottom: 10,
-                                  child: _ReferencePill(
-                                    context.l10n.ipadListsReferenceView,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                    cover,
+                    const SizedBox(height: 14),
+                    ...info.take(1),
+                    if (meta != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          meta,
+                          style: TextStyle(fontSize: 12.5, color: t.text3),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    ...info,
+                    ...info.skip(1),
                     const SizedBox(height: 12),
                   ],
                 ),
@@ -97,6 +145,33 @@ class AlbumPreviewPanel extends StatelessWidget {
       },
     );
   }
+}
+
+/// 預覽面板封面上的小標（例如「GIF · 自動循環」）：深色半透明底、白字。
+class _PanelBadge extends StatelessWidget {
+  const _PanelBadge(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 20,
+    padding: const EdgeInsets.symmetric(horizontal: 7),
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: mediaBadgeColor,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.44,
+        height: 1.1,
+      ),
+    ),
+  );
 }
 
 class _ReferencePill extends StatelessWidget {
