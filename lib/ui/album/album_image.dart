@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
+import '../../data/image_store.dart';
 import '../../data/media.dart';
 import '../../state/providers.dart';
 import '../../sync/sync_controller.dart';
@@ -117,16 +118,42 @@ class StoredImage extends ConsumerWidget {
         ? ref.watch(imageTransferProvider(file))
         : ImageDownloadStatus.present;
     if (status.isMissing) {
+      // 縮圖到了要重建（D-099：本機縮圖 → 本機原圖 → 占位）。
+      ref.watch(thumbVersionProvider(file));
       return _MissingImage(
         color: placeholderColor ?? t.chipBg,
         progress: status.progress,
         showBadge: status.showBadge,
+        thumb: store.thumbFileFor(file),
+        cacheWidth: cacheWidth,
       );
     }
-    Widget broken(BuildContext _, Object _, StackTrace? _) => ColoredBox(
-      color: t.chipBg,
-      child: Icon(Icons.broken_image_outlined, color: t.text4),
-    );
+    Widget broken(BuildContext _, Object _, StackTrace? _) {
+      // 原圖讀不到（還沒下載、不顯示角標的地方）：有縮圖就用縮圖。
+      final thumb = store.thumbFileFor(file);
+      if (thumb != null) {
+        return Image.file(thumb, fit: fit, cacheWidth: cacheWidth);
+      }
+      return ColoredBox(
+        color: t.chipBg,
+        child: Icon(Icons.broken_image_outlined, color: t.text4),
+      );
+    }
+
+    // 列表用的小尺寸優先讀本機縮圖（約 30KB，比解碼原圖快很多）；GIF 要動時才讀原檔。
+    if (!animate &&
+        cacheWidth != null &&
+        cacheWidth! <= ImageStore.thumbMaxEdge) {
+      final thumb = store.thumbFileFor(file);
+      if (thumb != null) {
+        return Image.file(
+          thumb,
+          fit: fit,
+          cacheWidth: cacheWidth,
+          errorBuilder: broken,
+        );
+      }
+    }
     final gif = isGif ?? file.toLowerCase().endsWith('.gif');
     if (gif) {
       final f = store.fileOf(file);
@@ -163,10 +190,16 @@ class _MissingImage extends StatelessWidget {
     required this.color,
     required this.progress,
     this.showBadge = true,
+    this.thumb,
+    this.cacheWidth,
   });
   final Color color;
   final double? progress;
   final bool showBadge;
+
+  /// 本機已有縮圖時畫縮圖（蓋層照舊），否則畫占位 icon。
+  final File? thumb;
+  final int? cacheWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +220,14 @@ class _MissingImage extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (iconSize > 0)
+                if (thumb != null)
+                  Image.file(
+                    thumb!,
+                    fit: BoxFit.cover,
+                    cacheWidth: cacheWidth,
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                  )
+                else if (iconSize > 0)
                   Center(
                     child: SvgIcon(
                       AppIcons.image,

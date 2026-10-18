@@ -48,6 +48,130 @@ class ImageStore {
     return out.stream;
   }
 
+  // ---- 縮圖（D-099）----
+  //
+  // 本機縮圖放在 `<images>/thumbs/`：
+  // - `<主檔名>.jpg`      ＝正式縮圖（長邊 480、JPEG 80；本機產生或從 Drive 的 thumbs 下載）
+  // - `<主檔名>.tmp.jpg`  ＝暫用縮圖（Drive `thumbnailLink` 備援；正式縮圖到了就被取代）
+  // - `<主檔名>.skip`     ＝這張圖產生不了縮圖（壞檔、不支援的格式）；補縮圖時不再重試
+  // 主檔名＝圖片檔名去掉副檔名（uuid）。影片原檔不做縮圖，它的 poster 是一張獨立的 jpg，有自己的縮圖。
+
+  /// 縮圖長邊（像素）。
+  static const thumbMaxEdge = 480;
+
+  Directory get thumbDir => Directory(p.join(dir.path, 'thumbs'));
+
+  static String thumbStem(String name) => p.basenameWithoutExtension(name);
+
+  File thumbFileOf(String name) =>
+      File(p.join(thumbDir.path, '${thumbStem(name)}.jpg'));
+  File tempThumbFileOf(String name) =>
+      File(p.join(thumbDir.path, '${thumbStem(name)}.tmp.jpg'));
+  File _skipFileOf(String name) =>
+      File(p.join(thumbDir.path, '${thumbStem(name)}.skip'));
+
+  final _thumbChanges = StreamController<String>.broadcast();
+
+  /// 有縮圖寫進來（含取代暫用縮圖）時送出圖片檔名。
+  Stream<String> get thumbChanges => _thumbChanges.stream;
+
+  // 縮圖目錄的記憶體索引（主檔名集合），讓列表格子可以同步查「有沒有縮圖」而不必每格 stat。
+  // 還沒載入（[loadThumbIndex] 沒呼叫過，例如測試）時退回直接查檔案。
+  Set<String>? _realThumbs;
+  Set<String>? _tempThumbs;
+  Set<String>? _skipped;
+
+  /// 掃描縮圖目錄建立索引（App 啟動時做一次）。
+  Future<void> loadThumbIndex() async {
+    final real = <String>{}, temp = <String>{}, skip = <String>{};
+    final d = thumbDir;
+    if (await d.exists()) {
+      await for (final e in d.list()) {
+        final n = p.basename(e.path);
+        if (n.endsWith('.tmp.jpg')) {
+          temp.add(n.substring(0, n.length - '.tmp.jpg'.length));
+        } else if (n.endsWith('.jpg')) {
+          real.add(n.substring(0, n.length - '.jpg'.length));
+        } else if (n.endsWith('.skip')) {
+          skip.add(n.substring(0, n.length - '.skip'.length));
+        }
+      }
+    }
+    _realThumbs = real;
+    _tempThumbs = temp;
+    _skipped = skip;
+  }
+
+  /// 有正式縮圖。
+  bool hasRealThumb(String name) =>
+      _realThumbs?.contains(thumbStem(name)) ?? thumbFileOf(name).existsSync();
+
+  bool hasTempThumb(String name) =>
+      _tempThumbs?.contains(thumbStem(name)) ??
+      tempThumbFileOf(name).existsSync();
+
+  /// 有任何可用的縮圖（正式或暫用）。
+  bool hasThumb(String name) => hasRealThumb(name) || hasTempThumb(name);
+
+  /// 目前該用哪個縮圖檔（正式優先，其次暫用）；沒有為 null。
+  File? thumbFileFor(String name) {
+    if (hasRealThumb(name)) return thumbFileOf(name);
+    if (hasTempThumb(name)) return tempThumbFileOf(name);
+    return null;
+  }
+
+  /// 這張圖被標記為「產生不了縮圖」。
+  bool thumbFailed(String name) =>
+      _skipped?.contains(thumbStem(name)) ?? _skipFileOf(name).existsSync();
+
+  /// 寫入正式縮圖（本機產生或同步下載），並取代暫用縮圖。
+  Future<void> saveThumb(String name, Uint8List bytes) async {
+    await thumbDir.create(recursive: true);
+    await thumbFileOf(name).writeAsBytes(bytes, flush: true);
+    _realThumbs?.add(thumbStem(name));
+    final tmp = tempThumbFileOf(name);
+    if (tmp.existsSync()) {
+      try {
+        tmp.deleteSync();
+      } catch (_) {}
+    }
+    _tempThumbs?.remove(thumbStem(name));
+    _thumbChanges.add(name);
+  }
+
+  /// 寫入暫用縮圖（Drive thumbnailLink 備援）。已經有正式縮圖就不寫。
+  Future<void> saveTempThumb(String name, Uint8List bytes) async {
+    if (hasRealThumb(name)) return;
+    await thumbDir.create(recursive: true);
+    await tempThumbFileOf(name).writeAsBytes(bytes, flush: true);
+    _tempThumbs?.add(thumbStem(name));
+    _thumbChanges.add(name);
+  }
+
+  /// 標記這張圖產生不了縮圖。
+  Future<void> markThumbFailed(String name) async {
+    await thumbDir.create(recursive: true);
+    await _skipFileOf(name).writeAsBytes(const [], flush: true);
+    _skipped?.add(thumbStem(name));
+  }
+
+  /// 這張圖的縮圖有變動時送出遞增的版本號（先送一次目前值）；UI 收到後重新取 [thumbFileFor]。
+  Stream<int> watchThumb(String name) {
+    late final StreamController<int> out;
+    StreamSubscription<String>? sub;
+    out = StreamController<int>(
+      onListen: () {
+        var v = 0;
+        out.add(v);
+        sub = thumbChanges.listen((n) {
+          if (n == name) out.add(++v);
+        });
+      },
+      onCancel: () => sub?.cancel(),
+    );
+    return out.stream;
+  }
+
   /// 寫入一個檔案（同步下載用），完成後通知 [changes]。
   Future<void> save(String name, Uint8List bytes) async {
     await dir.create(recursive: true);

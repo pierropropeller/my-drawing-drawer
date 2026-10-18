@@ -213,6 +213,11 @@ class _SyncFirstPageState extends ConsumerState<SyncFirstPage> {
       detail = context.l10n.syncuiListing;
     } else if (sync.hasDocProgress) {
       detail = context.l10n.syncuiPullProgress(sync.docsDone, sync.docsTotal);
+    } else if (sync.hasThumbProgress) {
+      detail = context.l10n.syncuiThumbProgress(
+        sync.thumbsDone,
+        sync.thumbsTotal,
+      );
     } else if (sync.hasImageProgress) {
       detail = context.l10n.loginImagesProgress(
         sync.imagesDone,

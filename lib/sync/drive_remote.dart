@@ -11,7 +11,7 @@ import '../l10n/l10n.dart';
 
 /// Google Drive 的 App 專用資料夾（appDataFolder，使用者在 Drive 看不到，
 /// scope 只要 `drive.appdata`）。直接呼叫 Drive REST v3。
-class DriveRemote implements SyncRemote {
+class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
   DriveRemote({
     required this.headers,
     http.Client? client,
@@ -199,6 +199,50 @@ class DriveRemote implements SyncRemote {
       }
       return out.takeBytes();
     });
+  }
+
+  /// 舊資料備援（D-099）：`files.get?fields=thumbnailLink` 取得 Drive 自己產生的縮圖連結，
+  /// 把尺寸改成長邊 480，再帶登入 token 下載。連結會過期，所以每次現取現用、不快取。
+  /// 失敗（沒有縮圖、連結過期、網絡）一律回傳 null，不擋同步；只有授權過期才往上丟。
+  @override
+  Future<Uint8List?> fallbackThumbnail(String name) async {
+    final id = _ids[name];
+    if (id == null) return null;
+    try {
+      final meta = await _run(
+        'thumbnailLink',
+        () async => _check(
+          await _http
+              .get(
+                Uri.parse('$_api/$id')
+                    .replace(queryParameters: {'fields': 'thumbnailLink'}),
+                headers: await _headers(),
+              )
+              .timeout(requestTimeout),
+        ),
+        attempts: 2,
+      );
+      final link =
+          (jsonDecode(meta.body) as Map<String, dynamic>)['thumbnailLink']
+              as String?;
+      if (link == null || link.isEmpty) return null;
+      final sized = link.replaceFirst(RegExp(r'=s\d+(-\w+)*$'), '=s480');
+      final r = await _run(
+        'thumbnail',
+        () async => _check(
+          await _http
+              .get(Uri.parse(sized), headers: await _headers())
+              .timeout(requestTimeout),
+        ),
+        attempts: 2,
+      );
+      return r.bodyBytes.isEmpty ? null : r.bodyBytes;
+    } on SyncAuthException {
+      rethrow;
+    } catch (e) {
+      syncLog('thumbnailLink fallback failed (${e.runtimeType})');
+      return null;
+    }
   }
 
   @override

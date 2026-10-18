@@ -31,6 +31,8 @@ class SyncState {
     this.transfersPlanned = false,
     this.docsDone = 0,
     this.docsTotal = 0,
+    this.thumbsDone = 0,
+    this.thumbsTotal = 0,
     this.retryable = false,
   });
   final SyncPhase phase;
@@ -38,6 +40,10 @@ class SyncState {
   /// 拉取階段的雲端文件進度（「資料 N / M」）；[docsTotal] 為 0＝還在列出雲端內容。
   final int docsDone;
   final int docsTotal;
+
+  /// 縮圖階段（D-099）的進度（「縮圖 N / M」）；[thumbsTotal] 為 0＝沒有縮圖要處理。
+  final int thumbsDone;
+  final int thumbsTotal;
 
   /// 失敗是暫時性的（逾時、斷線、看門狗中止），稍後自動重試有意義；授權／格式問題不會。
   final bool retryable;
@@ -108,12 +114,23 @@ class SyncState {
   bool get hasDocProgress =>
       isSyncing && stage == SyncStage.pulling && docsTotal > 0;
 
+  /// 正在下載縮圖（D-099）且數量已知。
+  bool get hasThumbProgress =>
+      isSyncing && stage == SyncStage.downloadingThumbs && thumbsTotal > 0;
+
+  double? get thumbFraction =>
+      thumbsTotal > 0 ? (thumbsDone / thumbsTotal).clamp(0.0, 1.0) : null;
+
   /// 拉取階段的 0~1 進度。
   double? get docFraction =>
       docsTotal > 0 ? (docsDone / docsTotal).clamp(0.0, 1.0) : null;
 
   /// 目前階段的進度（拉取階段看文件數，其後看圖片數）；不知道時為 null（不確定進度條）。
-  double? get progressFraction => hasDocProgress ? docFraction : imageFraction;
+  double? get progressFraction => hasDocProgress
+      ? docFraction
+      : hasThumbProgress
+      ? thumbFraction
+      : imageFraction;
 
   /// 是否有圖片進度可以顯示（頂部橫條「同步中・圖片 N / M」）。
   bool get hasImageProgress => isSyncing && imagesTotal > 0;
@@ -136,6 +153,8 @@ class SyncState {
     bool? transfersPlanned,
     int? docsDone,
     int? docsTotal,
+    int? thumbsDone,
+    int? thumbsTotal,
     bool? retryable,
   }) => SyncState(
     phase: phase ?? this.phase,
@@ -151,6 +170,8 @@ class SyncState {
     transfersPlanned: transfersPlanned ?? this.transfersPlanned,
     docsDone: docsDone ?? this.docsDone,
     docsTotal: docsTotal ?? this.docsTotal,
+    thumbsDone: thumbsDone ?? this.thumbsDone,
+    thumbsTotal: thumbsTotal ?? this.thumbsTotal,
     retryable: retryable ?? this.retryable,
   );
 }
@@ -268,6 +289,8 @@ class SyncController extends Notifier<SyncState> {
               transfersPlanned: p.transfersPlanned,
               docsDone: p.docsDone,
               docsTotal: p.docsTotal,
+              thumbsDone: p.thumbsDone,
+              thumbsTotal: p.thumbsTotal,
             );
           },
         );

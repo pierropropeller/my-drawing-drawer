@@ -1,18 +1,24 @@
-import '../common/themed_sheet.dart';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/image_location.dart';
+import '../../data/database.dart' show MaterialCategory;
 import '../../data/media.dart';
+import '../../data/sync_row_info.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
+import '../../state/sync_row_info.dart';
 import '../../sync/network_kind.dart';
 import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
-import '../common/media_widgets.dart';
+import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
+import '../common/themed_sheet.dart';
+import '../material/material_icons.dart';
+import '../oshi/oshi_icons.dart';
+import '../pits/pits_icons.dart';
 import 'sync_colors.dart';
 import 'sync_icons.dart';
 
@@ -29,6 +35,9 @@ Future<void> showSyncSheet(BuildContext context) {
 
 /// 最多列出幾張（其餘寫「還有 N 張等待中」）。
 const syncSheetMaxRows = 4;
+
+/// 同時最多顯示幾張「傳輸中」（各自顯示百分比）。
+const syncSheetMaxActive = 3;
 
 class SyncSheet extends ConsumerStatefulWidget {
   const SyncSheet({super.key});
@@ -208,34 +217,124 @@ class _NetworkLabel extends ConsumerWidget {
   }
 }
 
-/// 逐張列出尚未完成的圖片（先處理的在前，最多 [syncSheetMaxRows] 張）＋「還有 N 張等待中」。
+/// 逐張列出要顯示的傳輸（D-099）：**傳輸中的排最上**（同時最多 [syncSheetMaxActive] 張），
+/// 接著是下幾張「等待中」，合計最多 [syncSheetMaxRows] 行；其餘由呼叫端寫成「還有 N 張等待中」。
+/// 已完成的不列。同一類內保持傳輸清單的順序。
+List<SyncTransfer> pickSyncRows(List<SyncTransfer> transfers) {
+  final active = <SyncTransfer>[];
+  final waiting = <SyncTransfer>[];
+  for (final x in transfers) {
+    if (x.isDone) continue;
+    (x.isActive ? active : waiting).add(x);
+  }
+  final out = [...active.take(syncSheetMaxActive)];
+  // 超過上限的 active 排在 waiting 前面補位，不會消失。
+  final rest = [...active.skip(syncSheetMaxActive), ...waiting];
+  out.addAll(rest.take(syncSheetMaxRows - out.length));
+  return out;
+}
+
+String _rowKey(SyncTransfer x) => '${x.direction.name}:${x.file}';
+
+/// 逐張列出尚未完成的圖片（傳輸中在前，最多 [syncSheetMaxRows] 張）＋「還有 N 張等待中」。
+/// 傳完的那一行會淡出，下面的行補上來。
 ///
 /// [onOpenSettings] 非 null＝popover 版：底下一列左「還有 N 張等待中」、右「同步設定」連結；
 /// null＝bottom sheet 版：置中的「還有 N 張等待中」。
-class SyncProgressRows extends ConsumerWidget {
+class SyncProgressRows extends ConsumerStatefulWidget {
   const SyncProgressRows({super.key, this.onOpenSettings});
   final VoidCallback? onOpenSettings;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SyncProgressRows> createState() => _SyncProgressRowsState();
+}
+
+class _Leaving {
+  _Leaving(this.index, this.x);
+  final int index;
+  final SyncTransfer x;
+}
+
+class _SyncProgressRowsState extends ConsumerState<SyncProgressRows> {
+  /// 淡出中的行（key → 原本的位置與最後狀態）。
+  final _leaving = <String, _Leaving>{};
+  final _timers = <String, Timer>{};
+  static const fadeDuration = Duration(milliseconds: 280);
+
+  @override
+  void initState() {
+    super.initState();
+    ref.listenManual(syncControllerProvider.select((s) => s.transfers), (
+      prev,
+      next,
+    ) {
+      final before = pickSyncRows(prev ?? const []);
+      final after = {for (final x in pickSyncRows(next)) _rowKey(x)};
+      for (var i = 0; i < before.length; i++) {
+        final key = _rowKey(before[i]);
+        if (after.contains(key) || _leaving.containsKey(key)) continue;
+        // 離開畫面的行：傳完的才淡出（定格在 100%）；其他情況（整次同步結束）直接消失。
+        final now = next.where((n) => _rowKey(n) == key).firstOrNull;
+        if (now == null || !now.isDone) continue;
+        setState(() => _leaving[key] = _Leaving(i, now.copyWith(progress: 1)));
+        _timers[key] = Timer(
+          fadeDuration + const Duration(milliseconds: 40),
+          () {
+            _timers.remove(key);
+            if (mounted) setState(() => _leaving.remove(key));
+          },
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    for (final t in _timers.values) {
+      t.cancel();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = context.tokens;
     final transfers = ref.watch(
       syncControllerProvider.select((s) => s.transfers),
     );
-    final pending = [
-      for (final x in transfers)
-        if (!x.isDone) x,
+    final shown = pickSyncRows(transfers);
+    final pendingCount = transfers.where((x) => !x.isDone).length;
+    final more = pendingCount - shown.length;
+    // 一次批次查可見幾行的位置資料（不逐張查）。
+    final files = [for (final x in shown) x.file];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(syncRowInfoProvider.notifier).ensure(files);
+      }
+    });
+    final rows = <Widget>[
+      for (final x in shown) _TransferRow(key: ValueKey(_rowKey(x)), x: x),
     ];
-    final shown = pending.take(syncSheetMaxRows).toList();
-    final more = pending.length - shown.length;
+    final leaving = _leaving.entries.toList()
+      ..sort((a, b) => a.value.index.compareTo(b.value.index));
+    for (final e in leaving) {
+      rows.insert(
+        e.value.index.clamp(0, rows.length),
+        _TransferRow(
+          key: ValueKey('leaving:${e.key}'),
+          x: e.value.x,
+          leaving: true,
+        ),
+      );
+    }
+    final onOpenSettings = widget.onOpenSettings;
     return AnimatedSize(
       duration: const Duration(milliseconds: 200),
       alignment: Alignment.topCenter,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final x in shown)
-            _TransferRow(key: ValueKey('${x.direction.name}:${x.file}'), x: x),
+          ...rows,
           if (onOpenSettings != null)
             Padding(
               padding: const EdgeInsets.only(top: 12),
@@ -247,7 +346,7 @@ class SyncProgressRows extends ConsumerWidget {
                       style: TextStyle(fontSize: 13, color: t.text3),
                     ),
                   const Spacer(),
-                  _SettingsLink(onTap: onOpenSettings!),
+                  _SettingsLink(onTap: onOpenSettings),
                 ],
               ),
             )
@@ -301,53 +400,32 @@ class _SettingsLink extends StatelessWidget {
   }
 }
 
+/// 一行：縮圖（或分類占位）＋「上傳／下載」標籤＋位置＋百分比／等待中＋進度條。
 class _TransferRow extends ConsumerWidget {
-  const _TransferRow({super.key, required this.x});
+  const _TransferRow({super.key, required this.x, this.leaving = false});
   final SyncTransfer x;
 
-  static String cellName(BuildContext context, ImageCell cell) {
-    final l = context.l10n;
-    return switch (cell) {
-      ImageCell.official => l.pitsOfficial,
-      ImageCell.fan => l.pitsFanArt,
-      ImageCell.junk => l.junkTitle,
-      ImageCell.draft => l.goalsKindDraft,
-      ImageCell.idea => l.goalsKindIdea,
-      ImageCell.piece => l.goalsKindPiece,
-    };
-  }
+  /// 傳完、淡出中。
+  final bool leaving;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = SyncColors.of(context);
     final l = context.l10n;
-    final loc = ref.watch(imageLocationProvider(x.file)).value;
-    final waiting = !x.isActive;
-    final percent = x.isActive && x.progress != null
+    final info = ref.watch(syncRowInfoProvider.select((m) => m[x.file]));
+    final waiting = !x.isActive && !x.isDone;
+    final percent = (x.isActive || x.isDone) && x.progress != null
         ? (x.progress! * 100).round().clamp(0, 100)
         : null;
-    return Container(
+    final locationText = syncLocationText(l, info);
+    final row = Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: colors.divider)),
       ),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              // 影片原檔不能當圖片解碼，傳輸清單裡直接用佔位（它的截圖是另一筆 jpg 傳輸）。
-              child: mediaKindFromExtension(x.file).isVideo
-                  ? const MediaPlaceholder()
-                  : StoredImage(
-                      x.file,
-                      cacheWidth: 150,
-                      showDownloadBadge: false,
-                    ),
-            ),
-          ),
+          SyncRowThumb(file: x.file, info: info),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -360,12 +438,7 @@ class _TransferRow extends ConsumerWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        loc == null
-                            ? ''
-                            : l.syncuiLocation(
-                                loc.pitName,
-                                cellName(context, loc.cell),
-                              ),
+                        locationText ?? '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -405,7 +478,7 @@ class _TransferRow extends ConsumerWidget {
                       : _Bar(
                           height: 5,
                           // 進行中但不知道大小：不確定進度條。
-                          fraction: x.progress,
+                          fraction: x.isDone ? 1 : x.progress,
                           track: colors.track,
                           color: colors.progress,
                         ),
@@ -415,6 +488,127 @@ class _TransferRow extends ConsumerWidget {
           ),
         ],
       ),
+    );
+    if (!leaving) return row;
+    return TweenAnimationBuilder<double>(
+      key: const ValueKey('syncRowFade'),
+      tween: Tween(begin: 1, end: 0),
+      duration: _SyncProgressRowsState.fadeDuration,
+      curve: Curves.easeIn,
+      builder: (_, v, child) => Opacity(opacity: v, child: child),
+      child: row,
+    );
+  }
+}
+
+/// 一行的位置文字（D-099）：「坑B · 好看同人圖」；腦洞／摸魚／成圖／推活有標題的再加標題
+/// 「坑A · 摸魚 · 天台煙花」；素材庫「素材庫 · 服裝」。資料還沒查到回傳 null。
+String? syncLocationText(AppLocalizations l, SyncRowInfo? info) {
+  if (info == null) return null;
+  final cell = switch (info.kind) {
+    SyncRowKind.official => l.pitsOfficial,
+    SyncRowKind.fan => l.pitsFanArt,
+    SyncRowKind.junk => l.junkTitle,
+    SyncRowKind.draft => l.goalsKindDraft,
+    SyncRowKind.idea => l.goalsKindIdea,
+    SyncRowKind.piece => l.goalsKindPiece,
+    SyncRowKind.oshi => l.oshiTitle,
+    SyncRowKind.material => l.materialTitle,
+    SyncRowKind.cover => l.pitsFieldCover,
+  };
+  if (info.kind == SyncRowKind.material) {
+    final cat = switch (info.materialCategory) {
+      MaterialCategory.clothing => l.materialCatClothing,
+      MaterialCategory.pose => l.materialCatPose,
+      MaterialCategory.body => l.materialCatBody,
+      MaterialCategory.palette => l.materialCatPalette,
+      MaterialCategory.scene => l.materialCatScene,
+      MaterialCategory.style => l.materialCatStyle,
+      MaterialCategory.sticker => l.materialCatSticker,
+      null => null,
+    };
+    return cat == null ? cell : l.syncuiLocation(cell, cat);
+  }
+  final pit = info.pitName;
+  if (pit == null || pit.isEmpty) return cell;
+  final title = info.title;
+  if (title != null && title.isNotEmpty) {
+    return l.syncuiLocationTitled(pit, cell, title);
+  }
+  return l.syncuiLocation(pit, cell);
+}
+
+/// 一行左邊 44×44 的縮圖（D-099）：本機縮圖 → 本機原圖 → 該分類的底色＋分類 icon。
+/// 影片用它的 poster。資料還沒查到時是沒有 icon 的中性底色，不用通用的灰色圖片 icon。
+class SyncRowThumb extends ConsumerWidget {
+  const SyncRowThumb({super.key, required this.file, required this.info});
+  final String file;
+  final SyncRowInfo? info;
+
+  static const size = 44.0;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final placeholder = _CategoryPlaceholder(kind: info?.kind);
+    final store = ref.watch(imageStoreProvider).value;
+    final isVideo = mediaKindFromExtension(file).isVideo;
+    final shownFile = isVideo ? info?.posterFile : file;
+    Widget child = placeholder;
+    if (store != null && shownFile != null) {
+      ref.watch(thumbVersionProvider(shownFile)); // 縮圖到了重建
+      final thumb = store.thumbFileFor(shownFile);
+      if (thumb != null) {
+        child = Image.file(
+          thumb,
+          fit: BoxFit.cover,
+          cacheWidth: 150,
+          errorBuilder: (_, _, _) => placeholder,
+        );
+      } else if (ref.watch(imageExistsProvider(shownFile)).value ?? false) {
+        child = StoredImage(
+          shownFile,
+          cacheWidth: 150,
+          showDownloadBadge: false,
+        );
+      }
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: SizedBox(width: size, height: size, child: child),
+    );
+  }
+}
+
+/// 縮圖還沒到時的格子：該分類的底色＋分類 icon（官方圖冊＝書本、同人圖＝愛心圖框、摸魚＝筆、
+/// 成圖＝圖片、推活＝星、雜物＝箱子、素材庫＝素材；分類色見 HANDOFF 第 7 節）。
+class _CategoryPlaceholder extends StatelessWidget {
+  const _CategoryPlaceholder({required this.kind});
+  final SyncRowKind? kind;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final neutral = CategoryColor(t.chipBg, t.text3);
+    final (CategoryColor color, String? icon) = switch (kind) {
+      SyncRowKind.official => (t.official, AppIcons.pitOfficial),
+      SyncRowKind.fan => (t.fanArt, AppIcons.pitFanArt),
+      SyncRowKind.draft => (t.draft, AppIcons.edit),
+      SyncRowKind.idea => (t.idea, AppIcons.bulb),
+      SyncRowKind.piece => (t.piece, AppIcons.image),
+      SyncRowKind.oshi => (t.oshi, OshiIcons.star),
+      SyncRowKind.junk => (neutral, PitsIcons.junk),
+      SyncRowKind.material => (neutral, MaterialLibIcons.library),
+      SyncRowKind.cover => (neutral, AppIcons.setCover),
+      null => (neutral, null),
+    };
+    return ColoredBox(
+      key: ValueKey('syncThumbPlaceholder:${kind?.name ?? 'none'}'),
+      color: color.bg,
+      child: icon == null
+          ? null
+          : Center(
+              child: SvgIcon(icon, size: 22, strokeWidth: 1.6, color: color.fg),
+            ),
     );
   }
 }

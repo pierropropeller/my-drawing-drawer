@@ -304,8 +304,9 @@ void main() {
       final remoteB = MemoryRemote(
         progressSteps: 4,
         onTransfer: (name, up) async {
-          if (!up && name.startsWith('images__') && !reached.isCompleted) {
-            reached.complete();
+          // 原圖會同時下載最多 3 張（D-099）：每一張都停在這裡，直到測試放行。
+          if (!up && name.startsWith('images__')) {
+            if (!reached.isCompleted) reached.complete();
             await gate.future;
           }
         },

@@ -838,3 +838,46 @@ Future<void> updateOfficial(String id, {required String groupId, required List<S
   比對欄位＝分組名稱＋tag 名稱；`tagId` 要求有該 tag；已刪除、隱藏（被移走）的不算。`total`、`counts`、`visibleSections` 都含官方圖。
 - 常用 tag 計數（`watchTagUsage`）本來就含官方圖（只算未刪除、未隱藏）。
 - 測試：`test/batch15_test.dart`。
+
+## 批次 17：縮圖機制與同步進度行（D-099，**不改 schema，維持 v11**）
+
+縮圖是檔案層的快取，不進資料庫：「Drive 上有沒有 `thumbs__…`」本身就是遷移進度，所以不需要新欄位，也沒有 drift migration。
+
+### 遠端命名（扁平命名空間）
+- `thumbs__{主檔名}.jpg`：縮圖（長邊 480px、JPEG 品質 80，約 30KB）。主檔名＝圖片檔名去掉副檔名（uuid）；`thumbRemoteName(file)`。
+- GIF 用第一格；影片原檔不做縮圖（它的 `poster` 是另一張 jpg，有自己的縮圖）。舊版裝置不產縮圖、舊 meta 不需要新欄位：新版遇到沒有縮圖的圖照常運作。
+
+### 本機（`ImageStore`，`<images>/thumbs/`）
+```dart
+File thumbFileOf(name)            // <主檔名>.jpg      正式縮圖
+File tempThumbFileOf(name)        // <主檔名>.tmp.jpg  暫用縮圖（Drive thumbnailLink 備援）
+bool hasRealThumb(name); bool hasTempThumb(name); bool hasThumb(name)
+File? thumbFileFor(name)          // 正式優先，其次暫用，沒有 null
+bool thumbFailed(name)            // <主檔名>.skip：產生不了縮圖，不再重試
+Future<void> saveThumb(name, bytes)       // 寫正式縮圖並刪暫用的
+Future<void> saveTempThumb(name, bytes)   // 已有正式的就不寫
+Future<void> markThumbFailed(name)
+Future<void> loadThumbIndex()     // 啟動時掃一次，之後 hasThumb 等是記憶體查詢（imageStoreProvider 已做）
+Stream<int> watchThumb(name)      // 縮圖變動時遞增；providers: thumbVersionProvider(file)
+```
+顯示優先順序（`StoredImage`）：本機縮圖 → 本機原圖 → 占位。`cacheWidth` ≤ 480 且不是動畫 GIF 時才讀縮圖；詳情／全螢幕預覽（沒給 cacheWidth 或更大）讀原圖。原圖還沒下載但縮圖已到時，格子顯示縮圖並照舊蓋淡色＋下載角標。
+
+### 同步引擎（`SyncEngine`）
+順序：拉 meta → 規劃傳輸清單 → **下載全部縮圖**（`syncThumbConcurrency`＝6 並行；階段 `SyncStage.downloadingThumbs`，進度 `thumbsDone/thumbsTotal`，SyncFirst 顯示「縮圖 N / M」）→ 下載原圖（最多 `syncDownloadConcurrency`＝3 張同時）→ 上傳（**每張原圖先傳縮圖再傳原圖**，縮圖失敗只記錄）→ 補縮圖。
+
+- **舊資料補縮圖**（一次性遷移）：本機有原圖、Drive 沒有 `thumbs__` 的，由這台裝置產生並上傳；每次同步最多 `syncThumbBackfillLimit`＝40 張（限速）。以 Drive 上有沒有該檔為準，所以可中斷續傳、不重複上傳；產生不了的（壞檔）標 `.skip` 不再重試。
+- **thumbnailLink 備援**：雲端沒有縮圖、本機也沒有原圖的，用 `ThumbnailFallbackRemote.fallbackThumbnail(遠端檔名)`（`DriveRemote`：`files.get?fields=thumbnailLink`，尺寸改 `=s480`，兩個請求都帶登入 token）取得暫用縮圖存成 `.tmp.jpg`。每次同步最多 `syncThumbFallbackLimit`＝150 張；連結過期、失敗一律回 null，只有授權過期（401 刷新失敗）才丟 `SyncAuthException`。正式縮圖到了就取代。
+- 縮圖階段連續兩批（各 6 張）全失敗就放棄這個階段（不擋原圖）。
+- 引擎參數：`thumbnails`（`ThumbnailMaker`，測試可換）、`downloadConcurrency`、`thumbBackfillLimit`、`thumbFallbackLimit`。
+- `SyncResult`：`thumbsDown`／`thumbsFallback`／`thumbsUp`／`thumbFailures`。`SyncState`：`thumbsDone`／`thumbsTotal`／`hasThumbProgress`。
+
+### 縮圖產生（`lib/media/thumbnail_maker.dart`）
+`DefaultThumbnailMaker`：引擎解碼並直接縮小（`ImageDescriptor.instantiateCodec(targetWidth/Height)`，不把整張大圖解成 RGBA，也處理 EXIF 方向、GIF 取第一格）→ 純 Dart `image` 套件在 isolate（`compute`）編成 JPEG 80（透明鋪白底）→ 引擎解不了時退回純 Dart 解碼。壞檔回傳 null。新增依賴 `image: ^4.3.0`。
+
+### 同步進度行（`lib/data/sync_row_info.dart`、`lib/state/sync_row_info.dart`）
+```dart
+Future<Map<String, SyncRowInfo>> AppDatabase.syncRowInfos(Iterable<String> files)
+```
+一次批次查一批圖片檔名所屬的實體（每張表一個 `IN (...)` 查詢，再各一次批次查標題與坑名，不逐張查）。優先順序：官方圖冊 → 好看同人圖 → 雜物 → 素材庫 → 成圖 → 摸魚 → 腦洞 → 推活 → 坑封面；已刪除、隱藏、擁有者已刪除的不算；影片的 poster 檔對應到同一個實體。`SyncRowInfo`：`kind`、`pitName`、`title`（腦洞／摸魚／成圖／推活，空白不算）、`materialCategory`、`posterFile`。
+`syncRowInfoProvider`（Notifier）快取查過的檔名，`ensure(files)` 只批次查還沒查過的。
+同步 sheet／popover（共用 `SyncProgressRows`）：`pickSyncRows` 取「傳輸中最多 3 張在前、等待中接著、合計最多 4 行」，其餘寫「還有 N 張等待中」；傳完的行淡出（280ms）後下面補上。
