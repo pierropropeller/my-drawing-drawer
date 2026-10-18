@@ -1265,6 +1265,22 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get ipadauditGifLoop => 'GIF · 自動循環';
+
+  @override
+  String ipadauditVideoMeta(String duration) {
+    return '影片 · $duration · 縮圖取第一格';
+  }
+
+  @override
+  String get ipadauditGifMeta => 'GIF · 預覽時自動播放';
+
+  @override
+  String ipadauditImagesCount(String label, int n) {
+    return '$label · $n 張';
+  }
+
+  @override
   String get ipadformsFanNewTitle => '加收藏';
 
   @override
@@ -1360,7 +1376,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ipadmediaPhotos => '從「照片」選取';
 
   @override
-  String get ipadmediaPhotosSub => '相簿，可多選並保留選取順序';
+  String get ipadmediaPhotosSub => '系統相簿，可多選並保留選取順序';
 
   @override
   String get ipadmediaFiles => '從「檔案」選取';

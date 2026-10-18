@@ -2313,6 +2313,30 @@ abstract class AppLocalizations {
   /// **'{code, select, CNY{人民幣} HKD{港幣} TWD{新台幣} USD{美元} JPY{日圓} EUR{歐元} GBP{英鎊} KRW{韓元} SGD{新加坡幣} other{{code}}}'**
   String goalsCurrencyName(String code);
 
+  /// No description provided for @ipadauditGifLoop.
+  ///
+  /// In zh, this message translates to:
+  /// **'GIF · 自動循環'**
+  String get ipadauditGifLoop;
+
+  /// No description provided for @ipadauditVideoMeta.
+  ///
+  /// In zh, this message translates to:
+  /// **'影片 · {duration} · 縮圖取第一格'**
+  String ipadauditVideoMeta(String duration);
+
+  /// No description provided for @ipadauditGifMeta.
+  ///
+  /// In zh, this message translates to:
+  /// **'GIF · 預覽時自動播放'**
+  String get ipadauditGifMeta;
+
+  /// No description provided for @ipadauditImagesCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{label} · {n} 張'**
+  String ipadauditImagesCount(String label, int n);
+
   /// No description provided for @ipadformsFanNewTitle.
   ///
   /// In zh, this message translates to:
@@ -2490,7 +2514,7 @@ abstract class AppLocalizations {
   /// No description provided for @ipadmediaPhotosSub.
   ///
   /// In zh, this message translates to:
-  /// **'相簿，可多選並保留選取順序'**
+  /// **'系統相簿，可多選並保留選取順序'**
   String get ipadmediaPhotosSub;
 
   /// No description provided for @ipadmediaFiles.
