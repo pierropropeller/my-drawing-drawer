@@ -1560,6 +1560,20 @@
       }
     }
   },
+  "syncuiLocationTitled": "{pit} · {cell} · {title}",
+  "@syncuiLocationTitled": {
+    "placeholders": {
+      "pit": {
+        "type": "String"
+      },
+      "cell": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "syncuiPercent": "{percent}%",
   "@syncuiPercent": {
     "placeholders": {
@@ -1588,6 +1602,17 @@
   "syncuiListing": "正在列出雲端內容",
   "syncuiPullProgress": "資料 {done} / {total}",
   "@syncuiPullProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "syncuiThumbProgress": "縮圖 {done} / {total}",
+  "@syncuiThumbProgress": {
     "placeholders": {
       "done": {
         "type": "int"

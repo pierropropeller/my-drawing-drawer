@@ -3843,6 +3843,12 @@ abstract class AppLocalizations {
   /// **'{pit} · {cell}'**
   String syncuiLocation(String pit, String cell);
 
+  /// No description provided for @syncuiLocationTitled.
+  ///
+  /// In zh, this message translates to:
+  /// **'{pit} · {cell} · {title}'**
+  String syncuiLocationTitled(String pit, String cell, String title);
+
   /// No description provided for @syncuiPercent.
   ///
   /// In zh, this message translates to:
@@ -3878,6 +3884,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'資料 {done} / {total}'**
   String syncuiPullProgress(int done, int total);
+
+  /// No description provided for @syncuiThumbProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'縮圖 {done} / {total}'**
+  String syncuiThumbProgress(int done, int total);
 
   /// No description provided for @syncuiStalled.
   ///

@@ -2148,6 +2148,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String syncuiLocationTitled(String pit, String cell, String title) {
+    return '$pit · $cell · $title';
+  }
+
+  @override
   String syncuiPercent(int percent) {
     return '$percent%';
   }
@@ -2171,6 +2176,11 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String syncuiPullProgress(int done, int total) {
     return '資料 $done / $total';
+  }
+
+  @override
+  String syncuiThumbProgress(int done, int total) {
+    return '縮圖 $done / $total';
   }
 
   @override
