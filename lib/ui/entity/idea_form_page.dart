@@ -232,6 +232,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
         child: ModalFormShell(
           title: title,
           actionLabel: actionLabel,
+          compactActionLabel: isNew ? context.l10n.pitsCreate : null,
           loaded: _loaded,
           onAction: () {
             if (!_saving) _save();

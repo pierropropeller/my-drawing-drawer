@@ -10,7 +10,7 @@ import '../common/nav_bar_hidden.dart';
 import 'pit_form.dart';
 import 'pit_type_widgets.dart';
 
-/// 開新坑的單一入口：視窗 ≥840 開置中 modal（NewPit，600 闊），較窄開整頁（手機版）。
+/// 開新坑的單一入口：視窗 ≥600 開置中 modal（NewPit，600 闊）；＜600 的 iPad 開 page sheet（NewPit400）；手機開整頁。
 /// 回傳新坑的 id（取消為 null）。[initialStatus]：預設的類型（主頁「淺坑」分頁的「開新淺坑」帶淺坑）。
 Future<String?> openNewPit(
   BuildContext context, {
@@ -129,6 +129,8 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
   }
 
   Widget _modal(BuildContext context) {
+    // page sheet（NewPit400，＜600）：內距 20×18、底部留 40。
+    final sheet = AdaptiveModalScope.sheetOf(context);
     return ModalFormFrame(
       title: context.l10n.pitsNewTitle,
       actionLabel: context.l10n.pitsCreate,
@@ -136,7 +138,14 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
       child: Form(
         key: _form,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(28, 24, 28, 30),
+          padding: sheet
+              ? EdgeInsets.fromLTRB(
+                  20,
+                  18,
+                  20,
+                  40 + MediaQuery.paddingOf(context).bottom,
+                )
+              : const EdgeInsets.fromLTRB(28, 24, 28, 30),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: _fields(modal: true),

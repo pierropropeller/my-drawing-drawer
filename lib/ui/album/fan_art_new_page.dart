@@ -106,7 +106,15 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
   @override
   Widget build(BuildContext context) {
     final imageField = [
-      AlbumFieldLabel(context.l10n.albumFieldImage),
+      AlbumFieldLabel(
+        // 彈出頁（form sheet／page sheet）標題帶張數：「圖片 · 3 張」。
+        widget.asModal
+            ? context.l10n.ipadauditImagesCount(
+                context.l10n.albumFieldImage,
+                _files.length,
+              )
+            : context.l10n.albumFieldImage,
+      ),
       ImagePickerField(
         items: _files,
         onAdd: _pick,
@@ -137,6 +145,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
       return ModalFormShell(
         title: context.l10n.ipadformsFanNewTitle,
         actionLabel: context.l10n.ipadformsFanAdd,
+        compactActionLabel: context.l10n.shareAdd,
         onAction: () {
           if (!_saving) _save();
         },

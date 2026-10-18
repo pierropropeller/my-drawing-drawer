@@ -17,6 +17,7 @@ import 'package:huakeng/ui/album/fan_art_edit_page.dart';
 import 'package:huakeng/ui/album/fan_art_new_page.dart';
 import 'package:huakeng/ui/album/official_list_page.dart';
 import 'package:huakeng/ui/album/official_new_page.dart';
+import 'package:huakeng/ui/common/device_class.dart';
 import 'package:huakeng/ui/common/adaptive_modal.dart';
 import 'package:huakeng/ui/common/app_switch.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
@@ -27,8 +28,10 @@ import 'package:huakeng/ui/oshi/oshi_form_page.dart';
 import 'package:huakeng/ui/share/share_sheet.dart';
 import 'package:image_picker/image_picker.dart';
 
-/// iPad：所有新增／編輯表單在視窗 ≥840 是置中 modal，較窄（含手機、834 直向）是整頁；
-/// 兩種模式存檔結果一致、結果回到呼叫端。
+/// iPad：所有新增／編輯表單在視窗 ≥600 是置中 form sheet；＜600 的 iPad（分屏約 400 寬）是
+/// page sheet（NewXxx400）；＜600 的手機是整頁。三種模式存檔結果一致、結果回到呼叫端。
+enum _Mode { page, dialog, sheet }
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -141,34 +144,52 @@ void main() {
   const portrait = Size(834, 1194);
   const landscape = Size(1194, 834);
 
-  /// 開啟後在對話框（modal）或整頁。
-  void expectMode(bool modal) {
-    expect(find.byType(Dialog), modal ? findsOneWidget : findsNothing);
-    if (modal) {
-      expect(navBarHiddenCount.value, 0, reason: 'modal 不藏導覽列');
-    } else {
-      expect(navBarHiddenCount.value, greaterThan(0), reason: '整頁要藏導覽列');
+  /// 開啟後在對話框（dialog）、page sheet（sheet）或整頁（page）。
+  void expectMode(_Mode mode) {
+    switch (mode) {
+      case _Mode.dialog:
+        expect(find.byType(Dialog), findsOneWidget);
+        expect(find.byKey(const ValueKey('form-sheet')), findsNothing);
+        expect(navBarHiddenCount.value, 0, reason: 'modal 不藏導覽列');
+      case _Mode.sheet:
+        expect(find.byType(Dialog), findsNothing);
+        expect(find.byKey(const ValueKey('form-sheet')), findsOneWidget);
+        expect(navBarHiddenCount.value, 0, reason: 'sheet 不藏導覽列');
+      case _Mode.page:
+        expect(find.byType(Dialog), findsNothing);
+        expect(find.byKey(const ValueKey('form-sheet')), findsNothing);
+        expect(navBarHiddenCount.value, greaterThan(0), reason: '整頁要藏導覽列');
     }
   }
 
-  for (final (name, size, modal) in [
-    ('手機 390×844', phone, false),
-    ('直向 834×1194', portrait, false),
-    ('橫向 1194×834', landscape, true),
+  const sheetSize = Size(400, 900);
+
+  for (final (name, size, mode) in [
+    ('手機 390×844', phone, _Mode.page),
+    ('分屏 400×900（iPad）', sheetSize, _Mode.sheet),
+    ('直向 834×1194', portrait, _Mode.dialog),
+    ('橫向 1194×834', landscape, _Mode.dialog),
   ]) {
+    final modal = mode != _Mode.page;
+
+    /// page sheet 的主按鈕縮短成「建立」／「加入」。
+    String label(String long, String short) =>
+        mode == _Mode.sheet ? short : long;
     group(name, () {
+      setUp(() => debugTabletDeviceOverride = mode == _Mode.sheet ? true : null);
+      tearDown(() => debugTabletDeviceOverride = null);
       tw('新增腦洞：存檔並關閉', (tester) async {
         final r = <Object?>[];
         await pumpHost(tester, size, (c) => openIdeaForm(c, pitId: pitId), r);
-        expectMode(modal);
+        expectMode(mode);
         expect(find.text('新增腦洞'), findsOneWidget);
-        expect(find.text('建立腦洞'), findsOneWidget);
+        expect(find.text(label('建立腦洞', '建立')), findsOneWidget);
         // 沒填標題：不能存、不關閉
-        await tester.tap(find.text('建立腦洞'));
+        await tester.tap(find.text(label('建立腦洞', '建立')));
         await settle(tester);
         expect(find.text('新增腦洞'), findsOneWidget);
         await tester.enterText(find.byType(TextFormField).first, '天台看煙花');
-        await tester.tap(find.text('建立腦洞'));
+        await tester.tap(find.text(label('建立腦洞', '建立')));
         await settle(tester);
         expect(find.text('新增腦洞'), findsNothing);
         expect(r, hasLength(1));
@@ -179,7 +200,7 @@ void main() {
       tw('取消不存', (tester) async {
         final r = <Object?>[];
         await pumpHost(tester, size, (c) => openDraftForm(c, pitId: pitId), r);
-        expectMode(modal);
+        expectMode(mode);
         if (modal) {
           await tester.tap(find.text('取消'));
         } else {
@@ -202,9 +223,9 @@ void main() {
               openDraftForm(c, pitId: pitId, initialImages: [XFile(png.path)]),
           r,
         );
-        expectMode(modal);
+        expectMode(mode);
         await tester.enterText(find.byType(TextField).first, '構圖');
-        await tester.tap(find.text('建立摸魚'));
+        await tester.tap(find.text(label('建立摸魚', '建立')));
         await settleLong(tester);
         final rows = await tester.runAsync(() => db.select(db.drafts).get());
         expect(rows!.single.title, '構圖');
@@ -220,7 +241,7 @@ void main() {
               openPieceForm(c, pitId: pitId, initialImages: [XFile(png.path)]),
           r,
         );
-        expectMode(modal);
+        expectMode(mode);
         await tester.enterText(find.byKey(const Key('piece-title')), '夏日');
         // 開商稿：出現委託人欄
         await reveal(tester, find.text('商稿'));
@@ -229,8 +250,8 @@ void main() {
         expect(find.byKey(const Key('piece-client')), findsOneWidget);
         await tester.enterText(find.byKey(const Key('piece-client')), '某某');
         await tester.enterText(find.byKey(const Key('piece-amount')), '800');
-        await reveal(tester, find.text('建立成圖'));
-        await tester.tap(find.text('建立成圖'));
+        await reveal(tester, find.text(label('建立成圖', '建立')));
+        await tester.tap(find.text(label('建立成圖', '建立')));
         await settleLong(tester);
         final rows = await tester.runAsync(() => db.select(db.pieces).get());
         expect(rows!.single.title, '夏日');
@@ -247,10 +268,10 @@ void main() {
           (c) => openOshiFormPage(c, pitId: pitId, initialImages: [png.path]),
           r,
         );
-        expectMode(modal);
+        expectMode(mode);
         await tester.enterText(find.byType(TextField).first, '一週年展');
-        await reveal(tester, find.text('建立紀錄'));
-        await tester.tap(find.text('建立紀錄'));
+        await reveal(tester, find.text(label('建立紀錄', '建立')));
+        await tester.tap(find.text(label('建立紀錄', '建立')));
         await settleLong(tester);
         final rows = await tester.runAsync(
           () => db.select(db.oshiRecords).get(),
@@ -270,12 +291,12 @@ void main() {
           ),
           r,
         );
-        expectMode(modal);
+        expectMode(mode);
         expect(find.text('新增官方圖'), findsOneWidget);
         if (modal) {
           expect(find.textContaining('一併加入'), findsOneWidget);
         }
-        await tester.tap(find.text('加入官方圖冊'));
+        await tester.tap(find.text(label('加入官方圖冊', '加入')));
         await settleLong(tester);
         final rows = await tester.runAsync(
           () => db.select(db.officialImages).get(),
@@ -293,10 +314,10 @@ void main() {
               openFanArtNew(c, pitId: pitId, initialImages: [XFile(png.path)]),
           r,
         );
-        expectMode(modal);
+        expectMode(mode);
         expect(find.text(modal ? '加收藏' : '新增同人圖'), findsOneWidget);
         await tester.enterText(find.byType(TextField).first, '@ka');
-        await tester.tap(find.text(modal ? '加入同人圖' : '加入好看同人圖'));
+        await tester.tap(find.text(modal ? label('加入同人圖', '加入') : '加入好看同人圖'));
         await settleLong(tester);
         final rows = await tester.runAsync(() => db.select(db.fanArts).get());
         expect(rows!.single.author, '@ka');
@@ -312,7 +333,7 @@ void main() {
           (c) => openFanArtEdit(c, pitId: pitId, imageId: id),
           r2,
         );
-        expectMode(modal);
+        expectMode(mode);
         await tester.enterText(find.byType(TextField).first, '@ka2');
         await tester.tap(find.text('儲存'));
         await settle(tester);

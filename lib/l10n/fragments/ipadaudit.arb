@@ -1,0 +1,8 @@
+{
+  "ipadauditGifLoop": "GIF · 自動循環",
+  "ipadauditVideoMeta": "影片 · {duration} · 縮圖取第一格",
+  "@ipadauditVideoMeta": { "placeholders": { "duration": { "type": "String" } } },
+  "ipadauditGifMeta": "GIF · 預覽時自動播放",
+  "ipadauditImagesCount": "{label} · {n} 張",
+  "@ipadauditImagesCount": { "placeholders": { "label": { "type": "String" }, "n": { "type": "int" } } }
+}

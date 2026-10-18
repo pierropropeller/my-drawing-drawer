@@ -573,18 +573,32 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
         child: LayoutBuilder(
           builder: (context, c) {
             final three = c.maxWidth >= 960;
-            final middle = <Widget>[
-              publishedCard,
-              ...finishedField,
-              const SizedBox(height: 16),
-              ideaConnect,
-              const SizedBox(height: 16),
-              draftConnect,
-            ];
+            // page sheet（NewPiece400）：單欄，依稿的順序——
+            // 成品圖、標題、內文、tag、已公開發佈、關聯腦洞、關聯摸魚、商稿（完成日期稿沒畫，放最後）。
+            final sheet = AdaptiveModalScope.sheetOf(context);
+            final middle = sheet
+                ? <Widget>[
+                    publishedCard,
+                    ideaConnect,
+                    const SizedBox(height: 16),
+                    draftConnect,
+                    const SizedBox(height: 16),
+                    commissionCard,
+                    ...finishedField,
+                  ]
+                : <Widget>[
+                    publishedCard,
+                    ...finishedField,
+                    const SizedBox(height: 16),
+                    ideaConnect,
+                    const SizedBox(height: 16),
+                    draftConnect,
+                  ];
             const pad = EdgeInsets.symmetric(horizontal: 22, vertical: 20);
             return ModalFormShell(
               title: title,
               actionLabel: actionLabel,
+              compactActionLabel: _isEdit ? null : context.l10n.pitsCreate,
               loaded: _loaded,
               onAction: () {
                 if (!_saving) _save();
@@ -601,11 +615,11 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
                 ),
                 ModalPane(
                   padding: pad,
-                  children: three
+                  children: three || sheet
                       ? middle
                       : [...middle, const SizedBox(height: 16), commissionCard],
                 ),
-                if (three)
+                if (three && !sheet)
                   ModalPane(
                     width: 330,
                     padding: pad,

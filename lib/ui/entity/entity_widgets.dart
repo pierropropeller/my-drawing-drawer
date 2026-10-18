@@ -6,6 +6,7 @@ import '../../data/entity_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../album/image_picker_field.dart';
+import '../common/adaptive_modal.dart';
 import '../common/app_icons.dart';
 import '../common/media_widgets.dart';
 import '../common/media_mini.dart';
@@ -648,12 +649,30 @@ class DashedAddTile extends StatelessWidget {
             color: t.dashed,
             radius: Radii.image,
             child: Center(
-              child: SvgIcon(
-                AppIcons.plus,
-                size: iconSize,
-                strokeWidth: 1.8,
-                color: t.dashedText,
-              ),
+              child: AdaptiveModalScope.sheetOf(context)
+                  // page sheet（NewXxx400）：加號在上、「加圖」12px 在下。
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      spacing: 2,
+                      children: [
+                        SvgIcon(
+                          AppIcons.plus,
+                          size: 22,
+                          strokeWidth: 1.8,
+                          color: t.dashedText,
+                        ),
+                        Text(
+                          semanticLabel,
+                          style: TextStyle(fontSize: 12, color: t.dashedText),
+                        ),
+                      ],
+                    )
+                  : SvgIcon(
+                      AppIcons.plus,
+                      size: iconSize,
+                      strokeWidth: 1.8,
+                      color: t.dashedText,
+                    ),
             ),
           ),
         ),
