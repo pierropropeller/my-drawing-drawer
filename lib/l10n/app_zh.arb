@@ -969,6 +969,20 @@
   "ipadpitNameHint": "例：原作名稱或 CP 名",
   "ipadpitCoverLater": "封面可於建立後在「編輯坑」中選擇。",
   "ipadpitSectionsLabel": "坑內分區",
+  "ipadsyncNetWifi": "Wi-Fi",
+  "ipadsyncNetCellular": "行動網絡",
+  "ipadsyncNetEthernet": "有線網絡",
+  "ipadsyncSettings": "同步設定",
+  "ipadsyncPitSyncingMeta": "同步中…",
+  "ipadsyncConnectHint": "連結後，iPad 與手機會自動同步",
+  "ipadsyncMinutes": "{minutes} 分鐘",
+  "@ipadsyncMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "materialTitle": "素材庫",
   "materialLayoutWaterfall": "瀑布",
   "materialLayoutGrid": "九宮格",

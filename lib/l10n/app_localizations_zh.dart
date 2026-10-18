@@ -1459,6 +1459,29 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ipadpitSectionsLabel => '坑內分區';
 
   @override
+  String get ipadsyncNetWifi => 'Wi-Fi';
+
+  @override
+  String get ipadsyncNetCellular => '行動網絡';
+
+  @override
+  String get ipadsyncNetEthernet => '有線網絡';
+
+  @override
+  String get ipadsyncSettings => '同步設定';
+
+  @override
+  String get ipadsyncPitSyncingMeta => '同步中…';
+
+  @override
+  String get ipadsyncConnectHint => '連結後，iPad 與手機會自動同步';
+
+  @override
+  String ipadsyncMinutes(int minutes) {
+    return '$minutes 分鐘';
+  }
+
+  @override
   String get materialTitle => '素材庫';
 
   @override

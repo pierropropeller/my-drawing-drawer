@@ -2661,6 +2661,48 @@ abstract class AppLocalizations {
   /// **'坑內分區'**
   String get ipadpitSectionsLabel;
 
+  /// No description provided for @ipadsyncNetWifi.
+  ///
+  /// In zh, this message translates to:
+  /// **'Wi-Fi'**
+  String get ipadsyncNetWifi;
+
+  /// No description provided for @ipadsyncNetCellular.
+  ///
+  /// In zh, this message translates to:
+  /// **'行動網絡'**
+  String get ipadsyncNetCellular;
+
+  /// No description provided for @ipadsyncNetEthernet.
+  ///
+  /// In zh, this message translates to:
+  /// **'有線網絡'**
+  String get ipadsyncNetEthernet;
+
+  /// No description provided for @ipadsyncSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步設定'**
+  String get ipadsyncSettings;
+
+  /// No description provided for @ipadsyncPitSyncingMeta.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步中…'**
+  String get ipadsyncPitSyncingMeta;
+
+  /// No description provided for @ipadsyncConnectHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'連結後，iPad 與手機會自動同步'**
+  String get ipadsyncConnectHint;
+
+  /// No description provided for @ipadsyncMinutes.
+  ///
+  /// In zh, this message translates to:
+  /// **'{minutes} 分鐘'**
+  String ipadsyncMinutes(int minutes);
+
   /// No description provided for @materialTitle.
   ///
   /// In zh, this message translates to:
