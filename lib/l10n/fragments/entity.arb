@@ -44,7 +44,6 @@
   "draftFormCreate": "建立摸魚",
 
   "pieceFormMissingImage": "請至少選擇一張圖片",
-  "pieceFormLinkHint": "貼上連結網址",
   "pieceFormPublishDate": "發佈日期",
   "pieceFormSocialLinks": "社交媒體連結",
   "pieceFormAddSocialLink": "加社交連結",
@@ -59,8 +58,6 @@
   "pieceFormTitleNew": "新增成圖",
   "pieceFormTitleEdit": "編輯成圖",
   "pieceFormImages": "成品圖",
-  "pieceFormTitleHint": "為這張成圖命名",
-  "pieceFormBodyHint": "想說的話、創作筆記…",
   "pieceFormPublished": "已公開發佈",
   "pieceFormCommission": "商稿",
   "pieceFormFinishedAt": "完成時間",
