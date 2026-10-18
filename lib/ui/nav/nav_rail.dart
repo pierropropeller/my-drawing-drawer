@@ -3,18 +3,26 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
-import '../common/user_avatar.dart';
+import '../sync/sync_avatar.dart';
 import 'nav_tabs.dart';
 
 /// 平板 icon rail（84）：頭像在上，下面是 64×60 的 坑／目標／我的（Profile／MainPortrait）。
 class NavRail extends StatelessWidget {
-  const NavRail({super.key, required this.index, required this.onSelect});
+  const NavRail({
+    super.key,
+    required this.index,
+    required this.onSelect,
+    this.onOpenSyncSettings,
+  });
 
   /// rail 的闊度（設計稿）。
   static const width = 84.0;
 
   final int index;
   final ValueChanged<int> onSelect;
+
+  /// 同步進度 popover 的「同步設定」連結：前往我的 › 備份與同步。
+  final VoidCallback? onOpenSyncSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -34,8 +42,10 @@ class NavRail extends StatelessWidget {
             padding: const EdgeInsets.only(top: 28, bottom: 20),
             child: Column(
               children: [
-                UserAvatar(
+                // 同步狀態收在頭像外圈（MainSyncing／SyncPopover）。
+                SyncAvatar(
                   size: 44,
+                  onOpenSettings: onOpenSyncSettings,
                   serif: true,
                   background: t.accentSoft,
                   foreground: t.accentStrong,

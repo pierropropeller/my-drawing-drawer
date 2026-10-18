@@ -8,7 +8,7 @@ import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
-import '../common/user_avatar.dart';
+import '../sync/sync_avatar.dart';
 import 'adaptive_nav.dart';
 import 'nav_tabs.dart';
 
@@ -23,6 +23,7 @@ class NavSidebar extends ConsumerWidget {
     required this.onSelect,
     required this.onOpenPit,
     required this.onNewPit,
+    this.onOpenSyncSettings,
   });
 
   /// 闊度範圍的取法：視窗闊度的 22%，夾在 232～260（設計稿 260）。
@@ -35,6 +36,9 @@ class NavSidebar extends ConsumerWidget {
   final ValueChanged<int> onSelect;
   final ValueChanged<String> onOpenPit;
   final VoidCallback onNewPit;
+
+  /// 同步進度 popover 的「同步設定」連結：前往我的 › 備份與同步。
+  final VoidCallback? onOpenSyncSettings;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -72,8 +76,10 @@ class NavSidebar extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
                     children: [
-                      UserAvatar(
+                      // 同步狀態收在頭像外圈（MainSyncing／SyncPopover）。
+                      SyncAvatar(
                         size: 40,
+                        onOpenSettings: onOpenSyncSettings,
                         serif: true,
                         background: t.accentSoft,
                         foreground: t.accentStrong,
