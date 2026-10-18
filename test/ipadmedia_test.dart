@@ -631,7 +631,7 @@ void main() {
           ),
         ],
       );
-      await tester.tap(find.byType(DashedBox));
+      await tester.tap(find.byType(DashedBox).first);
       await settle(tester);
       expect(find.byType(MediaSourceMenu), findsOneWidget);
       // 錨在「＋」格旁（有箭頭）。
@@ -658,7 +658,7 @@ void main() {
           ),
         ],
       );
-      await tester.tap(find.byType(DashedBox));
+      await tester.tap(find.byType(DashedBox).first);
       await settle(tester);
       expect(direct, 1);
       expect(find.byType(MediaSourceMenu), findsNothing);
