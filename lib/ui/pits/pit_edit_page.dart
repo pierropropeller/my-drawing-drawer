@@ -33,8 +33,8 @@ Future<void> openPitEdit(BuildContext context, Pit pit) async {
 }
 
 /// 編輯坑：封面、坑名、描述、雜物開關、封存、刪除。
-/// 封面區三種狀態：坑內沒有圖＝不顯示（PitEdit-ntnf）；有圖沒封面＝虛線＋號（PitEditNoCover）；
-/// 有封面＝縮圖＋「更換封面」（PitEdit）。
+/// 封面區：沒封面＝虛線＋號（PitEditNoCover）；有封面＝縮圖＋「更換封面」（PitEdit）。
+/// 淺坑、或坑內一張圖都沒有時，封面從手機相簿選；否則從坑內的圖挑。
 ///
 /// [asModal]＝畫成 modal 內容（PitEdit 稿：左封面選擇、右表單；取消／編輯坑／儲存 標題列，
 /// 不藏導覽列），刪除時以 `pop(true)` 通知呼叫端（見 [openPitEdit]）。
@@ -187,7 +187,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
       junkEnabled: _shallow ? null : _junk,
       deleteClosedContent: _shallow,
     );
-    if (_shallow && _shallowCoverTouched) {
+    if (_shallowCoverTouched) {
       await db.setPitCoverFile(pit.id, _shallowCover);
     }
     if (_coverId != pit.coverImageId) {
@@ -237,13 +237,18 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
   String? _validateName(String? v) =>
       (v == null || v.trim().isEmpty) ? context.l10n.pitsNameRequired : null;
 
+  /// 坑內沒有任何圖（任何類型）：封面只能從手機相簿選。
+  bool get _noImages =>
+      ref.read(pitStatsProvider(widget.pit.id)).value?.imageCount == 0;
+
   Widget _coverSection(String? ownedCover) {
     final t = context.tokens;
-    // 淺坑：封面從手機相簿選（暫存的新封面優先）；現坑：從坑內的圖挑。
-    final coverFile = _shallow && _shallowCoverTouched
+    // 淺坑或坑內沒有圖：封面從手機相簿選（暫存的新封面優先）；否則從坑內的圖挑。
+    final fromGallery = _shallow || _noImages;
+    final coverFile = fromGallery && _shallowCoverTouched
         ? _shallowCover
         : ownedCover;
-    final pick = _shallow ? _pickShallowCover : _pickCover;
+    final pick = fromGallery ? _pickShallowCover : _pickCover;
     final Widget tile;
     if (coverFile == null) {
       // 有圖但還沒設封面：虛線正方框＋號，點了進選擇封面。
@@ -444,7 +449,8 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
 
   /// modal 左欄：封面預覽、從坑內選圖（篩選＋4 欄候選）。
   Widget _coverPane() {
-    if (_shallow) return _shallowCoverPane();
+    ref.watch(pitStatsProvider(widget.pit.id));
+    if (_shallow || _noImages) return _shallowCoverPane();
     final t = context.tokens;
     final l = context.l10n;
     final all =
@@ -687,8 +693,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
   Widget build(BuildContext context) {
     if (widget.asModal) return _modal();
     final t = context.tokens;
-    final hasImages =
-        (ref.watch(pitStatsProvider(widget.pit.id)).value?.imageCount ?? 0) > 0;
+    ref.watch(pitStatsProvider(widget.pit.id));
     final coverFile = ref.watch(coverFileProvider(widget.pit.id)).value;
     return Scaffold(
       body: SafeArea(
@@ -711,7 +716,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                               value: _status,
                               onChanged: _setStatus,
                             ),
-                            if (hasImages || _shallow) _coverSection(coverFile),
+                            _coverSection(coverFile),
                             PitFieldLabel(context.l10n.pitsFieldName),
                             TextFormField(
                               key: const ValueKey('pit-name'),

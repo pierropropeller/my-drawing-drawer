@@ -19,7 +19,9 @@ import 'package:huakeng/ui/common/app_switch.dart';
 import 'package:huakeng/ui/common/dashed_box.dart';
 import 'package:huakeng/ui/pits/pit_edit_page.dart';
 import 'package:huakeng/ui/pits/pit_new_page.dart';
+import 'package:huakeng/ui/album/cover_pick_page.dart';
 import 'package:huakeng/ui/pits/pit_page.dart';
+import 'package:huakeng/ui/pits/pit_rows.dart';
 import 'package:huakeng/ui/pits/pit_type_widgets.dart';
 import 'package:huakeng/ui/pits/pits_page.dart';
 import 'package:image_picker/image_picker.dart';
@@ -275,6 +277,44 @@ void main() {
       await tester.tap(find.text('現坑'));
       await settle(tester);
       expect(find.bySemanticsLabel('田字檢視'), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('淺坑列：沒有描述也沒開格子＝不畫副標，名字與封面垂直置中', (tester) async {
+      await tester.runAsync(() async {
+        await seed();
+        await db.createPit(name: '空淺坑', status: PitStatus.shallow);
+      });
+      await pumpApp(tester);
+      await tester.tap(find.text('淺坑'));
+      await settle(tester);
+      final row = find.widgetWithText(PitRow, '空淺坑');
+      expect(row, findsOneWidget);
+      // 只有名字一段文字（首字封面是另一段），沒有「還沒有格子／還沒有開啟格子」。
+      expect(find.text('還沒有開啟格子'), findsNothing);
+      expect(find.text('還沒有格子'), findsNothing);
+      final texts = tester
+          .widgetList<Text>(
+            find.descendant(of: row, matching: find.byType(Text)),
+          )
+          .map((t) => t.data)
+          .toList();
+      expect(texts, ['空', '空淺坑']);
+      final cover = find.descendant(
+        of: row,
+        matching: find.byWidgetPredicate(
+          (w) => w is SizedBox && w.width == 56 && w.height == 56,
+        ),
+      );
+      expect(
+        tester
+            .getCenter(find.descendant(of: row, matching: find.text('空淺坑')))
+            .dy,
+        closeTo(tester.getCenter(cover).dy, 0.5),
+      );
+      // 有描述／有開格子的列照舊有副標。
+      expect(find.text('第 3 集再決定要不要入'), findsOneWidget);
+      expect(find.textContaining('官方圖冊'), findsWidgets);
       await unmount(tester);
     });
 
@@ -695,6 +735,62 @@ void main() {
       await tester.tap(find.text('儲存'));
       await settle(tester);
       expect((await pitOf(tester, id)).coverFile, isNotNull);
+      await unmount(tester);
+    });
+  });
+
+  group('坑內沒有圖時的封面', () {
+    testWidgets('現坑沒有圖：仍有封面欄位，點了走相簿選圖器，存檔寫入 coverFile', (tester) async {
+      final src = File('${tmp.path}/pick3.png')..writeAsBytesSync(_png1x1);
+      final pit = await pitOf(tester, active);
+      phoneView(tester);
+      await pumpLaunch(
+        tester,
+        PitEditPage(pit: pit),
+        overrides: [
+          pitCoverPickerProvider.overrideWithValue(
+            (_) async => [XFile(src.path)],
+          ),
+        ],
+      );
+      expect(find.byType(DashedBox), findsOneWidget);
+      await tester.tap(find.byType(DashedBox));
+      await settleLong(tester);
+      expect(find.text('更換封面'), findsOneWidget);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -800));
+      await settle(tester);
+      await tester.tap(find.text('儲存'));
+      await settle(tester);
+      expect((await pitOf(tester, active)).coverFile, isNotNull);
+      await unmount(tester);
+    });
+
+    testWidgets('現坑有圖：封面欄位仍走坑內挑圖（CoverPickPage）', (tester) async {
+      await tester.runAsync(() => addOfficial(active, 1));
+      final pit = await pitOf(tester, active);
+      phoneView(tester);
+      await pumpLaunch(tester, PitEditPage(pit: pit));
+      await tester.tap(find.byType(DashedBox));
+      await settle(tester);
+      expect(find.byType(CoverPickPage), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('淺坑內頁：長按有內容的格子進入選擇該格封面 (cell-longpress)', (tester) async {
+      final id = (await tester.runAsync(() async {
+        final id = await db.createPit(
+          name: '淺',
+          status: PitStatus.shallow,
+          enabledSections: {PitSectionKey.official, PitSectionKey.fan},
+        );
+        await addOfficial(id, 2);
+        return id;
+      }))!;
+      phoneView(tester);
+      await pumpPage(tester, PitPage(pitId: id));
+      await tester.longPress(find.text('官方圖冊'));
+      await settle(tester);
+      expect(find.byType(CoverPickPage), findsOneWidget);
       await unmount(tester);
     });
   });

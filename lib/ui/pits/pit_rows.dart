@@ -69,8 +69,8 @@ class PitRow extends ConsumerWidget {
   final int index;
   final PitStatus status;
 
-  /// 副標：淺坑＝描述，沒有描述就列出開啟格子的張數／數量；封存坑＝成圖／摸魚數。
-  String subtitle(BuildContext context, PitStats stats) {
+  /// 副標：淺坑＝描述，沒有描述就列出開啟格子的張數／數量，兩者都沒有＝null（不畫副標）；封存坑＝成圖／摸魚數。
+  String? subtitle(BuildContext context, PitStats stats) {
     final l = context.l10n;
     if (status == PitStatus.shallow) {
       final d = pit.description?.trim() ?? '';
@@ -79,7 +79,7 @@ class PitRow extends ConsumerWidget {
         for (final k in PitSectionKey.values)
           if (pit.sectionOpen(k)) k,
       ];
-      if (open.isEmpty) return l.shallowEmptyTitle;
+      if (open.isEmpty) return null;
       return [
         for (final k in open)
           l.shallowSubtitlePart(pitSectionMeta(context, k).label, switch (k) {
@@ -107,6 +107,7 @@ class PitRow extends ConsumerWidget {
     final t = context.tokens;
     final stats = ref.watch(pitStatsProvider(pit.id)).value ?? PitStats.empty;
     final coverFile = ref.watch(coverFileProvider(pit.id)).value;
+    final sub = subtitle(context, stats);
     final tint = pitRowTints(context)[index % 4];
     final first = pit.name.trim().isEmpty
         ? ''
@@ -160,13 +161,15 @@ class PitRow extends ConsumerWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle(context, stats),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, color: t.text2),
-                  ),
+                  if (sub != null) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      sub,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 13, color: t.text2),
+                    ),
+                  ],
                 ],
               ),
             ),

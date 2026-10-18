@@ -74,10 +74,18 @@ class AdaptiveNavScaffold extends StatelessWidget {
                 side,
                 Expanded(
                   // 左邊有導覽時，頁面的 SafeArea 不用再留左側安全區。
-                  child: MediaQuery.removePadding(
+                  // 外層 Scaffold 已經為鍵盤縮短了 body；把 viewInsets 從 MediaQuery 拿掉，
+                  // 否則裡面頁面自己的 Scaffold 會再扣一次，鍵盤上方留下一大塊空白。
+                  child: MediaQuery.removeViewInsets(
                     context: context,
-                    removeLeft: hasSide,
-                    child: body!,
+                    removeBottom: true,
+                    child: Builder(
+                      builder: (context) => MediaQuery.removePadding(
+                        context: context,
+                        removeLeft: hasSide,
+                        child: body!,
+                      ),
+                    ),
                   ),
                 ),
               ],
