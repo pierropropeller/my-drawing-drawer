@@ -397,7 +397,7 @@ void main() {
       slot: slot,
       timeout: timeout,
       settle: const Duration(milliseconds: 5),
-      playbackFactory: (_) {
+      playbackFactory: (_, {platformView = false}) {
         final p = make();
         made.add(p);
         return p;
@@ -510,7 +510,7 @@ void main() {
       await pumpHost(tester);
       final bg = PlayerFramePosterGenerator(
         slot: slot,
-        playbackFactory: (_) => _FakePlayback(),
+        playbackFactory: (_, {platformView = false}) => _FakePlayback(),
         isForeground: () => false,
       );
       expect(bg.available, isFalse);
@@ -521,7 +521,7 @@ void main() {
       final gate = VideoPlaybackGate();
       final g = PlayerFramePosterGenerator(
         slot: slot,
-        playbackFactory: (_) {
+        playbackFactory: (_, {platformView = false}) {
           final p = _FakePlayback();
           made.add(p);
           return p;
@@ -548,7 +548,7 @@ void main() {
       final g = PlayerFramePosterGenerator(
         slot: slot,
         timeout: const Duration(milliseconds: 300),
-        playbackFactory: (_) {
+        playbackFactory: (_, {platformView = false}) {
           final p = _FakePlayback(hangInit: true);
           made.add(p);
           return p;

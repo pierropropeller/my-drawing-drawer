@@ -53,7 +53,16 @@ abstract class MediaPlayback implements Listenable {
 
 /// `video_player` 的實作（Android 上是 ExoPlayer）。
 class VideoPlayerPlayback implements MediaPlayback {
-  VideoPlayerPlayback(File file) : _c = VideoPlayerController.file(file);
+  /// [platformView] 為 true 時（僅 Android）用 SurfaceView（hybrid composition）顯示，
+  /// 走系統直接合成的路徑（跟 Google 相簿一樣），可吃到高更新率、不經 Flutter 的 texture 複製。
+  /// 離螢幕解碼（補截圖）請維持 false。
+  VideoPlayerPlayback(File file, {bool platformView = false})
+    : _c = VideoPlayerController.file(
+        file,
+        viewType: platformView && Platform.isAndroid
+            ? VideoViewType.platformView
+            : VideoViewType.textureView,
+      );
   final VideoPlayerController _c;
 
   @override
@@ -101,12 +110,17 @@ class VideoPlayerPlayback implements MediaPlayback {
   void dispose() => _c.dispose();
 }
 
-typedef PlaybackFactory = MediaPlayback Function(File file);
+/// [platformView]：要求用平台視圖（SurfaceView）顯示；只有詳情／全螢幕播放會傳 true。
+typedef PlaybackFactory = MediaPlayback Function(
+  File file, {
+  bool platformView,
+});
 
 /// 建立播放器的工廠；測試用 `overrideWithValue((f) => FakePlayback())` 換掉。
 final playbackFactoryProvider = Provider<PlaybackFactory>(
   (ref) =>
-      (file) => VideoPlayerPlayback(file),
+      (file, {platformView = false}) =>
+          VideoPlayerPlayback(file, platformView: platformView),
 );
 
 // ───────────────────────── 控制列自動隱藏 ─────────────────────────
@@ -525,7 +539,9 @@ class _VideoSurfaceState extends ConsumerState<VideoSurface> {
                             valueListenable: _volume,
                             builder: (context, vol, _) => _BarButton(
                               key: const ValueKey('videoMute'),
-                              label: vol > 0 ? l10n.mediaMute : l10n.mediaUnmute,
+                              label: vol > 0
+                                  ? l10n.mediaMute
+                                  : l10n.mediaUnmute,
                               onTap: _toggleMute,
                               child: SvgIcon(
                                 vol > 0
@@ -661,6 +677,9 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
   bool _failed = false;
   bool _disposed = false;
 
+  /// 全螢幕返回後遞增：讓平台視圖重新掛上（同一個播放器換了 SurfaceView 後，舊的那個會是黑的）。
+  int _surfaceEpoch = 0;
+
   bool get _started => _playback != null && _playback!.isInitialized;
 
   // 擁有播放器期間佔著全域閘門：背景補截圖不得另開播放器／解碼器（見 VideoPlaybackGate）。
@@ -741,7 +760,10 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
       _loading = true;
       _failed = false;
     });
-    final p = ref.read(playbackFactoryProvider)(store.fileOf(widget.file));
+    final p = ref.read(playbackFactoryProvider)(
+      store.fileOf(widget.file),
+      platformView: true,
+    );
     _holdGate(true);
     try {
       await p.initialize();
@@ -789,6 +811,7 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
       return;
     }
     await openVideoFullscreen(context, p);
+    if (mounted && _playback == p) setState(() => _surfaceEpoch++);
   }
 
   @override
@@ -796,6 +819,7 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
     final p = _playback;
     if (p != null && _started) {
       return VideoSurface(
+        key: ValueKey('videoSurface$_surfaceEpoch'),
         playback: p,
         hideDelay: widget.hideDelay,
         onFullscreen: _fullscreen,

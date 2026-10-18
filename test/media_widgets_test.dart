@@ -170,7 +170,10 @@ void main() {
           ),
         ),
         overrides: [
-          playbackFactoryProvider.overrideWithValue((f) {
+          playbackFactoryProvider.overrideWithValue((
+            f, {
+            platformView = false,
+          }) {
             created++;
             return FakePlayback();
           }),
@@ -367,7 +370,11 @@ void main() {
             ImageRef('p.png', 100, 100),
           ],
         ),
-        overrides: [playbackFactoryProvider.overrideWithValue((f) => fake)],
+        overrides: [
+          playbackFactoryProvider.overrideWithValue(
+            (f, {platformView = false}) => fake,
+          ),
+        ],
       );
       await tester.pump();
       expect(find.text('1 / 3'), findsOneWidget);
@@ -448,7 +455,11 @@ void main() {
           onFullscreen: onFullscreen,
         ),
       ),
-      overrides: [playbackFactoryProvider.overrideWithValue((f) => fake)],
+      overrides: [
+        playbackFactoryProvider.overrideWithValue(
+          (f, {platformView = false}) => fake,
+        ),
+      ],
     );
 
     Future<void> startPlaying(WidgetTester tester) async {
@@ -457,6 +468,66 @@ void main() {
       await tester.pump();
       await tester.pump();
     }
+
+    double barOpacity(WidgetTester tester) => tester
+        .widget<AnimatedOpacity>(
+          find.ancestor(
+            of: find.byKey(const ValueKey('videoControlBar')),
+            matching: find.byType(AnimatedOpacity),
+          ),
+        )
+        .opacity;
+
+    testWidgets('詳情頁建立播放器時要求平台視圖，且控制列在其上仍可操作', (tester) async {
+      final requested = <bool>[];
+      await pumpApp(
+        tester,
+        const SizedBox(
+          width: 360,
+          height: 450,
+          child: VideoPlayerView(
+            file: 'v.mp4',
+            poster: 'v.jpg',
+            durationMs: 24000,
+          ),
+        ),
+        overrides: [
+          playbackFactoryProvider.overrideWithValue((
+            f, {
+            platformView = false,
+          }) {
+            requested.add(platformView);
+            return fake;
+          }),
+        ],
+      );
+      await tester.pump();
+      await startPlaying(tester);
+      expect(requested, [true]);
+      expect(find.byKey(const ValueKey('fakeVideoView')), findsOneWidget);
+      expect(fake.isPlaying, isTrue);
+
+      // 播放／暫停鍵、靜音鍵仍可點。
+      await tester.tap(find.byKey(const ValueKey('videoPlayPause')));
+      await tester.pump();
+      expect(fake.isPlaying, isFalse);
+      await tester.tap(find.byKey(const ValueKey('videoPlayPause')));
+      await tester.pump();
+      expect(fake.isPlaying, isTrue);
+
+      // 點影片區（平台視圖 IgnorePointer）收起／叫出控制列。
+      await tester.pump(const Duration(milliseconds: 2100));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(barOpacity(tester), 0);
+      await tester.tapAt(const Offset(180, 100));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(barOpacity(tester), 1);
+
+      // 離開頁面：釋放播放器。
+      await tester.pumpWidget(const SizedBox());
+      expect(fake.log.last, 'pause'); // _release：先 pause 再 dispose
+      expect(find.byKey(const ValueKey('fakeVideoView')), findsNothing);
+    });
 
     testWidgets('未播放：圓形播放鍵＋左下角長度；點一下才播放、有聲音', (tester) async {
       await mount(tester);
@@ -473,15 +544,6 @@ void main() {
       expect(find.byKey(const ValueKey('videoPlayButton')), findsNothing);
       expect(find.text('0:08 / 0:24'), findsOneWidget);
     });
-
-    double barOpacity(WidgetTester tester) => tester
-        .widget<AnimatedOpacity>(
-          find.ancestor(
-            of: find.byKey(const ValueKey('videoControlBar')),
-            matching: find.byType(AnimatedOpacity),
-          ),
-        )
-        .opacity;
 
     testWidgets('播放中 2 秒後控制列隱藏、點畫面再叫出來；暫停時不再隱藏', (tester) async {
       await mount(tester);
@@ -547,7 +609,9 @@ void main() {
       expect(fake.isPlaying, isFalse);
     });
 
-    testWidgets('循環鈕：切換 setLooping、記住設定（裝置設定 videoLoop）、有開啟狀態語意', (tester) async {
+    testWidgets('循環鈕：切換 setLooping、記住設定（裝置設定 videoLoop）、有開啟狀態語意', (
+      tester,
+    ) async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       await pumpApp(
@@ -558,7 +622,9 @@ void main() {
           child: VideoPlayerView(file: 'v.mp4', poster: 'v.jpg'),
         ),
         overrides: [
-          playbackFactoryProvider.overrideWithValue((f) => fake),
+          playbackFactoryProvider.overrideWithValue(
+            (f, {platformView = false}) => fake,
+          ),
           sharedPrefsProvider.overrideWithValue(prefs),
         ],
       );
@@ -595,7 +661,9 @@ void main() {
           child: VideoPlayerView(file: 'v.mp4', poster: 'v.jpg'),
         ),
         overrides: [
-          playbackFactoryProvider.overrideWithValue((f) => fake),
+          playbackFactoryProvider.overrideWithValue(
+            (f, {platformView = false}) => fake,
+          ),
           sharedPrefsProvider.overrideWithValue(prefs),
         ],
       );
@@ -893,7 +961,11 @@ class FakePlayback extends ChangeNotifier implements MediaPlayback {
   @override
   Widget buildView(BuildContext context) {
     viewBuilds++;
-    return const SizedBox.expand(key: ValueKey('fakeVideoView'));
+    // 仿 video_player_android 的 PlatformViewPlayer：整個包在 IgnorePointer 裡，
+    // 手勢交給上層的 Flutter GestureDetector／控制列。
+    return const IgnorePointer(
+      child: SizedBox.expand(key: ValueKey('fakeVideoView')),
+    );
   }
 }
 
