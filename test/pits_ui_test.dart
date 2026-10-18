@@ -251,11 +251,10 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('PitEdit-ntnf：坑內還沒有圖片，封面區仍在（改從手機相簿選）', (tester) async {
+  testWidgets('PitEdit-ntnf：坑內還沒有圖片，沒有封面區', (tester) async {
     await openEdit(tester);
     expect(find.text('編輯坑'), findsOneWidget);
-    expect(find.text('封面'), findsOneWidget);
-    expect(find.bySemanticsLabel('選擇封面'), findsOneWidget);
+    expect(find.text('封面'), findsNothing);
     await unmount(tester);
   });
 

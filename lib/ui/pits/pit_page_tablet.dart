@@ -21,8 +21,7 @@ import 'pit_edit_page.dart';
 import 'pit_junk_entry.dart';
 import 'pit_oshi_entry.dart';
 import 'pit_page.dart';
-import 'pit_type_widgets.dart'
-    show ShallowBadge, ShallowEmptyState, pickShallowCoverFile;
+import 'pit_type_widgets.dart' show ShallowBadge, ShallowEmptyState;
 import 'pits_icons.dart';
 
 /// iPad 版坑內頁（≥600）。
@@ -51,18 +50,6 @@ class PitPageTablet extends ConsumerWidget {
 
   void _open(BuildContext context, Widget page) =>
       Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
-
-  /// 更換坑封面：淺坑或坑內沒有圖時從手機相簿選，否則從坑內的圖挑。
-  Future<void> _changeCover(BuildContext context, WidgetRef ref) async {
-    if (!pit.isShallow && stats.imageCount > 0) {
-      _open(context, CoverPickPage(pitId: pit.id));
-      return;
-    }
-    final file = await pickShallowCoverFile(context, ref);
-    if (file != null) {
-      await ref.read(databaseProvider).setPitCoverFile(pit.id, file);
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -353,7 +340,8 @@ class PitPageTablet extends ConsumerWidget {
                           excludeSemantics: true,
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
-                            onTap: () => _changeCover(context, ref),
+                            onTap: () =>
+                                _open(context, CoverPickPage(pitId: pitId)),
                             child: Container(
                               height: 40,
                               padding: const EdgeInsets.symmetric(

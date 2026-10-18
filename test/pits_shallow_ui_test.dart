@@ -739,29 +739,13 @@ void main() {
     });
   });
 
-  group('坑內沒有圖時的封面', () {
-    testWidgets('現坑沒有圖：仍有封面欄位，點了走相簿選圖器，存檔寫入 coverFile', (tester) async {
-      final src = File('${tmp.path}/pick3.png')..writeAsBytesSync(_png1x1);
+  group('封面區（現坑沒圖＝隱藏；淺坑＝手機相簿）', () {
+    testWidgets('現坑沒有圖：不顯示封面區（PitEdit-ntnf）', (tester) async {
       final pit = await pitOf(tester, active);
       phoneView(tester);
-      await pumpLaunch(
-        tester,
-        PitEditPage(pit: pit),
-        overrides: [
-          pitCoverPickerProvider.overrideWithValue(
-            (_) async => [XFile(src.path)],
-          ),
-        ],
-      );
-      expect(find.byType(DashedBox), findsOneWidget);
-      await tester.tap(find.byType(DashedBox));
-      await settleLong(tester);
-      expect(find.text('更換封面'), findsOneWidget);
-      await tester.drag(find.byType(CustomScrollView), const Offset(0, -800));
-      await settle(tester);
-      await tester.tap(find.text('儲存'));
-      await settle(tester);
-      expect((await pitOf(tester, active)).coverFile, isNotNull);
+      await pumpLaunch(tester, PitEditPage(pit: pit));
+      expect(find.byType(DashedBox), findsNothing);
+      expect(find.text('更換封面'), findsNothing);
       await unmount(tester);
     });
 
