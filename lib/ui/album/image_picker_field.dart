@@ -8,7 +8,7 @@ import '../../data/album_queries.dart';
 import '../../data/image_store.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
-import '../common/adaptive_modal.dart';
+import '../common/add_tile_content.dart';
 import '../common/app_icons.dart';
 import '../../data/media.dart';
 import '../../media/media_import.dart';
@@ -199,32 +199,7 @@ class ImagePickerField extends ConsumerWidget {
                     color: t.dashed,
                     radius: Radii.image,
                     child: Center(
-                      child: AdaptiveModalScope.sheetOf(context)
-                          // page sheet（NewXxx400）：加號在上、「加圖」12px 在下。
-                          ? Column(
-                              mainAxisSize: MainAxisSize.min,
-                              spacing: 2,
-                              children: [
-                                SvgIcon(
-                                  AppIcons.plus,
-                                  size: 22,
-                                  strokeWidth: 1.8,
-                                  color: t.dashedText,
-                                ),
-                                Text(
-                                  context.l10n.albumAddImage,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: t.dashedText,
-                                  ),
-                                ),
-                              ],
-                            )
-                          : SvgIcon(
-                              AppIcons.plus,
-                              size: 26,
-                              color: t.dashedText,
-                            ),
+                      child: AddTileContent(label: context.l10n.albumAddImage),
                     ),
                   ),
                 ),

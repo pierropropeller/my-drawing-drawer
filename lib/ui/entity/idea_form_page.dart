@@ -174,6 +174,9 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
       FormImageGrid(
         items: _images,
         size: 72,
+        // NewIdea：72×72 固定大小、間距 10（其他表單是 3 欄方形）。
+        dialogColumns: null,
+        dialogSpacing: 10,
         onAdd: _addImages,
         onRemove: (i) => setState(() => _images.removeAt(i)),
         onReorder: (a, b) => setState(() => moveListItem(_images, a, b)),

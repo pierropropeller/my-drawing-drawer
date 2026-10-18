@@ -32,6 +32,8 @@ class ReorderableImageGrid extends StatefulWidget {
     this.onReorder,
     this.spacing = 8,
     this.columns = 5,
+    this.dialogColumns = 3,
+    this.dialogSpacing = 12,
   });
 
   final int count;
@@ -43,6 +45,11 @@ class ReorderableImageGrid extends StatefulWidget {
   /// 傳 null＝用固定的 [size]。
   final int? columns;
   final double spacing;
+
+  /// 在置中 form sheet（≥600 的新增頁）裡的欄數／間距：稿是 3 欄方形、間距 12
+  /// （NewOfficial／NewFanArt／NewDraft／NewPiece／NewOshi）；傳 null＝用固定的 [size]（NewIdea 的 72×72）。
+  final int? dialogColumns;
+  final double dialogSpacing;
   final Widget Function(BuildContext context, int index, bool hideActions)
   itemBuilder;
 
@@ -212,13 +219,18 @@ class _ReorderableImageGridState extends State<ReorderableImageGrid> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final sheet = AdaptiveModalScope.sheetOf(context);
+    final dialog = !sheet && AdaptiveModalScope.of(context);
     return LayoutBuilder(
       builder: (context, c) {
         final total = widget.count + (widget.trailing != null ? 1 : 0);
         // page sheet（NewXxx400）：76 的縮圖排成一列、往右捲（gap 10）。
         final horizontal = sheet;
-        _gap = horizontal ? 10 : widget.spacing;
-        final cols = widget.columns;
+        _gap = horizontal
+            ? 10
+            : dialog
+            ? widget.dialogSpacing
+            : widget.spacing;
+        final cols = dialog ? widget.dialogColumns : widget.columns;
         _size = horizontal
             ? 76
             : cols != null && c.maxWidth.isFinite
