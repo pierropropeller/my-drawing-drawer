@@ -11,6 +11,7 @@ import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/main.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:huakeng/ui/album/cover_pick_page.dart';
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -143,7 +144,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));
   });
-  testWidgets('返回手勢只退一頁；長按選取列貼在底部；長按坑卡片可選封面', (tester) async {
+  testWidgets('返回手勢只退一頁；長按選取列貼在底部；長按坑卡片不開選封面（D-093）', (tester) async {
     await tester.runAsync(() async {
       final groups = await db.watchGroups(pitId).first;
       await db.addOfficial(pitId, groups.first.id, const [
@@ -156,12 +157,11 @@ void main() {
     await pumpApp(tester);
     await settle(tester);
 
-    // 主頁長按坑卡片 → 選擇坑的封面。
+    // 主頁長按坑卡片：不會開選封面（D-093）。
     await tester.longPress(find.text('測試坑'));
     await settle(tester);
-    expect(find.text('選擇坑的封面'), findsOneWidget);
-    await tester.tap(find.byTooltip('返回'));
-    await settle(tester);
+    expect(find.byType(CoverPickPage), findsNothing);
+    expect(find.text('選擇坑的封面'), findsNothing);
 
     await tester.tap(find.text('測試坑'));
     await settle(tester);
