@@ -1,5 +1,6 @@
-Subsetted Noto fonts (SIL Open Font License 1.1, see OFL.txt). Source: notofonts project.
-Subset by tool/subset_fonts.py (glyph subset only, no outline changes).
+DrawerSymbols-Regular.ttf = merge of the subsetted Noto fonts below (SIL Open Font License 1.1, see OFL.txt).
+Source: notofonts project. Subset by tool/subset_fonts.py, merged by tool/merge_fonts.py
+(no outline changes; halfwidth U+FF61/FF65/FF9E/FF9F are cmap aliases to U+00B0/00B7/02DD/00B0 glyphs).
 
 NotoSans-Regular                   Copyright 2022 The Noto Project Authors (notofonts/latin-greek-cyrillic)
 NotoSansSymbols-Regular            Copyright 2022 The Noto Project Authors (notofonts/symbols)

@@ -90,52 +90,11 @@ flutter:
   assets:
     - assets/appicon/
 
-  # D-090：顏文字 fallback 字型（subset 後的 Noto，OFL，見 assets/fonts/NOTICE.txt）。
+  # D-090：顏文字 fallback 字型。所有 Noto subset 合併成單一 family（tool/merge_fonts.py），
+  # 因為「底字＋組合字元」必須由同一個 family 涵蓋，否則整個 cluster 會變豆腐。
   fonts:
-    - family: NotoSans
+    - family: DrawerSymbols
       fonts:
-        - asset: assets/fonts/NotoSans-Regular.ttf
-    - family: NotoSansSymbols
-      fonts:
-        - asset: assets/fonts/NotoSansSymbols-Regular.ttf
-    - family: NotoSansSymbols2
-      fonts:
-        - asset: assets/fonts/NotoSansSymbols2-Regular.ttf
-    - family: NotoSansMath
-      fonts:
-        - asset: assets/fonts/NotoSansMath-Regular.ttf
-    - family: NotoSansThai
-      fonts:
-        - asset: assets/fonts/NotoSansThai-Regular.ttf
-    - family: NotoSansKannada
-      fonts:
-        - asset: assets/fonts/NotoSansKannada-Regular.ttf
-    - family: NotoSansCanadianAboriginal
-      fonts:
-        - asset: assets/fonts/NotoSansCanadianAboriginal-Regular.ttf
-    - family: NotoSansYi
-      fonts:
-        - asset: assets/fonts/NotoSansYi-Regular.ttf
-    - family: NotoSansArabic
-      fonts:
-        - asset: assets/fonts/NotoSansArabic-Regular.ttf
-    - family: NotoSansTelugu
-      fonts:
-        - asset: assets/fonts/NotoSansTelugu-Regular.ttf
-    - family: NotoSansTamil
-      fonts:
-        - asset: assets/fonts/NotoSansTamil-Regular.ttf
-    - family: NotoSansGurmukhi
-      fonts:
-        - asset: assets/fonts/NotoSansGurmukhi-Regular.ttf
-    - family: NotoSansKhmer
-      fonts:
-        - asset: assets/fonts/NotoSansKhmer-Regular.ttf
-    - family: NotoSansBatak
-      fonts:
-        - asset: assets/fonts/NotoSansBatak-Regular.ttf
-    - family: NotoSansMono
-      fonts:
-        - asset: assets/fonts/NotoSansMono-Regular.ttf
+        - asset: assets/fonts/DrawerSymbols-Regular.ttf
 dependency_overrides:
   analyzer: 14.4.0

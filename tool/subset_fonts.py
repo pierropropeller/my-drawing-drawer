@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""D-090：把 Noto fallback 字型 subset 成小檔，輸出到 assets/fonts/。
+"""D-090：把 Noto fallback 字型 subset 成小檔，輸出到 build/fonts_subset/（再用 merge_fonts.py 合併）。
 
 用法：python3 tool/subset_fonts.py <原始 ttf 資料夾>
 原始檔來源：notofonts 的 fonts/<Family>/full/ttf/<Family>-Regular.ttf（OFL 1.1）。
@@ -11,7 +11,8 @@ import sys
 from fontTools import subset
 
 SRC = sys.argv[1]
-OUT = os.path.join(os.path.dirname(__file__), '..', 'assets', 'fonts')
+# 中間產物，之後由 tool/merge_fonts.py 合併成 assets/fonts/DrawerSymbols-Regular.ttf。
+OUT = os.path.join(os.path.dirname(__file__), '..', 'build', 'fonts_subset')
 os.makedirs(OUT, exist_ok=True)
 
 # 各字型保留的 Unicode 範圍（顏文字常用區塊，其餘丟掉以控制 APK 體積）。
