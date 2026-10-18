@@ -66,8 +66,7 @@
 | pitId | id | |
 | imageFile | file | 一張圖一筆；新增頁可一次加多張 |
 | groupId | id | 分組（＝類型） |
-
-**官方圖沒有 tag。**
+| tags | Tag[] | D-089 起官方圖也可以加 tag |
 
 `OfficialGroup`：`pitId`、`name`、`sortOrder`。預設：設定圖、海報宣傳、素材、自用截圖。可新增、改名、刪除、拖曳排序（`GroupManage`）。
 
@@ -270,7 +269,8 @@ Drive/App 專用資料夾/
 | Artboard | 畫面 | 說明 |
 |---|---|---|
 | `OfficialList` | 官方圖冊 | 瀑布流；分組 chips，最右固定「管理分組」icon |
-| `ImagePreview` | 圖片預覽 | 深色全屏、圖片滿版；分享、下載、設為封面、編輯、刪除 |
+| `ImagePreview` | 圖片預覽 | 深色全屏、圖片滿版；分組標籤＋tag（點 tag＝按 tag 篩選，D-089）；分享、下載、設為封面、編輯、刪除 |
+| `OfficialNew` | 新增官方圖 | 圖片、分組、tag（D-089）；亦作編輯頁 |
 | `OfficialSelect` | 多選 | **長按**進入；下載、移動、tag、刪除 |
 | `FanArtTagSheet` | 多選 · tag | 同人圖／官方圖多選後批量加減 tag（D-060） |
 | `MoveSheet` | 移動到 | 可選坑（跨坑，D-054）＋官方圖冊／好看同人圖／雜物；選官方圖冊時展開分組。獨有欄位移動時保留但隱藏 |
@@ -281,7 +281,7 @@ Drive/App 專用資料夾/
 | `FanArtList` | 好看同人圖 | 瀑布流；出處 chips 篩選；右上搜尋 |
 | `FanArtPreview` | 同人圖預覽 | 作者、出處、tag（可點）、加入日期 |
 | `FanArtFiltered` | 按 tag 篩選 | 頂部搜尋列顯示「#tag ×」 |
-| `PitSearch` / `PitSearchResult` / `PitSearchFew` | 坑內搜尋 | 分頁＋常用 tag；結果按分類分段（成圖／同人圖／推活／摸魚／腦洞）；少於 3 張的樣式見 `PitSearchFew`（D-061） |
+| `PitSearch` / `PitSearchResult` / `PitSearchFew` | 坑內搜尋 | 分頁＋常用 tag；結果按分類分段（成圖／官方圖冊／同人圖／推活／摸魚／腦洞，D-089）；少於 3 張的樣式見 `PitSearchFew`（D-061） |
 
 ### Oshi（推活，D-057、D-062）
 | Artboard | 畫面 | 說明 |
@@ -297,7 +297,8 @@ Drive/App 專用資料夾/
 |---|---|---|
 | `IdeaList` | 我的腦洞 | 卡片：標題、狀態、內文兩行、配圖、tag、日期 |
 | `IdeaNew` | 新增腦洞 | 亦作編輯頁使用 |
-| `IdeaDetail` | 腦洞詳情 | 關聯的摸魚／成圖以正方形縮圖呈現，多圖右下角顯示張數 |
+| `IdeaDetail` | 腦洞詳情 · 有圖片 | 圖片在最上面做 carousel，版型和摸魚詳情一樣（D-092）；關聯的摸魚／成圖以正方形縮圖呈現，多圖右下角顯示張數 |
+| `IdeaDetailNoImg` | 腦洞詳情 · 沒有圖片 | 沒有圖片區，標題開頭（D-092） |
 | `TagManage` | 管理 tag | |
 | `IdeaSelect` | 多選 | 左邊 radio，右邊卡片；只有刪除 |
 | `TagAdd` | 管理 tag · 新增中 | 最底變輸入框（固定 `#` 前綴）＋取消／新增 |
@@ -393,6 +394,7 @@ Drive/App 專用資料夾/
 ### 字型
 - 標題：Noto Serif TC（600/700）
 - 內文：Noto Sans TC（400/500/700）
+- **fallback 字型（D-090）**：全 App 統一設 `fontFamilyFallback`，打包 Noto Sans、Symbols、Symbols 2、Math、Thai、Kannada、Canadian Aboriginal、Yi，避免顏文字變豆腐
 
 ### 顏色
 | Token | 淺色 | 深色 |
