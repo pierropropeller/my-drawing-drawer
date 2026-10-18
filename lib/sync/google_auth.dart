@@ -83,26 +83,47 @@ class GoogleAccountService implements AccountService {
       await GoogleSignIn.instance.signOut();
     } catch (_) {}
     _account = null;
+    _token = null;
+    _tokenUntil = null;
   }
+
+  // 記憶體裡的存取權杖（Google 的權杖約 1 小時有效，保守取 45 分鐘），同步時不用每次都問。
+  String? _token;
+  DateTime? _tokenUntil;
+
+  bool get _tokenValid =>
+      _token != null &&
+      _tokenUntil != null &&
+      DateTime.now().isBefore(_tokenUntil!);
+
+  Map<String, String> _bearer(String token) => {
+    'Authorization': 'Bearer $token',
+    'X-Goog-AuthUser': '0',
+  };
 
   @override
   Future<Map<String, String>> headers() async {
+    if (_tokenValid) return _bearer(_token!);
     try {
       await _init();
-      // 沒有帳號物件時（例如 App 重啟後）先靜默還原；還原不到再退回「不指定帳號」的授權請求。
-      _account ??= await GoogleSignIn.instance
-          .attemptLightweightAuthentication();
-      final client =
-          _account?.authorizationClient ??
-          GoogleSignIn.instance.authorizationClient;
-      // 先靜默取；取不到（尚未授權或授權過期）就在前景補一次授權，不再直接判定失效。
-      final authz =
-          await client.authorizationForScopes([driveAppDataScope]) ??
-          await client.authorizeScopes([driveAppDataScope]);
-      return {
-        'Authorization': 'Bearer ${authz.accessToken}',
-        'X-Goog-AuthUser': '0',
-      };
+      // 1) 先「靜默授權」：之前授權過 Drive 的話，不需要先登入、也不會彈出
+      //    「Signing you in」的 Google 登入小視窗；取不到才往下走。
+      var authz = await GoogleSignIn.instance.authorizationClient
+          .authorizationForScopes([driveAppDataScope]);
+      if (authz == null) {
+        // 2) 要互動才能授權（第一次、或授權過期）：才去還原帳號，必要時顯示 Google 的畫面。
+        _account ??= await GoogleSignIn.instance
+            .attemptLightweightAuthentication();
+        final client =
+            _account?.authorizationClient ??
+            GoogleSignIn.instance.authorizationClient;
+        authz =
+            await client.authorizationForScopes([driveAppDataScope]) ??
+            await client.authorizeScopes([driveAppDataScope]);
+      }
+      _token = authz.accessToken;
+      _tokenUntil = DateTime.now().add(const Duration(minutes: 45));
+      return _bearer(authz.accessToken);
     } on GoogleSignInException catch (e) {
       throw SyncAuthException(
         l10nStatic.syncAuthExpiredDetail(
