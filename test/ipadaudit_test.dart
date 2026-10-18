@@ -8,6 +8,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
+import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/ui/album/fan_art_new_page.dart';
 import 'package:huakeng/ui/album/official_new_page.dart';
@@ -25,6 +26,7 @@ import 'package:huakeng/ui/album/fan_art_preview_page.dart';
 import 'package:huakeng/ui/album/image_preview_page.dart';
 import 'package:huakeng/ui/album/official_list_page.dart';
 import 'package:huakeng/ui/common/device_class.dart';
+import 'package:huakeng/ui/entity/draft_list_page.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/media_source/media_source_menu.dart';
 import 'package:huakeng/ui/media_source/media_source_services.dart';
@@ -65,6 +67,16 @@ void main() {
       NewImage(file: 'c.png', width: 100, height: 100),
     ]);
     final fan = await db.watchGroups(pitId, kind: 'fan').first;
+    await db.saveDraft(
+      pitId: pitId,
+      title: '構圖草稿',
+      images: const [
+        NewImage(file: 'a.png'),
+        NewImage(file: 'b.png'),
+      ],
+      tagIds: const [],
+      ideaIds: const [],
+    );
     await db.addFanArts(
       pitId,
       const [
@@ -217,6 +229,21 @@ void main() {
       expect(find.bySemanticsLabel(l.refviewPanel), findsNothing);
       await resize(tester, land);
       expect(find.bySemanticsLabel(l.refviewPanel), findsOneWidget);
+      await unmount(tester);
+    });
+  });
+
+  group('摸魚詳情面板的「參考檢視」', () {
+    testWidgets('1194：開參考圖檢視（標題「坑A · 我的摸魚」、2 張），不是舊的全螢幕看圖', (tester) async {
+      await show(tester, DraftListPage(pitId: pitId), land);
+      final l = AppLocalizations.of(tester.element(find.byType(Scaffold)));
+      await tester.tap(find.text('構圖草稿').first);
+      await settle(tester);
+      await tester.tap(find.text(l.ipadListsReferenceView));
+      await settle(tester);
+      expect(find.byType(ReferenceViewerPage), findsOneWidget);
+      expect(find.text('坑A · 我的摸魚'), findsOneWidget);
+      expect(find.text('1 / 2'), findsWidgets);
       await unmount(tester);
     });
   });
