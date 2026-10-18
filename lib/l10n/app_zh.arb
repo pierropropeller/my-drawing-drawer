@@ -1585,6 +1585,54 @@
       }
     }
   },
+  "syncuiListing": "正在列出雲端內容",
+  "syncuiPullProgress": "資料 {done} / {total}",
+  "@syncuiPullProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "syncuiStalled": "同步太久沒有進展，已中止，稍後會自動重試",
+  "syncuiTimeout": "連線逾時，請檢查網絡後再試（{step}）",
+  "@syncuiTimeout": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "syncuiNetworkError": "網絡連線失敗（{step}）：{detail}",
+  "@syncuiNetworkError": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "syncuiSkippedDocs": "有 {count} 份雲端資料無法讀取，已略過",
+  "@syncuiSkippedDocs": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncuiImagesFailed": "有 {count} 張圖片下載失敗，下次同步會再試",
+  "@syncuiImagesFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "videoloopLoop": "循環播放",
   "videoloopLoopOn": "循環播放：開",
   "videoloopLoopOff": "循環播放：關"

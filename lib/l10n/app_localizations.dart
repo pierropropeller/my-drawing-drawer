@@ -3867,6 +3867,48 @@ abstract class AppLocalizations {
   /// **'下載中 {percent}%'**
   String syncuiBadgeDownloading(int percent);
 
+  /// No description provided for @syncuiListing.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在列出雲端內容'**
+  String get syncuiListing;
+
+  /// No description provided for @syncuiPullProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'資料 {done} / {total}'**
+  String syncuiPullProgress(int done, int total);
+
+  /// No description provided for @syncuiStalled.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步太久沒有進展，已中止，稍後會自動重試'**
+  String get syncuiStalled;
+
+  /// No description provided for @syncuiTimeout.
+  ///
+  /// In zh, this message translates to:
+  /// **'連線逾時，請檢查網絡後再試（{step}）'**
+  String syncuiTimeout(String step);
+
+  /// No description provided for @syncuiNetworkError.
+  ///
+  /// In zh, this message translates to:
+  /// **'網絡連線失敗（{step}）：{detail}'**
+  String syncuiNetworkError(String step, String detail);
+
+  /// No description provided for @syncuiSkippedDocs.
+  ///
+  /// In zh, this message translates to:
+  /// **'有 {count} 份雲端資料無法讀取，已略過'**
+  String syncuiSkippedDocs(int count);
+
+  /// No description provided for @syncuiImagesFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'有 {count} 張圖片下載失敗，下次同步會再試'**
+  String syncuiImagesFailed(int count);
+
   /// No description provided for @videoloopLoop.
   ///
   /// In zh, this message translates to:

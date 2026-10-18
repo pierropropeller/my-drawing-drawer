@@ -2166,6 +2166,37 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get syncuiListing => '正在列出雲端內容';
+
+  @override
+  String syncuiPullProgress(int done, int total) {
+    return '資料 $done / $total';
+  }
+
+  @override
+  String get syncuiStalled => '同步太久沒有進展，已中止，稍後會自動重試';
+
+  @override
+  String syncuiTimeout(String step) {
+    return '連線逾時，請檢查網絡後再試（$step）';
+  }
+
+  @override
+  String syncuiNetworkError(String step, String detail) {
+    return '網絡連線失敗（$step）：$detail';
+  }
+
+  @override
+  String syncuiSkippedDocs(int count) {
+    return '有 $count 份雲端資料無法讀取，已略過';
+  }
+
+  @override
+  String syncuiImagesFailed(int count) {
+    return '有 $count 張圖片下載失敗，下次同步會再試';
+  }
+
+  @override
   String get videoloopLoop => '循環播放';
 
   @override
