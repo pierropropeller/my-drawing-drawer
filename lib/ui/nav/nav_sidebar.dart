@@ -8,6 +8,7 @@ import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
+import '../sync/pit_sync.dart';
 import '../sync/sync_avatar.dart';
 import 'adaptive_nav.dart';
 import 'nav_tabs.dart';
@@ -291,10 +292,14 @@ class _PitSection extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    Text(
-                      '${ref.watch(pitStatsProvider(pit.id)).value?.pieces ?? 0}',
-                      style: TextStyle(fontSize: 12, color: t.text3),
-                    ),
+                    // 這個坑有圖片正在下載：小轉圈取代成圖數（MainSyncing 稿）。
+                    if (ref.watch(pitSyncingProvider(pit.id)))
+                      const PitSyncSpinner()
+                    else
+                      Text(
+                        '${ref.watch(pitStatsProvider(pit.id)).value?.pieces ?? 0}',
+                        style: TextStyle(fontSize: 12, color: t.text3),
+                      ),
                   ],
                 ),
               );

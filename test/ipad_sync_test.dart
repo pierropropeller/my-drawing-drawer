@@ -16,6 +16,7 @@ import 'package:huakeng/sync/sync_controller.dart';
 import 'package:huakeng/ui/me/backup_page.dart';
 import 'package:huakeng/ui/nav/nav_rail.dart';
 import 'package:huakeng/ui/nav/nav_sidebar.dart';
+import 'package:huakeng/ui/sync/pit_sync.dart';
 import 'package:huakeng/ui/sync/sync_avatar.dart';
 import 'package:huakeng/ui/sync/sync_popover.dart';
 import 'package:huakeng/ui/sync/sync_sheet.dart';
@@ -251,6 +252,50 @@ void main() {
       });
     });
   }
+
+  group('正在下載的坑', () {
+    Future<void> addD2() => db.select(db.pits).get().then((pits) async {
+      final groups = await db.select(db.officialGroups).get();
+      await db.addOfficial(pits.first.id, groups[0].id, [
+        NewImage(file: 'd2.png'),
+      ]);
+    });
+
+    testWidgets('1194×834：sidebar 現坑列顯示小轉圈、坑卡片寫「同步中…」；傳完換回成圖數', (tester) async {
+      await tester.runAsync(addD2);
+      final c = await pumpApp(tester, 1194, 834);
+      expect(find.byType(PitSyncSpinner), findsNothing);
+      expect(find.text('同步中…'), findsNothing);
+
+      fake(c)
+          .set(_transferring([_dl('d2.png', s: TransferState.active, p: .3)]));
+      await settle(tester);
+      expect(
+        find.descendant(
+          of: find.byType(NavSidebar),
+          matching: find.byType(PitSyncSpinner),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('同步中…'), findsOneWidget);
+
+      fake(c).set(const SyncState());
+      await settle(tester);
+      expect(find.byType(PitSyncSpinner), findsNothing);
+      expect(find.text('同步中…'), findsNothing);
+      await unmount(tester);
+    });
+
+    testWidgets('390×844：手機坑卡片統計不變', (tester) async {
+      await tester.runAsync(addD2);
+      final c = await pumpApp(tester, 390, 844);
+      fake(c)
+          .set(_transferring([_dl('d2.png', s: TransferState.active, p: .3)]));
+      await settle(tester);
+      expect(find.text('同步中…'), findsNothing);
+      await unmount(tester);
+    });
+  });
 
   group('離線', () {
     testWidgets('1194×834：離線橫條；外圈不亮', (tester) async {
