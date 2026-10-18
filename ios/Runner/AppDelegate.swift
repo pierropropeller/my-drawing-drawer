@@ -8,12 +8,28 @@ import UIKit
   private var mediaChannel: FlutterMethodChannel?
   private var appIconChannel: FlutterMethodChannel?
   private var windowChannel: FlutterMethodChannel?
+  private var shareChannel: FlutterMethodChannel?
 
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  /// `drawer://share`（Share Extension 喚起主程式）。實際的資料交接在 `checkSharedPasteboard`，
+  /// 這裡只負責「吃掉」這個 URL，不讓它被當成 Flutter 的深層連結路由。
+  /// （有啟用 scene 時，URL 會經 FlutterSceneDelegate 的 fallback 轉到這裡。）
+  override func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+  ) -> Bool {
+    if ShareHandoff.isShareURL(url) {
+      checkSharedPasteboard()
+      return true
+    }
+    return super.application(app, open: url, options: options)
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
@@ -85,12 +101,92 @@ import UIKit
     }
     windowChannel = windowCh
 
+    // 分享（Share Extension 交接，見 ShareHandoff.swift）。與 Android 的 `io.molly.drawer/share` 同一套 Dart 介面：
+    // - Dart 呼叫 `getInitialShare`：回傳冷啟動時已經收到的那一批路徑（沒有則 nil）。
+    // - 已在執行時又收到：原生呼叫 Dart 的 `onShare`。
+    let share = FlutterMethodChannel(name: "io.molly.drawer/share", binaryMessenger: messenger)
+    share.setMethodCallHandler { [weak self] call, result in
+      switch call.method {
+      case "getInitialShare":
+        self?.handleGetInitialShare(result)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    shareChannel = share
+    NotificationCenter.default.addObserver(
+      forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main
+    ) { [weak self] _ in
+      self?.checkSharedPasteboard()
+    }
+
     // 視窗變成 key／App 回到前景時重新掛觀察並回報（scene 可能剛建立、控制點剛出現）。
     for name in [UIWindow.didBecomeKeyNotification, UIApplication.didBecomeActiveNotification] {
       NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) {
         [weak self] _ in
         self?.attachWindowObservers()
         self?.scheduleWindowPush()
+      }
+    }
+  }
+
+  // MARK: - 分享（Share Extension 交接）
+
+  /// Dart 是否已呼叫過 getInitialShare（之後的分享改用 onShare 推送）。
+  private var shareDartReady = false
+  /// Dart 還沒來取之前收到的批次。
+  private var sharePending: [[String]] = []
+  /// Dart 已在等 getInitialShare，但取檔還沒做完。
+  private var shareWaiter: FlutterResult?
+  /// 正在背景寫檔的次數（避免同時處理兩次）。
+  private var shareBusy = false
+
+  private func handleGetInitialShare(_ result: @escaping FlutterResult) {
+    shareDartReady = true
+    // 冷啟動時 didBecomeActive 可能比 Dart 準備好還早（通知已經過了），所以這裡主動檢查一次。
+    if UIApplication.shared.applicationState == .active {
+      checkSharedPasteboard()
+    }
+    if !sharePending.isEmpty {
+      let first = sharePending.removeFirst()
+      result(first)
+      // 極少見：冷啟動前累積了不只一批，其餘照熱啟動的方式推給 Dart。
+      let rest = sharePending
+      sharePending = []
+      for batch in rest { shareChannel?.invokeMethod("onShare", arguments: batch) }
+    } else if shareBusy {
+      shareWaiter = result
+    } else {
+      result(nil)
+    }
+  }
+
+  /// 剪貼簿裡有我們的 type 才處理（`contains(pasteboardTypes:)` 不會觸發貼上提示）；
+  /// 讀出圖片 → 清掉剪貼簿 → 寫成本機暫存檔 → 交給 Dart。
+  private func checkSharedPasteboard() {
+    if shareBusy { return }
+    guard ShareHandoff.hasPending else { return }
+    let images = ShareHandoff.takeImageData()
+    if images.isEmpty { return }
+    shareBusy = true
+    DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+      let paths = ShareHandoff.writeFiles(images)
+      DispatchQueue.main.async {
+        guard let self = self else { return }
+        self.shareBusy = false
+        if paths.isEmpty {
+          self.shareWaiter?(nil)
+          self.shareWaiter = nil
+          return
+        }
+        if let waiter = self.shareWaiter {
+          self.shareWaiter = nil
+          waiter(paths)
+        } else if self.shareDartReady {
+          self.shareChannel?.invokeMethod("onShare", arguments: paths)
+        } else {
+          self.sharePending.append(paths)
+        }
       }
     }
   }
