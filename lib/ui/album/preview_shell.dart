@@ -89,11 +89,16 @@ class PreviewShell extends StatelessWidget {
                   pageController: controller,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: _Pages(
+                    child: PreviewPageView(
                       controller: controller,
-                      media: media,
-                      currentIndex: currentIndex,
+                      itemCount: media.length,
                       onPageChanged: onPageChanged,
+                      // 圖片與 GIF 可縮放；影片用自己的控制列（同詳情頁），不縮放。
+                      itemBuilder: (_, i) => MediaViewer(
+                        media[i],
+                        active: i == currentIndex,
+                        zoomable: true,
+                      ),
                     ),
                   ),
                 ),
@@ -159,43 +164,6 @@ class PreviewShell extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// 左右滑動的圖。用 Clamping 物理（到頭不回彈），到邊緣再拖才由 [PreviewMediaArea] 當成退出；
-/// 垂直拖曳退出進行中不讓 PageView 捲動。
-class _Pages extends StatelessWidget {
-  const _Pages({
-    required this.controller,
-    required this.media,
-    required this.currentIndex,
-    required this.onPageChanged,
-  });
-
-  final PageController controller;
-  final List<MediaSource> media;
-  final int currentIndex;
-  final ValueChanged<int> onPageChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final dragging = PreviewScope.maybeOf(context)?.dragging;
-    Widget pages(bool lock) => PageView.builder(
-      controller: controller,
-      itemCount: media.length,
-      onPageChanged: onPageChanged,
-      physics: lock
-          ? const NeverScrollableScrollPhysics()
-          : const ClampingScrollPhysics(),
-      // 圖片與 GIF 可縮放；影片用自己的控制列（同詳情頁），不縮放。
-      itemBuilder: (_, i) =>
-          MediaViewer(media[i], active: i == currentIndex, zoomable: true),
-    );
-    if (dragging == null) return pages(false);
-    return ValueListenableBuilder<bool>(
-      valueListenable: dragging,
-      builder: (_, d, _) => pages(d),
     );
   }
 }

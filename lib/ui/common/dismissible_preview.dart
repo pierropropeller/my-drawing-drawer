@@ -217,13 +217,27 @@ class PreviewChrome extends StatelessWidget {
 /// 手勢用 [Listener] 直接看指標事件，不進手勢競技場，所以不會和 PageView 的水平捲動、
 /// InteractiveViewer 的雙指縮放／平移互相搶。
 class PreviewMediaArea extends StatefulWidget {
-  const PreviewMediaArea({super.key, required this.child, this.pageController});
+  const PreviewMediaArea({
+    super.key,
+    required this.child,
+    this.pageController,
+    this.allowHorizontalDismiss = true,
+    this.tapToggles = true,
+  });
 
   final Widget child;
 
   /// 圖片區裡的 PageView 控制器；用來判斷是不是在第一張／最後一張的邊緣。
   /// null＝只有一張（兩個方向都是邊緣）。
   final PageController? pageController;
+
+  /// false＝只有垂直拖曳會退出（水平拖曳留給子元件，例如參考圖舞台的平移）。
+  final bool allowHorizontalDismiss;
+
+  /// false＝這裡不處理「點一下切換 UI」（子元件自己用 [PreviewRawTap]）。
+  /// 原因：[GestureDetector] 的點擊會進手勢競技場，讓底下的 InteractiveViewer 要等
+  /// 移動超過 slop 才起算縮放／平移（開頭一小段會被吃掉）；參考圖舞台是繪圖工具，不能有這個延遲。
+  final bool tapToggles;
 
   @override
   State<PreviewMediaArea> createState() => _PreviewMediaAreaState();
@@ -290,6 +304,7 @@ class _PreviewMediaAreaState extends State<PreviewMediaArea>
       return;
     }
     _back.stop();
+    // 放大狀態以按下當下為準（拖曳途中子元件自己的平移不算）。
     _blocked = _scope?.zoomed ?? false;
     _engaged = false;
     _didDrag = false;
@@ -312,12 +327,8 @@ class _PreviewMediaAreaState extends State<PreviewMediaArea>
     if (!_engaged) {
       final d = e.position - _start;
       if (d.distance < kPreviewDragSlop) return;
-      if (_scope?.zoomed ?? false) {
-        _blocked = true;
-        return;
-      }
       final vertical = d.dy.abs() > d.dx.abs();
-      if (!vertical && !_atEdge(d.dx)) {
+      if (!vertical && (!widget.allowHorizontalDismiss || !_atEdge(d.dx))) {
         // 一般的左右切圖：交給 PageView。
         _blocked = true;
         return;
@@ -379,12 +390,7 @@ class _PreviewMediaAreaState extends State<PreviewMediaArea>
       onPointerMove: _onMove,
       onPointerUp: _onUp,
       onPointerCancel: _onCancel,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          if (_didDrag || _offset != Offset.zero) return;
-          _scope?.toggleChrome();
-        },
+      child: _maybeTap(
         child: ValueListenableBuilder<Offset>(
           valueListenable: _offsetListenable,
           builder: (context, offset, child) {
@@ -400,6 +406,101 @@ class _PreviewMediaAreaState extends State<PreviewMediaArea>
           child: widget.child,
         ),
       ),
+    );
+  }
+
+  Widget _maybeTap({required Widget child}) {
+    if (!widget.tapToggles) return child;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (_didDrag || _offset != Offset.zero) return;
+        _scope?.toggleChrome();
+      },
+      child: child,
+    );
+  }
+}
+
+/// 不進手勢競技場的「點一下切換 UI」：單指、移動 <[kPreviewDragSlop]、按下到放開 <300ms。
+/// 包在不想被點擊辨識器干擾的區域外（例如自己做縮放平移的舞台）。
+class PreviewRawTap extends StatefulWidget {
+  const PreviewRawTap({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<PreviewRawTap> createState() => _PreviewRawTapState();
+}
+
+class _PreviewRawTapState extends State<PreviewRawTap> {
+  final _pointers = <int>{};
+  Offset _down = Offset.zero;
+  Duration _downAt = Duration.zero;
+  bool _valid = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (e) {
+        _pointers.add(e.pointer);
+        _valid = _pointers.length == 1;
+        _down = e.position;
+        _downAt = e.timeStamp;
+      },
+      onPointerMove: (e) {
+        if ((e.position - _down).distance >= kPreviewDragSlop) _valid = false;
+      },
+      onPointerUp: (e) {
+        _pointers.remove(e.pointer);
+        final ok =
+            _valid &&
+            _pointers.isEmpty &&
+            e.timeStamp - _downAt < const Duration(milliseconds: 300);
+        if (_pointers.isEmpty) _valid = false;
+        if (ok) PreviewScope.maybeOf(context)?.toggleChrome();
+      },
+      onPointerCancel: (e) {
+        _pointers.remove(e.pointer);
+        _valid = false;
+      },
+      child: widget.child,
+    );
+  }
+}
+
+/// 預覽頁左右滑動的圖。用 Clamping 物理（到頭不回彈），到邊緣再拖才由 [PreviewMediaArea]
+/// 當成退出；垂直拖曳退出進行中不讓 PageView 捲動。
+class PreviewPageView extends StatelessWidget {
+  const PreviewPageView({
+    super.key,
+    required this.controller,
+    required this.itemCount,
+    required this.itemBuilder,
+    this.onPageChanged,
+  });
+
+  final PageController controller;
+  final int itemCount;
+  final IndexedWidgetBuilder itemBuilder;
+  final ValueChanged<int>? onPageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final dragging = PreviewScope.maybeOf(context)?.dragging;
+    Widget pages(bool lock) => PageView.builder(
+      controller: controller,
+      itemCount: itemCount,
+      onPageChanged: onPageChanged,
+      physics: lock
+          ? const NeverScrollableScrollPhysics()
+          : const ClampingScrollPhysics(),
+      itemBuilder: itemBuilder,
+    );
+    if (dragging == null) return pages(false);
+    return ValueListenableBuilder<bool>(
+      valueListenable: dragging,
+      builder: (_, d, _) => pages(d),
     );
   }
 }

@@ -36,6 +36,7 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../album/preview_shell.dart' show PreviewPalette;
+import '../common/dismissible_preview.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import '../common/window_class.dart';
@@ -173,12 +174,14 @@ class _ReferenceViewerPageState extends State<ReferenceViewerPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: RefPalette.dark.pane,
+      // 底色由 ReferenceViewer 的 DismissiblePreview 畫（拖曳退出時漸淡）。
+      backgroundColor: Colors.transparent,
       body: ReferenceViewer(
         images: widget.images,
         initialIndex: widget.initialIndex,
         onClose: () => Navigator.of(context).pop(_removed),
         onRemoved: _removed.add,
+        dismissible: true,
       ),
     );
   }
@@ -195,6 +198,7 @@ class ReferenceViewer extends ConsumerStatefulWidget {
     this.onClose,
     this.onRemoved,
     this.useSafeArea = true,
+    this.dismissible = false,
   });
 
   final List<RefImage> images;
@@ -206,6 +210,10 @@ class ReferenceViewer extends ConsumerStatefulWidget {
   /// 有圖片被刪除時呼叫（參數是 `RefImage.id`）。
   final ValueChanged<String>? onRemoved;
   final bool useSafeArea;
+
+  /// 當成全螢幕預覽頁用：點一下舞台收起／叫出 UI、垂直拖曳退出（見 dismissible_preview.dart）。
+  /// 嵌在面板裡時 false。
+  final bool dismissible;
 
   @override
   ConsumerState<ReferenceViewer> createState() => _ReferenceViewerState();
@@ -394,8 +402,9 @@ class _ReferenceViewerState extends ConsumerState<ReferenceViewer>
     final snap = _snap ?? RefViewSnapshot.initial;
     final palette = RefPalette.of(lightBg: snap.lightBg);
     final accent = context.tokens.accent;
+    final paneColor = widget.dismissible ? Colors.transparent : palette.pane;
     Widget body = ColoredBox(
-      color: palette.pane,
+      color: paneColor,
       child: LayoutBuilder(
         builder: (context, c) {
           final width = c.maxWidth;
@@ -420,8 +429,15 @@ class _ReferenceViewerState extends ConsumerState<ReferenceViewer>
     );
     if (widget.useSafeArea) {
       body = ColoredBox(
-        color: palette.pane,
+        color: paneColor,
         child: SafeArea(child: body),
+      );
+    }
+    if (widget.dismissible) {
+      body = DismissiblePreview(
+        background: palette.pane,
+        onDismiss: _close,
+        child: body,
       );
     }
     return body;
@@ -430,77 +446,83 @@ class _ReferenceViewerState extends ConsumerState<ReferenceViewer>
   Widget _header(RefPalette palette, {required bool wide}) {
     final l10n = context.l10n;
     final counter = '${_index + 1} / ${_items.length}';
-    return Padding(
-      padding: wide
-          ? const EdgeInsets.fromLTRB(20, 6, 20, 10)
-          : const EdgeInsets.fromLTRB(10, 6, 10, 8),
-      child: Row(
-        children: [
-          Semantics(
-            button: true,
-            label: l10n.commonBack,
-            excludeSemantics: true,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _close,
-              child: SizedBox(
-                width: 44,
-                height: 44,
-                child: Center(
-                  child: SvgIcon(
-                    RefIcons.back,
-                    size: wide ? 24 : 22,
-                    color: palette.fg,
-                    strokeWidth: 1.9,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: wide ? 6 : 4),
-          Flexible(
-            child: Text(
-              _current.title ?? '',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: palette.fg,
-                fontSize: wide ? 16 : 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          SizedBox(width: wide ? 8 : 12),
-          Expanded(
-            child: Text(
-              counter,
-              maxLines: 1,
-              style: TextStyle(color: palette.sub, fontSize: wide ? 13 : 12),
-            ),
-          ),
-          if (wide)
+    return PreviewChrome(
+      child: Padding(
+        padding: wide
+            ? const EdgeInsets.fromLTRB(20, 6, 20, 10)
+            : const EdgeInsets.fromLTRB(10, 6, 10, 8),
+        child: Row(
+          children: [
             Semantics(
               button: true,
-              selected: _info,
-              label: l10n.refviewPanel,
+              label: l10n.commonBack,
               excludeSemantics: true,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () => setState(() => _info = !_info),
-                child: Container(
+                onTap: _close,
+                child: SizedBox(
                   width: 44,
                   height: 44,
-                  decoration: BoxDecoration(
-                    color: _info ? palette.activeBtn : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                   child: Center(
-                    child: SvgIcon(RefIcons.panel, size: 22, color: palette.fg),
+                    child: SvgIcon(
+                      RefIcons.back,
+                      size: wide ? 24 : 22,
+                      color: palette.fg,
+                      strokeWidth: 1.9,
+                    ),
                   ),
                 ),
               ),
             ),
-        ],
+            SizedBox(width: wide ? 6 : 4),
+            Flexible(
+              child: Text(
+                _current.title ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: palette.fg,
+                  fontSize: wide ? 16 : 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            SizedBox(width: wide ? 8 : 12),
+            Expanded(
+              child: Text(
+                counter,
+                maxLines: 1,
+                style: TextStyle(color: palette.sub, fontSize: wide ? 13 : 12),
+              ),
+            ),
+            if (wide)
+              Semantics(
+                button: true,
+                selected: _info,
+                label: l10n.refviewPanel,
+                excludeSemantics: true,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _info = !_info),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _info ? palette.activeBtn : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: SvgIcon(
+                        RefIcons.panel,
+                        size: 22,
+                        color: palette.fg,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -514,33 +536,38 @@ class _ReferenceViewerState extends ConsumerState<ReferenceViewer>
   }) {
     final im = _current;
     final s = _snap;
-    return ClipRRect(
-      borderRadius: radius,
-      child: ColoredBox(
-        color: palette.stage,
-        child: s == null
-            ? const SizedBox.expand()
-            : RefStage(
-                key: _keyOf(im.file),
-                image: im,
-                snapshot: s,
-                onChanged: (v) => _onStage(im.file, v),
-                overlayBuilder: (context, transform) => wide
-                    ? RefFloatingBar(
-                        transform: transform,
-                        snapshot: s,
-                        accent: accent,
-                        onLock: _toggleLock,
-                        onFlip: _toggleFlip,
-                        onGray: _toggleGray,
-                        onBackground: _toggleBackground,
-                      )
-                    : RefZoomChip(
-                        transform: transform,
-                        locked: s.locked,
-                        onToggleLock: _toggleLock,
-                      ),
-              ),
+    return PreviewMediaArea(
+      // 參考圖要能自由平移，所以只用垂直拖曳退出（水平拖曳留給平移）。
+      allowHorizontalDismiss: false,
+      tapToggles: false, // 點一下由 RefStage 自己（PreviewRawTap）處理，免得影響縮放平移起算
+      child: ClipRRect(
+        borderRadius: radius,
+        child: ColoredBox(
+          color: palette.stage,
+          child: s == null
+              ? const SizedBox.expand()
+              : RefStage(
+                  key: _keyOf(im.file),
+                  image: im,
+                  snapshot: s,
+                  onChanged: (v) => _onStage(im.file, v),
+                  overlayBuilder: (context, transform) => wide
+                      ? RefFloatingBar(
+                          transform: transform,
+                          snapshot: s,
+                          accent: accent,
+                          onLock: _toggleLock,
+                          onFlip: _toggleFlip,
+                          onGray: _toggleGray,
+                          onBackground: _toggleBackground,
+                        )
+                      : RefZoomChip(
+                          transform: transform,
+                          locked: s.locked,
+                          onToggleLock: _toggleLock,
+                        ),
+                ),
+        ),
       ),
     );
   }
@@ -572,26 +599,30 @@ class _ReferenceViewerState extends ConsumerState<ReferenceViewer>
             ),
           ),
         ),
-        SizedBox(
-          height: 68,
-          child: RefFilmstrip(
-            images: _items,
-            index: _index,
-            onPick: _pick,
-            palette: palette,
-            accent: accent,
+        PreviewChrome(
+          child: SizedBox(
+            height: 68,
+            child: RefFilmstrip(
+              images: _items,
+              index: _index,
+              onPick: _pick,
+              palette: palette,
+              accent: accent,
+            ),
           ),
         ),
-        RefBottomToolbar(
-          snapshot: snap,
-          palette: palette,
-          accent: accent,
-          showLabels: showLabels,
-          onLock: _toggleLock,
-          onFlip: _toggleFlip,
-          onGray: _toggleGray,
-          onBackground: _toggleBackground,
-          onMore: () => _showMore(palette),
+        PreviewChrome(
+          child: RefBottomToolbar(
+            snapshot: snap,
+            palette: palette,
+            accent: accent,
+            showLabels: showLabels,
+            onLock: _toggleLock,
+            onFlip: _toggleFlip,
+            onGray: _toggleGray,
+            onBackground: _toggleBackground,
+            onMore: () => _showMore(palette),
+          ),
         ),
       ],
     );
@@ -609,16 +640,18 @@ class _ReferenceViewerState extends ConsumerState<ReferenceViewer>
     final im = _current;
     return Row(
       children: [
-        SizedBox(
-          width: stripW,
-          child: RefFilmstrip(
-            images: _items,
-            index: _index,
-            onPick: _pick,
-            palette: palette,
-            accent: accent,
-            vertical: true,
-            thumb: thumb,
+        PreviewChrome(
+          child: SizedBox(
+            width: stripW,
+            child: RefFilmstrip(
+              images: _items,
+              index: _index,
+              onPick: _pick,
+              palette: palette,
+              accent: accent,
+              vertical: true,
+              thumb: thumb,
+            ),
           ),
         ),
         Expanded(
@@ -634,32 +667,34 @@ class _ReferenceViewerState extends ConsumerState<ReferenceViewer>
           ),
         ),
         if (_info)
-          SizedBox(
-            width: panelW,
-            child: Semantics(
-              container: true,
-              label: context.l10n.refviewInfoTitle,
-              child: LayoutBuilder(
-                builder: (context, pc) => SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: pc.maxHeight),
-                    child: IntrinsicHeight(
-                      child: RefInfoContent(
-                        image: im,
-                        tags: _tagNames(im),
-                        palette: palette,
-                        gap: panelW >= 270 ? 24 : 20,
-                        padding: EdgeInsets.fromLTRB(
-                          panelW >= 270 ? 20 : 18,
-                          8,
-                          panelW >= 270 ? 20 : 18,
-                          20,
-                        ),
-                        actions: buildRefActions(
-                          context: context,
-                          ref: ref,
+          PreviewChrome(
+            child: SizedBox(
+              width: panelW,
+              child: Semantics(
+                container: true,
+                label: context.l10n.refviewInfoTitle,
+                child: LayoutBuilder(
+                  builder: (context, pc) => SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: pc.maxHeight),
+                      child: IntrinsicHeight(
+                        child: RefInfoContent(
                           image: im,
-                          onRemoved: _removeCurrent,
+                          tags: _tagNames(im),
+                          palette: palette,
+                          gap: panelW >= 270 ? 24 : 20,
+                          padding: EdgeInsets.fromLTRB(
+                            panelW >= 270 ? 20 : 18,
+                            8,
+                            panelW >= 270 ? 20 : 18,
+                            20,
+                          ),
+                          actions: buildRefActions(
+                            context: context,
+                            ref: ref,
+                            image: im,
+                            onRemoved: _removeCurrent,
+                          ),
                         ),
                       ),
                     ),

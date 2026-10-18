@@ -27,6 +27,7 @@ import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import 'ref_frames.dart';
 import 'ref_icons.dart';
+import '../common/dismissible_preview.dart';
 import 'ref_image.dart';
 import 'ref_palette.dart';
 import 'ref_video_playback.dart';
@@ -44,12 +45,16 @@ class _RefVideoViewerPageState extends State<RefVideoViewerPage>
     with HidesNavBar<RefVideoViewerPage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: RefPalette.dark.pane,
-      body: SafeArea(
-        child: RefVideoViewer(
-          image: widget.image,
-          onClose: () => Navigator.of(context).pop(<String>{}),
+    // 共用預覽手勢（點一下舞台收起 UI、垂直拖曳退出），見 dismissible_preview.dart。
+    return DismissiblePreview(
+      background: RefPalette.dark.pane,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: RefVideoViewer(
+            image: widget.image,
+            onClose: () => Navigator.of(context).pop(<String>{}),
+          ),
         ),
       ),
     );
@@ -327,8 +332,10 @@ class _RefVideoViewerState extends ConsumerState<RefVideoViewer>
     const p = RefPalette.dark;
     final l10n = context.l10n;
     final accent = context.tokens.accent;
+    // 在預覽頁裡（有 PreviewScope）底色由 DismissiblePreview 畫，這裡透明。
+    final inPreview = PreviewScope.maybeOf(context) != null;
     return ColoredBox(
-      color: p.pane,
+      color: inPreview ? Colors.transparent : p.pane,
       child: DefaultTextStyle.merge(
         style: TextStyle(color: p.fg),
         child: LayoutBuilder(
@@ -339,20 +346,25 @@ class _RefVideoViewerState extends ConsumerState<RefVideoViewer>
             final frame = (pos.inMicroseconds / 1e6 * _fps).round();
             return Column(
               children: [
-                _header(p, accent, side, l10n),
+                PreviewChrome(child: _header(p, accent, side, l10n)),
                 Expanded(
-                  child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: side),
-                    decoration: BoxDecoration(
-                      color: p.stage,
-                      borderRadius: BorderRadius.circular(16),
+                  child: PreviewMediaArea(
+                    allowHorizontalDismiss: false,
+                    child: Container(
+                      margin: EdgeInsets.symmetric(horizontal: side),
+                      decoration: BoxDecoration(
+                        color: p.stage,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _stage(p, l10n, frame),
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: _stage(p, l10n, frame),
                   ),
                 ),
-                _timeline(p, side + (wide ? 8 : 4), pos, l10n),
-                _controls(p, accent, side, wide, l10n),
+                PreviewChrome(
+                  child: _timeline(p, side + (wide ? 8 : 4), pos, l10n),
+                ),
+                PreviewChrome(child: _controls(p, accent, side, wide, l10n)),
               ],
             );
           },
