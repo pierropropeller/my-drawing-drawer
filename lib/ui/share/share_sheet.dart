@@ -24,14 +24,14 @@ import '../common/window_class.dart';
 import '../material/material_category.dart';
 import 'share_icons.dart';
 
-/// 「加入到」的七個位置。順序＝設計稿 4 欄 7 格的順序（官方圖冊、好看同人圖、推活、雜物／草稿、腦洞、成圖）。
+/// 「加入到」的七個位置。順序＝設計稿 4 欄 7 格的順序（官方圖冊、好看同人圖、推活、雜物、腦洞、摸魚、成圖，D-091）。
 enum ShareSection {
   official,
   fan,
   oshi,
   junk,
-  draft,
   idea,
+  draft,
   piece;
 
   /// 對應的坑內格子（淺坑只開放它開啟的格子，D-088）。
