@@ -564,25 +564,25 @@ class PitCard extends ConsumerWidget {
     // 還沒下載完的封面由 StoredImage 自己畫佔位底色＋淡色＋下載角標（D-052）。
     final cover = ClipRRect(
       borderRadius: BorderRadius.circular(tablet ? 18 : Radii.card),
-      child: coverFile != null
-          ? StoredImage(
-              coverFile,
-              cacheWidth: 600,
-              placeholderColor: placeholder,
-            )
-          : ColoredBox(
-              color: placeholder,
-              child: Center(
-                child: SvgIcon(
-                  AppIcons.image,
-                  size: 30,
-                  strokeWidth: 1.6,
-                  color: dark
-                      ? Colors.white.withValues(alpha: .22)
-                      : t.ink.withValues(alpha: .26),
-                ),
-              ),
+      child: PitCoverImage(
+        file: coverFile,
+        hasCoverRef: pit.hasCoverRef,
+        cacheWidth: 600,
+        placeholderColor: placeholder,
+        fallback: ColoredBox(
+          color: placeholder,
+          child: Center(
+            child: SvgIcon(
+              AppIcons.image,
+              size: 30,
+              strokeWidth: 1.6,
+              color: dark
+                  ? Colors.white.withValues(alpha: .22)
+                  : t.ink.withValues(alpha: .26),
             ),
+          ),
+        ),
+      ),
     );
     return GestureDetector(
       behavior: HitTestBehavior.opaque,

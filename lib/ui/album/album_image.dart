@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/database.dart';
 import '../../data/media.dart';
 import '../../state/providers.dart';
 import '../../sync/sync_controller.dart';
@@ -119,6 +120,7 @@ class StoredImage extends ConsumerWidget {
       return _MissingImage(
         color: placeholderColor ?? t.chipBg,
         progress: status.progress,
+        showBadge: status.showBadge,
       );
     }
     Widget broken(BuildContext _, Object _, StackTrace? _) => ColoredBox(
@@ -157,9 +159,14 @@ class StoredImage extends ConsumerWidget {
 /// 還沒下載的圖：底色＋圖片佔位 icon＋[DownloadOverlay]。
 /// 外層沒有給定大小（無限制）時退回 120 見方，免得 Stack 撐不開。
 class _MissingImage extends StatelessWidget {
-  const _MissingImage({required this.color, required this.progress});
+  const _MissingImage({
+    required this.color,
+    required this.progress,
+    this.showBadge = true,
+  });
   final Color color;
   final double? progress;
+  final bool showBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -191,13 +198,54 @@ class _MissingImage extends StatelessWidget {
                           : t.ink.withValues(alpha: .26),
                     ),
                   ),
-                DownloadOverlay(progress: progress),
+                if (showBadge) DownloadOverlay(progress: progress),
               ],
             ),
           ),
         );
       },
     );
+  }
+}
+
+extension PitCoverRef on Pit {
+  /// 這個坑有指定封面（封面圖本身可能還沒同步進來）。
+  bool get hasCoverRef => coverImageId != null || (coverFile ?? '').isNotEmpty;
+}
+
+/// 坑封面：[file] 有值＝[StoredImage]；沒有但封面已指定（[hasCoverRef]）且同步中／首次同步未完成
+/// ＝封面圖的資料還沒同步進來，畫 [fallback] 底＋排隊中角標；否則畫 [fallback]（沒有封面）。
+class PitCoverImage extends ConsumerWidget {
+  const PitCoverImage({
+    super.key,
+    required this.file,
+    required this.hasCoverRef,
+    required this.fallback,
+    required this.placeholderColor,
+    this.cacheWidth,
+  });
+  final String? file;
+  final bool hasCoverRef;
+  final Widget fallback;
+  final Color placeholderColor;
+  final int? cacheWidth;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (file != null) {
+      return StoredImage(
+        file!,
+        cacheWidth: cacheWidth,
+        placeholderColor: placeholderColor,
+      );
+    }
+    if (hasCoverRef && ref.watch(pitCoverPendingProvider)) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [fallback, const DownloadOverlay(progress: null)],
+      );
+    }
+    return fallback;
   }
 }
 

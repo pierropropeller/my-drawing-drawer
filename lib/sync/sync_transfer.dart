@@ -53,7 +53,15 @@ class SyncTransfer {
 
 /// 某張圖在格子上的下載狀態（D-052 的角標）。
 class ImageDownloadStatus {
-  const ImageDownloadStatus({this.isMissing = false, this.progress});
+  const ImageDownloadStatus({
+    this.isMissing = false,
+    this.progress,
+    this.showBadge = true,
+  });
+
+  /// 是否畫淡色＋下載角標。本機沒有圖、但也沒有連結同步（沒東西會去下載）時為 false，
+  /// 只畫缺圖占位。
+  final bool showBadge;
 
   /// 本機還沒有這張圖（要蓋淡色＋角標）。
   final bool isMissing;
@@ -67,8 +75,9 @@ class ImageDownloadStatus {
   bool operator ==(Object other) =>
       other is ImageDownloadStatus &&
       other.isMissing == isMissing &&
+      other.showBadge == showBadge &&
       other.progress == progress;
 
   @override
-  int get hashCode => Object.hash(isMissing, progress);
+  int get hashCode => Object.hash(isMissing, progress, showBadge);
 }

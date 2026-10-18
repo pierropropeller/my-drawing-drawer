@@ -367,6 +367,25 @@ final _downloadIndexProvider = Provider<Map<String, SyncTransfer>>((ref) {
   };
 });
 
+/// 有連結同步（已連結帳號）或同步正在進行：本機沒有的圖都視為「待下載」（D-052）。
+/// 首次同步先拉 meta、再列下載清單，meta 已套用但清單還沒排好的階段也算。
+final syncLinkedProvider = Provider<bool>((ref) {
+  final account = ref.watch(settingsProvider.select((s) => s.accountEmail));
+  final syncing = ref.watch(
+    syncControllerProvider.select((s) => s.phase == SyncPhase.syncing),
+  );
+  return account != null || syncing;
+});
+
+/// 坑的封面指向的圖還沒同步進來（meta 還在拉，圖的資料列不存在所以不知道檔名）：
+/// 同步進行中或首次同步未完成時，封面格要顯示排隊中的下載角標。
+final pitCoverPendingProvider = Provider<bool>((ref) {
+  final syncing = ref.watch(
+    syncControllerProvider.select((s) => s.phase == SyncPhase.syncing),
+  );
+  return syncing || ref.watch(firstSyncPendingProvider);
+});
+
 /// 圖片格的下載狀態（D-052 角標）：本機有這張圖→[ImageDownloadStatus.present]（不顯示角標）；
 /// 沒有→`isMissing`，`progress` 是下載進度（正在下載且知道大小時），null＝排隊中／沒有在同步
 /// （角標轉圈）。圖片下載完成時會自動變回 present。
@@ -376,6 +395,10 @@ final imageTransferProvider = Provider.family<ImageDownloadStatus, String>((
 ) {
   final exists = ref.watch(imageExistsProvider(file)).value ?? true;
   if (exists) return ImageDownloadStatus.present;
+  // 規則：本機沒有圖＋有連結同步（或同步中）＝待下載角標；沒連結＝只畫缺圖占位。
+  if (!ref.watch(syncLinkedProvider)) {
+    return const ImageDownloadStatus(isMissing: true, showBadge: false);
+  }
   final t = ref.watch(_downloadIndexProvider.select((m) => m[file]));
   return ImageDownloadStatus(
     isMissing: true,
