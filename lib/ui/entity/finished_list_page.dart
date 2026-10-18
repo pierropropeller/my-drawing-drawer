@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
+import '../../data/database.dart' show TagTarget;
 import '../../data/entity_queries.dart';
 import '../../data/media.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
+import '../album/album_actions.dart';
+import '../album/image_masonry.dart' show SelectMark;
 import '../common/app_icons.dart';
+import '../common/drag_select.dart';
 import '../common/media_widgets.dart';
+import '../common/nav_bar_hidden.dart';
+import '../oshi/oshi_selection.dart';
 import '../common/empty_state.dart';
 import '../common/svg_icon.dart';
 import '../common/window_class.dart';
@@ -16,6 +22,7 @@ import '../album/wide_layout.dart';
 import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
 import 'detail_panes.dart';
+import 'entity_select.dart';
 import 'entity_widgets.dart';
 import 'piece_detail_page.dart';
 import 'piece_form_page.dart';
@@ -44,8 +51,88 @@ class FinishedListPage extends ConsumerStatefulWidget {
   ConsumerState<FinishedListPage> createState() => _FinishedListPageState();
 }
 
-class _FinishedListPageState extends ConsumerState<FinishedListPage> {
+class _FinishedListPageState extends ConsumerState<FinishedListPage>
+    with HidesNavBar<FinishedListPage> {
+  // 瀏覽時有導覽列；進入多選才隱藏（build 時依 _sel.active 同步）。
+  @override
+  bool get hidesNavBarOnOpen => false;
+
   _Mode _mode = _Mode.waterfall;
+
+  /// 多選（D-095）：在原本的佈局上選，三種佈局都一樣。
+  final _sel = OshiSelection();
+
+  static final _tagBackend = entityTagBackend(
+    TagTarget.piece,
+    (l, n) => l.commonCountImages(n),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _sel.addListener(_onSel);
+  }
+
+  @override
+  void dispose() {
+    _sel.dispose();
+    super.dispose();
+  }
+
+  void _onSel() {
+    if (mounted) setState(() {});
+  }
+
+  List<PieceView> _picked(List<PieceView> views) => [
+    for (final v in views)
+      if (_sel.isSelected(v.piece.id)) v,
+  ];
+
+  Future<void> _share(List<PieceView> picked) async {
+    if (picked.isEmpty) return;
+    await shareEntityImages(ref, [for (final v in picked) v.images]);
+  }
+
+  Future<void> _download(List<PieceView> picked) async {
+    if (picked.isEmpty) return;
+    final r = await downloadEntityImages(ref, [
+      for (final v in picked) v.images,
+    ]);
+    if (!mounted) return;
+    if (r.total > 0) {
+      showSnack(
+        context,
+        r.saved > 0
+            ? context.l10n.albumSavedCountToGallery(r.saved)
+            : context.l10n.albumSaveFailed,
+      );
+    }
+    _sel.exit();
+  }
+
+  Future<void> _tag(List<PieceView> picked) async {
+    if (picked.isEmpty) return;
+    final applied = await showEntityTagSheet(
+      context,
+      pitId: widget.pitId,
+      backend: _tagBackend,
+      ids: [for (final v in picked) v.piece.id],
+    );
+    if (applied == true && mounted) _sel.exit();
+  }
+
+  Future<void> _delete(List<PieceView> picked) async {
+    if (picked.isEmpty) return;
+    final ok = await confirmDelete(
+      context,
+      title: context.l10n.pieceDeleteSelectedTitle(picked.length),
+    );
+    if (!ok || !mounted) return;
+    await ref.read(databaseProvider).deletePieces([
+      for (final v in picked) v.piece.id,
+    ]);
+    if (mounted) _sel.exit();
+  }
 
   /// 寬版右側詳情面板目前顯示的成圖（放在 State，拉窗不會丟）。
   String? _selectedId;
@@ -74,20 +161,30 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
         final nineGap = 8.0;
         void tap(PieceView v) => _open(v);
         bool sel(PieceView v) => highlight && _selectedId == v.piece.id;
-        return switch (_mode) {
+        final selecting = _sel.active;
+        // 多選的狀態（長按＋拖曳連續多選用 index ＝ views 的順序）。
+        Widget pick(int i, Widget tile) =>
+            DragSelectItem(index: i, child: tile);
+        bool picked(PieceView v) => _sel.isSelected(v.piece.id);
+        final layout = switch (_mode) {
           _Mode.waterfall => MasonryGridView.count(
             padding: pad,
             crossAxisCount: wfCols,
             mainAxisSpacing: compact ? 14 : 16,
             crossAxisSpacing: wfGap,
             itemCount: views.length,
-            itemBuilder: (_, i) => _PieceTile(
-              view: views[i],
-              selected: sel(views[i]),
-              onTap: () => tap(views[i]),
-              ratio: views[i].images.isEmpty
-                  ? 1
-                  : views[i].images.first.aspect.clamp(0.5, 2.0),
+            itemBuilder: (_, i) => pick(
+              i,
+              _PieceTile(
+                view: views[i],
+                selected: sel(views[i]),
+                selecting: selecting,
+                picked: picked(views[i]),
+                onTap: () => tap(views[i]),
+                ratio: views[i].images.isEmpty
+                    ? 1
+                    : views[i].images.first.aspect.clamp(0.5, 2.0),
+              ),
             ),
           ),
           _Mode.grid => GridView.builder(
@@ -108,11 +205,16 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
                     mainAxisExtent: (inner - 16 * (wfCols - 1)) / wfCols + 52,
                   ),
             itemCount: views.length,
-            itemBuilder: (_, i) => _PieceTile(
-              view: views[i],
-              selected: sel(views[i]),
-              onTap: () => tap(views[i]),
-              ratio: 1,
+            itemBuilder: (_, i) => pick(
+              i,
+              _PieceTile(
+                view: views[i],
+                selected: sel(views[i]),
+                selecting: selecting,
+                picked: picked(views[i]),
+                onTap: () => tap(views[i]),
+                ratio: 1,
+              ),
             ),
           ),
           _Mode.nine => GridView.builder(
@@ -123,13 +225,26 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
               crossAxisSpacing: nineGap,
             ),
             itemCount: views.length,
-            itemBuilder: (_, i) => _NineTile(
-              view: views[i],
-              selected: sel(views[i]),
-              onTap: () => tap(views[i]),
+            itemBuilder: (_, i) => pick(
+              i,
+              _NineTile(
+                view: views[i],
+                selected: sel(views[i]),
+                selecting: selecting,
+                picked: picked(views[i]),
+                onTap: () => tap(views[i]),
+              ),
             ),
           ),
         };
+        // 長按＋拖曳連續多選（D-081）。區域放在三種佈局的外面，切換佈局不會中斷。
+        return DragSelectArea(
+          itemCount: views.length,
+          isSelected: (i) => _sel.isSelected(views[i].piece.id),
+          onChanged: (idx, finished) =>
+              _sel.applyIndices(idx, finished: finished),
+          child: layout,
+        );
       },
     );
   }
@@ -143,6 +258,14 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
     );
     final sel = _selectedId;
     final valid = sel != null && views.any((v) => v.piece.id == sel);
+    // 多選時沒有詳情面板，成圖鋪滿。
+    if (_sel.active) {
+      return _content(
+        views,
+        EdgeInsets.fromLTRB(spec.hpad, 10, spec.hpad, 96),
+        wide: true,
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -175,6 +298,10 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
   }
 
   void _open(PieceView v) {
+    if (_sel.active) {
+      _sel.toggle(v.piece.id);
+      return;
+    }
     if (WindowClass.of(context).isWide) {
       setState(() => _selectedId = v.piece.id);
       return;
@@ -210,65 +337,93 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage> {
         const [];
     const pad = EdgeInsets.fromLTRB(20, 10, 20, 96);
     final wide = WindowClass.of(context).isWide;
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                SubPageHeader(
-                  title: pit == null
-                      ? context.l10n.searchCategoryPiece
-                      : context.l10n.albumTitleWithPit(
-                          pit.name,
-                          context.l10n.searchCategoryPiece,
+    _sel.updateOrder([for (final v in views) v.piece.id]);
+    final selecting = _sel.active;
+    setNavBarHidden(selecting);
+    final picked = _picked(views);
+    return PopScope(
+      canPop: !selecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _sel.exit();
+      },
+      child: Scaffold(
+        bottomNavigationBar: selecting
+            ? EntitySelectBar(
+                onShare: () => _share(picked),
+                onDownload: () => _download(picked),
+                onTag: () => _tag(picked),
+                onDelete: () => _delete(picked),
+              )
+            : null,
+        body: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  if (selecting)
+                    EntitySelectHeader(
+                      title: context.l10n.commonSelectedCount(picked.length),
+                      allSelected: _sel.allSelected,
+                      onExit: _sel.exit,
+                      onToggleAll: () =>
+                          _sel.allSelected ? _sel.exit() : _sel.selectAll(),
+                    )
+                  else
+                    SubPageHeader(
+                      title: pit == null
+                          ? context.l10n.searchCategoryPiece
+                          : context.l10n.albumTitleWithPit(
+                              pit.name,
+                              context.l10n.searchCategoryPiece,
+                            ),
+                      titleSize: 19,
+                      trailing: [
+                        SearchIconButton(pitId: widget.pitId),
+                        _ModeToggle(
+                          mode: _mode,
+                          onChanged: (m) => setState(() => _mode = m),
                         ),
-                  titleSize: 19,
-                  trailing: [
-                    SearchIconButton(pitId: widget.pitId),
-                    _ModeToggle(
-                      mode: _mode,
-                      onChanged: (m) => setState(() => _mode = m),
+                      ],
                     ),
-                  ],
-                ),
-                PitSectionTabBar(
-                  pitId: widget.pitId,
-                  selected: PitSection.pieces,
-                ),
-                if (widget.tagId != null)
-                  TagFilterBar(
-                    pitId: widget.pitId,
-                    kind: TaggedKind.piece,
-                    tagId: widget.tagId!,
-                    countText: context.l10n.commonCountImages(views.length),
+                  if (!selecting)
+                    PitSectionTabBar(
+                      pitId: widget.pitId,
+                      selected: PitSection.pieces,
+                    ),
+                  if (widget.tagId != null)
+                    TagFilterBar(
+                      pitId: widget.pitId,
+                      kind: TaggedKind.piece,
+                      tagId: widget.tagId!,
+                      countText: context.l10n.commonCountImages(views.length),
+                    ),
+                  Expanded(
+                    child: views.isEmpty
+                        ? EmptyState(
+                            svg: AppIcons.pitPieceEmpty,
+                            text: context.l10n.pieceListEmpty,
+                            color: t.piece,
+                            actionLabel: context.l10n.commonAdd,
+                            onAction: _add,
+                          )
+                        : wide
+                        ? _wideBody(views)
+                        : _content(views, pad, wide: false),
                   ),
-                Expanded(
-                  child: views.isEmpty
-                      ? EmptyState(
-                          svg: AppIcons.pitPieceEmpty,
-                          text: context.l10n.pieceListEmpty,
-                          color: t.piece,
-                          actionLabel: context.l10n.commonAdd,
-                          onAction: _add,
-                        )
-                      : wide
-                      ? _wideBody(views)
-                      : _content(views, pad, wide: false),
-                ),
-              ],
-            ),
-            if (views.isNotEmpty)
-              Positioned(
-                right: 18,
-                bottom: 14,
-                child: EntityFab(
-                  onPressed: _add,
-                  label: context.l10n.pieceFormTitleNew,
-                ),
+                ],
               ),
-          ],
+              if (views.isNotEmpty && !selecting)
+                Positioned(
+                  right: 18,
+                  bottom: 14,
+                  child: EntityFab(
+                    onPressed: _add,
+                    label: context.l10n.pieceFormTitleNew,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -372,8 +527,14 @@ class _PieceTile extends StatelessWidget {
     required this.onTap,
     required this.ratio,
     this.selected = false,
+    this.selecting = false,
+    this.picked = false,
   });
   final bool selected;
+
+  /// 多選中／被選中（D-095）：2px 主色框＋右上勾（同 MaterialSelect）。
+  final bool selecting;
+  final bool picked;
   final PieceView view;
   final VoidCallback onTap;
   final double ratio;
@@ -399,7 +560,8 @@ class _PieceTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                   child: _pieceImage(context, view),
                 ),
-                if (selected) const _SelectRing(radius: 14),
+                if (selected && !selecting) const _SelectRing(radius: 14),
+                if (selecting) _PickMark(radius: 14, picked: picked, inset: 7),
               ],
             ),
           ),
@@ -456,8 +618,12 @@ class _NineTile extends StatelessWidget {
     required this.view,
     required this.onTap,
     this.selected = false,
+    this.selecting = false,
+    this.picked = false,
   });
   final bool selected;
+  final bool selecting;
+  final bool picked;
   final PieceView view;
   final VoidCallback onTap;
 
@@ -474,7 +640,8 @@ class _NineTile extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               _pieceImage(context, view, glyph: 22, badgeInset: 5),
-              if (selected) const _SelectRing(radius: 11),
+              if (selected && !selecting) const _SelectRing(radius: 11),
+              if (selecting) _PickMark(radius: 11, picked: picked, inset: 6),
               if (view.piece.isPublished)
                 Positioned(
                   left: 5,
@@ -537,5 +704,38 @@ class _SelectRing extends StatelessWidget {
         border: Border.all(color: context.tokens.accent, width: 2.5),
       ),
     ),
+  );
+}
+
+/// 多選的標記：選中＝2px 主色框；右上角圓圈（選中＝實心主色白勾，未選＝白邊半透明）。
+class _PickMark extends StatelessWidget {
+  const _PickMark({
+    required this.radius,
+    required this.picked,
+    required this.inset,
+  });
+  final double radius;
+  final bool picked;
+  final double inset;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      if (picked)
+        IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius),
+              border: Border.all(color: context.tokens.accent, width: 2),
+            ),
+          ),
+        ),
+      Positioned(
+        top: inset,
+        right: inset,
+        child: SelectMark(selected: picked),
+      ),
+    ],
   );
 }
