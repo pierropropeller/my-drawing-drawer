@@ -8,7 +8,7 @@ import '../../state/providers.dart';
 import '../album/album_actions.dart';
 import '../album/album_image.dart';
 import '../album/fan_art_edit_page.dart';
-import '../album/group_manage_page.dart';
+import '../album/official_new_page.dart';
 import 'ref_icons.dart';
 import 'ref_image.dart';
 import 'ref_info.dart';
@@ -60,7 +60,12 @@ List<RefInfoAction> buildRefActions({
       );
       if (deleted == true) onRemoved();
     } else {
-      await _changeOfficialGroup(context, ref, pitId: pitId, imageId: a.id);
+      final deleted = await openOfficialEdit(
+        context,
+        pitId: pitId,
+        imageId: a.id,
+      );
+      if (deleted == true) onRemoved();
     }
   }
 
@@ -105,59 +110,4 @@ List<RefInfoAction> buildRefActions({
       danger: true,
     ),
   ];
-}
-
-/// 官方圖的「編輯」＝更換分組（與 ImagePreviewPage 相同的流程與文字）。
-Future<void> _changeOfficialGroup(
-  BuildContext context,
-  WidgetRef ref, {
-  required String pitId,
-  required String imageId,
-}) async {
-  final db = ref.read(databaseProvider);
-  final groups = await db.watchGroups(pitId).first;
-  if (!context.mounted) return;
-  final picked = await showModalBottomSheet<String>(
-    context: context,
-    builder: (ctx) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    ctx.l10n.albumChangeGroup,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => GroupManagePage(pitId: pitId),
-                      ),
-                    );
-                  },
-                  child: Text(ctx.l10n.commonManage),
-                ),
-              ],
-            ),
-          ),
-          for (final g in groups)
-            ListTile(
-              title: Text(g.name),
-              onTap: () => Navigator.pop(ctx, g.id),
-            ),
-        ],
-      ),
-    ),
-  );
-  if (picked != null) {
-    await db.setOfficialGroup(imageId, picked);
-    if (context.mounted) showSnack(context, context.l10n.albumGroupChanged);
-  }
 }

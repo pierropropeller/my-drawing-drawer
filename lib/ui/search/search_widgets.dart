@@ -10,6 +10,7 @@ import 'search_icons.dart';
 enum SearchCategory {
   all,
   piece,
+  official,
   fan,
   oshi,
   draft,
@@ -18,6 +19,7 @@ enum SearchCategory {
   String label(AppLocalizations l) => switch (this) {
     all => l.commonAll,
     piece => l.searchCategoryPiece,
+    official => l.searchCategoryOfficial,
     fan => l.searchCategoryFan,
     oshi => l.pitSearchCategoryOshi,
     draft => l.searchCategoryDraft,

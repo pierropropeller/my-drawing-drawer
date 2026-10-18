@@ -43,7 +43,12 @@ class PitSearchResult {
 
   /// 分頁 chips「全部」的數字。
   int get total =>
-      pieces.total + official.total + fanArts.total + oshi.total + drafts.total + ideas.total;
+      pieces.total +
+      official.total +
+      fanArts.total +
+      oshi.total +
+      drafts.total +
+      ideas.total;
   bool get isEmpty => total == 0;
 
   /// 各段的實際筆數（D-061：少於 3 張時照實際張數放，不補格、不顯示「+N」）。
@@ -203,9 +208,10 @@ extension SearchQueries on AppDatabase {
                         tags.deletedAt.isNull(),
                   ))
                   .get();
-          if (match([
-            groupNames[o.groupId],
-          ], [for (final r in tagRows) r.readTable(tags)])) {
+          if (match(
+            [groupNames[o.groupId]],
+            [for (final r in tagRows) r.readTable(tags)],
+          )) {
             officialHits.add(o);
           }
         }

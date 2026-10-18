@@ -23,6 +23,7 @@ import 'package:huakeng/ui/album/fan_art_preview_page.dart';
 import 'package:huakeng/ui/album/group_manage_page.dart';
 import 'package:huakeng/data/batch_tag_queries.dart';
 import 'package:huakeng/ui/album/move_sheet.dart';
+import 'package:huakeng/ui/album/image_preview_page.dart';
 import 'package:huakeng/ui/album/official_list_page.dart';
 import 'package:huakeng/ui/album/tag_batch_sheet.dart';
 import 'package:huakeng/ui/album/official_new_page.dart';
@@ -707,6 +708,192 @@ void main() {
     await settle(tester);
     expect(find.text('移動到'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await unmount(tester);
+  });
+
+  /// 從按鈕開啟表單（要有上一頁才能 pop）；results 收 pop 的結果。
+  Future<void> openFromHost(
+    WidgetTester tester,
+    Future<Object?> Function(BuildContext) open,
+    List<Object?> results,
+  ) async {
+    await pumpPage(
+      tester,
+      Builder(
+        builder: (context) => TextButton(
+          onPressed: () async => results.add(await open(context)),
+          child: const Text('開'),
+        ),
+      ),
+    );
+    await tester.tap(find.text('開'));
+    await settle(tester);
+  }
+
+  Future<void> settleLong(WidgetTester tester) async {
+    for (var i = 0; i < 4; i++) {
+      await settle(tester);
+    }
+  }
+
+  testWidgets('D-089 新增官方圖：分組下面有 tag 區（管理、新增），選了 tag 存進圖片', (tester) async {
+    final tag = await tester.runAsync(() => db.createTag(pitId, '角色1'));
+    await tester.runAsync(() => db.createTag(pitId, '夏日'));
+    await openFromHost(
+      tester,
+      (c) => openOfficialNew(
+        c,
+        pitId: pitId,
+        initialImages: [XFile('${tmp.path}/pick.png')],
+      ),
+      [],
+    );
+    expect(find.text('tag'), findsOneWidget);
+    expect(find.text('#角色1'), findsOneWidget);
+    expect(find.text('#夏日'), findsOneWidget);
+    expect(find.text('管理'), findsNWidgets(2)); // 分組、tag
+    // 分組在 tag 之上。
+    expect(
+      tester.getTopLeft(find.text('分組')).dy <
+          tester.getTopLeft(find.text('tag')).dy,
+      isTrue,
+    );
+    await tester.tap(find.text('#角色1'));
+    await tester.pump();
+    await tester.tap(find.text('加入官方圖冊'));
+    await settleLong(tester);
+    final rows = (await tester.runAsync(
+      () => db.watchOfficial(pitId, tagId: tag).first,
+    ))!;
+    expect(rows.length, 1);
+    await unmount(tester);
+  });
+
+  testWidgets('D-089 編輯官方圖：載入分組與 tag，存檔後更新；沒有導覽列', (tester) async {
+    final tagA = await tester.runAsync(() => db.createTag(pitId, '角色1'));
+    final tagB = await tester.runAsync(() => db.createTag(pitId, '夏日'));
+    await tester.runAsync(() => seedOfficial(1));
+    final row = (await tester.runAsync(() => db.watchOfficial(pitId).first))!
+        .single;
+    await tester.runAsync(() => db.setOfficialTags(row.id, [tagA!]));
+    await openFromHost(
+      tester,
+      (c) => openOfficialEdit(c, pitId: pitId, imageId: row.id),
+      [],
+    );
+    expect(navBarHiddenCount.value, 1);
+    expect(find.text('編輯官方圖'), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.bySemanticsLabel('加圖'), findsNothing);
+    await tester.tap(find.text('#角色1')); // 取消
+    await tester.pump();
+    await tester.tap(find.text('#夏日'));
+    await tester.pump();
+    await tester.tap(find.text('儲存'));
+    await settleLong(tester);
+    final ids = (await tester.runAsync(
+      () => db.watchTagIds(TagTarget.official, row.id).first,
+    ))!;
+    expect(ids, [tagB]);
+    await unmount(tester);
+  });
+
+  testWidgets('D-089 編輯官方圖：按 × 確認後刪除並回傳 true', (tester) async {
+    await tester.runAsync(() => seedOfficial(1));
+    final row = (await tester.runAsync(() => db.watchOfficial(pitId).first))!
+        .single;
+    bool? result;
+    await pumpPage(
+      tester,
+      Builder(
+        builder: (context) => TextButton(
+          onPressed: () async => result = await openOfficialEdit(
+            context,
+            pitId: pitId,
+            imageId: row.id,
+          ),
+          child: const Text('開'),
+        ),
+      ),
+    );
+    await tester.tap(find.text('開'));
+    await settle(tester);
+    await tester.tap(find.bySemanticsLabel('移除圖片'), warnIfMissed: false);
+    await settle(tester);
+    await tester.tap(find.widgetWithText(TextButton, '刪除'));
+    await settle(tester);
+    expect(await tester.runAsync(() => db.watchOfficial(pitId).first), isEmpty);
+    expect(result, isTrue);
+    await unmount(tester);
+  });
+
+  testWidgets('D-089 官方圖預覽：分組標籤下是 tag chips，日期在 tag 下面；點 tag 回呼', (
+    tester,
+  ) async {
+    final tagA = await tester.runAsync(() => db.createTag(pitId, '角色1'));
+    final tagB = await tester.runAsync(() => db.createTag(pitId, '夏日企劃'));
+    await tester.runAsync(() async {
+      final g = (await db.watchGroups(pitId).first).first;
+      await db.addOfficial(
+        pitId,
+        g.id,
+        const [NewImage(file: 'a.png', width: 10, height: 10)],
+        tagIds: [tagA!, tagB!],
+      );
+    });
+    final row = (await tester.runAsync(() => db.watchOfficial(pitId).first))!
+        .single;
+    final group = (await tester.runAsync(
+      () async => (await db.watchGroups(pitId).first).first,
+    ))!;
+    final tapped = <String>[];
+    await pumpPage(
+      tester,
+      ImagePreviewPage(
+        pitId: pitId,
+        images: [
+          AlbumImage(
+            id: row.id,
+            file: row.imageFile,
+            width: 10,
+            height: 10,
+            kind: AlbumKind.official,
+            groupName: group.name,
+            groupId: row.groupId,
+            createdAt: DateTime(2026, 9, 21),
+          ),
+        ],
+        initialIndex: 0,
+        onTagTap: tapped.add,
+      ),
+    );
+    double y(String t) => tester.getTopLeft(find.text(t)).dy;
+    expect(y(group.name) < y('#角色1'), isTrue);
+    expect(y('#角色1') < y('2026 / 09 / 21 加入'), isTrue);
+    expect(find.text('#夏日企劃'), findsOneWidget);
+    await tester.tap(find.text('#夏日企劃'));
+    expect(tapped, [tagB]);
+    await unmount(tester);
+  });
+
+  testWidgets('D-089 官方圖冊 tagId 只列出有該 tag 的圖、顯示篩選列', (tester) async {
+    final tag = await tester.runAsync(() => db.createTag(pitId, '角色1'));
+    await tester.runAsync(() async {
+      final g = (await db.watchGroups(pitId).first).first;
+      await db.addOfficial(
+        pitId,
+        g.id,
+        const [NewImage(file: 'a.png', width: 10, height: 10)],
+        tagIds: [tag!],
+      );
+      await db.addOfficial(pitId, g.id, const [
+        NewImage(file: 'b.png', width: 10, height: 10),
+      ]);
+    });
+    await pumpPage(tester, OfficialListPage(pitId: pitId, tagId: tag));
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.text('#角色1'), findsOneWidget);
+    expect(find.text('1 張'), findsOneWidget);
     await unmount(tester);
   });
 }

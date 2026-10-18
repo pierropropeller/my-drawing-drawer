@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
+import '../../data/database.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/app_icons.dart';
@@ -10,6 +11,7 @@ import '../common/window_class.dart';
 import '../reference/reference_viewer.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
+import 'official_new_page.dart';
 import 'preview_shell.dart';
 
 /// 官方圖冊的圖片預覽（ImagePreview）：深色全屏、圖片滿版；分享、下載、設為封面、編輯、刪除。
@@ -20,11 +22,15 @@ class ImagePreviewPage extends ConsumerStatefulWidget {
     required this.pitId,
     required this.images,
     required this.initialIndex,
+    this.onTagTap,
   });
 
   final String pitId;
   final List<AlbumImage> images;
   final int initialIndex;
+
+  /// 點 tag 時呼叫（參數是 tag id）。預設不動作，由列表／搜尋接上「回到官方圖冊並篩選」。
+  final void Function(String tagId)? onTagTap;
 
   @override
   ConsumerState<ImagePreviewPage> createState() => _ImagePreviewPageState();
@@ -63,17 +69,15 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
     if (mounted) showSnack(context, context.l10n.albumCoverSetOfficial);
   }
 
-  /// 編輯＝更換分組（官方圖只有分組一個欄位）。
+  /// 編輯＝開編輯頁（OfficialNew 版型：分組、tag）；編輯時按圖上的「×」刪掉這張圖。
   Future<void> _edit() async {
-    final changed = await changeOfficialGroup(
+    final id = _current.id;
+    final deleted = await openOfficialEdit(
       context,
-      ref,
       pitId: widget.pitId,
-      imageId: _current.id,
+      imageId: id,
     );
-    if (changed && mounted) {
-      showSnack(context, context.l10n.albumGroupChanged);
-    }
+    if (deleted == true && mounted) _removeCurrent();
   }
 
   Future<void> _delete() async {
@@ -84,6 +88,11 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteOfficial([_current.id]);
     if (!mounted) return;
+    _removeCurrent();
+  }
+
+  /// 目前這張已刪除：從預覽拿掉；沒圖了就關閉。
+  void _removeCurrent() {
     setState(() => _items.removeAt(_index));
     if (_items.isEmpty) {
       Navigator.of(context).pop();
@@ -122,6 +131,15 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
     final pitName = ref.watch(pitProvider(widget.pitId)).value?.name;
     final group = _current.groupName ?? '';
     final date = _current.createdAt;
+    final tagIds =
+        ref.watch(tagIdsProvider((TagTarget.official, _current.id))).value ??
+        const <String>[];
+    final tagNames = {
+      for (final tag
+          in ref.watch(tagsProvider(widget.pitId)).value ?? const <Tag>[])
+        tag.id: tag.name,
+    };
+    final hasTags = tagIds.any(tagNames.containsKey);
     final title = pitName == null
         ? context.l10n.pitsOfficial
         : context.l10n.albumTitleWithPit(pitName, context.l10n.pitsOfficial);
@@ -137,7 +155,9 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
       onPageChanged: (i) => setState(() => _index = i),
       info: Padding(
         padding: const EdgeInsets.fromLTRB(24, 6, 24, 14),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             if (group.isNotEmpty)
               Container(
@@ -155,13 +175,52 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
                   ),
                 ),
               ),
-            const Spacer(),
+            // tag chips（D-089，同 FanArtPreview）：點了回官方圖冊並以該 tag 篩選。
+            if (hasTags)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final id in tagIds)
+                      if (tagNames[id] != null)
+                        GestureDetector(
+                          onTap: widget.onTagTap == null
+                              ? null
+                              : () => widget.onTagTap!(id),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: PreviewPalette.tagBg,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              '#${tagNames[id]}',
+                              style: const TextStyle(
+                                color: PreviewPalette.tagText,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                  ],
+                ),
+              ),
             if (date != null)
-              Text(
-                previewDate(date),
-                style: const TextStyle(
-                  color: PreviewPalette.muted,
-                  fontSize: 11.5,
+              Padding(
+                padding: EdgeInsets.only(
+                  top: group.isEmpty && !hasTags ? 0 : 10,
+                ),
+                child: Text(
+                  previewDate(date, context.l10n),
+                  style: const TextStyle(
+                    color: PreviewPalette.muted,
+                    fontSize: 11.5,
+                  ),
                 ),
               ),
           ],

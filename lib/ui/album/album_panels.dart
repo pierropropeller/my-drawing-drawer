@@ -13,6 +13,7 @@ import 'album_actions.dart';
 import 'album_image.dart';
 import 'fan_art_edit_page.dart';
 import 'ipadlists_icons.dart';
+import 'official_new_page.dart';
 import 'wide_layout.dart';
 
 /// 官方圖冊／好看同人圖在平板上的預覽面板內容（FanArt／Official 設計稿的右側 aside）。
@@ -190,7 +191,7 @@ String previewDateText(BuildContext context, DateTime d) =>
     );
 
 /// 官方圖冊的預覽面板（Official 設計稿）：分組小標＋加入日期、tag；
-/// 分享／下載／設為封面／編輯（換分組）／刪除。
+/// 分享／下載／設為封面／編輯（分組、tag）／刪除。
 class OfficialPreviewPanel extends ConsumerWidget {
   const OfficialPreviewPanel({
     super.key,
@@ -265,15 +266,12 @@ class OfficialPreviewPanel extends ConsumerWidget {
           if (context.mounted) showSnack(context, l.albumCoverSetOfficial);
         }),
         PanelAction(AppIcons.edit, l.commonEdit, () async {
-          final changed = await changeOfficialGroup(
+          final deleted = await openOfficialEdit(
             context,
-            ref,
             pitId: pitId,
             imageId: image.id,
           );
-          if (changed && context.mounted) {
-            showSnack(context, l.albumGroupChanged);
-          }
+          if (deleted == true) onDismiss();
         }),
         PanelAction(AppIcons.trash, l.commonDelete, () async {
           final ok = await confirmDelete(

@@ -67,11 +67,7 @@ void main() {
     final ids = await addTwo([]);
     await db.applyBatchTags(AlbumCell.official, ids, addTagIds: [t]);
     expect((await db.watchOfficial(pitId, tagId: t).first).length, 2);
-    await db.applyBatchTags(
-      AlbumCell.official,
-      [ids.first],
-      removeTagIds: [t],
-    );
+    await db.applyBatchTags(AlbumCell.official, [ids.first], removeTagIds: [t]);
     expect((await db.watchOfficial(pitId, tagId: t).first).length, 1);
   });
 
@@ -88,9 +84,12 @@ void main() {
   test('坑內搜尋：官方圖冊一段，排在成圖之後、同人圖之前', () async {
     final t = await db.createTag(pitId, '角色1');
     await addTwo([t]);
-    await db.addFanArts(pitId, [
-      NewImage(file: 'f.png'),
-    ], author: 'x', tagIds: [t]);
+    await db.addFanArts(
+      pitId,
+      [NewImage(file: 'f.png')],
+      author: 'x',
+      tagIds: [t],
+    );
     final res = await db.watchPitSearch(pitId, tagId: t).first;
     expect(res.official.total, 1);
     expect(res.official.items.single.imageFile, 'a.png');

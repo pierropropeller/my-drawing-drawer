@@ -16,6 +16,8 @@ import 'package:huakeng/main.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/ui/album/fan_art_list_page.dart';
+import 'package:huakeng/ui/album/image_preview_page.dart';
+import 'package:huakeng/ui/album/official_list_page.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/entity/draft_list_page.dart';
 import 'package:huakeng/ui/entity/finished_list_page.dart';
@@ -321,7 +323,7 @@ void main() {
 
     expect(find.byType(PitSearchPage), findsOneWidget);
     expect(find.text('目標'), findsNothing);
-    final labels = ['全部', '成圖', '同人圖', '推活', '摸魚', '腦洞'];
+    final labels = ['全部', '成圖', '官方圖', '同人圖', '推活', '摸魚', '腦洞'];
     final xs = [
       for (final l in labels)
         tester.getTopLeft(find.widgetWithText(Container, l).first).dx,
@@ -481,10 +483,11 @@ void main() {
     await unmount(tester);
   });
 
-  test('SearchCategory 順序：全部／成圖／同人圖／推活／摸魚／腦洞', () {
+  test('SearchCategory 順序：全部／成圖／官方圖／同人圖／推活／摸魚／腦洞', () {
     expect(SearchCategory.values, [
       SearchCategory.all,
       SearchCategory.piece,
+      SearchCategory.official,
       SearchCategory.fan,
       SearchCategory.oshi,
       SearchCategory.draft,
@@ -586,6 +589,66 @@ void main() {
     expect(extents[3], extents[2]); // 全部載完就不再增加
     expect(find.byKey(const Key('ideas-loading')), findsNothing);
     expect(find.textContaining('批量腦洞'), findsWidgets);
+    await unmount(tester);
+  });
+
+  Future<void> seedOfficial(int n, {List<String> tags = const []}) async {
+    final g = (await db.watchGroups(pitId).first).first;
+    await db.addOfficial(pitId, g.id, [
+      for (var i = 0; i < n; i++)
+        NewImage(file: 'b.png', width: 10, height: 10),
+    ], tagIds: tags);
+  }
+
+  testWidgets('D-089 搜尋結果：官方圖冊在成圖之後、同人圖之前；分頁有「官方圖」；+N 進官方圖冊並帶 tag', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      for (var i = 0; i < 4; i++) {
+        await newPiece('成圖$i', tags: [tagA]);
+      }
+      await seedOfficial(5, tags: [tagA]);
+      await seedOfficial(1); // 沒有 tag 的不算
+      await seedFan(2, tags: [tagA]);
+    });
+    await pumpPage(tester, PitSearchResultPage(pitId: pitId, tagId: tagA));
+    expect(find.text('官方圖 5'), findsOneWidget);
+    double y(String t) => tester.getTopLeft(find.text(t)).dy;
+    final ys = [y('成圖  4'), y('官方圖冊  5'), y('好看同人圖  2')];
+    expect([...ys]..sort(), ys);
+    // 官方圖 5 筆＝+2。
+    expect(find.text('+2'), findsOneWidget);
+    await tester.tap(find.text('官方圖 5'));
+    await settle(tester);
+    expect(find.text('官方圖冊  5'), findsOneWidget);
+    expect(find.text('成圖  4'), findsNothing);
+    await tester.tap(find.text('+2'));
+    await settle(tester);
+    expect(find.byType(OfficialListPage), findsOneWidget);
+    expect(pill('角色1'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('D-089 官方圖預覽點 tag：進官方圖冊篩選列表，× 回完整列表', (tester) async {
+    await tester.runAsync(() async {
+      await seedOfficial(1, tags: [tagA]);
+      await seedOfficial(1);
+    });
+    await pumpPage(tester, OfficialListPage(pitId: pitId));
+    expect(find.byType(Image), findsNWidgets(2));
+    await tester.tap(find.byType(Image).first);
+    await settle(tester);
+    expect(find.byType(ImagePreviewPage), findsOneWidget);
+    expect(find.text('#角色1'), findsOneWidget);
+    await tester.tap(find.text('#角色1'));
+    await settle(tester);
+    expect(find.byType(ImagePreviewPage), findsNothing);
+    expect(pill('角色1'), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('移除篩選'));
+    await settle(tester);
+    expect(pill('角色1'), findsNothing);
+    expect(find.byType(Image), findsNWidgets(2));
     await unmount(tester);
   });
 }
