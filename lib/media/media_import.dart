@@ -60,18 +60,43 @@ Future<NewImage> _withVideoMeta(
 /// - 只處理檔案已在本機的影片；還沒下載完的下次再處理（啟動時與同步下載完成後都會呼叫）。
 /// - 探測失敗的影片略過，不會反覆卡住（下次啟動再試）。
 /// - 回傳成功補上截圖的張數。可重複呼叫、同時只會有一份在跑。
+///
+/// - [shouldTry]：回傳 false 的檔案這次略過（呼叫端用來做失敗後的冷卻）。
+/// - [onResult]：每支嘗試過的影片回報一次（成功時帶 poster 檔名，失敗帶 null）。
 Future<int> generateMissingPosters(
   AppDatabase db,
   ImageStore store, {
   VideoProbe probe = const ChannelVideoProbe(),
+  bool Function(String file)? shouldTry,
+  void Function(String file, String? poster)? onResult,
 }) async {
+  try {
+    await db.repairVideoKinds();
+  } catch (_) {
+    // 修不了不影響其他。
+  }
   final pending = await db.videosWithoutPoster();
   var done = 0;
   for (final file in pending) {
     if (!store.exists(file)) continue;
+    if (shouldTry != null && !shouldTry(file)) continue;
     try {
       final meta = await probe.probe(store.fileOf(file).path);
-      if (meta == null || !meta.hasPoster) continue;
+      if (meta == null) {
+        onResult?.call(file, null);
+        continue;
+      }
+      if (!meta.hasPoster) {
+        // 截圖失敗也先把寬高與長度寫回（避免只剩光禿禿的 ▶），截圖之後再試。
+        await db.setMediaMeta(
+          file,
+          width: meta.width > 0 ? meta.width : null,
+          height: meta.height > 0 ? meta.height : null,
+          durationMs: meta.durationMs,
+        );
+        onResult?.call(file, null);
+        continue;
+      }
       final poster = await store.savePoster(meta.poster!);
       await db.setMediaMeta(
         file,
@@ -81,8 +106,10 @@ Future<int> generateMissingPosters(
         posterFile: poster,
       );
       done++;
+      onResult?.call(file, poster);
     } catch (_) {
       // 單支影片失敗不影響其他。
+      onResult?.call(file, null);
     }
   }
   return done;
@@ -97,12 +124,62 @@ class PosterFixer {
     this.store, {
     this.probe = const ChannelVideoProbe(),
     this.debounce = const Duration(seconds: 2),
+    this.requestDebounce = const Duration(milliseconds: 300),
+    this.retryAfter = const Duration(seconds: 20),
+    this.maxAttempts = 3,
   });
 
   final AppDatabase db;
   final ImageStore store;
   final VideoProbe probe;
   final Duration debounce;
+
+  /// UI 發現某支影片沒有截圖（[request]）後，等多久才跑（合併同時出現的一整頁）。
+  final Duration requestDebounce;
+
+  /// 同一支影片失敗後多久才准再試、最多試幾次（避免壞檔一直卡著 CPU）。
+  final Duration retryAfter;
+  final int maxAttempts;
+
+  final _attempts = <String, int>{};
+  final _lastTry = <String, DateTime>{};
+  final _healed = <String, String>{};
+  final _healedCtl = StreamController<String>.broadcast();
+
+  /// 這次執行期間補好的截圖（影片檔名 → poster 檔名）。
+  /// 已經開著的畫面手上可能還是舊的（沒有 poster）資料，靠它即時換上。
+  Map<String, String> get healed => Map.unmodifiable(_healed);
+
+  /// 補好一支影片的截圖時送出該影片的檔名。
+  Stream<String> get healedStream => _healedCtl.stream;
+
+  bool _mayTry(String file) {
+    final n = _attempts[file] ?? 0;
+    if (n >= maxAttempts) return false;
+    final last = _lastTry[file];
+    if (last != null && DateTime.now().difference(last) < retryAfter) {
+      return false;
+    }
+    return true;
+  }
+
+  void _onResult(String file, String? poster) {
+    _lastTry[file] = DateTime.now();
+    if (poster == null) {
+      _attempts[file] = (_attempts[file] ?? 0) + 1;
+      return;
+    }
+    _attempts.remove(file);
+    _healed[file] = poster;
+    if (!_healedCtl.isClosed) _healedCtl.add(file);
+  }
+
+  /// 畫面上出現了沒有截圖的影片：排一次補截圖（合併、限流；失敗的有冷卻與次數上限）。
+  void request(String file) {
+    if (_disposed || _healed.containsKey(file) || !_mayTry(file)) return;
+    _timer?.cancel();
+    _timer = Timer(requestDebounce, () => unawaited(run()));
+  }
 
   StreamSubscription<String>? _sub;
   Timer? _timer;
@@ -136,7 +213,13 @@ class PosterFixer {
     try {
       do {
         _again = false;
-        total += await generateMissingPosters(db, store, probe: probe);
+        total += await generateMissingPosters(
+          db,
+          store,
+          probe: probe,
+          shouldTry: _mayTry,
+          onResult: _onResult,
+        );
       } while (_again && !_disposed);
     } catch (_) {
       // 補不到就算了，下次再試。
@@ -150,5 +233,6 @@ class PosterFixer {
     _disposed = true;
     _timer?.cancel();
     _sub?.cancel();
+    _healedCtl.close();
   }
 }

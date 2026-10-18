@@ -98,7 +98,12 @@ class MainActivity : FlutterActivity() {
                     } else {
                         // 解碼第一格可能要幾百毫秒，不卡 UI thread。
                         Thread {
-                            val out = probeVideo(path, maxSide)
+                            // 任何情況（含 OOM）都要回覆，否則 Dart 端會一直等。
+                            val out = try {
+                                probeVideo(path, maxSide)
+                            } catch (_: Throwable) {
+                                null
+                            }
                             runOnUiThread { result.success(out) }
                         }.start()
                     }
@@ -221,66 +226,63 @@ class MainActivity : FlutterActivity() {
         return true
     }
 
-    /** 讀影片的寬高（套用旋轉）、長度與第一格 JPEG 截圖；失敗回 null。 */
+    /**
+     * 讀影片的寬高（套用旋轉）、長度與海報 JPEG 截圖（Molly 的規則：影片 ≥1 秒取第 1 秒的畫面，
+     * 不足 1 秒取第一格）。截圖失敗不影響寬高與長度；整支影片讀不開才回 null。
+     */
     private fun probeVideo(path: String, maxSide: Int): Map<String, Any?>? {
         val mmr = MediaMetadataRetriever()
         try {
             mmr.setDataSource(path)
-            var w = mmr.extractMetadata(
-                MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH,
-            )?.toIntOrNull() ?: 0
-            var h = mmr.extractMetadata(
-                MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT,
-            )?.toIntOrNull() ?: 0
-            val rotation = mmr.extractMetadata(
-                MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION,
-            )?.toIntOrNull() ?: 0
+        } catch (_: Throwable) {
+            try {
+                mmr.release()
+            } catch (_: Throwable) {
+            }
+            return null
+        }
+        try {
+            var w = metaInt(mmr, MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+            var h = metaInt(mmr, MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+            val rotation = metaInt(mmr, MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
             if (rotation == 90 || rotation == 270) {
                 val t = w
                 w = h
                 h = t
             }
-            val duration = mmr.extractMetadata(
-                MediaMetadataRetriever.METADATA_KEY_DURATION,
-            )?.toLongOrNull()
-            var bitmap: Bitmap? = null
-            try {
-                bitmap = if (Build.VERSION.SDK_INT >= 27 && w > 0 && h > 0) {
-                    val scale = minOf(1.0, maxSide.toDouble() / maxOf(w, h))
-                    mmr.getScaledFrameAtTime(
-                        0,
-                        MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
-                        maxOf(1, Math.round(w * scale).toInt()),
-                        maxOf(1, Math.round(h * scale).toInt()),
-                    )
-                } else {
-                    mmr.getFrameAtTime(
-                        0,
-                        MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
-                    )
-                }
-            } catch (_: Exception) {
-                // 取不到畫面就只回傳寬高與長度，之後再補截圖。
+            val duration: Long? = try {
+                mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+            } catch (_: Throwable) {
+                null
             }
+
             var poster: ByteArray? = null
-            if (bitmap != null) {
-                if (w == 0 || h == 0) {
-                    w = bitmap.width
-                    h = bitmap.height
+            try {
+                var bitmap = grabPosterFrame(mmr, duration, w, h, maxSide)
+                if (bitmap != null) {
+                    bitmap = fixOrientation(bitmap, rotation, w, h)
+                    if (w == 0 || h == 0) {
+                        w = bitmap.width
+                        h = bitmap.height
+                    }
+                    val longest = maxOf(bitmap.width, bitmap.height)
+                    if (longest > maxSide) {
+                        val s = maxSide.toDouble() / longest
+                        bitmap = Bitmap.createScaledBitmap(
+                            bitmap,
+                            maxOf(1, Math.round(bitmap.width * s).toInt()),
+                            maxOf(1, Math.round(bitmap.height * s).toInt()),
+                            true,
+                        )
+                    }
+                    val bytes = ByteArrayOutputStream()
+                    if (bitmap.compress(Bitmap.CompressFormat.JPEG, 85, bytes)) {
+                        poster = bytes.toByteArray()
+                    }
                 }
-                val longest = maxOf(bitmap.width, bitmap.height)
-                if (longest > maxSide) {
-                    val s = maxSide.toDouble() / longest
-                    bitmap = Bitmap.createScaledBitmap(
-                        bitmap,
-                        maxOf(1, Math.round(bitmap.width * s).toInt()),
-                        maxOf(1, Math.round(bitmap.height * s).toInt()),
-                        true,
-                    )
-                }
-                val bytes = ByteArrayOutputStream()
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, bytes)
-                poster = bytes.toByteArray()
+            } catch (_: Throwable) {
+                // 截圖失敗（含記憶體不足）只丟掉截圖，寬高與長度照回傳，之後由 Dart 端補。
+                poster = null
             }
             return mapOf(
                 "width" to w,
@@ -288,13 +290,95 @@ class MainActivity : FlutterActivity() {
                 "durationMs" to duration?.toInt(),
                 "poster" to poster,
             )
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             return null
         } finally {
             try {
                 mmr.release()
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
             }
+        }
+    }
+
+    private fun metaInt(mmr: MediaMetadataRetriever, key: Int): Int = try {
+        mmr.extractMetadata(key)?.toIntOrNull() ?: 0
+    } catch (_: Throwable) {
+        0
+    }
+
+    /**
+     * 依序嘗試各種取畫面的方法，第一個非 null 的就用：
+     * 1. 第 1 秒（影片不足 1 秒或長度未知時先試 0）：OPTION_CLOSEST、再 OPTION_CLOSEST_SYNC；
+     * 2. API 27+ 的 getScaledFrameAtTime（解碼大圖失敗時用）；
+     * 3. API 28+ 的 getFrameAtIndex(0)；
+     * 4. 不帶參數的 getFrameAtTime()。
+     */
+    private fun grabPosterFrame(
+        mmr: MediaMetadataRetriever,
+        durationMs: Long?,
+        w: Int,
+        h: Int,
+        maxSide: Int,
+    ): Bitmap? {
+        val times: List<Long> =
+            if (durationMs == null || durationMs >= 1000) listOf(1_000_000L, 0L) else listOf(0L)
+        val options = listOf(
+            MediaMetadataRetriever.OPTION_CLOSEST,
+            MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+        )
+        for (t in times) {
+            for (opt in options) {
+                try {
+                    val b = mmr.getFrameAtTime(t, opt)
+                    if (b != null) return b
+                } catch (_: Throwable) {
+                }
+            }
+        }
+        if (Build.VERSION.SDK_INT >= 27) {
+            val scale = if (w > 0 && h > 0) minOf(1.0, maxSide.toDouble() / maxOf(w, h)) else 1.0
+            val sw = if (w > 0) maxOf(1, Math.round(w * scale).toInt()) else maxSide
+            val sh = if (h > 0) maxOf(1, Math.round(h * scale).toInt()) else maxSide
+            for (t in times) {
+                for (opt in options) {
+                    try {
+                        val b = mmr.getScaledFrameAtTime(t, opt, sw, sh)
+                        if (b != null) return b
+                    } catch (_: Throwable) {
+                    }
+                }
+            }
+        }
+        if (Build.VERSION.SDK_INT >= 28) {
+            try {
+                val b = mmr.getFrameAtIndex(0)
+                if (b != null) return b
+            } catch (_: Throwable) {
+            }
+        }
+        try {
+            return mmr.frameAtTime
+        } catch (_: Throwable) {
+        }
+        return null
+    }
+
+    /**
+     * 多數機型 getFrameAtTime 已經把旋轉套好；少數機型（影片帶 90/270 度旋轉旗標）沒有，
+     * 這時畫面的方向會跟「已旋轉的寬高」相反，補轉回來。
+     */
+    private fun fixOrientation(bitmap: Bitmap, rotation: Int, w: Int, h: Int): Bitmap {
+        if (rotation != 90 && rotation != 270) return bitmap
+        if (w <= 0 || h <= 0 || w == h) return bitmap
+        val expectPortrait = h > w
+        val isPortrait = bitmap.height > bitmap.width
+        if (expectPortrait == isPortrait) return bitmap
+        return try {
+            val m = android.graphics.Matrix()
+            m.postRotate(rotation.toFloat())
+            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, m, true)
+        } catch (_: Throwable) {
+            bitmap
         }
     }
 

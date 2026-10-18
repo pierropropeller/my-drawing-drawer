@@ -13,6 +13,7 @@ import 'media_badges.dart';
 import 'media_icons.dart';
 import 'media_source.dart';
 import 'nav_bar_hidden.dart';
+import 'poster_requester.dart';
 import 'svg_icon.dart';
 
 // ───────────────────────── 播放器抽象 ─────────────────────────
@@ -693,8 +694,13 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (widget.poster != null)
-            StoredImage(widget.poster!, fit: BoxFit.contain, cacheWidth: 1000),
+          LivePoster(
+            file: widget.file,
+            poster: widget.poster,
+            builder: (context, poster) => poster == null || poster.isEmpty
+                ? const SizedBox.shrink()
+                : StoredImage(poster, fit: BoxFit.contain, cacheWidth: 1000),
+          ),
           if (_loading)
             const Center(
               child: SizedBox(

@@ -135,24 +135,37 @@ import UIKit
       durationMs = Int((seconds * 1000).rounded())
     }
 
+    // 海報規則（Molly）：影片 ≥1 秒取第 1 秒的畫面，不足 1 秒取第一格。
     var poster: Any = NSNull()
     let generator = AVAssetImageGenerator(asset: asset)
     generator.appliesPreferredTrackTransform = true
     generator.maximumSize = CGSize(width: maxSide, height: maxSide)
-    // 接受最近的關鍵格，與 Android 的 OPTION_CLOSEST_SYNC 一致。
-    generator.requestedTimeToleranceBefore = .positiveInfinity
-    generator.requestedTimeToleranceAfter = .positiveInfinity
-    do {
-      let cg = try generator.copyCGImage(at: .zero, actualTime: nil)
+    let wantsOneSecond = !(seconds.isFinite) || seconds >= 1.0
+    var times: [CMTime] = []
+    if wantsOneSecond { times.append(CMTime(seconds: 1.0, preferredTimescale: 600)) }
+    times.append(.zero)
+    var cgImage: CGImage?
+    // 先要精確的畫面，不行再接受附近的關鍵格。
+    for exact in [true, false] {
+      generator.requestedTimeToleranceBefore = exact ? .zero : .positiveInfinity
+      generator.requestedTimeToleranceAfter = exact ? .zero : .positiveInfinity
+      for t in times {
+        if let cg = try? generator.copyCGImage(at: t, actualTime: nil) {
+          cgImage = cg
+          break
+        }
+      }
+      if cgImage != nil { break }
+    }
+    if let cg = cgImage {
       if width == 0 || height == 0 {
         width = cg.width
         height = cg.height
       }
+      // 取不到畫面就只回傳寬高與長度，之後再補截圖。
       if let data = UIImage(cgImage: cg).jpegData(compressionQuality: 0.85) {
         poster = FlutterStandardTypedData(bytes: data)
       }
-    } catch {
-      // 取不到畫面就只回傳寬高與長度，之後再補截圖。
     }
 
     // 連寬高都讀不到、也沒有截圖＝不是可用的影片。

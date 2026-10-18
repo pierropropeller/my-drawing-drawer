@@ -40,6 +40,7 @@ import '../album/album_image.dart';
 import 'app_icons.dart';
 import 'media_badges.dart';
 import 'media_source.dart';
+import 'poster_requester.dart';
 import 'svg_icon.dart';
 import 'video_player_view.dart';
 
@@ -90,6 +91,21 @@ class StaticMediaImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (media.isVideo) {
+      // 影片沒有 poster 時請背景補，補好會自己換上（見 [LivePoster]）。
+      return LivePoster(
+        file: media.file,
+        poster: media.poster,
+        builder: (context, poster) => poster == null || poster.isEmpty
+            ? MediaPlaceholder(color: placeholderColor)
+            : StoredImage(
+                poster,
+                cacheWidth: cacheWidth,
+                fit: fit,
+                placeholderColor: placeholderColor,
+              ),
+      );
+    }
     final f = media.staticFile;
     if (f == null) return MediaPlaceholder(color: placeholderColor);
     return StoredImage(

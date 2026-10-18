@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -46,6 +47,8 @@ void main() {
             (ref, file) => ImageDownloadStatus.present,
           ),
           imageStoreProvider.overrideWith((ref) async => store),
+          posterRequestProvider.overrideWithValue((_) {}),
+          healedPosterProvider.overrideWith((ref, f) => Stream.value(null)),
           ...overrides,
         ],
         child: MaterialApp(
@@ -298,6 +301,8 @@ void main() {
             imageStoreProvider.overrideWith(
               (ref) async => ImageStore(images()),
             ),
+            posterRequestProvider.overrideWithValue((_) {}),
+            healedPosterProvider.overrideWith((ref, f) => Stream.value(null)),
           ],
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,

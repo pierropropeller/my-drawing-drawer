@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import 'database.dart';
+import 'media.dart';
 
 /// 媒體（D-080）：匯入後補上探測結果、找出還沒有截圖的影片。
 extension MediaQueries on AppDatabase {
@@ -115,45 +116,76 @@ extension MediaQueries on AppDatabase {
     });
   }
 
-  /// 還沒有截圖的影片檔名（未刪除的列；去重）。App 啟動或匯入後可以用它補產生截圖，
+  /// 修正舊資料：D-080 之前加進來的影片，資料列的 `kind` 還是 `image`（遷移只認 .gif），
+  /// 於是 UI 靠副檔名顯示 ▶ 卻沒有 poster／長度，補截圖也找不到它。依副檔名把它們改成 `video`。
+  /// 不動 updatedAt（每台裝置各自修，不需要同步）。回傳修正的列數。
+  Future<int> repairVideoKinds() async {
+    var n = 0;
+    for (final t in const [
+      'official_images',
+      'fan_arts',
+      'junk_images',
+      'material_images',
+      'entity_images',
+    ]) {
+      for (final ext in videoExtensions) {
+        n += await customUpdate(
+          "UPDATE $t SET kind = 'video' WHERE kind = 'image' "
+          "AND lower(image_file) LIKE ?",
+          variables: [Variable.withString('%.$ext')],
+          updates: {
+            if (t == 'official_images') officialImages,
+            if (t == 'fan_arts') fanArts,
+            if (t == 'junk_images') junkImages,
+            if (t == 'material_images') materialImages,
+            if (t == 'entity_images') entityImages,
+          },
+        );
+      }
+    }
+    return n;
+  }
+
+  /// 還沒有截圖或長度的影片檔名（未刪除的列；去重）。App 啟動或匯入後可以用它補產生截圖，
   /// 再用 [setMediaMeta] 寫回。
   Future<List<String>> videosWithoutPoster() async {
     final out = <String>{};
-    bool missing(String? poster) => poster == null || poster.isEmpty;
+    bool missing(String? poster, int? durationMs) =>
+        poster == null || poster.isEmpty || durationMs == null;
     for (final r
         in await (select(officialImages)..where(
               (i) => i.kind.equalsValue(MediaKind.video) & i.deletedAt.isNull(),
             ))
             .get()) {
-      if (missing(r.posterFile)) out.add(r.imageFile);
+      if (missing(r.posterFile, r.durationMs)) out.add(r.imageFile);
     }
     for (final r
         in await (select(fanArts)..where(
               (i) => i.kind.equalsValue(MediaKind.video) & i.deletedAt.isNull(),
             ))
             .get()) {
-      if (missing(r.posterFile)) out.add(r.imageFile);
+      if (missing(r.posterFile, r.durationMs)) out.add(r.imageFile);
     }
     for (final r
         in await (select(junkImages)..where(
               (i) => i.kind.equalsValue(MediaKind.video) & i.deletedAt.isNull(),
             ))
             .get()) {
-      if (missing(r.posterFile)) out.add(r.imageFile);
+      if (missing(r.posterFile, r.durationMs)) out.add(r.imageFile);
     }
     for (final r
         in await (select(materialImages)..where(
               (i) => i.kind.equalsValue(MediaKind.video) & i.deletedAt.isNull(),
             ))
             .get()) {
-      if (missing(r.posterFile)) out.add(r.imageFile);
+      if (missing(r.posterFile, r.durationMs)) out.add(r.imageFile);
     }
     for (final r
         in await (select(entityImages)..where(
               (i) => i.kind.equalsValue(MediaKind.video) & i.deletedAt.isNull(),
             ))
             .get()) {
-      if (missing(r.posterFile)) out.add(r.imageFile);
+      if (missing(r.posterFile, r.durationMs)) out.add(r.imageFile);
     }
     return out.toList();
   }

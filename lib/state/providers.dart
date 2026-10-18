@@ -125,6 +125,29 @@ final posterFixerProvider = Provider<PosterFixer?>((ref) {
   return fixer;
 });
 
+/// UI 發現沒有截圖的影片時呼叫（列表格子、詳情頁）：請背景補。限流與重試上限在 [PosterFixer]。
+/// 測試可 `overrideWithValue((f) {})` 換掉。
+final posterRequestProvider = Provider<void Function(String file)>((ref) {
+  return (file) => ref.read(posterFixerProvider)?.request(file);
+});
+
+/// 某支影片本次執行期間補好的截圖檔名（沒有＝null）。已經開著的畫面手上的資料可能是補好之前的，
+/// 用它即時換上，不必重開。
+final healedPosterProvider = StreamProvider.family<String?, String>((
+  ref,
+  file,
+) async* {
+  final fixer = ref.watch(posterFixerProvider);
+  if (fixer == null) {
+    yield null;
+    return;
+  }
+  yield fixer.healed[file];
+  await for (final f in fixer.healedStream) {
+    if (f == file) yield fixer.healed[file];
+  }
+});
+
 /// 分組：key＝(坑 id, 種類)，種類為 `official`（官方圖冊）、`fan`（好看同人圖）或 `oshi`（推活）。
 final groupsProvider =
     StreamProvider.family<List<OfficialGroup>, (String, String)>(
