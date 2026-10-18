@@ -445,12 +445,12 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('位置是 4 欄 7 格：官方圖冊、好看同人圖、推活、雜物／摸魚、腦洞、成圖', (tester) async {
+  testWidgets('位置是 4 欄 7 格：官方圖冊、好看同人圖、推活、雜物／腦洞、摸魚、成圖（D-091）', (tester) async {
     await db.updatePit(pitA, name: '坑A', archived: false, junkEnabled: true);
     await pumpApp(tester, FakeShareChannel(initial: sharedFiles(1)));
     Offset c(String text) => tester.getCenter(inSheet(find.text(text)));
     final first = [c('官方圖冊'), c('好看同人圖'), c('推活'), c('雜物')];
-    final second = [c('摸魚'), c('腦洞'), c('成圖')];
+    final second = [c('腦洞'), c('摸魚'), c('成圖')];
     // 第一列 4 格由左到右，同一水平線。
     for (var i = 1; i < 4; i++) {
       expect(first[i].dx, greaterThan(first[i - 1].dx));
@@ -462,11 +462,11 @@ void main() {
       expect(second[i].dy, closeTo(second[0].dy, 2));
     }
     expect(second[0].dy, greaterThan(first[0].dy));
-    // 坑沒開雜物時只有 6 格，摸魚掉到第二列第一欄之前（推活後直接是摸魚）。
+    // 坑沒開雜物時只有 6 格，腦洞接在推活後面（第一列第四欄）。
     await tapIn(tester, '坑B');
     expect(inSheet(find.text('雜物')), findsNothing);
-    expect(c('摸魚').dx, closeTo(first[3].dx, 0.5));
-    expect(c('摸魚').dy, closeTo(c('官方圖冊').dy, 2));
+    expect(c('腦洞').dx, closeTo(first[3].dx, 0.5));
+    expect(c('腦洞').dy, closeTo(c('官方圖冊').dy, 2));
     await unmount(tester);
   });
 

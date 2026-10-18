@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../data/entity_queries.dart';
+import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../entity/image_gallery_page.dart';
 import 'app_icons.dart';
+import 'media_mini.dart';
 import 'media_widgets.dart';
 import 'svg_icon.dart';
 
@@ -177,6 +179,94 @@ class _DetailCarouselState extends State<DetailCarousel> {
           ),
         );
       },
+    );
+  }
+}
+
+/// 詳情頁的大圖區（D-073／D-092，摸魚與腦洞詳情共用）：[DetailCarousel]，框比例依最瘦長那張。多張時下方縮圖列（目前這張描主色框）。
+class DetailImageStage extends StatefulWidget {
+  const DetailImageStage({
+    super.key,
+    required this.images,
+    this.borderRadius = 0,
+    this.sidePadding = 20,
+    this.maxHeightFactor = 0.62,
+  });
+  final List<ImageRef> images;
+  final double borderRadius;
+
+  /// 縮圖列左右留白。
+  final double sidePadding;
+  final double maxHeightFactor;
+
+  @override
+  State<DetailImageStage> createState() => _DetailImageStageState();
+}
+
+class _DetailImageStageState extends State<DetailImageStage> {
+  final _controller = PageController();
+  int _index = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final images = widget.images;
+    final multi = images.length > 1;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DetailCarousel(
+          images: images,
+          controller: _controller,
+          onPageChanged: (i) => setState(() => _index = i),
+          emptyAspect: 3 / 4,
+          borderRadius: widget.borderRadius,
+          maxHeightFactor: widget.maxHeightFactor,
+        ),
+        if (multi)
+          SizedBox(
+            height: 68,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.fromLTRB(
+                widget.sidePadding,
+                12,
+                widget.sidePadding,
+                0,
+              ),
+              itemCount: images.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (_, i) => Semantics(
+                button: true,
+                label: context.l10n.draftDetailImageLabel(i + 1),
+                child: GestureDetector(
+                  onTap: () => _controller.jumpToPage(i),
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: i == _index
+                          ? Border.all(color: t.accent, width: 2)
+                          : null,
+                    ),
+                    child: MiniMediaThumb(
+                      MediaSource.fromImageRef(images[i]),
+                      cacheWidth: 200,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

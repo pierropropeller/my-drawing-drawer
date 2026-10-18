@@ -11,6 +11,7 @@ import '../album/ipadlists_icons.dart';
 import '../album/wide_layout.dart';
 import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
+import '../common/detail_carousel.dart';
 import '../common/media_mini.dart';
 import '../common/media_widgets.dart';
 import '../common/svg_icon.dart';
@@ -101,6 +102,16 @@ class IdeaDetailPane extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(36, 26, 36, 32),
       children: [
+        // 有圖時圖片放最上面（D-092，同摸魚詳情版型）。
+        if (v.images.isNotEmpty) ...[
+          DetailImageStage(
+            images: v.images,
+            borderRadius: 14,
+            sidePadding: 0,
+            maxHeightFactor: 0.5,
+          ),
+          const SizedBox(height: 20),
+        ],
         Row(
           children: [
             Expanded(
@@ -142,35 +153,6 @@ class IdeaDetailPane extends ConsumerWidget {
                 color: t.ink.withValues(alpha: 0.82),
                 fontSize: 16,
                 height: 1.85,
-              ),
-            ),
-          ),
-        ],
-        if (v.images.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 150,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: v.images.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (_, i) => GestureDetector(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) =>
-                        ImageGalleryPage(images: v.images, initialIndex: i),
-                  ),
-                ),
-                child: SizedBox(
-                  width: 150,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: MediaThumb(
-                      MediaSource.fromImageRef(v.images[i]),
-                      cacheWidth: 500,
-                    ),
-                  ),
-                ),
               ),
             ),
           ),
