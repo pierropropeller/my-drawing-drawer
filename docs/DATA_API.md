@@ -822,3 +822,19 @@ Future<Map<PitSectionKey, int>> sectionContentCounts(String pitId);          // 
 ```
 單位：official／fan／junk＝圖片張數；idea＝腦洞數；draft＝摸魚數；piece＝成圖數；oshi＝推活筆數。
 確認框：「格子入面的 N 張圖（或 N 個腦洞／摸魚…）會一併刪除，無法復原」。
+
+## 批次 15：官方圖冊 tag（D-089，不改 schema，維持 v11）
+
+官方圖的 tag 一直存在 `TagLinks`（`TagTarget.official`）、同步文件有 `tagIds`（舊文件沒有該欄＝不動本機 tag），所以**沒有遷移**。本批補齊讀取、編輯、篩選與搜尋：
+
+```dart
+Stream<List<OfficialImage>> watchOfficial(String pitId, {String? groupId, String? tagId});   // tagId：只列有該 tag 的
+Future<void> updateOfficial(String id, {required String groupId, required List<String> tagIds}); // 編輯一次存分組＋tag，更新 updatedAt
+// 既有：addOfficial(..., tagIds:)、setOfficialTags、watchTagIds(TagTarget.official, id)、
+//       tagCoverage/applyBatchTags(AlbumCell.official, ...)（OfficialSelect 的批量 tag）
+```
+- Provider：`officialFilteredProvider((pitId, groupId?, tagId?))`。tag 名稱仍用 `tagIdsProvider((TagTarget.official, id))` + `tagsProvider(pitId)`。
+- 搜尋：`PitSearchSection.official`、`PitSearchResult.official`（`PitSearchGroup<OfficialImage>`，缺省＝空）。分段順序：成圖 → **官方圖冊** → 好看同人圖 → 推活 → 草稿 → 腦洞。
+  比對欄位＝分組名稱＋tag 名稱；`tagId` 要求有該 tag；已刪除、隱藏（被移走）的不算。`total`、`counts`、`visibleSections` 都含官方圖。
+- 常用 tag 計數（`watchTagUsage`）本來就含官方圖（只算未刪除、未隱藏）。
+- 測試：`test/batch15_test.dart`。

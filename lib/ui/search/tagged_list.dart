@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/tokens.dart';
 import '../../l10n/l10n.dart';
 import '../album/fan_art_list_page.dart';
+import '../album/official_list_page.dart';
 import '../common/svg_icon.dart';
 import '../entity/draft_list_page.dart';
 import '../entity/finished_list_page.dart';
@@ -12,7 +13,7 @@ import 'pit_search_page.dart';
 import 'search_icons.dart';
 
 /// 有 tag 的列表（D-043；推活見 D-065）。
-enum TaggedKind { fan, idea, draft, piece, oshi }
+enum TaggedKind { official, fan, idea, draft, piece, oshi }
 
 /// 搜尋流程（PitSearch、結果頁、從結果開啟的詳情）的 route 名稱。
 /// 這些頁面都隱藏導覽列；離開搜尋去列表時要整串關掉，列表的導覽列才會回來。
@@ -21,6 +22,7 @@ const kSearchFlowRoute = 'pit-search-flow';
 /// 該格的列表頁；[tagId] 不為 null 時是 tag 篩選狀態。
 Widget taggedListPage(TaggedKind kind, String pitId, String? tagId) =>
     switch (kind) {
+      TaggedKind.official => OfficialListPage(pitId: pitId, tagId: tagId),
       TaggedKind.fan => FanArtListPage(pitId: pitId, tagId: tagId),
       TaggedKind.idea => IdeaListPage(pitId: pitId, tagId: tagId),
       TaggedKind.draft => DraftListPage(pitId: pitId, tagId: tagId),

@@ -170,7 +170,12 @@ extension AlbumQueries on AppDatabase {
   }
 
   // ---- 官方圖 ----
-  Stream<List<OfficialImage>> watchOfficial(String pitId, {String? groupId}) {
+  /// [tagId]：只列出有這個 tag 的官方圖（D-089，點 tag 回到官方圖冊的篩選；同 [watchFanArts]）。
+  Stream<List<OfficialImage>> watchOfficial(
+    String pitId, {
+    String? groupId,
+    String? tagId,
+  }) {
     return (select(officialImages)
           ..where(
             (i) =>
@@ -179,7 +184,19 @@ extension AlbumQueries on AppDatabase {
                 i.hidden.equals(false) &
                 (groupId == null
                     ? const Constant(true)
-                    : i.groupId.equals(groupId)),
+                    : i.groupId.equals(groupId)) &
+                (tagId == null
+                    ? const Constant(true)
+                    : i.id.isInQuery(
+                        selectOnly(tagLinks)
+                          ..addColumns([tagLinks.targetId])
+                          ..where(
+                            tagLinks.tagId.equals(tagId) &
+                                tagLinks.targetType.equalsValue(
+                                  TagTarget.official,
+                                ),
+                          ),
+                      )),
           )
           ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
         .watch();
@@ -210,6 +227,23 @@ extension AlbumQueries on AppDatabase {
       await (update(officialImages)..where((i) => i.id.equals(id))).write(
         OfficialImagesCompanion(updatedAt: Value(DateTime.now())),
       );
+    });
+  }
+
+  /// 編輯一張官方圖（D-089）：分組與 tag 一次存；tag 隨官方圖文件同步，所以一併更新 updatedAt。
+  Future<void> updateOfficial(
+    String id, {
+    required String groupId,
+    required List<String> tagIds,
+  }) {
+    return transaction(() async {
+      await (update(officialImages)..where((i) => i.id.equals(id))).write(
+        OfficialImagesCompanion(
+          groupId: Value(groupId),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+      await setTags(TagTarget.official, id, tagIds);
     });
   }
 

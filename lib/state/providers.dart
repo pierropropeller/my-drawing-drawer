@@ -203,6 +203,14 @@ final officialProvider =
           ref.watch(databaseProvider).watchOfficial(key.$1, groupId: key.$2),
     );
 
+/// 官方圖冊，可按分組、tag 篩選（D-089）。key＝(坑 id, 分組 id, tag id)。
+final officialFilteredProvider =
+    StreamProvider.family<List<OfficialImage>, (String, String?, String?)>(
+      (ref, key) => ref
+          .watch(databaseProvider)
+          .watchOfficial(key.$1, groupId: key.$2, tagId: key.$3),
+    );
+
 final fanArtsProvider = StreamProvider.family<List<FanArt>, (String, String?)>(
   (ref, key) =>
       ref.watch(databaseProvider).watchFanArts(key.$1, groupId: key.$2),

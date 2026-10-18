@@ -3,14 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gal/gal.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../data/album_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import 'album_image.dart';
-import 'group_manage_page.dart';
 
 /// 提示條（States 設計稿）：深色底，[success]＝前面加綠色勾，[offline]＝前面加黃色離線雲。
 void showSnack(
@@ -150,59 +148,4 @@ Future<void> shareImage(WidgetRef ref, AlbumImage image) async {
   await SharePlus.instance.share(
     ShareParams(files: [XFile(store.fileOf(image.file).path)]),
   );
-}
-
-/// 官方圖「編輯」＝更換分組（官方圖只有分組一個欄位）：彈出分組清單，選了就更新。
-/// 預覽頁與平板的預覽面板共用。回傳是否真的換了分組。
-Future<bool> changeOfficialGroup(
-  BuildContext context,
-  WidgetRef ref, {
-  required String pitId,
-  required String imageId,
-}) async {
-  final db = ref.read(databaseProvider);
-  final groups = await db.watchGroups(pitId).first;
-  if (!context.mounted) return false;
-  final picked = await showModalBottomSheet<String>(
-    context: context,
-    builder: (ctx) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    ctx.l10n.albumChangeGroup,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => GroupManagePage(pitId: pitId),
-                      ),
-                    );
-                  },
-                  child: Text(ctx.l10n.commonManage),
-                ),
-              ],
-            ),
-          ),
-          for (final g in groups)
-            ListTile(
-              title: Text(g.name),
-              onTap: () => Navigator.pop(ctx, g.id),
-            ),
-        ],
-      ),
-    ),
-  );
-  if (picked == null) return false;
-  await db.setOfficialGroup(imageId, picked);
-  return true;
 }

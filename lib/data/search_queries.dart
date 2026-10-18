@@ -5,16 +5,16 @@ import 'entity_queries.dart';
 import 'oshi_queries.dart';
 
 /// 搜尋結果的段（也是分頁 chips）；列舉順序＝顯示順序（D-051、D-065）。
-enum PitSearchSection { pieces, fanArts, oshi, drafts, ideas }
+enum PitSearchSection { pieces, official, fanArts, oshi, drafts, ideas }
 
-/// 搜尋結果的一段（成圖／好看同人圖／推活／草稿／腦洞）。
+/// 搜尋結果的一段（成圖／官方圖冊／好看同人圖／推活／草稿／腦洞）。
 class PitSearchGroup<T> {
   const PitSearchGroup(this.total, this.items);
 
   /// 符合條件的總數（段頭的數字、「+N」的 N＝total − items.length）。
   final int total;
 
-  /// 圖片類（成圖、同人圖、草稿）只含前幾筆（預設 3）；腦洞含全部。
+  /// 圖片類（成圖、官方圖、同人圖、草稿）只含前幾筆（預設 3）；腦洞含全部。
   final List<T> items;
 
   int get more => total - items.length;
@@ -23,10 +23,11 @@ class PitSearchGroup<T> {
   static const empty = PitSearchGroup<Never>(0, []);
 }
 
-/// 坑內搜尋結果；分段順序：成圖 → 好看同人圖 → 推活 → 草稿 → 腦洞（D-051、D-065）。
+/// 坑內搜尋結果；分段順序：成圖 → 官方圖冊 → 好看同人圖 → 推活 → 草稿 → 腦洞（D-051、D-065、D-089）。
 class PitSearchResult {
   const PitSearchResult({
     required this.pieces,
+    this.official = PitSearchGroup.empty,
     required this.fanArts,
     this.oshi = PitSearchGroup.empty,
     required this.drafts,
@@ -34,6 +35,7 @@ class PitSearchResult {
   });
 
   final PitSearchGroup<PieceView> pieces;
+  final PitSearchGroup<OfficialImage> official;
   final PitSearchGroup<FanArt> fanArts;
   final PitSearchGroup<OshiRecordView> oshi;
   final PitSearchGroup<DraftView> drafts;
@@ -41,12 +43,18 @@ class PitSearchResult {
 
   /// 分頁 chips「全部」的數字。
   int get total =>
-      pieces.total + fanArts.total + oshi.total + drafts.total + ideas.total;
+      pieces.total +
+      official.total +
+      fanArts.total +
+      oshi.total +
+      drafts.total +
+      ideas.total;
   bool get isEmpty => total == 0;
 
   /// 各段的實際筆數（D-061：少於 3 張時照實際張數放，不補格、不顯示「+N」）。
   Map<PitSearchSection, int> get counts => {
     PitSearchSection.pieces: pieces.total,
+    PitSearchSection.official: official.total,
     PitSearchSection.fanArts: fanArts.total,
     PitSearchSection.oshi: oshi.total,
     PitSearchSection.drafts: drafts.total,
@@ -61,6 +69,7 @@ class PitSearchResult {
 
   static const empty = PitSearchResult(
     pieces: PitSearchGroup.empty,
+    official: PitSearchGroup.empty,
     fanArts: PitSearchGroup.empty,
     oshi: PitSearchGroup.empty,
     drafts: PitSearchGroup.empty,
@@ -94,6 +103,7 @@ extension SearchQueries on AppDatabase {
         drafts,
         ideas,
         fanArts,
+        officialImages,
         oshiRecords,
         officialGroups,
         entityImages,
@@ -170,8 +180,45 @@ extension SearchQueries on AppDatabase {
           }
         }
 
+        // 官方圖（D-089）：比對分組名稱與 tag 名稱。
+        final officialRows =
+            await (select(officialImages)
+                  ..where(
+                    (f) =>
+                        f.pitId.equals(pitId) &
+                        f.deletedAt.isNull() &
+                        f.hidden.equals(false),
+                  )
+                  ..orderBy([(f) => OrderingTerm.desc(f.updatedAt)]))
+                .get();
+        final groupNames = {
+          for (final g in await (select(
+            officialGroups,
+          )..where((g) => g.pitId.equals(pitId))).get())
+            g.id: g.name,
+        };
+        final officialHits = <OfficialImage>[];
+        for (final o in officialRows) {
+          final tagRows =
+              await (select(tags).join([
+                    innerJoin(tagLinks, tagLinks.tagId.equalsExp(tags.id)),
+                  ])..where(
+                    tagLinks.targetType.equalsValue(TagTarget.official) &
+                        tagLinks.targetId.equals(o.id) &
+                        tags.deletedAt.isNull(),
+                  ))
+                  .get();
+          if (match(
+            [groupNames[o.groupId]],
+            [for (final r in tagRows) r.readTable(tags)],
+          )) {
+            officialHits.add(o);
+          }
+        }
+
         return PitSearchResult(
           pieces: group(pieceHits, limited: true),
+          official: group(officialHits, limited: true),
           fanArts: group(fanHits, limited: true),
           oshi: group(oshiHits, limited: true),
           drafts: group(draftHits, limited: true),

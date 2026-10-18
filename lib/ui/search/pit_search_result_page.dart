@@ -8,6 +8,7 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../album/fan_art_preview_page.dart';
+import '../album/image_preview_page.dart';
 import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
@@ -21,7 +22,7 @@ import 'tag_filter_bar.dart';
 import 'tagged_list.dart';
 
 /// 坑內搜尋結果（PitSearchResult，D-051）：
-/// 分段順序 成圖 → 好看同人圖 → 推活 → 草稿 → 腦洞（D-065）；圖片類一排 3 格、第 3 格 +N，
+/// 分段順序 成圖 → 官方圖冊 → 好看同人圖 → 推活 → 草稿 → 腦洞（D-065）；圖片類一排 3 格、第 3 格 +N，
 /// 少於 3 筆就照實際張數放、各自圓角（D-061）；筆數 0 的分段與分頁不顯示。
 /// 腦洞直向全列、往下捲動分批載入。設計稿沒有畫 `<nav>`，隱藏底部導覽列。
 class PitSearchResultPage extends ConsumerStatefulWidget {
@@ -114,6 +115,8 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
     final tagName = tags.where((e) => e.id == _tagId).firstOrNull?.name ?? '';
     final groups =
         ref.watch(groupsProvider((widget.pitId, 'fan'))).value ?? const [];
+    final officialGroups =
+        ref.watch(groupsProvider((widget.pitId, 'official'))).value ?? const [];
     final res =
         ref
             .watch(pitSearchProvider((widget.pitId, _text.trim(), _tagId)))
@@ -123,6 +126,7 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
     final counts = {
       SearchCategory.all: res.total,
       SearchCategory.piece: res.pieces.total,
+      SearchCategory.official: res.official.total,
       SearchCategory.fan: res.fanArts.total,
       SearchCategory.oshi: res.oshi.total,
       SearchCategory.draft: res.drafts.total,
@@ -152,6 +156,42 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
             ),
           ),
           onMore: () => _more(TaggedKind.piece),
+        ),
+      );
+    }
+    if (show(SearchCategory.official) && !res.official.isEmpty) {
+      final names = {for (final g in officialGroups) g.id: g.name};
+      final items = [
+        for (final o in res.official.items)
+          AlbumImage(
+            id: o.id,
+            file: o.imageFile,
+            width: o.width,
+            height: o.height,
+            kind: AlbumKind.official,
+            groupName: names[o.groupId],
+            groupId: o.groupId,
+            createdAt: o.createdAt,
+            mediaKind: o.kind,
+            durationMs: o.durationMs,
+            posterFile: o.posterFile,
+          ),
+      ];
+      section(
+        _ImageSection(
+          title: context.l10n.pitsOfficial,
+          total: res.official.total,
+          media: [for (final a in items) a.media],
+          more: res.official.more,
+          onTap: (i) => _push(
+            ImagePreviewPage(
+              pitId: widget.pitId,
+              images: items,
+              initialIndex: i,
+              onTagTap: (id) => _tagTap(TaggedKind.official, id),
+            ),
+          ),
+          onMore: () => _more(TaggedKind.official),
         ),
       );
     }
