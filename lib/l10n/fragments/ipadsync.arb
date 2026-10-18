@@ -1,0 +1,10 @@
+{
+  "ipadsyncNetWifi": "Wi-Fi",
+  "ipadsyncNetCellular": "行動網絡",
+  "ipadsyncNetEthernet": "有線網絡",
+  "ipadsyncSettings": "同步設定",
+  "ipadsyncPitSyncingMeta": "同步中…",
+  "ipadsyncConnectHint": "連結後，iPad 與手機會自動同步",
+  "ipadsyncMinutes": "{minutes} 分鐘",
+  "@ipadsyncMinutes": {"placeholders": {"minutes": {"type": "int"}}}
+}

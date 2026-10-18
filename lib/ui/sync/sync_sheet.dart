@@ -7,6 +7,7 @@ import '../../data/image_location.dart';
 import '../../data/media.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
+import '../../sync/network_kind.dart';
 import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -58,14 +59,24 @@ class _SyncSheetState extends ConsumerState<SyncSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final t = context.tokens;
-    final l = context.l10n;
     ref.listen(syncControllerProvider.select((s) => s.isTransferring), (
       _,
       transferring,
     ) {
       if (!transferring) _close();
     });
+    return const SyncSheetBody();
+  }
+}
+
+/// bottom sheet 的內容（把手、標頭、清單）；關閉邏輯由外層負責。
+class SyncSheetBody extends StatelessWidget {
+  const SyncSheetBody({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final l = context.l10n;
     return Semantics(
       scopesRoute: true,
       namesRoute: true,
@@ -89,8 +100,8 @@ class _SyncSheetState extends ConsumerState<SyncSheet> {
                   ),
                 ),
               ),
-              const _Header(),
-              const _Rows(),
+              const SyncProgressHeader(),
+              const SyncProgressRows(),
             ],
           ),
         ),
@@ -100,8 +111,12 @@ class _SyncSheetState extends ConsumerState<SyncSheet> {
 }
 
 /// 標題、已完成 / 總數、總進度條、上傳與下載張數。
-class _Header extends ConsumerWidget {
-  const _Header();
+///
+/// [popover]＝iPad 頭像 popover（SyncPopover 稿）：標題 19、進度條上下留白較多，
+/// 張數列右側多一個連線種類（Wi-Fi）。
+class SyncProgressHeader extends ConsumerWidget {
+  const SyncProgressHeader({super.key, this.popover = false});
+  final bool popover;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -125,8 +140,10 @@ class _Header extends ConsumerWidget {
           children: [
             Text(
               l.pitsSyncing,
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: popover ? 19 : 18,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             Text(
               l.syncuiProgress(done, total),
@@ -139,7 +156,7 @@ class _Header extends ConsumerWidget {
           ],
         ),
         Padding(
-          padding: const EdgeInsets.only(top: 12, bottom: 6),
+          padding: EdgeInsets.only(top: 12, bottom: popover ? 8 : 6),
           child: _Bar(
             height: 6,
             fraction: total == 0 ? 0 : done / total,
@@ -148,7 +165,7 @@ class _Header extends ConsumerWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(bottom: 6),
+          padding: EdgeInsets.only(bottom: popover ? 4 : 6),
           child: Row(
             children: [
               Text(
@@ -160,6 +177,7 @@ class _Header extends ConsumerWidget {
                 l.syncuiDownloadCount(down),
                 style: TextStyle(fontSize: 13, color: t.text2),
               ),
+              if (popover) ...[const Spacer(), const _NetworkLabel()],
             ],
           ),
         ),
@@ -168,9 +186,35 @@ class _Header extends ConsumerWidget {
   }
 }
 
+/// 目前連線種類（只有 Wi-Fi／行動網絡／有線會顯示，其餘不畫）。
+class _NetworkLabel extends ConsumerWidget {
+  const _NetworkLabel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final kind = ref.watch(networkKindProvider).value;
+    final label = switch (kind) {
+      NetworkKind.wifi => l.ipadsyncNetWifi,
+      NetworkKind.cellular => l.ipadsyncNetCellular,
+      NetworkKind.ethernet => l.ipadsyncNetEthernet,
+      _ => null,
+    };
+    if (label == null) return const SizedBox.shrink();
+    return Text(
+      label,
+      style: TextStyle(fontSize: 13, color: context.tokens.text3),
+    );
+  }
+}
+
 /// 逐張列出尚未完成的圖片（先處理的在前，最多 [syncSheetMaxRows] 張）＋「還有 N 張等待中」。
-class _Rows extends ConsumerWidget {
-  const _Rows();
+///
+/// [onOpenSettings] 非 null＝popover 版：底下一列左「還有 N 張等待中」、右「同步設定」連結；
+/// null＝bottom sheet 版：置中的「還有 N 張等待中」。
+class SyncProgressRows extends ConsumerWidget {
+  const SyncProgressRows({super.key, this.onOpenSettings});
+  final VoidCallback? onOpenSettings;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -192,7 +236,22 @@ class _Rows extends ConsumerWidget {
         children: [
           for (final x in shown)
             _TransferRow(key: ValueKey('${x.direction.name}:${x.file}'), x: x),
-          if (more > 0)
+          if (onOpenSettings != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Row(
+                children: [
+                  if (more > 0)
+                    Text(
+                      context.l10n.syncuiMoreWaiting(more),
+                      style: TextStyle(fontSize: 13, color: t.text3),
+                    ),
+                  const Spacer(),
+                  _SettingsLink(onTap: onOpenSettings!),
+                ],
+              ),
+            )
+          else if (more > 0)
             Padding(
               padding: const EdgeInsets.only(top: 14),
               child: Text(
@@ -202,6 +261,41 @@ class _Rows extends ConsumerWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// 「同步設定」連結（觸控範圍 ≥44 高）。
+class _SettingsLink extends StatelessWidget {
+  const _SettingsLink({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = SyncColors.of(context);
+    return Semantics(
+      button: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Center(
+              widthFactor: 1,
+              child: Text(
+                context.l10n.ipadsyncSettings,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: colors.strong,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

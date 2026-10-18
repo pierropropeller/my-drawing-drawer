@@ -13,6 +13,7 @@ import '../common/dashed_box.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import '../common/window_class.dart';
+import '../sync/pit_sync.dart';
 import '../sync/sync_avatar.dart';
 import 'pit_new_page.dart';
 import 'pit_page.dart';
@@ -625,7 +626,13 @@ class PitCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  context.l10n.pitsStatsLine(stats.pieces, stats.openIdeas),
+                  // iPad：這個坑有圖片正在下載時，統計換成「同步中…」（MainSyncing 稿）。
+                  tablet && ref.watch(pitSyncingProvider(pit.id))
+                      ? context.l10n.ipadsyncPitSyncingMeta
+                      : context.l10n.pitsStatsLine(
+                          stats.pieces,
+                          stats.openIdeas,
+                        ),
                   style: TextStyle(
                     color: t.text2,
                     fontSize: tablet ? 12.5 : 12,

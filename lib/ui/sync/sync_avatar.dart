@@ -6,7 +6,7 @@ import '../../sync/sync_controller.dart';
 import '../common/user_avatar.dart';
 import 'ring_painter.dart';
 import 'sync_colors.dart';
-import 'sync_sheet.dart';
+import 'sync_popover.dart';
 
 /// 外圈狀態（D-052）。
 enum SyncRingMode { none, checking, transferring }
@@ -15,9 +15,24 @@ enum SyncRingMode { none, checking, transferring }
 ///
 /// 檢查中＝一段短弧轉圈（不可點）；傳輸中＝進度環（按完成張數／總張數），可點開「同步進度」；
 /// 其他＝外圈淡出。外圈 48px 但佔位只有頭像本身（外圈畫在頭像外 4px），頁面不會因此位移。
+///
+/// 點開的方式依視窗闊度：＜600 底部 sheet（手機）、≥600 頭像 popover（iPad／平板，見
+/// [showSyncProgress]）。rail／sidebar 的頭像用 [serif]／[background]／[foreground] 套上稿的配色，
+/// [onOpenSettings] 是 popover「同步設定」連結的動作。
 class SyncAvatar extends ConsumerWidget {
-  const SyncAvatar({super.key, this.size = 40});
+  const SyncAvatar({
+    super.key,
+    this.size = 40,
+    this.serif = false,
+    this.background,
+    this.foreground,
+    this.onOpenSettings,
+  });
   final double size;
+  final bool serif;
+  final Color? background;
+  final Color? foreground;
+  final VoidCallback? onOpenSettings;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,9 +53,14 @@ class SyncAvatar extends ConsumerWidget {
       fraction: fraction,
       size: size,
       onTap: mode == SyncRingMode.transferring
-          ? () => showSyncSheet(context)
+          ? () => showSyncProgress(context, onOpenSettings: onOpenSettings)
           : null,
-      child: UserAvatar(size: size),
+      child: UserAvatar(
+        size: size,
+        serif: serif,
+        background: background,
+        foreground: foreground,
+      ),
     );
   }
 }

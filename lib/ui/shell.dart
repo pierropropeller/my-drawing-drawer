@@ -61,6 +61,14 @@ class _AppShellState extends ConsumerState<AppShell> {
     nav.push(MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pitId)));
   }
 
+  /// 同步進度 popover 的「同步設定」：切到我的，右側面板顯示備份與同步。
+  void _openSyncSettings() {
+    ref
+        .read(profileSectionRequestProvider.notifier)
+        .request(ProfileSection.backup);
+    setState(() => _index = 2);
+  }
+
   void _newPit() {
     setState(() => _index = 0);
     _navKeys[0].currentState?.push(
@@ -98,6 +106,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       onSelect: (i) => setState(() => _index = i),
       onOpenPit: _openPit,
       onNewPit: _newPit,
+      onOpenSyncSettings: _openSyncSettings,
       // 每個分頁各自一個 Navigator，子頁面時導覽仍留在所屬分頁。
       body: PopScope(
         canPop: false,

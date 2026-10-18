@@ -32,6 +32,7 @@ class AdaptiveNavScaffold extends StatelessWidget {
     required this.onOpenPit,
     required this.onNewPit,
     required this.body,
+    this.onOpenSyncSettings,
   });
 
   final int index;
@@ -40,6 +41,9 @@ class AdaptiveNavScaffold extends StatelessWidget {
   final ValueChanged<String> onOpenPit;
   final VoidCallback onNewPit;
   final Widget body;
+
+  /// 頭像同步進度 popover 的「同步設定」：前往我的 › 備份與同步。
+  final VoidCallback? onOpenSyncSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +59,11 @@ class AdaptiveNavScaffold extends StatelessWidget {
           final spec = controller.specFor(index);
           final mode = navModeFor(wc, spec.style, hidden: hidden > 0);
           final side = switch (mode) {
-            NavMode.rail => NavRail(index: index, onSelect: onSelect),
+            NavMode.rail => NavRail(
+              index: index,
+              onSelect: onSelect,
+              onOpenSyncSettings: onOpenSyncSettings,
+            ),
             NavMode.sidebar => NavSidebar(
               width: NavSidebar.widthFor(width),
               index: index,
@@ -63,6 +71,7 @@ class AdaptiveNavScaffold extends StatelessWidget {
               onSelect: onSelect,
               onOpenPit: onOpenPit,
               onNewPit: onNewPit,
+              onOpenSyncSettings: onOpenSyncSettings,
             ),
             _ => const SizedBox.shrink(),
           };

@@ -25,6 +25,21 @@ import '../../l10n/l10n.dart';
 /// iPad 版「我的」右側內容面板顯示哪一項（Profile 稿的六個設定列）。
 enum ProfileSection { library, theme, appIcon, language, backup, about }
 
+/// 其他地方（例如同步進度 popover 的「同步設定」）要「我的」切到某一項時寫入；
+/// ProfilePage 收到後切換並清掉。
+class ProfileSectionRequest extends Notifier<ProfileSection?> {
+  @override
+  ProfileSection? build() => null;
+
+  void request(ProfileSection s) => state = s;
+  void clear() => state = null;
+}
+
+final profileSectionRequestProvider =
+    NotifierProvider<ProfileSectionRequest, ProfileSection?>(
+      ProfileSectionRequest.new,
+    );
+
 /// 我的：頭像、暱稱、編輯個人資料、主題色／備份與同步／關於 App 入口。
 ///
 /// 手機（＜600，或內容區太窄）＝一欄列表，點列進子頁。
@@ -44,6 +59,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   /// 並排版右側目前顯示的項目（稿預設「主題色」）。
   ProfileSection _section = ProfileSection.theme;
 
+  void _takeRequest(ProfileSection? s) {
+    if (s == null) return;
+    ref.read(profileSectionRequestProvider.notifier).clear();
+    if (mounted) setState(() => _section = s);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final pending = ref.read(profileSectionRequestProvider);
+    if (pending != null) {
+      _section = pending;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => ref.read(profileSectionRequestProvider.notifier).clear(),
+      );
+    }
+  }
+
   void _push(Widget page) =>
       Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
 
@@ -51,6 +84,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(profileSectionRequestProvider, (_, next) => _takeRequest(next));
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
