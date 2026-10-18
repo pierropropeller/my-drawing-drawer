@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../ui/common/root_overlay_guard.dart';
+import 'font_fallback.dart';
 import 'tokens.dart';
 
 /// [useGoogleFonts] 僅供測試關閉（測試環境不能下載字型）。
@@ -28,10 +29,22 @@ ThemeData buildTheme(
       (useGoogleFonts
               ? GoogleFonts.notoSansTcTextTheme()
               : ThemeData(brightness: brightness).textTheme)
-          .apply(bodyColor: t.ink, displayColor: t.ink);
+          .apply(
+            bodyColor: t.ink,
+            displayColor: t.ink,
+            fontFamilyFallback: kFontFamilyFallback,
+          );
   TextStyle serif(TextStyle? base, FontWeight w) => useGoogleFonts
-      ? GoogleFonts.notoSerifTc(textStyle: base, fontWeight: w, color: t.ink)
-      : (base ?? const TextStyle()).copyWith(fontWeight: w, color: t.ink);
+      ? GoogleFonts.notoSerifTc(
+          textStyle: base,
+          fontWeight: w,
+          color: t.ink,
+        ).copyWith(fontFamilyFallback: kFontFamilyFallback)
+      : (base ?? const TextStyle()).copyWith(
+          fontWeight: w,
+          color: t.ink,
+          fontFamilyFallback: kFontFamilyFallback,
+        );
   final textTheme = sans.copyWith(
     headlineLarge: serif(sans.headlineLarge, FontWeight.w700),
     headlineMedium: serif(sans.headlineMedium, FontWeight.w700),
@@ -81,7 +94,11 @@ ThemeData buildTheme(
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: t.ink,
-      contentTextStyle: TextStyle(color: t.ground, fontSize: 13.5),
+      contentTextStyle: TextStyle(
+        color: t.ground,
+        fontSize: 13.5,
+        fontFamilyFallback: kFontFamilyFallback,
+      ),
       actionTextColor: const Color(0xFFE9A58F),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
     ),

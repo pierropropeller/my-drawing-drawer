@@ -1,0 +1,12 @@
+Subsetted Noto fonts (SIL Open Font License 1.1, see OFL.txt). Source: notofonts project.
+Subset by tool/subset_fonts.py (glyph subset only, no outline changes).
+
+NotoSans-Regular                   Copyright 2022 The Noto Project Authors (notofonts/latin-greek-cyrillic)
+NotoSansSymbols-Regular            Copyright 2022 The Noto Project Authors (notofonts/symbols)
+NotoSansSymbols2-Regular           Copyright 2022 The Noto Project Authors (notofonts/symbols)
+NotoSansMath-Regular               Copyright 2022 Google LLC. All Rights Reserved.
+NotoSansThai-Regular               Copyright 2022 The Noto Project Authors (notofonts/thai)
+NotoSansKannada-Regular            Copyright 2022 The Noto Project Authors (notofonts/kannada)
+NotoSansCanadianAboriginal-Regular Copyright 2022 The Noto Project Authors (notofonts/canadian-aboriginal)
+NotoSansYi-Regular                 Copyright 2022 The Noto Project Authors (notofonts/yi)
+NotoSansArabic/Telugu/Tamil/Gurmukhi/Khmer/Batak/Mono-Regular  Copyright The Noto Project Authors (notofonts/<script>); Mono from google/fonts ofl/notosansmono
