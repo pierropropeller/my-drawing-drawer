@@ -28,6 +28,10 @@ abstract final class MediaIcons {
   static const exitFullscreen =
       '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" stroke-linecap="round" stroke-linejoin="round"/>';
 
+  /// 循環播放（兩條首尾相接的箭頭；線條風格與其他控制列 icon 一致，設計稿沒畫，自行判斷）。
+  static const loop =
+      '<path d="M17 2l4 4-4 4M3 11V10a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3" stroke-linecap="round" stroke-linejoin="round"/>';
+
   /// 列表左下角標記裡的小三角形，viewBox 9×10。
   static const playSmall = '<path d="M1 1l7 4-7 4z" fill="currentColor"/>';
   static const playSmallWidth = 9.0;

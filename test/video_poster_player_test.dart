@@ -12,6 +12,7 @@ import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/l10n/l10n.dart';
 import 'package:huakeng/media/media_import.dart';
 import 'package:huakeng/media/player_frame_poster_generator.dart';
+import 'package:huakeng/media/video_playback_gate.dart';
 import 'package:huakeng/media/video_probe.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/theme/app_theme.dart';
@@ -124,6 +125,10 @@ class _FakePlayback extends ChangeNotifier implements MediaPlayback {
 
   @override
   Future<void> setVolume(double volume) async => log.add('volume $volume');
+  @override
+  bool get isLooping => false;
+  @override
+  Future<void> setLooping(bool looping) async {}
   @override
   Widget buildView(BuildContext context) => ListenableBuilder(
     listenable: this,
@@ -335,6 +340,43 @@ void main() {
     });
   });
 
+  group('播放中不補截圖（閘門）', () {
+    testWidgets('閘門開著：PosterFixer 不探測也不開播放器；放開後補做', (tester) async {
+      await tester.runAsync(() async {
+        await addVideo('g.mp4');
+        probe.result = null;
+        final gate = VideoPlaybackGate();
+        final fixer = PosterFixer(
+          db,
+          store,
+          probe: probe,
+          player: player,
+          gate: gate,
+          debounce: const Duration(milliseconds: 10),
+          requestDebounce: const Duration(milliseconds: 10),
+        );
+        gate.acquire();
+        expect(await fixer.run(), 0);
+        fixer.request('g.mp4');
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+        expect(probe.calls, 0);
+        expect(player.calls, isEmpty);
+
+        fixer.start(); // start() 內的第一次 run 也被擋住
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+        expect(probe.calls, 0);
+        expect(player.calls, isEmpty);
+
+        gate.release(); // 放開 → 自動排一次補做
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+        expect(probe.calls, greaterThan(0));
+        expect(player.calls, hasLength(1));
+        expect(fixer.healed['g.mp4'], isNotNull);
+        fixer.dispose();
+      });
+    });
+  });
+
   group('PlayerFramePosterGenerator', () {
     late PosterCaptureSlot slot;
     late List<_FakePlayback> made;
@@ -472,6 +514,57 @@ void main() {
         isForeground: () => false,
       );
       expect(bg.available, isFalse);
+    });
+
+    testWidgets('使用者正在播放影片（閘門）→ 不可用、不建立播放器；放開後恢復並通知', (tester) async {
+      await pumpHost(tester);
+      final gate = VideoPlaybackGate();
+      final g = PlayerFramePosterGenerator(
+        slot: slot,
+        playbackFactory: (_) {
+          final p = _FakePlayback();
+          made.add(p);
+          return p;
+        },
+        isForeground: () => true,
+        gate: gate,
+      );
+      expect(g.available, isTrue);
+      var notified = 0;
+      g.availabilityChanges!.addListener(() => notified++);
+      gate.acquire();
+      expect(notified, 1);
+      expect(g.available, isFalse);
+      expect(await g.generate('/x/a.mp4'), isNull);
+      expect(made, isEmpty);
+      gate.release();
+      expect(notified, 2);
+      expect(g.available, isTrue);
+    });
+
+    testWidgets('擷取途中使用者開始播放 → 立刻中止並釋放播放器', (tester) async {
+      await pumpHost(tester);
+      final gate = VideoPlaybackGate();
+      final g = PlayerFramePosterGenerator(
+        slot: slot,
+        timeout: const Duration(milliseconds: 300),
+        playbackFactory: (_) {
+          final p = _FakePlayback(hangInit: true);
+          made.add(p);
+          return p;
+        },
+        isForeground: () => true,
+        gate: gate,
+      );
+      final f = g.generate('/x/a.mp4');
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 30)),
+      );
+      expect(made, hasLength(1));
+      gate.acquire();
+      expect(made.single.disposed, isTrue);
+      expect(await run(tester, f), isNull);
+      await tester.pump(const Duration(seconds: 1)); // 清掉逾時計時器
     });
 
     test('isMostlyBlank：全黑、全透明為真；有亮點為假', () {

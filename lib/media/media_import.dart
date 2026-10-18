@@ -8,6 +8,7 @@ import '../data/image_store.dart';
 import '../data/media.dart';
 import '../data/media_queries.dart';
 import 'player_frame_poster_generator.dart';
+import 'video_playback_gate.dart';
 import 'video_probe.dart';
 
 /// 匯入一個從相簿／分享選到的媒體（D-080）：圖片、GIF、影片都走這一條。
@@ -67,6 +68,7 @@ Future<NewImage> _withVideoMeta(
 /// - [player]：原生探測取不到截圖（或整支讀不開）時的備援，用播放器解碼器擷取一格
 ///   （見 [PlayerFramePosterGenerator]）。[shouldTryPlayer] 回傳 false 的檔案略過備援；
 ///   真的去試了（`player.available`）會呼叫 [onPlayerTried]。
+/// - [paused]：回傳 true（使用者正在播放影片）就在下一支之前停下來，等閘門放開再補。
 Future<int> generateMissingPosters(
   AppDatabase db,
   ImageStore store, {
@@ -76,6 +78,7 @@ Future<int> generateMissingPosters(
   PosterFrameGenerator? player,
   bool Function(String file)? shouldTryPlayer,
   void Function(String file)? onPlayerTried,
+  bool Function()? paused,
 }) async {
   try {
     await db.repairVideoKinds();
@@ -85,6 +88,7 @@ Future<int> generateMissingPosters(
   final pending = await db.videosWithoutPoster();
   var done = 0;
   for (final file in pending) {
+    if (paused != null && paused()) break;
     if (!store.exists(file)) continue;
     if (shouldTry != null && !shouldTry(file)) continue;
     try {
@@ -165,7 +169,8 @@ class PosterFixer {
     this.requestDebounce = const Duration(milliseconds: 300),
     this.retryAfter = const Duration(seconds: 20),
     this.maxAttempts = 3,
-  });
+    VideoPlaybackGate? gate,
+  }) : gate = gate ?? videoPlaybackGate;
 
   final AppDatabase db;
   final ImageStore store;
@@ -181,6 +186,9 @@ class PosterFixer {
   /// 同一支影片失敗後多久才准再試、最多試幾次（避免壞檔一直卡著 CPU）。
   final Duration retryAfter;
   final int maxAttempts;
+
+  /// 使用者正在播放影片時不跑（原生探測與播放器備援都會搶解碼器）；放開後補做。
+  final VideoPlaybackGate gate;
 
   // 這次執行期間已經用播放器備援試過的影片（每支只試一次，成敗都算）。
   final _playerTried = <String>{};
@@ -209,6 +217,11 @@ class PosterFixer {
   }
 
   void _onResult(String file, String? poster) {
+    if (poster == null && gate.active) {
+      // 被播放中斷的不算失敗：不計次數、不佔備援名額，放開後再試。
+      _playerTried.remove(file);
+      return;
+    }
     _lastTry[file] = DateTime.now();
     if (poster == null) {
       // 播放器備援也失敗＝這支影片這次執行不會再有辦法，不要再反覆跑原生探測。
@@ -225,6 +238,7 @@ class PosterFixer {
   /// 畫面上出現了沒有截圖的影片：排一次補截圖（合併、限流；失敗的有冷卻與次數上限）。
   void request(String file) {
     if (_disposed || _healed.containsKey(file) || !_mayTry(file)) return;
+    if (gate.active) return; // 播放中：放開後 _onGate 會整批補。
     _timer?.cancel();
     _timer = Timer(requestDebounce, () => unawaited(run()));
   }
@@ -238,11 +252,17 @@ class PosterFixer {
   /// 開始監聽並立刻補一次。
   void start() {
     player?.availabilityChanges?.addListener(_onPlayerAvailable);
+    gate.addListener(_onGate);
     _sub ??= store.changes.listen((name) {
       if (mediaKindFromExtension(name) != MediaKind.video) return;
       _schedule();
     });
     unawaited(run());
+  }
+
+  void _onGate() {
+    if (_disposed || gate.active) return;
+    _schedule();
   }
 
   // 播放器備援剛變成可用（承載容器掛上）：補做先前因為不能擷取而略過的影片。
@@ -258,7 +278,7 @@ class PosterFixer {
 
   /// 跑一次補截圖；正在跑時只記錄「跑完再來一次」。
   Future<int> run() async {
-    if (_disposed) return 0;
+    if (_disposed || gate.active) return 0;
     if (_running) {
       _again = true;
       return 0;
@@ -277,6 +297,7 @@ class PosterFixer {
           player: player,
           shouldTryPlayer: (f) => !_playerTried.contains(f),
           onPlayerTried: _playerTried.add,
+          paused: () => gate.active,
         );
       } while (_again && !_disposed);
     } catch (_) {
@@ -290,6 +311,7 @@ class PosterFixer {
   void dispose() {
     _disposed = true;
     player?.availabilityChanges?.removeListener(_onPlayerAvailable);
+    gate.removeListener(_onGate);
     _timer?.cancel();
     _sub?.cancel();
     _healedCtl.close();

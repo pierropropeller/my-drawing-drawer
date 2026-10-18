@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 
 import '../ui/common/video_player_view.dart'
     show MediaPlayback, PlaybackFactory;
+import 'video_playback_gate.dart';
 
 /// 用「播放器」擷取到的一格畫面（PNG）。
 class PosterFrame {
@@ -214,7 +215,8 @@ class PlayerFramePosterGenerator implements PosterFrameGenerator {
     this.timeout = const Duration(seconds: 8),
     this.settle = const Duration(milliseconds: 250),
     this.isForeground = _defaultForeground,
-  });
+    VideoPlaybackGate? gate,
+  }) : gate = gate ?? videoPlaybackGate;
 
   final PosterCaptureSlot slot;
   final PlaybackFactory playbackFactory;
@@ -224,6 +226,9 @@ class PlayerFramePosterGenerator implements PosterFrameGenerator {
   final Duration settle;
   final bool Function() isForeground;
 
+  /// 使用者正在播放影片時不另開播放器（避免搶解碼器造成掉幀）。
+  final VideoPlaybackGate gate;
+
   static bool _defaultForeground() {
     final s = WidgetsBinding.instance.lifecycleState;
     return s == null || s == AppLifecycleState.resumed;
@@ -232,10 +237,11 @@ class PlayerFramePosterGenerator implements PosterFrameGenerator {
   Future<void> _tail = Future<void>.value();
 
   @override
-  bool get available => slot.attached && isForeground();
+  bool get available => slot.attached && isForeground() && !gate.active;
 
   @override
-  Listenable? get availabilityChanges => slot.attachedNotifier;
+  Listenable? get availabilityChanges =>
+      Listenable.merge([slot.attachedNotifier, gate]);
 
   @override
   Future<PosterFrame?> generate(
@@ -266,25 +272,38 @@ class PlayerFramePosterGenerator implements PosterFrameGenerator {
   }) async {
     if (!available) return null;
     final job = _Job();
+    // 擷取途中使用者開始播放影片：馬上中止、釋放播放器（結果算「沒試過」，閘門放開後會補）。
+    final interrupted = Completer<PosterFrame?>();
+    void onGate() {
+      if (!gate.active) return;
+      job.abort();
+      if (!interrupted.isCompleted) interrupted.complete(null);
+    }
+
+    gate.addListener(onGate);
     try {
       // initialize() 之類的呼叫可能永遠不回來，所以用 Future.timeout 硬切；
       // 逾時後 job 已 abort（播放器釋放），殘留的流程在下一個 check() 就會中止。
-      return await _capture(
-        job,
-        path,
-        width: width,
-        height: height,
-        maxSide: maxSide,
-      ).timeout(
-        timeout,
-        onTimeout: () {
-          job.abort();
-          return null;
-        },
-      );
+      return await Future.any([
+        _capture(
+          job,
+          path,
+          width: width,
+          height: height,
+          maxSide: maxSide,
+        ).timeout(
+          timeout,
+          onTimeout: () {
+            job.abort();
+            return null;
+          },
+        ),
+        interrupted.future,
+      ]);
     } catch (_) {
       return null;
     } finally {
+      gate.removeListener(onGate);
       job.finish(slot);
     }
   }
