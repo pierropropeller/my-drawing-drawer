@@ -1,3 +1,5 @@
+import 'clamped_text.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
@@ -520,10 +522,9 @@ class _EntryCard extends StatelessWidget {
                     ),
                   ),
                 if (entry.description.trim().isNotEmpty)
-                  Text(
+                  ClampedText(
                     entry.description,
                     maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 13, color: t.text2, height: 1.5),
                   ),
                 if (entry.tags.isNotEmpty || entry.extra != null)
