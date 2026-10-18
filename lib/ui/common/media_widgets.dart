@@ -38,6 +38,7 @@ import 'package:flutter/material.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import 'app_icons.dart';
+import 'dismissible_preview.dart';
 import 'media_badges.dart';
 import 'media_source.dart';
 import 'poster_requester.dart';
@@ -199,7 +200,7 @@ class MediaThumb extends StatelessWidget {
 }
 
 /// 詳情／預覽頁的一頁（D-080）：圖片 contain、GIF 循環播放（不顯示標記）、影片用 [VideoPlayerView]。
-class MediaViewer extends StatelessWidget {
+class MediaViewer extends StatefulWidget {
   const MediaViewer(
     this.media, {
     super.key,
@@ -214,7 +215,7 @@ class MediaViewer extends StatelessWidget {
 
   final MediaSource media;
 
-  /// 這一頁是不是目前顯示的頁；false 時影片自動暫停、GIF 停止。
+  /// 這一頁是不是目前顯示的頁；false 時影片自動暫停、GIF 停止，縮放也還原。
   final bool active;
   final int? cacheWidth;
   final Color? placeholderColor;
@@ -226,27 +227,75 @@ class MediaViewer extends StatelessWidget {
   final double badgeInset;
 
   @override
+  State<MediaViewer> createState() => _MediaViewerState();
+}
+
+/// 放大超過這個倍數就算「放大中」（預覽頁此時不觸發拖曳退出）。
+const _zoomedThreshold = 1.02;
+
+class _MediaViewerState extends State<MediaViewer> {
+  TransformationController? _tc;
+  PreviewController? _preview;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _preview = PreviewScope.maybeOf(context);
+  }
+
+  void _onTransform() {
+    _preview?.setZoomed(
+      this,
+      _tc!.value.getMaxScaleOnAxis() > _zoomedThreshold,
+    );
+  }
+
+  TransformationController get _controller =>
+      _tc ??= TransformationController()..addListener(_onTransform);
+
+  @override
+  void didUpdateWidget(MediaViewer old) {
+    super.didUpdateWidget(old);
+    // 換到別頁後，這頁的縮放還原（也避免看不見的頁面讓預覽一直處於「放大中」）。
+    if (old.active && !widget.active && _tc != null) {
+      _tc!.value = Matrix4.identity();
+    }
+  }
+
+  @override
+  void dispose() {
+    _preview?.setZoomed(this, false);
+    _tc?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final media = widget.media;
     if (media.isVideo) {
       return VideoPlayerView(
         file: media.file,
         poster: media.poster,
         durationMs: media.durationMs,
-        active: active,
-        onFullscreen: onFullscreen,
-        start: start,
-        badgeInset: badgeInset,
+        active: widget.active,
+        onFullscreen: widget.onFullscreen,
+        start: widget.start,
+        badgeInset: widget.badgeInset,
       );
     }
     final image = StoredImage(
       media.file,
       fit: BoxFit.contain,
-      cacheWidth: cacheWidth,
-      placeholderColor: placeholderColor,
-      animate: media.isGif && active,
+      cacheWidth: widget.cacheWidth,
+      placeholderColor: widget.placeholderColor,
+      animate: media.isGif && widget.active,
       isGif: media.isGif ? true : null,
     );
-    if (!zoomable) return image;
-    return InteractiveViewer(maxScale: 5, child: SizedBox.expand(child: image));
+    if (!widget.zoomable) return image;
+    return InteractiveViewer(
+      transformationController: _controller,
+      maxScale: 5,
+      child: SizedBox.expand(child: image),
+    );
   }
 }
