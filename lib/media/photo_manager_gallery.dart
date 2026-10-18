@@ -20,9 +20,19 @@ class PhotoManagerGallery extends GalleryRepository {
   );
 
   /// 新到舊（以建立時間）。
-  static final _filter = FilterOptionGroup(
-    orders: const [OrderOption(type: OrderOptionType.createDate, asc: false)],
-  );
+  ///
+  /// **每次讀相簿都要重新建**，不能存成 `static final`：`FilterOptionGroup` 的建立／修改時間條件
+  /// 預設是 `max = 建立當下的 DateTime.now()`，套件不會自己更新。存成靜態會把上限凍結在第一次
+  /// 打開選擇器的時刻，之後才拍／才存進手機的相片全被濾掉，要殺掉 App 重開才看得到。
+  /// 上限多給一天，避開手機時鐘與 MediaStore 時間的小誤差。
+  static FilterOptionGroup buildFilter({DateTime Function()? now}) {
+    final upper = (now ?? DateTime.now)().add(const Duration(days: 1));
+    return FilterOptionGroup(
+      orders: const [OrderOption(type: OrderOptionType.createDate, asc: false)],
+      createTimeCond: DateTimeCond(min: DateTimeCond.zero, max: upper),
+      updateTimeCond: DateTimeCond(min: DateTimeCond.zero, max: upper),
+    );
+  }
 
   final Map<String, AssetPathEntity> _paths = {};
   final Map<String, AssetEntity> _entities = {};
@@ -62,7 +72,7 @@ class PhotoManagerGallery extends GalleryRepository {
     final paths = await PhotoManager.getAssetPathList(
       hasAll: true,
       type: imagesOnly ? RequestType.image : RequestType.common,
-      filterOption: _filter,
+      filterOption: buildFilter(),
     );
     _paths.clear();
     final out = <GalleryAlbum>[];
