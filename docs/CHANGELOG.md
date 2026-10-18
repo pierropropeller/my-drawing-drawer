@@ -10,21 +10,21 @@
 ---
 
 ## 批次 15（2026-10-18，官方圖 tag、顏文字豆腐、腦洞詳情配圖）
-- **D-089** **官方圖冊全面支援 tag**（取代 HANDOFF 3.2「官方圖沒有 tag」）。
+- **D-089** **官方圖冊全面支援 tag**（取代 HANDOFF 3.2「官方圖沒有 tag」）。 ✅ commit 64b6417
   - 資料模型：`OfficialImage.tags: Tag[]`，和同人圖共用同一套 Tag。
   - `OfficialNew`：分組下面加「tag」＋右邊「管理」，樣式和新增推活紀錄一樣（可多選，最後一顆「＋ 新增」）。分享匯入的官方圖本來就有 tag，不用改。
   - `ImagePreview`（官方圖預覽）：分組標籤下面加一行 tag chips，和 `FanArtPreview` 一樣；點 tag＝回到該坑官方圖冊並按那個 tag 篩選（行為和 `FanArtFiltered` 一樣）。日期移到 tag 下面。
   - `OfficialSelect` 本來已有「tag」，批量加減照用 `FanArtTagSheet`。
   - 坑內搜尋：分頁 chips 加「官方圖」，結果多一段「官方圖冊」，排在成圖之後、好看同人圖之前（`PitSearch`、`PitSearchResult`）。點「+N」進官方圖冊並帶同一個 tag 篩選。
   - 編輯官方圖（預覽頁「編輯」）沿用 `OfficialNew` 版型，所以也有 tag。
-- **D-090** **顏文字變豆腐（□）修正**：只是顯示問題，資料本身沒有壞。
+- **D-090** **顏文字變豆腐（□）修正**：只是顯示問題，資料本身沒有壞。 ✅ commit 64b6417
   - 原因：App 字型是 Noto Sans TC／Noto Serif TC，沒有顏文字常用的冷門字元；Flutter 找不到 fallback 字型就畫成豆腐。
   - 修法：在 `pubspec.yaml` 打包以下 fallback 字型，並在 `ThemeData` 的 `textTheme`（同 `TextField` 用的 style）統一設定 `fontFamilyFallback`，次序如下：
     `NotoSansTC → NotoSans（含 IPA 擴充，例如 ᴗ）→ NotoSansSymbols → NotoSansSymbols2（✧ 等符號）→ NotoSansMath（≖ 等數學符號）→ NotoSansThai（๑）→ NotoSansKannada（ಠ）→ NotoSansCanadianAboriginal（ᐛ ᐕ）→ NotoSansYi（꒰ ꒱）→ NotoColorEmoji（只在系統沒有 emoji 字型時用；如果 APK 太大可以不打包，交回系統）`
   - 測試：輸入框同列表各打一次 `(≖ᴗ≖)✧`、`(๑•̀ㅂ•́)و✧`、`ಠ_ಠ`、`ᐛ`、`꒰ ꒱`，全部要正常顯示。
   - 如果還有個別字元是豆腐，用 `text.runes.map((r) => r.toRadixString(16))` 印出 codepoint，查是哪個 Unicode 區塊，補對應的 Noto 字型。
-- **D-091** **分享匯入「位置」順序**：腦洞放在摸魚前面（官方圖冊、好看同人圖、推活、雜物、**腦洞、摸魚**、成圖）。`ShareImport`、`ShareImportMaterial`。其他頁已檢查過，沒有再漏；坑內搜尋是按「成圖 > 同人圖 > 摸魚 > 腦洞」排，是刻意的，不用改。
-- **D-092** **腦洞詳情有圖片時用摸魚詳情版型**：
+- **D-091** **分享匯入「位置」順序**：腦洞放在摸魚前面（官方圖冊、好看同人圖、推活、雜物、**腦洞、摸魚**、成圖）。`ShareImport`、`ShareImportMaterial`。其他頁已檢查過，沒有再漏；坑內搜尋是按「成圖 > 同人圖 > 摸魚 > 腦洞」排，是刻意的，不用改。 ✅ commit 64b6417
+- **D-092** **腦洞詳情有圖片時用摸魚詳情版型**： ✅ commit 64b6417
   - **有圖**（`IdeaDetail`）：圖片放最上面做 carousel（滿版、右上「1 / N」、下面一排小縮圖，選中的那張有珊瑚色框），圖片下面才是標題＋狀態、建立日期、內文、tag、關聯的摸魚。圖片顯示規則和摸魚詳情一樣（D-073，不裁切）。
   - **沒有圖**（`IdeaDetailNoImg`）：保持原本樣子，標題開頭，沒有圖片區。
   - Artboard：`IdeaDetail`（改）、`IdeaDetailNoImg`（新）。
