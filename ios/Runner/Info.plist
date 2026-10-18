@@ -48,7 +48,22 @@
 				<string>com.googleusercontent.apps.992292407578-5eb7gdhtfl1q8q1f0890fi7t0rsbh647</string>
 			</array>
 		</dict>
+		<!-- 分享：Share Extension 用 drawer://share 喚起主程式（見 docs/IOS_SHARE_EXTENSION.md）。
+		     必須排在 Google 登入那一筆之後：ios.yml 用 CFBundleURLTypes:0 改寫 Google 的 scheme。 -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>io.molly.drawer.share</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>drawer</string>
+			</array>
+		</dict>
 	</array>
+	<!-- 不讓 Flutter 把 URL 當深層連結路由（drawer://share 由 AppDelegate 自己處理）。 -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
