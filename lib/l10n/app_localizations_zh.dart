@@ -83,6 +83,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pitsMyPits => '我的坑';
 
   @override
+  String get albumPillNoSource => '無出處';
+
+  @override
   String get pitsActive => '現坑';
 
   @override

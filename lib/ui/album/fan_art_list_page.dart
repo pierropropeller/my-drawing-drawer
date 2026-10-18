@@ -57,7 +57,16 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
     final db = ref.watch(databaseProvider);
     final groups =
         ref.watch(groupsProvider((widget.pitId, 'fan'))).value ?? const [];
-    final groupId = groups.any((g) => g.id == _groupId) ? _groupId : null;
+    // 「無出處」pill：有出處的和沒出處的同人圖同時存在才出現，放在最後（同推活的「無分組」）。
+    final all =
+        ref.watch(fanArtsProvider((widget.pitId, null))).value ?? const [];
+    final showNoSource =
+        all.any((r) => r.groupId == null) && all.any((r) => r.groupId != null);
+    final groupId =
+        groups.any((g) => g.id == _groupId) ||
+            (showNoSource && _groupId == fanArtNoSourceFilter)
+        ? _groupId
+        : null;
     final names = {for (final g in groups) g.id: g.name};
     final filtered = widget.tagId != null;
     // 標題列一律顯示全部張數；篩選時「N 張」在篩選列（FanArtFiltered）。
@@ -137,7 +146,11 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
               countText: context.l10n.commonCountImages(images.length),
             ),
           ChipRow(
-            options: [for (final g in groups) (g.id, g.name)],
+            options: [
+              for (final g in groups) (g.id, g.name),
+              if (showNoSource)
+                (fanArtNoSourceFilter, context.l10n.albumPillNoSource),
+            ],
             selected: groupId,
             onSelected: (v) => setState(() => _groupId = v),
             trailing: ChipRowManageButton(

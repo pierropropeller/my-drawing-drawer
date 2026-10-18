@@ -365,6 +365,47 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('同人圖列表：有出處也有沒出處的圖時，「無出處」pill 出現在最後並可篩選', (tester) async {
+    final src = (await tester.runAsync(
+      () async => (await db.watchGroups(pitId, kind: 'fan').first).first,
+    ))!;
+    await tester.runAsync(() async {
+      await db.addFanArts(
+        pitId,
+        const [NewImage(file: 'a.png', width: 10, height: 10)],
+        author: '有出處',
+        groupId: src.id,
+      );
+      await db.addFanArts(pitId, const [
+        NewImage(file: 'b.png', width: 10, height: 10),
+      ], author: '沒出處');
+    });
+    await pumpPage(tester, FanArtListPage(pitId: pitId));
+    expect(find.text('無出處'), findsOneWidget);
+    await tester.ensureVisible(find.text('無出處'));
+    await tester.pump();
+    expect(
+      tester.getTopLeft(find.text('無出處')).dx,
+      greaterThan(tester.getTopLeft(find.text(src.name).first).dx),
+    );
+    await tester.tap(find.text('無出處'));
+    await settle(tester);
+    expect(find.text('沒出處'), findsOneWidget);
+    expect(find.text('有出處'), findsNothing);
+    await unmount(tester);
+  });
+
+  testWidgets('同人圖列表：全都有出處（或全都沒出處）時不顯示「無出處」', (tester) async {
+    await tester.runAsync(() async {
+      await db.addFanArts(pitId, const [
+        NewImage(file: 'a.png', width: 10, height: 10),
+      ], author: '沒出處');
+    });
+    await pumpPage(tester, FanArtListPage(pitId: pitId));
+    expect(find.text('無出處'), findsNothing);
+    await unmount(tester);
+  });
+
   testWidgets('同人圖列表：無篩選時列出全部；多選一樣是 下載／移動／tag／刪除', (tester) async {
     await tester.runAsync(() async {
       await db.addFanArts(pitId, const [

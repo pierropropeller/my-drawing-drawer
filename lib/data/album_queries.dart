@@ -6,6 +6,9 @@ import 'media.dart';
 import 'entity_queries.dart' show watchAssembled;
 import 'tables.dart' show uuid;
 
+/// 同人圖列表篩選用的假出處 id：代表「無出處」（沒有選出處的同人圖）。
+const fanArtNoSourceFilter = '__nosource__';
+
 /// 匯入後待寫入資料庫的圖片。
 class NewImage {
   const NewImage({
@@ -276,6 +279,8 @@ extension AlbumQueries on AppDatabase {
             i.hidden.equals(false) &
             (groupId == null
                 ? const Constant(true)
+                : groupId == fanArtNoSourceFilter
+                ? i.groupId.isNull()
                 : i.groupId.equals(groupId)) &
             (tagId == null
                 ? const Constant(true)

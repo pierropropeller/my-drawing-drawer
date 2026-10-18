@@ -7,7 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../ui/common/video_player_view.dart' show MediaPlayback, PlaybackFactory;
+import '../ui/common/video_player_view.dart'
+    show MediaPlayback, PlaybackFactory;
 
 /// 用「播放器」擷取到的一格畫面（PNG）。
 class PosterFrame {
@@ -173,7 +174,11 @@ class _PosterCaptureHostState extends State<PosterCaptureHost> {
 
 /// 把 [child] 與 [PosterCaptureHost] 疊在一起（放在 `MaterialApp` 外面一層）。
 class PosterCaptureScope extends StatelessWidget {
-  const PosterCaptureScope({super.key, required this.slot, required this.child});
+  const PosterCaptureScope({
+    super.key,
+    required this.slot,
+    required this.child,
+  });
   final PosterCaptureSlot slot;
   final Widget child;
 
@@ -181,7 +186,10 @@ class PosterCaptureScope extends StatelessWidget {
   Widget build(BuildContext context) => Stack(
     textDirection: TextDirection.ltr,
     fit: StackFit.expand,
-    children: [child, PosterCaptureHost(slot: slot)],
+    children: [
+      child,
+      PosterCaptureHost(slot: slot),
+    ],
   );
 }
 
@@ -303,7 +311,9 @@ class PlayerFramePosterGenerator implements PosterFrameGenerator {
     final half = duration ~/ 2;
     final first = duration <= Duration.zero
         ? Duration.zero
-        : (half < const Duration(seconds: 1) ? half : const Duration(seconds: 1));
+        : (half < const Duration(seconds: 1)
+              ? half
+              : const Duration(seconds: 1));
     final candidates = <Duration>[];
     for (final d in [first, Duration.zero, half]) {
       if (!candidates.contains(d)) candidates.add(d);
@@ -311,8 +321,9 @@ class PlayerFramePosterGenerator implements PosterFrameGenerator {
 
     // 版面尺寸：先用「螢幕外、輸出尺寸」；取不到再改「左上角、很小」（pixelRatio 放大）。
     final nativeLongest = math.max(width ?? 0, height ?? 0);
-    final outLongest = (nativeLongest > 0 ? math.min(nativeLongest, maxSide) : maxSide)
-        .toDouble();
+    final outLongest =
+        (nativeLongest > 0 ? math.min(nativeLongest, maxSide) : maxSide)
+            .toDouble();
     for (final offscreen in [true, false]) {
       final layoutLongest = offscreen ? outLongest : 32.0;
       final size = aspect >= 1
@@ -340,7 +351,9 @@ class PlayerFramePosterGenerator implements PosterFrameGenerator {
               bytes: frame.bytes,
               width: frame.width,
               height: frame.height,
-              durationMs: duration > Duration.zero ? duration.inMilliseconds : null,
+              durationMs: duration > Duration.zero
+                  ? duration.inMilliseconds
+                  : null,
             );
           }
         }

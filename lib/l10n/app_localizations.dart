@@ -232,6 +232,12 @@ abstract class AppLocalizations {
   /// **'我的坑'**
   String get pitsMyPits;
 
+  /// No description provided for @albumPillNoSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'無出處'**
+  String get albumPillNoSource;
+
   /// No description provided for @pitsActive.
   ///
   /// In zh, this message translates to:

@@ -37,6 +37,7 @@
   },
   "pitsPiecesEmpty": "還沒有成圖・開始你的第一張",
   "pitsMyPits": "我的坑",
+  "albumPillNoSource": "無出處",
   "pitsActive": "現坑",
   "pitsArchived": "封存坑",
   "pitsLoadFailed": "載入失敗：{error}",
