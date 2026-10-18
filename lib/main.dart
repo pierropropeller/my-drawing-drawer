@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'debug/input_diagnostics.dart';
+import 'input/ime_shift.dart';
 import 'media/player_frame_poster_generator.dart';
 import 'share/share_inbox.dart';
 import 'state/app_icon.dart';
@@ -21,7 +22,7 @@ Future<void> main() async {
   if (kDebugMode) {
     DebugDiagBinding.ensureInitialized();
   } else {
-    WidgetsFlutterBinding.ensureInitialized();
+    ImeShiftBinding.ensureInitialized();
   }
   final prefs = await SharedPreferences.getInstance();
   runApp(
@@ -84,8 +85,10 @@ class HuaKengApp extends ConsumerWidget {
         ),
         themeMode: ref.watch(themeModeProvider),
         // iPad：頁面頂部讓開視窗控制點／狀態列（見 TabletTopInsetGuard）；其他裝置原樣。
-        builder: (context, child) => TabletTopInsetGuard(
-          child: kDebugMode ? InputDiagnosticsOverlay(child: child!) : child!,
+        builder: (context, child) => ImeShiftKeyBridge(
+          child: TabletTopInsetGuard(
+            child: kDebugMode ? InputDiagnosticsOverlay(child: child!) : child!,
+          ),
         ),
         home: const AppShell(),
       ),

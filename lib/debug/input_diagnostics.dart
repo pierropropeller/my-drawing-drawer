@@ -16,6 +16,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../input/ime_shift.dart';
+
 /// Global ring buffer of diagnostic lines.
 class InputDiagLog extends ChangeNotifier {
   InputDiagLog._();
@@ -72,7 +74,7 @@ class DebugDiagBinding extends WidgetsFlutterBinding {
 
   @override
   BinaryMessenger createBinaryMessenger() =>
-      _LoggingMessenger(super.createBinaryMessenger());
+      _LoggingMessenger(ImeShiftMessenger(super.createBinaryMessenger()));
 }
 
 class _LoggingMessenger extends BinaryMessenger {
@@ -125,6 +127,11 @@ class _LoggingMessenger extends BinaryMessenger {
           InputDiagLog.instance.add(
             'IN ',
             '${call.method} ${_clip(jsonEncode(call.arguments))}',
+          );
+        } else if (channel == 'flutter/keyevent') {
+          InputDiagLog.instance.add(
+            'IN ',
+            '$channel ${data?.lengthInBytes}B ${describeLegacyKey(data)}',
           );
         } else {
           InputDiagLog.instance.add('IN ', '$channel ${data?.lengthInBytes}B');
