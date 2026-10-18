@@ -68,7 +68,7 @@ void main() {
     await tester.tap(find.text('加圖'));
     await settle(tester);
     expect(find.text('新增官方圖'), findsOneWidget);
-    expect(find.text('管理'), findsOneWidget); // 分組右上的管理按鈕
+    expect(find.text('管理'), findsNWidgets(2)); // 分組、tag 各一個管理按鈕
     await tester.tap(find.text('加入官方圖冊')); // 圖片已經帶入，不用再選
     await settle(tester);
     await settle(tester);

@@ -3800,6 +3800,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'下載中 {percent}%'**
   String syncuiBadgeDownloading(int percent);
+
+  /// No description provided for @videoloopLoop.
+  ///
+  /// In zh, this message translates to:
+  /// **'循環播放'**
+  String get videoloopLoop;
+
+  /// No description provided for @videoloopLoopOn.
+  ///
+  /// In zh, this message translates to:
+  /// **'循環播放：開'**
+  String get videoloopLoopOn;
+
+  /// No description provided for @videoloopLoopOff.
+  ///
+  /// In zh, this message translates to:
+  /// **'循環播放：關'**
+  String get videoloopLoopOff;
 }
 
 class _AppLocalizationsDelegate

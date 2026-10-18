@@ -2119,4 +2119,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String syncuiBadgeDownloading(int percent) {
     return '下載中 $percent%';
   }
+
+  @override
+  String get videoloopLoop => '循環播放';
+
+  @override
+  String get videoloopLoopOn => '循環播放：開';
+
+  @override
+  String get videoloopLoopOff => '循環播放：關';
 }

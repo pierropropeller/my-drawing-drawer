@@ -330,6 +330,7 @@ void main() {
     expect(r.total, 6);
     expect(PitSearchSection.values, [
       PitSearchSection.pieces,
+      PitSearchSection.official,
       PitSearchSection.fanArts,
       PitSearchSection.oshi,
       PitSearchSection.drafts,
