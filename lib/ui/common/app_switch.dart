@@ -10,7 +10,11 @@ class AppSwitch extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.semanticLabel,
+    this.large = false,
   });
+
+  /// iPad 版（Profile／Backup 稿）：51×31 軌道、27px 圓鈕（距邊 2px）。
+  final bool large;
 
   final bool value;
   final ValueChanged<bool>? onChanged;
@@ -31,8 +35,8 @@ class AppSwitch extends StatelessWidget {
         onTap: onChanged == null ? null : () => onChanged!(!value),
         child: AnimatedContainer(
           duration: d,
-          width: 46,
-          height: 28,
+          width: large ? 51 : 46,
+          height: large ? 31 : 28,
           decoration: BoxDecoration(
             color: value ? t.accent : off,
             borderRadius: BorderRadius.circular(999),
@@ -42,11 +46,11 @@ class AppSwitch extends StatelessWidget {
               AnimatedPositioned(
                 duration: d,
                 curve: Curves.easeOut,
-                top: 3,
-                left: value ? 21 : 3,
+                top: large ? 2 : 3,
+                left: large ? (value ? 22 : 2) : (value ? 21 : 3),
                 child: Container(
-                  width: 22,
-                  height: 22,
+                  width: large ? 27 : 22,
+                  height: large ? 27 : 22,
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,

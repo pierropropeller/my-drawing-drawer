@@ -8,6 +8,7 @@ import '../album/album_actions.dart';
 import '../common/app_icons.dart';
 import '../common/app_switch.dart';
 import '../common/svg_icon.dart';
+import '../common/window_class.dart';
 import '../login/sync_first_page.dart';
 import '../pits/pit_form.dart';
 import 'me_icons.dart';
@@ -70,6 +71,9 @@ class BackupPage extends ConsumerWidget {
       builder: (ctx) {
         final t = ctx.tokens;
         final dark = Theme.of(ctx).brightness == Brightness.dark;
+        // ≥600（iPad）：BackupUnlink 稿的置中 alert（340 寬、底部左右兩個全寬按鈕）；
+        // 彈出期間拉窗跨過 600 會即時換樣式。
+        if (WindowClass.of(ctx).hasSideNav) return const _UnlinkAlertWide();
         return Dialog(
           backgroundColor: t.surface,
           surfaceTintColor: Colors.transparent,
@@ -153,6 +157,8 @@ class BackupPage extends ConsumerWidget {
     final sync = ref.watch(syncControllerProvider);
     final notifier = ref.read(settingsProvider.notifier);
     final linked = s.accountEmail != null;
+    // iPad 右側面板（Backup 稿 1194）：卡片較寬、開關 51×31、間隔改分段、兩顆按鈕並排。
+    final wide = embedded;
     final divider = dark ? t.border : const Color(0xFFF1EADF);
     final outline = fieldBorderColor(context);
     final green = dark ? const Color(0xFF8DBB8D) : const Color(0xFF5C8A5C);
@@ -169,8 +175,64 @@ class BackupPage extends ConsumerWidget {
         : null;
 
     Widget sub(String text) => Padding(
-      padding: const EdgeInsets.only(top: 1),
-      child: Text(text, style: TextStyle(fontSize: 11.5, color: t.text3)),
+      padding: EdgeInsets.only(top: wide ? 2 : 1),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: wide ? 12.5 : 11.5, color: t.text3),
+      ),
+    );
+
+    final syncNowButton = FilledButton.icon(
+      onPressed: syncing
+          ? null
+          : () async {
+              final ran = await ref
+                  .read(syncControllerProvider.notifier)
+                  .syncNow();
+              if (!ran && context.mounted) {
+                showSnack(context, context.l10n.syncOffline, offline: true);
+              }
+            },
+      style: FilledButton.styleFrom(
+        padding: EdgeInsets.symmetric(vertical: wide ? 0 : 13),
+        minimumSize: wide ? const Size.fromHeight(48) : null,
+        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+      ),
+      icon: const SvgIcon(
+        MeIcons.refresh,
+        size: 19,
+        strokeWidth: 1.9,
+        color: Colors.white,
+      ),
+      label: Text(context.l10n.meBackupSyncNow),
+    );
+    final switchButton = InkWell(
+      borderRadius: BorderRadius.circular(Radii.button),
+      onTap: () => _switchAccount(context, ref),
+      child: Container(
+        height: wide ? 48 : null,
+        alignment: wide ? Alignment.center : null,
+        padding: EdgeInsets.symmetric(vertical: wide ? 0 : 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(Radii.button),
+          border: Border.all(color: outline, width: 1.5),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgIcon(AppIcons.swap, size: 19, color: t.text2, strokeWidth: 1.8),
+            const SizedBox(width: 8),
+            Text(
+              context.l10n.meBackupChangeAccount,
+              style: TextStyle(
+                color: t.text2,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
 
     return MePageFrame(
@@ -181,15 +243,17 @@ class BackupPage extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [
           MePanel(
-            padding: const EdgeInsets.all(16),
+            padding: wide
+                ? const EdgeInsets.symmetric(horizontal: 20, vertical: 18)
+                : const EdgeInsets.all(16),
             child: Row(
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: wide ? 46 : 44,
+                  height: wide ? 46 : 44,
                   decoration: BoxDecoration(
                     color: dark ? t.official.bg : const Color(0xFFEAF0F5),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(wide ? 13 : 12),
                   ),
                   child: Center(
                     child: SvgIcon(
@@ -200,7 +264,7 @@ class BackupPage extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: wide ? 14 : 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +281,10 @@ class BackupPage extends ConsumerWidget {
                         linked
                             ? s.accountEmail!
                             : context.l10n.meBackupNoAccount,
-                        style: TextStyle(fontSize: 12, color: t.text2),
+                        style: TextStyle(
+                          fontSize: wide ? 13 : 12,
+                          color: t.text2,
+                        ),
                       ),
                     ],
                   ),
@@ -237,7 +304,7 @@ class BackupPage extends ConsumerWidget {
                         context.l10n.meBackupLinked,
                         style: TextStyle(
                           color: green,
-                          fontSize: 12,
+                          fontSize: wide ? 13 : 12,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -262,11 +329,15 @@ class BackupPage extends ConsumerWidget {
           ] else ...[
             const SizedBox(height: 14),
             MePanel(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+              padding: EdgeInsets.symmetric(
+                horizontal: wide ? 20 : 16,
+                vertical: wide ? 4 : 2,
+              ),
               child: Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    constraints: BoxConstraints(minHeight: wide ? 64 : 0),
+                    padding: EdgeInsets.symmetric(vertical: wide ? 10 : 14),
                     decoration: BoxDecoration(
                       border: Border(bottom: BorderSide(color: divider)),
                     ),
@@ -278,13 +349,14 @@ class BackupPage extends ConsumerWidget {
                             children: [
                               Text(
                                 context.l10n.meBackupAutoSync,
-                                style: TextStyle(fontSize: 14.5),
+                                style: TextStyle(fontSize: wide ? 15 : 14.5),
                               ),
                               sub(context.l10n.meBackupLastBackup(lastBackup)),
                             ],
                           ),
                         ),
                         AppSwitch(
+                          large: wide,
                           value: s.autoSync,
                           onChanged: notifier.setAutoSync,
                           semanticLabel: context.l10n.meBackupAutoSync,
@@ -292,8 +364,10 @@ class BackupPage extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  Container(
+                    constraints: BoxConstraints(minHeight: wide ? 64 : 0),
+                    padding: EdgeInsets.symmetric(vertical: wide ? 10 : 14),
+                    alignment: Alignment.center,
                     child: Row(
                       children: [
                         Expanded(
@@ -302,58 +376,64 @@ class BackupPage extends ConsumerWidget {
                             children: [
                               Text(
                                 context.l10n.meBackupForegroundRefresh,
-                                style: TextStyle(fontSize: 14.5),
+                                style: TextStyle(fontSize: wide ? 15 : 14.5),
                               ),
                               sub(context.l10n.meBackupForegroundRefreshDesc),
                             ],
                           ),
                         ),
                         const SizedBox(width: 10),
-                        PopupMenuButton<int>(
-                          tooltip: context.l10n.meBackupRefreshInterval,
-                          initialValue: s.refreshMinutes,
-                          onSelected: notifier.setRefreshMinutes,
-                          color: t.surface,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          itemBuilder: (_) => [
-                            for (final m in refreshOptions)
-                              PopupMenuItem(
-                                value: m,
-                                child: Text(
-                                  context.l10n.meBackupEveryMinutes(m),
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                              ),
-                          ],
-                          child: Container(
-                            padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
-                            decoration: BoxDecoration(
-                              color: t.surface,
+                        if (wide)
+                          _IntervalSegments(
+                            value: s.refreshMinutes,
+                            onChanged: notifier.setRefreshMinutes,
+                          )
+                        else
+                          PopupMenuButton<int>(
+                            tooltip: context.l10n.meBackupRefreshInterval,
+                            initialValue: s.refreshMinutes,
+                            onSelected: notifier.setRefreshMinutes,
+                            color: t.surface,
+                            shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: outline),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  context.l10n.meBackupEveryMinutes(
-                                    s.refreshMinutes,
+                            itemBuilder: (_) => [
+                              for (final m in refreshOptions)
+                                PopupMenuItem(
+                                  value: m,
+                                  child: Text(
+                                    context.l10n.meBackupEveryMinutes(m),
+                                    style: const TextStyle(fontSize: 13),
                                   ),
-                                  style: const TextStyle(fontSize: 13),
                                 ),
-                                const SizedBox(width: 2),
-                                SvgIcon(
-                                  AppIcons.chevronDown,
-                                  size: 16,
-                                  color: t.text3,
-                                  strokeWidth: 2,
-                                ),
-                              ],
+                            ],
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
+                              decoration: BoxDecoration(
+                                color: t.surface,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: outline),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    context.l10n.meBackupEveryMinutes(
+                                      s.refreshMinutes,
+                                    ),
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  SvgIcon(
+                                    AppIcons.chevronDown,
+                                    size: 16,
+                                    color: t.text3,
+                                    strokeWidth: 2,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -365,97 +445,208 @@ class BackupPage extends ConsumerWidget {
               Text(error, style: TextStyle(color: t.danger, fontSize: 13)),
             ],
             const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: syncing
-                  ? null
-                  : () async {
-                      final ran = await ref
-                          .read(syncControllerProvider.notifier)
-                          .syncNow();
-                      if (!ran && context.mounted) {
-                        showSnack(
-                          context,
-                          context.l10n.syncOffline,
-                          offline: true,
-                        );
-                      }
-                    },
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                textStyle: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              icon: const SvgIcon(
-                MeIcons.refresh,
-                size: 19,
-                strokeWidth: 1.9,
-                color: Colors.white,
-              ),
-              label: Text(context.l10n.meBackupSyncNow),
-            ),
-            const SizedBox(height: 10),
-            InkWell(
-              borderRadius: BorderRadius.circular(Radii.button),
-              onTap: () => _switchAccount(context, ref),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(Radii.button),
-                  border: Border.all(color: outline, width: 1.5),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SvgIcon(
-                      AppIcons.swap,
-                      size: 19,
-                      color: t.text2,
-                      strokeWidth: 1.8,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      context.l10n.meBackupChangeAccount,
-                      style: TextStyle(
-                        color: t.text2,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            if (wide)
+              Row(
+                children: [
+                  Expanded(child: syncNowButton),
+                  const SizedBox(width: 12),
+                  Expanded(child: switchButton),
+                ],
+              )
+            else ...[
+              syncNowButton,
+              const SizedBox(height: 10),
+              switchButton,
+            ],
           ],
           if (linked) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: wide ? 12 : 10),
             Text(
               context.l10n.meBackupDriveNote,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11.5, color: t.text3, height: 1.5),
+              textAlign: wide ? TextAlign.start : TextAlign.center,
+              style: TextStyle(
+                fontSize: wide ? 12.5 : 11.5,
+                color: t.text3,
+                height: wide ? 1.6 : 1.5,
+              ),
             ),
           ],
           if (linked)
             Padding(
-              padding: const EdgeInsets.only(top: 34),
-              child: InkWell(
-                onTap: () => _unlink(context, ref),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    context.l10n.meBackupUnlink,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: t.danger,
+              padding: EdgeInsets.only(top: wide ? 28 : 34),
+              child: Align(
+                alignment: wide ? Alignment.centerLeft : Alignment.center,
+                widthFactor: wide ? 1 : null,
+                child: InkWell(
+                  onTap: () => _unlink(context, ref),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      context.l10n.meBackupUnlink,
+                      textAlign: wide ? TextAlign.start : TextAlign.center,
+                      style: TextStyle(
+                        fontSize: wide ? 14.5 : 14,
+                        fontWeight: FontWeight.w600,
+                        color: t.danger,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// 前台自動刷新間隔的分段選擇（Backup 稿 1194）：1／5／15／30 分鐘。
+class _IntervalSegments extends StatelessWidget {
+  const _IntervalSegments({required this.value, required this.onChanged});
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Semantics(
+      container: true,
+      label: context.l10n.meBackupRefreshInterval,
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: dark ? t.chipBg : const Color(0xFFF3EDE4),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: 3,
+          children: [
+            for (final m in refreshOptions)
+              Semantics(
+                button: true,
+                selected: m == value,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onChanged(m),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: Center(
+                      widthFactor: 1,
+                      child: Container(
+                        height: 30,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: m == value ? t.surface : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: m == value
+                              ? const [
+                                  BoxShadow(
+                                    color: Color(0x1F000000),
+                                    blurRadius: 2,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Text(
+                          context.l10n.ipadsyncMinutes(m),
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: m == value
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// ≥600 的取消連結確認（BackupUnlink 稿）：置中 alert，340 寬，文字置中，
+/// 底部「取消」「確認取消連結」兩個全寬按鈕（50 高）以細線分隔。回傳 true＝確認。
+class _UnlinkAlertWide extends StatelessWidget {
+  const _UnlinkAlertWide();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final line = dark ? t.border : const Color(0xFFEEE5D9);
+    Widget action(String label, bool confirm) => Expanded(
+      child: InkWell(
+        onTap: () => Navigator.pop(context, confirm),
+        child: Container(
+          height: 50,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            border: confirm ? null : Border(right: BorderSide(color: line)),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: confirm ? FontWeight.w700 : FontWeight.w600,
+              color: confirm ? t.danger : t.text2,
+            ),
+          ),
+        ),
+      ),
+    );
+    return Dialog(
+      backgroundColor: t.surface,
+      surfaceTintColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 340),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    context.l10n.meBackupUnlinkTitle,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontSize: 18),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.l10n.meBackupUnlinkBody,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.65,
+                      color: dark ? t.text2 : const Color(0xFF4A453F),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, thickness: 1, color: line),
+            Row(
+              children: [
+                action(context.l10n.commonCancel, false),
+                action(context.l10n.meBackupUnlinkConfirm, true),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

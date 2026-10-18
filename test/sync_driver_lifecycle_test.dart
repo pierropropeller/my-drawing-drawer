@@ -42,7 +42,7 @@ void main() {
 
   Future<void> pumpDriver(WidgetTester tester, {String? account}) async {
     SharedPreferences.setMockInitialValues({
-      if (account != null) 'accountEmail': account,
+      'accountEmail': ?account,
       'onboarded': true,
       'refreshMinutes': 5,
     });

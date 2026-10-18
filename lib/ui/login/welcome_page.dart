@@ -144,83 +144,14 @@ class _WelcomeWide extends StatelessWidget {
   const _WelcomeWide({required this.ref});
   final WidgetRef ref;
 
-  // 稿的色塊與高度（依 CSS column-count:3 由上而下填欄：每欄 4 塊）。
-  static const _colors = [
-    Color(0xFFEAD9E0),
-    Color(0xFFDCE6EC),
-    Color(0xFFF2E2CE),
-    Color(0xFFE0E8DD),
-    Color(0xFFF5DED6),
-    Color(0xFFE6E0EE),
-    Color(0xFFE7ECF2),
-    Color(0xFFF5EFCF),
-    Color(0xFFF6E7EA),
-    Color(0xFFECE6F3),
-    Color(0xFFFBE7E0),
-    Color(0xFFE7EFE4),
-  ];
-  static const _heights = [
-    220.0,
-    160.0,
-    250.0,
-    180.0,
-    210.0,
-    150.0,
-    240.0,
-    190.0,
-    170.0,
-    230.0,
-    160.0,
-    200.0,
-  ];
-
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    Color tile(int i) => dark
-        ? Color.alphaBlend(_colors[i].withValues(alpha: .16), t.surface)
-        : _colors[i];
     return Scaffold(
       body: Row(
         children: [
           // 裝飾牆：不進無障礙樹、不可操作。
-          Expanded(
-            child: ExcludeSemantics(
-              child: Container(
-                color: dark ? t.nav : const Color(0xFFF3EDE4),
-                padding: const EdgeInsets.all(40),
-                child: ClipRect(
-                  child: SingleChildScrollView(
-                    physics: const NeverScrollableScrollPhysics(),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (var c = 0; c < 3; c++) ...[
-                          if (c > 0) const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                for (var r = 0; r < 4; r++)
-                                  Container(
-                                    height: _heights[c * 4 + r],
-                                    margin: const EdgeInsets.only(bottom: 14),
-                                    decoration: BoxDecoration(
-                                      color: tile(c * 4 + r),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          const Expanded(child: _TileWall()),
           Expanded(
             child: SafeArea(
               child: Center(
@@ -262,6 +193,84 @@ class _WelcomeWide extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 寬版開頭與連結頁左半的裝飾瀑布牆（Welcome／Connect 稿）：3 欄、12 塊色塊，只作裝飾。
+class _TileWall extends StatelessWidget {
+  const _TileWall();
+
+  // 稿的色塊與高度（依 CSS column-count:3 由上而下填欄：每欄 4 塊）。
+  static const _colors = [
+    Color(0xFFEAD9E0),
+    Color(0xFFDCE6EC),
+    Color(0xFFF2E2CE),
+    Color(0xFFE0E8DD),
+    Color(0xFFF5DED6),
+    Color(0xFFE6E0EE),
+    Color(0xFFE7ECF2),
+    Color(0xFFF5EFCF),
+    Color(0xFFF6E7EA),
+    Color(0xFFECE6F3),
+    Color(0xFFFBE7E0),
+    Color(0xFFE7EFE4),
+  ];
+  static const _heights = [
+    220.0,
+    160.0,
+    250.0,
+    180.0,
+    210.0,
+    150.0,
+    240.0,
+    190.0,
+    170.0,
+    230.0,
+    160.0,
+    200.0,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    Color tile(int i) => dark
+        ? Color.alphaBlend(_colors[i].withValues(alpha: .16), t.surface)
+        : _colors[i];
+    return ExcludeSemantics(
+      child: Container(
+        color: dark ? t.nav : const Color(0xFFF3EDE4),
+        padding: const EdgeInsets.all(40),
+        child: ClipRect(
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var c = 0; c < 3; c++) ...[
+                  if (c > 0) const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        for (var r = 0; r < 4; r++)
+                          Container(
+                            height: _heights[c * 4 + r],
+                            margin: const EdgeInsets.only(bottom: 14),
+                            decoration: BoxDecoration(
+                              color: tile(c * 4 + r),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -339,8 +348,162 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
     SyncFirstPage.open(context, ref, replace: true);
   }
 
+  void _offlineContinue() {
+    ref.read(settingsProvider.notifier).setOnboarded(true);
+    Navigator.of(context).popUntil((r) => r.isFirst);
+  }
+
+  /// 寬版（Connect 稿 1194）：左裝飾牆＋右側表單；返回鈕在右半左上角，
+  /// 帳號卡與按鈕闊度 400。
+  Widget _buildWide(BuildContext context) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final email = _email;
+    final nickname = ref.watch(settingsProvider.select((s) => s.nickname));
+    return Scaffold(
+      body: Row(
+        children: [
+          const Expanded(child: _TileWall()),
+          Expanded(
+            child: SafeArea(
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 28, 0, 40),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Center(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 400,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    const _Illustration(wide: true),
+                                    const SizedBox(height: 28),
+                                    Text(
+                                      context.l10n.loginConnectGoogle,
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineMedium
+                                          ?.copyWith(fontSize: 30),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      context.l10n.ipadsyncConnectHint,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        height: 1.7,
+                                        color: t.text2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 32),
+                                    if (email == null)
+                                      _AddAccountRow(busy: _busy, onTap: _pick)
+                                    else
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 18,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: t.surface,
+                                          border: Border.all(
+                                            color: t.borderCard,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            _AccountRow(
+                                              wide: true,
+                                              email: email,
+                                              name: nickname.isEmpty
+                                                  ? email.split('@').first
+                                                  : nickname,
+                                              dividerColor: dark
+                                                  ? t.border
+                                                  : const Color(0xFFF1EADF),
+                                            ),
+                                            _OtherAccountRow(
+                                              wide: true,
+                                              busy: _busy,
+                                              onTap: _pick,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 400,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _DarkButton(
+                                height: 52,
+                                label: context.l10n.loginConnectAndStart,
+                                onTap: email == null ? null : _start,
+                              ),
+                              const SizedBox(height: 10),
+                              _OfflineLink(tall: true, onTap: _offlineContinue),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    left: 20,
+                    top: 24,
+                    child: Semantics(
+                      button: true,
+                      label: context.l10n.commonBack,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => Navigator.of(context).maybePop(),
+                        child: SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: Center(
+                            child: SvgIcon(
+                              AppIcons.back,
+                              strokeWidth: 1.9,
+                              color: t.ink,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (WindowClass.of(context).isWide) return _buildWide(context);
     final t = context.tokens;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final email = _email;
@@ -425,45 +588,7 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
                                   ? t.border
                                   : const Color(0xFFF1EADF),
                             ),
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: _busy ? null : _pick,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 40,
-                                      height: 40,
-                                      child: DashedBox(
-                                        color: t.dashed,
-                                        radius: 20,
-                                        child: Center(
-                                          child: SvgIcon(
-                                            AppIcons.plus,
-                                            size: 18,
-                                            strokeWidth: 1.9,
-                                            color: t.dashedText,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        context.l10n.loginUseAnotherAccount,
-                                        style: TextStyle(
-                                          fontSize: 14.5,
-                                          color: t.text2,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                            _OtherAccountRow(busy: _busy, onTap: _pick),
                           ],
                         ),
                       ),
@@ -481,21 +606,7 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
                     onTap: email == null ? null : _start,
                   ),
                   const SizedBox(height: 8),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      ref.read(settingsProvider.notifier).setOnboarded(true);
-                      Navigator.of(context).popUntil((r) => r.isFirst);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 5),
-                      child: Text(
-                        context.l10n.loginOfflineContinue,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 13.5, color: t.text3),
-                      ),
-                    ),
-                  ),
+                  _OfflineLink(onTap: _offlineContinue),
                 ],
               ),
             ),
@@ -506,9 +617,10 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
   }
 }
 
-/// 手機 ⇄ 雲 ⇄ 電腦 的插圖。
+/// 手機 ⇄ 雲 ⇄ 電腦 的插圖。[wide]＝iPad 稿（手機 58×96、平板 118×88、雲 44、間距 18）。
 class _Illustration extends StatelessWidget {
-  const _Illustration();
+  const _Illustration({this.wide = false});
+  final bool wide;
 
   @override
   Widget build(BuildContext context) {
@@ -520,38 +632,126 @@ class _Illustration extends StatelessWidget {
           decoration: BoxDecoration(
             color: t.surface,
             border: Border.all(color: t.dashed, width: 2),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(wide ? 13 : 14),
           ),
           child: Center(
             child: SvgIcon(icon, size: size, strokeWidth: 1.5, color: color),
           ),
         );
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        box(66, 104, AppIcons.deviceSmall, 26, t.fanArt.fg),
-        const SizedBox(width: 14),
-        Column(
-          mainAxisSize: MainAxisSize.min,
+    final gap = SizedBox(width: wide ? 18 : 14);
+    return ExcludeSemantics(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          wide
+              ? box(58, 96, AppIcons.deviceSmall, 22, t.fanArt.fg)
+              : box(66, 104, AppIcons.deviceSmall, 26, t.fanArt.fg),
+          gap,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgIcon(
+                AppIcons.cloudSync,
+                size: wide ? 44 : 40,
+                strokeWidth: 1.5,
+                color: t.piece.fg,
+              ),
+              const SizedBox(height: 4),
+              SvgIcon(
+                AppIcons.codeArrows,
+                size: wide ? 20 : 18,
+                strokeWidth: 2,
+                color: t.piece.fg,
+              ),
+            ],
+          ),
+          gap,
+          wide
+              ? box(118, 88, AppIcons.deviceLarge, 30, t.official.fg)
+              : box(84, 110, AppIcons.deviceLarge, 30, t.official.fg),
+        ],
+      ),
+    );
+  }
+}
+
+/// 「使用其他帳號」列（已選帳號卡的第二列）。[wide]＝iPad 稿：高 64、虛線圓 42、字 15。
+class _OtherAccountRow extends StatelessWidget {
+  const _OtherAccountRow({
+    required this.busy,
+    required this.onTap,
+    this.wide = false,
+  });
+  final bool busy;
+  final VoidCallback onTap;
+  final bool wide;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final d = wide ? 42.0 : 40.0;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: busy ? null : onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: wide ? 11 : 14),
+        child: Row(
           children: [
-            SvgIcon(
-              AppIcons.cloudSync,
-              size: 40,
-              strokeWidth: 1.5,
-              color: t.piece.fg,
+            SizedBox(
+              width: d,
+              height: d,
+              child: DashedBox(
+                color: t.dashed,
+                radius: d / 2,
+                child: Center(
+                  child: SvgIcon(
+                    AppIcons.plus,
+                    size: 18,
+                    strokeWidth: 1.9,
+                    color: t.dashedText,
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 4),
-            SvgIcon(
-              AppIcons.codeArrows,
-              size: 18,
-              strokeWidth: 2,
-              color: t.piece.fg,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                context.l10n.loginUseAnotherAccount,
+                style: TextStyle(fontSize: wide ? 15 : 14.5, color: t.text2),
+              ),
             ),
           ],
         ),
-        const SizedBox(width: 14),
-        box(84, 110, AppIcons.deviceLarge, 30, t.official.fg),
-      ],
+      ),
+    );
+  }
+}
+
+/// 「離線繼續，暫不同步」。[tall]＝iPad 稿：觸控高度 ≥44、字 14；手機維持上下各 5。
+class _OfflineLink extends StatelessWidget {
+  const _OfflineLink({required this.onTap, this.tall = false});
+  final VoidCallback onTap;
+  final bool tall;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = Text(
+      context.l10n.loginOfflineContinue,
+      textAlign: TextAlign.center,
+      style: TextStyle(fontSize: tall ? 14 : 13.5, color: context.tokens.text3),
+    );
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: tall
+          ? ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 44),
+              child: Center(child: label),
+            )
+          : Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: label,
+            ),
     );
   }
 }
@@ -625,7 +825,11 @@ class _AccountRow extends StatelessWidget {
     required this.email,
     required this.name,
     required this.dividerColor,
+    this.wide = false,
   });
+
+  /// iPad 稿：列高 68、頭像 42、名稱 15／email 12.5、勾圈 24。
+  final bool wide;
   final String email;
   final String name;
   final Color dividerColor;
@@ -634,15 +838,16 @@ class _AccountRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      height: wide ? 68 : null,
+      padding: EdgeInsets.symmetric(vertical: wide ? 0 : 14),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: dividerColor)),
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: wide ? 42 : 40,
+            height: wide ? 42 : 40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: t.piece.bg,
@@ -653,7 +858,7 @@ class _AccountRow extends StatelessWidget {
                   ? context.l10n.meAvatarFallback
                   : name.characters.first.toUpperCase(),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontSize: 18,
+                fontSize: wide ? 19 : 18,
                 fontWeight: FontWeight.w700,
                 color: t.piece.fg,
               ),
@@ -668,8 +873,8 @@ class _AccountRow extends StatelessWidget {
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14.5,
+                  style: TextStyle(
+                    fontSize: wide ? 15 : 14.5,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -677,14 +882,14 @@ class _AccountRow extends StatelessWidget {
                   email,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: t.text3),
+                  style: TextStyle(fontSize: wide ? 12.5 : 12, color: t.text3),
                 ),
               ],
             ),
           ),
           Container(
-            width: 22,
-            height: 22,
+            width: wide ? 24 : 22,
+            height: wide ? 24 : 22,
             decoration: BoxDecoration(color: t.accent, shape: BoxShape.circle),
             child: const Center(
               child: SvgIcon(
