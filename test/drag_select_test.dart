@@ -241,4 +241,45 @@ void main() {
       null,
     );
   });
+
+  testWidgets('按在項目以外的地方不參與手勢（旁邊的長按照常觸發）', (t) async {
+    var outside = 0;
+    final events = <Set<int>>[];
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DragSelectArea(
+            itemCount: 1,
+            isSelected: (_) => false,
+            onChanged: (idx, done) => events.add(idx),
+            child: Row(
+              children: [
+                DragSelectItem(
+                  index: 0,
+                  child: const ColoredBox(
+                    key: ValueKey('item'),
+                    color: Colors.blue,
+                    child: SizedBox(width: 100, height: 100),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    key: const ValueKey('outside'),
+                    behavior: HitTestBehavior.opaque,
+                    onLongPress: () => outside++,
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await t.longPress(find.byKey(const ValueKey('outside')));
+    expect(outside, 1);
+    expect(events, isEmpty);
+    await t.longPress(find.byKey(const ValueKey('item')));
+    expect(events, isNotEmpty);
+  });
 }

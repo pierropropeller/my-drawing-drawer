@@ -34,7 +34,8 @@ import 'package:flutter/services.dart';
 /// - 手指離 [DragSelectArea] 上／下邊緣 [DragSelectArea.edgeExtent]px 內自動捲動，越靠邊越快。
 /// - 每多選中一個項目輕震一下（[HapticFeedback.selectionClick]）。
 /// - 放手後 `onChanged(..., finished: true)`；之後維持多選，由頁面決定。
-/// - 只有長按成立後才接管手勢；一般捲動與點擊不受影響。
+/// - 只有長按成立後才接管手勢；一般捲動與點擊不受影響。手指按在項目以外的地方時完全不參與。
+/// - 拖曳途中項目可以換版面（D-095：摸魚列表長按後換成九宮格），選取以 index 為準。
 ///
 /// 命中判斷：項目向最近的 [DragSelectArea] 註冊自己的 RenderBox，用全域座標矩形找手指下的項目，
 /// 所以不依賴版面（網格、瀑布、任意高度都行）。
@@ -195,8 +196,20 @@ class DragSelectAreaState extends State<DragSelectArea>
     }
   }
 
+  /// 拖曳途中捲動區可能被換掉（例如列表切成九宮格）：舊的失效就改抓現有項目所在的捲動區。
+  ScrollPosition? _livePosition() {
+    final p = _position;
+    if (p != null && p.context.storageContext.mounted) return p;
+    for (final item in _items.values) {
+      if (item.box == null) continue;
+      final next = Scrollable.maybeOf(item.context)?.position;
+      if (next != null) return _position = next;
+    }
+    return null;
+  }
+
   void _onTick(Duration elapsed) {
-    final pos = _position;
+    final pos = _livePosition();
     if (!_active || pos == null || !pos.hasPixels || _scrollVelocity == 0) {
       return;
     }
@@ -229,20 +242,31 @@ class DragSelectAreaState extends State<DragSelectArea>
       state: this,
       child: RawGestureDetector(
         gestures: {
-          LongPressGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
-                () => LongPressGestureRecognizer(),
-                (r) => r
-                  ..onLongPressStart = _onStart
-                  ..onLongPressMoveUpdate = _onMove
-                  ..onLongPressEnd = ((d) => _onEnd())
-                  ..onLongPressCancel = _onEnd,
-              ),
+          _ItemLongPress: GestureRecognizerFactoryWithHandlers<_ItemLongPress>(
+            () => _ItemLongPress(
+              (global) => widget.enabled && _indexAt(global) != null,
+            ),
+            (r) => r
+              ..onLongPressStart = _onStart
+              ..onLongPressMoveUpdate = _onMove
+              ..onLongPressEnd = ((d) => _onEnd())
+              ..onLongPressCancel = _onEnd,
+          ),
         },
         child: widget.child,
       ),
     );
   }
+}
+
+/// 只在手指按在項目上時才參與手勢競爭（按在項目以外的地方，例如並排的詳情區，不搶手勢）。
+class _ItemLongPress extends LongPressGestureRecognizer {
+  _ItemLongPress(this.hit);
+  final bool Function(Offset global) hit;
+
+  @override
+  bool isPointerAllowed(PointerDownEvent event) =>
+      hit(event.position) && super.isPointerAllowed(event);
 }
 
 class _Scope extends InheritedWidget {
