@@ -1,10 +1,12 @@
 import 'app_name.dart';
 import 'l10n/l10n.dart';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'debug/input_diagnostics.dart';
 import 'media/player_frame_poster_generator.dart';
 import 'share/share_inbox.dart';
 import 'state/app_icon.dart';
@@ -15,7 +17,11 @@ import 'ui/common/root_overlay_guard.dart';
 import 'ui/shell.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  if (kDebugMode) {
+    DebugDiagBinding.ensureInitialized();
+  } else {
+    WidgetsFlutterBinding.ensureInitialized();
+  }
   final prefs = await SharedPreferences.getInstance();
   runApp(
     ProviderScope(
@@ -76,6 +82,9 @@ class HuaKengApp extends ConsumerWidget {
           accent: accent,
         ),
         themeMode: ref.watch(themeModeProvider),
+        builder: kDebugMode
+            ? (context, child) => InputDiagnosticsOverlay(child: child!)
+            : null,
         home: const AppShell(),
       ),
     );
