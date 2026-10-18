@@ -77,10 +77,15 @@ void main() {
     return (items, paths, tmp);
   }
 
-  // 第 i 格的中心（84px 格、間距 8、左邊距 20；一排塞得下就都在第一排）。
+  // 第 i 格的中心（一行固定 5 格：邊長＝（闊 − 4×間距 8）÷ 5）。
   Offset cell(WidgetTester tester, int i) {
-    final origin = tester.getTopLeft(find.byType(ReorderableImageGrid));
-    return origin + Offset((i % 4) * 92 + 42, (i ~/ 4) * 92 + 42);
+    final grid = find.byType(ReorderableImageGrid);
+    final origin = tester.getTopLeft(grid);
+    final w = tester.getSize(grid).width;
+    final size = ((w - 32) / 5).floorToDouble();
+    final pitch = size + 8;
+    return origin +
+        Offset((i % 5) * pitch + size / 2, (i ~/ 5) * pitch + size / 2);
   }
 
   testWidgets('長按浮起：× 全隱藏、原位變虛線空位，放手後 × 回來', (tester) async {

@@ -30,10 +30,17 @@ class ReorderableImageGrid extends StatefulWidget {
     this.trailing,
     this.onReorder,
     this.spacing = 8,
+    this.columns = 5,
   });
 
   final int count;
+
+  /// 沒有 [columns] 時的固定邊長。
   final double size;
+
+  /// 一行固定幾張：邊長＝（可用闊 − 間距）÷ 欄數，不同機型寬度都剛好排滿一行（預設 5 欄＝各 20%）。
+  /// 傳 null＝用固定的 [size]。
+  final int? columns;
   final double spacing;
   final Widget Function(BuildContext context, int index, bool hideActions)
   itemBuilder;
@@ -86,7 +93,8 @@ class _ReorderableImageGridState extends State<ReorderableImageGrid> {
     _speed = 0;
   }
 
-  double get _pitch => widget.size + widget.spacing;
+  double _size = 84;
+  double get _pitch => _size + widget.spacing;
 
   Offset _slotOffset(int slot) =>
       Offset((slot % _cols) * _pitch, (slot ~/ _cols) * _pitch);
@@ -197,9 +205,15 @@ class _ReorderableImageGridState extends State<ReorderableImageGrid> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final size = widget.size;
     return LayoutBuilder(
       builder: (context, c) {
+        final cols = widget.columns;
+        _size = cols != null && c.maxWidth.isFinite
+            ? ((c.maxWidth - widget.spacing * (cols - 1)) / cols)
+                  .floorToDouble()
+                  .clamp(40.0, 400.0)
+            : widget.size;
+        final size = _size;
         _width = c.maxWidth.isFinite ? c.maxWidth : 5 * _pitch;
         _cols = ((_width + widget.spacing) ~/ _pitch).clamp(1, 1 << 20);
         final total = widget.count + (widget.trailing != null ? 1 : 0);
