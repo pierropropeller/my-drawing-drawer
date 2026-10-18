@@ -14,6 +14,7 @@ import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/ui/common/clamped_text.dart';
 import 'package:huakeng/ui/album/album_image.dart';
 import 'package:huakeng/theme/app_theme.dart';
+import 'package:huakeng/ui/common/detail_carousel.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/entity/connect_field.dart';
 import 'package:huakeng/ui/entity/draft_detail_page.dart';
@@ -600,6 +601,44 @@ void main() {
       await tester.tap(find.bySemanticsLabel('刪除'));
       await settle(tester);
       expect(find.text('刪除這份摸魚？'), findsOneWidget);
+      await unmount(tester);
+    });
+  });
+
+  group('腦洞詳情有圖片用摸魚詳情版型（D-092）', () {
+    Future<String> ideaWith(int n) => db.saveIdea(
+      pitId: pitId,
+      title: '有圖腦洞',
+      body: '內文',
+      images: [for (var i = 0; i < n; i++) NewImage(file: 'i$i.png')],
+      tagIds: const [],
+      draftIds: const [],
+      pieceIds: const [],
+    );
+
+    testWidgets('多張：圖在最上面（頁碼膠囊、縮圖列），標題在圖下方', (tester) async {
+      final id = await ideaWith(2);
+      await show(tester, IdeaDetailPage(ideaId: id, pitId: pitId));
+      expect(find.byType(DetailCarousel), findsOneWidget);
+      expect(find.text('1 / 2'), findsOneWidget);
+      expect(find.bySemanticsLabel('第 2 張'), findsOneWidget);
+      expect(
+        tester.getBottomLeft(find.byType(DetailCarousel)).dy,
+        lessThanOrEqualTo(tester.getTopLeft(find.text('有圖腦洞')).dy),
+      );
+      await unmount(tester);
+    });
+
+    testWidgets('單張沒有膠囊與縮圖列；沒有圖保持原樣（沒有圖片區）', (tester) async {
+      final one = await ideaWith(1);
+      await show(tester, IdeaDetailPage(ideaId: one, pitId: pitId));
+      expect(find.byType(DetailCarousel), findsOneWidget);
+      expect(find.byKey(const ValueKey('detailPagePill')), findsNothing);
+      await unmount(tester);
+      final none = await newIdea('沒圖腦洞');
+      await show(tester, IdeaDetailPage(ideaId: none, pitId: pitId));
+      expect(find.byType(DetailCarousel), findsNothing);
+      expect(find.text('沒圖腦洞'), findsOneWidget);
       await unmount(tester);
     });
   });

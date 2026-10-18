@@ -7,8 +7,6 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../common/app_icons.dart';
-import '../common/media_widgets.dart';
-import '../common/media_mini.dart';
 import '../common/detail_carousel.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
@@ -96,7 +94,7 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
                 child: ListView(
                   padding: const EdgeInsets.only(bottom: 32),
                   children: [
-                    _ImageStage(images: v.images),
+                    DetailImageStage(images: v.images),
                     if (plain)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
@@ -240,76 +238,6 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
           ],
         ),
       ),
-    );
-  }
-}
-
-/// 大圖（D-073：共用 [DetailCarousel]，框比例依最瘦長那張）。多張時下方縮圖列（目前這張描主色框）。
-class _ImageStage extends StatefulWidget {
-  const _ImageStage({required this.images});
-  final List<ImageRef> images;
-
-  @override
-  State<_ImageStage> createState() => _ImageStageState();
-}
-
-class _ImageStageState extends State<_ImageStage> {
-  final _controller = PageController();
-  int _index = 0;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    final images = widget.images;
-    final multi = images.length > 1;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        DetailCarousel(
-          images: images,
-          controller: _controller,
-          onPageChanged: (i) => setState(() => _index = i),
-          emptyAspect: 3 / 4,
-        ),
-        if (multi)
-          SizedBox(
-            height: 68,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              itemCount: images.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (_, i) => Semantics(
-                button: true,
-                label: context.l10n.draftDetailImageLabel(i + 1),
-                child: GestureDetector(
-                  onTap: () => _controller.jumpToPage(i),
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: i == _index
-                          ? Border.all(color: t.accent, width: 2)
-                          : null,
-                    ),
-                    child: MiniMediaThumb(
-                      MediaSource.fromImageRef(images[i]),
-                      cacheWidth: 200,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
     );
   }
 }
