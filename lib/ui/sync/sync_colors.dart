@@ -46,15 +46,16 @@ class SyncColors {
     badgeBg: Color(0xF0FFFFFF),
   );
 
+  /// 深色（P-022，SyncPopoverDark）：環 #7F9DBB、軌道 #2E3A46、文字 #93AECB。
   static const dark = SyncColors._(
-    progress: Color(0xFF93AECB),
-    track: Color(0xFF36404B),
-    strong: Color(0xFFA9BED4),
-    tagBg: Color(0xFF242B33),
-    waitTrack: Color(0xFF3A342E),
-    waitText: Color(0xFF8A8073),
-    divider: Color(0xFF2E2823),
-    badgeBg: Color(0xF02B2622),
+    progress: Color(0xFF7F9DBB),
+    track: Color(0xFF2E3A46),
+    strong: Color(0xFF93AECB),
+    tagBg: Color(0xFF26303A),
+    waitTrack: Color(0xFF332D28),
+    waitText: Color(0xFF8C8378),
+    divider: Color(0xFF332D28),
+    badgeBg: Color(0xF026221F),
   );
 
   static SyncColors of(BuildContext context) =>

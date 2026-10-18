@@ -149,10 +149,13 @@ class _SyncPopoverState extends ConsumerState<SyncPopover> {
                         decoration: BoxDecoration(
                           color: t.surface,
                           borderRadius: BorderRadius.circular(3),
-                          boxShadow: const [
+                          // 深色（SyncPopoverDark）：描邊改 white .06。
+                          boxShadow: [
                             BoxShadow(
-                              color: Color(0x0D2B2622),
-                              offset: Offset(-1, -1),
+                              color: dark
+                                  ? const Color(0x0FFFFFFF)
+                                  : const Color(0x0D2B2622),
+                              offset: const Offset(-1, -1),
                             ),
                           ],
                         ),
@@ -168,13 +171,15 @@ class _SyncPopoverState extends ConsumerState<SyncPopover> {
                       boxShadow: [
                         BoxShadow(
                           color: dark
-                              ? const Color(0x66000000)
+                              ? const Color(0x80000000)
                               : const Color(0x381E1B18),
                           blurRadius: 44,
                           offset: const Offset(0, 14),
                         ),
-                        const BoxShadow(
-                          color: Color(0x0D2B2622),
+                        BoxShadow(
+                          color: dark
+                              ? const Color(0x0FFFFFFF)
+                              : const Color(0x0D2B2622),
                           spreadRadius: 1,
                         ),
                       ],
