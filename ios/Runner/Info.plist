@@ -37,7 +37,7 @@
 	     CI 也可由 GitHub Secret GOOGLE_IOS_CLIENT_ID 在建置時自動寫入（見 .github/workflows/ios.yml）。
 	     沒換也能啟動，只是雲端同步會顯示登入失敗。 -->
 	<key>GIDClientID</key>
-	<string>REPLACE_WITH_IOS_CLIENT_ID.apps.googleusercontent.com</string>
+	<string>992292407578-5eb7gdhtfl1q8q1f0890fi7t0rsbh647.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -45,7 +45,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.REPLACE_WITH_IOS_CLIENT_ID</string>
+				<string>com.googleusercontent.apps.992292407578-5eb7gdhtfl1q8q1f0890fi7t0rsbh647</string>
 			</array>
 		</dict>
 	</array>
