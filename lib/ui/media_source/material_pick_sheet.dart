@@ -1,3 +1,5 @@
+import '../common/themed_sheet.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,17 +18,10 @@ import '../material/material_category.dart';
 /// 分類 chips 篩選、點格子多選（按點選的次序給序號）、底部「加入 N 張」。
 /// 回傳依點選次序排好的素材；關閉回傳 null。
 Future<List<MaterialImage>?> showMaterialPickSheet(BuildContext context) {
-  final t = context.tokens;
-  return showModalBottomSheet<List<MaterialImage>>(
+  return showThemedSheet<List<MaterialImage>>(
     context: context,
     useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: t.ground,
-    barrierColor: const Color(0xFF1E1A17).withValues(alpha: 0.42),
     constraints: const BoxConstraints(maxWidth: 560),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-    ),
     builder: (_) => const MaterialPickSheet(),
   );
 }

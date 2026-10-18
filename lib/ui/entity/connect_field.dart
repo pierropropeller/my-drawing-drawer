@@ -1,3 +1,5 @@
+import '../common/themed_sheet.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
@@ -84,14 +86,8 @@ Future<List<String>?> showConnectSheet(
   ConnectKind? kind,
   required List<ConnectOption> options,
   required List<String> selected,
-}) => showModalBottomSheet<List<String>>(
+}) => showThemedSheet<List<String>>(
   context: context,
-  isScrollControlled: true,
-  backgroundColor: context.tokens.ground,
-  barrierColor: const Color(0xFF1E1A17).withValues(alpha: 0.42),
-  shape: const RoundedRectangleBorder(
-    borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-  ),
   constraints: BoxConstraints(
     maxHeight: MediaQuery.sizeOf(context).height * 0.85,
   ),

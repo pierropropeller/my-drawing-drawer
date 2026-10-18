@@ -1,3 +1,5 @@
+import '../common/themed_sheet.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../data/database.dart';
@@ -20,15 +22,9 @@ Future<DayAddChoice?> showDayAddSheet(
   BuildContext context, {
   required List<Pit> pits,
 }) {
-  return showModalBottomSheet<DayAddChoice>(
+  return showThemedSheet<DayAddChoice>(
     context: context,
-    useRootNavigator: true, // 面板要蓋住底部導覽列
-    isScrollControlled: true,
-    backgroundColor: context.tokens.ground,
-    barrierColor: const Color(0x6B1E1A17), // rgba(30,26,23,.42)
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-    ),
+    useRootNavigator: true, // 面板要蓋住底部導覽列.42)
     builder: (_) => _DayAddSheet(pits: pits),
   );
 }

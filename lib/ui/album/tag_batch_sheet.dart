@@ -1,3 +1,5 @@
+import '../common/themed_sheet.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -28,15 +30,8 @@ Future<bool?> showBatchTagSheet(
   required AlbumCell cell,
   required List<String> ids,
 }) {
-  final t = context.tokens;
-  return showModalBottomSheet<bool>(
+  return showThemedSheet<bool>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: t.ground,
-    barrierColor: const Color(0xFF1E1A17).withValues(alpha: 0.42),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-    ),
     builder: (_) => BatchTagSheet(pitId: pitId, cell: cell, ids: ids),
   );
 }

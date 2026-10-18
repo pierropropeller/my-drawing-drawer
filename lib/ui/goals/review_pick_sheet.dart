@@ -1,3 +1,5 @@
+import '../common/themed_sheet.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,15 +21,8 @@ Future<bool?> showReviewPickSheet(
   required int month,
   String? current,
 }) {
-  final t = context.tokens;
-  return showModalBottomSheet<bool>(
+  return showThemedSheet<bool>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: t.ground,
-    barrierColor: const Color(0xFF1E1A17).withValues(alpha: 0.42),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-    ),
     builder: (_) => ReviewPickSheet(year: year, month: month, current: current),
   );
 }

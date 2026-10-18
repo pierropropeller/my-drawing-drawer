@@ -1,3 +1,5 @@
+import '../common/themed_sheet.dart';
+
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -132,7 +134,6 @@ Future<ShareChoice?> showShareSheet(
   ShareSection? section,
   String? groupId,
 }) {
-  final t = context.tokens;
   if (MediaQuery.sizeOf(context).width >= WindowClass.expandedMin) {
     return showDialog<ShareChoice>(
       context: context,
@@ -151,16 +152,10 @@ Future<ShareChoice?> showShareSheet(
       ),
     );
   }
-  return showModalBottomSheet<ShareChoice>(
+  return showThemedSheet<ShareChoice>(
     context: context,
     // 全域的 sheet：蓋在所有分頁之上。
     useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: t.ground,
-    barrierColor: const Color(0xFF1E1A17).withValues(alpha: 0.42),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-    ),
     builder: (_) => ShareSheet(
       paths: paths,
       initialPitId: pitId,
