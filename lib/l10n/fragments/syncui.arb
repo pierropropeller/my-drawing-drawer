@@ -22,6 +22,8 @@
   "syncuiListing": "正在列出雲端內容",
   "syncuiPullProgress": "資料 {done} / {total}",
   "@syncuiPullProgress": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
+  "syncuiThumbProgress": "縮圖 {done} / {total}",
+  "@syncuiThumbProgress": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
   "syncuiStalled": "同步太久沒有進展，已中止，稍後會自動重試",
   "syncuiTimeout": "連線逾時，請檢查網絡後再試（{step}）",
   "@syncuiTimeout": {"placeholders": {"step": {"type": "String"}}},

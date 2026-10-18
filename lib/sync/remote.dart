@@ -53,11 +53,19 @@ abstract class SyncRemote {
   });
 }
 
+/// 遠端能提供「由雲端自己產生的縮圖」時實作（D-099 的舊資料備援）。
+/// 新增成獨立介面（而不是塞進 [SyncRemote]），舊的／測試用的遠端不必改。
+abstract interface class ThumbnailFallbackRemote {
+  /// 取得 [name]（遠端原圖檔名，例如 `images__xxx.jpg`）由雲端產生的縮圖（長邊約 480）；
+  /// 雲端沒有縮圖、連結過期、請求失敗都回傳 null（不丟例外，授權過期除外）。
+  Future<Uint8List?> fallbackThumbnail(String name);
+}
+
 /// 記憶體遠端：測試與（日後）本機資料夾備份共用。
 ///
 /// 測試可設 [progressSteps] > 0 模擬分段傳輸：每次傳輸分成這麼多段回報進度，
 /// 段與段之間等 [stepDelay]；[onTransfer] 在每次傳輸開始時呼叫（可用來暫停／觀察）。
-class MemoryRemote implements SyncRemote {
+class MemoryRemote implements SyncRemote, ThumbnailFallbackRemote {
   MemoryRemote({
     this.progressSteps = 0,
     this.stepDelay = Duration.zero,
@@ -69,6 +77,12 @@ class MemoryRemote implements SyncRemote {
   final Future<void> Function(String name, bool isUpload)? onTransfer;
 
   final Map<String, Uint8List> files = {};
+
+  /// 測試用：模擬雲端自己產生的縮圖（遠端原圖檔名 → 位元組）。
+  final Map<String, Uint8List> fallbackThumbs = {};
+
+  /// 測試用：呼叫 [fallbackThumbnail] 的次數。
+  int fallbackCalls = 0;
   final Map<String, int> _version = {};
   int _clock = 0;
 
@@ -84,6 +98,12 @@ class MemoryRemote implements SyncRemote {
       if (stepDelay > Duration.zero) await Future<void>.delayed(stepDelay);
       onProgress(length * i ~/ progressSteps, length);
     }
+  }
+
+  @override
+  Future<Uint8List?> fallbackThumbnail(String name) async {
+    fallbackCalls++;
+    return fallbackThumbs[name];
   }
 
   @override

@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
 import '../data/database.dart';
 import '../data/image_store.dart';
+import '../data/media.dart';
+import '../media/thumbnail_maker.dart';
 import 'remote.dart';
 import 'sync_kinds.dart';
 import 'sync_log.dart';
@@ -36,8 +39,22 @@ const syncPullConcurrency = 8;
 /// 連續這麼多張圖片下載失敗就放棄整次同步（多半是網絡或授權問題，不要把每張都等到逾時）。
 const syncImageFailureLimit = 5;
 
+/// 下載縮圖（D-099）一次並行幾張（很小，可以多一點）。
+const syncThumbConcurrency = 6;
+
+/// 下載原圖一次並行幾張（同步 sheet 同時最多顯示 3 張傳輸中，D-099）。
+const syncDownloadConcurrency = 3;
+
+/// 舊資料補縮圖（本機產生＋上傳）每次同步最多處理幾張，避免一次上傳上千張；
+/// 沒補完的下次同步接著補（Drive 上有沒有該縮圖就是進度，不必另外記錄）。
+const syncThumbBackfillLimit = 40;
+
+/// 每次同步最多向 Drive 要幾張 `thumbnailLink` 暫用縮圖。
+const syncThumbFallbackLimit = 150;
+
 /// 同步目前進行到哪個階段。
-enum SyncStage { pulling, downloadingImages, uploading }
+/// 順序（D-099）：拉取 meta → 下載縮圖 → 下載原圖 → 上傳。
+enum SyncStage { pulling, downloadingThumbs, downloadingImages, uploading }
 
 /// 同步進度。
 /// [imagesTotal] 在 [SyncStage.pulling] 為 0；進入下載／上傳階段後才知道數量（舊版橫條用，
@@ -51,8 +68,14 @@ class SyncProgress {
     this.transfersPlanned = false,
     this.docsDone = 0,
     this.docsTotal = 0,
+    this.thumbsDone = 0,
+    this.thumbsTotal = 0,
   });
   final SyncStage stage;
+
+  /// 縮圖階段（[SyncStage.downloadingThumbs]）的進度：要下載（或向雲端要）的縮圖張數與已處理張數。
+  final int thumbsDone;
+  final int thumbsTotal;
 
   /// 拉取階段：要下載的雲端文件（meta）份數與已處理份數；[docsTotal] 為 0＝還在列出雲端內容
   /// （或沒有東西要拉）。
@@ -87,6 +110,14 @@ class SyncResult {
   /// 下載失敗（已略過、下次再試）的圖片張數。
   int imageFailures = 0;
 
+  /// 縮圖：下載到本機的、用 `thumbnailLink` 暫用的、補產生並上傳的張數（D-099）。
+  int thumbsDown = 0;
+  int thumbsFallback = 0;
+  int thumbsUp = 0;
+
+  /// 縮圖相關的失敗（不影響同步成敗，下次再試）。
+  int thumbFailures = 0;
+
   bool get changed => pushed + pulled + imagesUp + imagesDown > 0;
   @override
   String toString() =>
@@ -95,6 +126,12 @@ class SyncResult {
 
 String _metaName(String kind, String id) => 'meta__${kind}__$id.json';
 String _imageName(String file) => 'images__$file';
+
+/// 遠端縮圖檔名：`thumbs__{主檔名}.jpg`（扁平命名空間裡的 `thumbs/{id}.jpg`）。
+String thumbRemoteName(String file) =>
+    'thumbs__${ImageStore.thumbStem(file)}.jpg';
+
+bool _isVideoFile(String file) => mediaKindFromExtension(file).isVideo;
 
 /// 遠端的格式版本標記（不屬於任何實體種類，舊版 App 會直接忽略）。
 const _formatFile = 'meta__app__format.json';
@@ -133,6 +170,8 @@ class _Tracker {
   var _items = <SyncTransfer>[];
   var _docsDone = 0;
   var _docsTotal = 0;
+  var _thumbsDone = 0;
+  var _thumbsTotal = 0;
   final _uploadIdx = <String, int>{};
   final _clock = Stopwatch()..start();
   int? _lastMs;
@@ -165,6 +204,16 @@ class _Tracker {
     _docsTotal = total;
     _emit(force: done == 0 || done >= total);
   }
+
+  void thumbs(int done, int total) {
+    _stage = SyncStage.downloadingThumbs;
+    _thumbsDone = done;
+    _thumbsTotal = total;
+    _emit(force: done == 0 || done >= total);
+  }
+
+  /// 長時間的背景工作（補縮圖）中，告訴看門狗「還活著」（節流，不強制送出）。
+  void touch() => _emit();
 
   void start(int i) {
     _items[i] = _items[i].copyWith(state: TransferState.active);
@@ -203,6 +252,8 @@ class _Tracker {
         transfersPlanned: _planned,
         docsDone: _docsDone,
         docsTotal: _docsTotal,
+        thumbsDone: _thumbsDone,
+        thumbsTotal: _thumbsTotal,
       ),
     );
   }
@@ -218,7 +269,23 @@ class SyncEngine {
     required this.images,
     this.kinds = allSyncKinds,
     this.progressInterval = const Duration(milliseconds: 100),
+    this.thumbnails = const DefaultThumbnailMaker(),
+    this.downloadConcurrency = syncDownloadConcurrency,
+    this.thumbBackfillLimit = syncThumbBackfillLimit,
+    this.thumbFallbackLimit = syncThumbFallbackLimit,
   });
+
+  /// 產生縮圖（D-099）；測試可換成假的。
+  final ThumbnailMaker thumbnails;
+
+  /// 同時下載幾張原圖。
+  final int downloadConcurrency;
+
+  /// 舊資料補縮圖每次同步的上限（見 [syncThumbBackfillLimit]）。
+  final int thumbBackfillLimit;
+
+  /// 每次同步向 Drive 要 `thumbnailLink` 暫用縮圖的上限。
+  final int thumbFallbackLimit;
 
   final AppDatabase db;
   final SyncRemote remote;
@@ -234,7 +301,8 @@ class SyncEngine {
   /// [onProgress]：階段、圖片進度與逐張傳輸狀態的回報（在 UI 執行緒呼叫，不要做耗時工作）。
   ///
   /// 順序：拉取文件 → 規劃傳輸清單（下載＋上傳，此後 [SyncProgress.transfersPlanned] 為 true）
-  /// → 逐張下載 → 逐張上傳。傳輸是一張接一張（不併行），所以同時最多一張 active。
+  /// → 下載全部縮圖（小、並行）→ 下載原圖（最多 [downloadConcurrency] 張同時）→ 逐張上傳
+  /// （每張原圖先傳縮圖再傳原圖）→ 補舊資料的縮圖（限量）。
   Future<SyncResult> sync({
     SyncProgressListener? onProgress,
     SyncCancel? cancel,
@@ -266,13 +334,18 @@ class SyncEngine {
       'sync: plan download=${toDownload.length} upload=${plan.uploads.length} '
       'docsToPush=${plan.pending.length}',
     );
+    final referenced = await _referencedImages();
+    await _pullThumbs(files, referenced, result, tracker, check);
     await _pullMissingImages(files, toDownload, result, report, tracker, check);
     await _push(files, known, plan, result, report, tracker, check);
     await _writeFormat(remoteFormat);
+    await _backfillThumbs(files, referenced, result, tracker, check);
     syncLog(
       'sync: done pulled=${result.pulled} pushed=${result.pushed} '
       'imgDown=${result.imagesDown} imgUp=${result.imagesUp} '
-      'skippedDocs=${result.skippedDocs.length} imgFail=${result.imageFailures}',
+      'skippedDocs=${result.skippedDocs.length} imgFail=${result.imageFailures} '
+      'thumbDown=${result.thumbsDown} thumbFallback=${result.thumbsFallback} '
+      'thumbUp=${result.thumbsUp} thumbFail=${result.thumbFailures}',
     );
     return result;
   }
@@ -481,37 +554,220 @@ class SyncEngine {
   ) async {
     var done = 0;
     var consecutiveFailures = 0;
+    var aborted = false;
+    var next = 0;
     report(SyncStage.downloadingImages, done, todo.length);
-    for (var i = 0; i < todo.length; i++) {
-      check();
-      final name = todo[i];
-      tracker.start(i);
-      try {
-        final bytes = await remote.download(
-          _imageName(name),
-          onProgress: (d, t) => tracker.progress(i, d, t),
-        );
-        if (bytes != null) {
-          await images.save(name, bytes);
-          result.imagesDown++;
+
+    Future<void> worker() async {
+      while (!aborted) {
+        check();
+        final i = next++;
+        if (i >= todo.length) return;
+        final name = todo[i];
+        tracker.start(i);
+        try {
+          final bytes = await remote.download(
+            _imageName(name),
+            onProgress: (d, t) => tracker.progress(i, d, t),
+          );
+          if (bytes != null) {
+            await images.save(name, bytes);
+            result.imagesDown++;
+          }
+          consecutiveFailures = 0;
+        } on SyncAuthException {
+          aborted = true;
+          rethrow;
+        } catch (e) {
+          // 單張失敗：記錄、略過（下次同步會再試）；連續失敗太多代表網絡或授權有問題，整次中止。
+          result.imageFailures++;
+          consecutiveFailures++;
+          syncLog(
+            'images: download ${i + 1}/${todo.length} failed (${e.runtimeType})',
+          );
+          if (consecutiveFailures >= syncImageFailureLimit) {
+            aborted = true;
+            rethrow;
+          }
         }
-        consecutiveFailures = 0;
+        // 下載失敗的也算處理過，避免進度卡住；下次同步會再試。
+        tracker.finish(i);
+        report(SyncStage.downloadingImages, ++done, todo.length);
+        if (done % 20 == 0) {
+          syncLog('images: $done/${todo.length}');
+        }
+      }
+    }
+
+    final workers = downloadConcurrency < 1 ? 1 : downloadConcurrency;
+    await Future.wait([
+      for (var w = 0; w < workers && w < todo.length; w++) worker(),
+    ]);
+  }
+
+  // ---- 縮圖（D-099）----
+
+  /// 縮圖階段：把雲端已有的縮圖全部下載（小檔、並行），其餘沒有雲端縮圖的舊資料
+  /// 用 Drive `thumbnailLink` 暫用縮圖頂著。縮圖的任何失敗都不擋同步（原圖階段會照常進行）。
+  Future<void> _pullThumbs(
+    Map<String, RemoteFile> files,
+    Set<String> referenced,
+    SyncResult result,
+    _Tracker tracker,
+    void Function() check,
+  ) async {
+    final real = <String>[];
+    final fallback = <String>[];
+    final fb = remote is ThumbnailFallbackRemote
+        ? remote as ThumbnailFallbackRemote
+        : null;
+    for (final name in referenced) {
+      if (name.isEmpty || _isVideoFile(name)) continue;
+      if (images.hasRealThumb(name)) continue;
+      if (files.containsKey(thumbRemoteName(name))) {
+        real.add(name);
+      } else if (fb != null &&
+          fallback.length < thumbFallbackLimit &&
+          !images.exists(name) && // 原圖在本機的由補縮圖自己產生
+          !images.hasThumb(name) &&
+          files.containsKey(_imageName(name))) {
+        fallback.add(name);
+      }
+    }
+    final total = real.length + fallback.length;
+    if (total == 0) return;
+    syncLog('thumbs: ${real.length} to download, ${fallback.length} fallback');
+    var done = 0;
+    tracker.thumbs(0, total);
+    var failedBatches = 0;
+
+    Future<bool> one(String name, bool isFallback) async {
+      try {
+        final Uint8List? bytes = isFallback
+            ? await fb!.fallbackThumbnail(_imageName(name))
+            : await remote.download(thumbRemoteName(name));
+        if (bytes == null || bytes.isEmpty) return false;
+        if (isFallback) {
+          await images.saveTempThumb(name, bytes);
+          result.thumbsFallback++;
+        } else {
+          await images.saveThumb(name, bytes);
+          result.thumbsDown++;
+        }
+        return true;
       } on SyncAuthException {
         rethrow;
       } catch (e) {
-        // 單張失敗：記錄、略過（下次同步會再試）；連續失敗太多代表網絡或授權有問題，整次中止。
-        result.imageFailures++;
-        consecutiveFailures++;
+        result.thumbFailures++;
         syncLog(
-          'images: download ${i + 1}/${todo.length} failed (${e.runtimeType})',
+          'thumbs: ${isFallback ? 'fallback' : 'download'} failed '
+          '(${e.runtimeType})',
         );
-        if (consecutiveFailures >= syncImageFailureLimit) rethrow;
+        return false;
       }
-      // 下載失敗的也算處理過，避免進度卡住；下次同步會再試。
-      tracker.finish(i);
-      report(SyncStage.downloadingImages, ++done, todo.length);
-      if (done % 20 == 0) {
-        syncLog('images: $done/${todo.length}');
+    }
+
+    Future<void> run(List<String> list, bool isFallback) async {
+      for (var i = 0; i < list.length; i += syncThumbConcurrency) {
+        check();
+        final end = i + syncThumbConcurrency > list.length
+            ? list.length
+            : i + syncThumbConcurrency;
+        final batch = list.sublist(i, end);
+        final ok = await Future.wait([
+          for (final n in batch) one(n, isFallback),
+        ]);
+        // 一整批都失敗：多半是網絡不通，連續兩批就放棄這個階段（原圖階段會報真正的錯誤）。
+        failedBatches = ok.any((x) => x) ? 0 : failedBatches + 1;
+        done += batch.length;
+        tracker.thumbs(done, total);
+        if (failedBatches >= 2) {
+          syncLog('thumbs: stop this stage after repeated failures');
+          return;
+        }
+      }
+    }
+
+    await run(real, false);
+    if (failedBatches < 2) await run(fallback, true);
+    tracker.thumbs(total, total);
+  }
+
+  /// 這張原圖要上傳的縮圖位元組：本機已有就讀它，沒有就產生並存進本機縮圖快取。
+  /// 影片、壞檔、已標記產生不了的回傳 null。
+  Future<Uint8List?> _thumbBytes(String file) async {
+    if (_isVideoFile(file)) return null;
+    if (images.hasRealThumb(file)) {
+      try {
+        return await images.thumbFileOf(file).readAsBytes();
+      } catch (_) {
+        // 讀不到就重新產生。
+      }
+    }
+    if (images.thumbFailed(file) || !images.exists(file)) return null;
+    final bytes = await thumbnails.make(images.fileOf(file));
+    if (bytes == null || bytes.isEmpty) {
+      await images.markThumbFailed(file);
+      return null;
+    }
+    await images.saveThumb(file, bytes);
+    return bytes;
+  }
+
+  /// 上傳縮圖；失敗只記錄（下次補縮圖會再試），不影響原圖與文件。
+  Future<void> _uploadThumb(
+    Map<String, RemoteFile> files,
+    String file,
+    SyncResult result,
+  ) async {
+    final name = thumbRemoteName(file);
+    if (files.containsKey(name)) return;
+    try {
+      final bytes = await _thumbBytes(file);
+      if (bytes == null) return;
+      final modified = await remote.upload(
+        name,
+        bytes,
+        contentType: 'image/jpeg',
+      );
+      files[name] = RemoteFile(name: name, modified: modified);
+      result.thumbsUp++;
+    } on SyncAuthException {
+      rethrow;
+    } catch (e) {
+      result.thumbFailures++;
+      syncLog('thumbs: upload failed (${e.runtimeType})');
+    }
+  }
+
+  /// 舊資料補縮圖（一次性遷移）：本機有原圖、Drive 沒有 `thumbs__` 的，由這台裝置產生並上傳。
+  /// 每次同步最多 [thumbBackfillLimit] 張（限速）；是否已補好以 Drive 上有沒有該檔為準，
+  /// 所以可中斷續傳、不會重複上傳。順便補好本機縮圖快取（列表／封面優先用它）。
+  Future<void> _backfillThumbs(
+    Map<String, RemoteFile> files,
+    Set<String> referenced,
+    SyncResult result,
+    _Tracker tracker,
+    void Function() check,
+  ) async {
+    var budget = thumbBackfillLimit;
+    var consecutiveFailures = 0;
+    for (final name in referenced) {
+      if (budget <= 0) break;
+      if (name.isEmpty || _isVideoFile(name) || !images.exists(name)) continue;
+      // 雲端已經有的由縮圖階段下載；這裡只處理「雲端沒有」的。
+      if (files.containsKey(thumbRemoteName(name))) continue;
+      if (images.thumbFailed(name)) continue;
+      check();
+      budget--;
+      final before = result.thumbsUp;
+      final failedBefore = result.thumbFailures;
+      await _uploadThumb(files, name, result);
+      tracker.touch();
+      if (result.thumbsUp > before) {
+        consecutiveFailures = 0;
+      } else if (result.thumbFailures > failedBefore) {
+        if (++consecutiveFailures >= 3) break; // 多半是網絡問題，下次再補
       }
     }
   }
@@ -578,6 +834,8 @@ class SyncEngine {
           continue;
         }
         if (idx != null) tracker.start(idx);
+        // 先傳縮圖再傳原圖：別的裝置先拿到縮圖（D-099）。縮圖失敗不影響原圖。
+        await _uploadThumb(files, file, result);
         final modified = await remote.upload(
           name,
           await f.readAsBytes(),

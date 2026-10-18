@@ -60,7 +60,9 @@ final pitStatsProvider = StreamProvider.family<PitStats, String>(
 
 final imageStoreProvider = FutureProvider<ImageStore>((ref) async {
   final base = await getApplicationDocumentsDirectory();
-  return ImageStore(Directory(p.join(base.path, 'images')));
+  final store = ImageStore(Directory(p.join(base.path, 'images')));
+  await store.loadThumbIndex(); // 縮圖索引（D-099），列表格子才能同步查有沒有縮圖
+  return store;
 });
 
 /// 讀手機相簿（D-084 自家圖片選擇器）。測試時換成假的，不需要外掛。
@@ -358,6 +360,16 @@ final imageExistsProvider = StreamProvider.family<bool, String>((
 ) async* {
   final store = await ref.watch(imageStoreProvider.future);
   yield* store.watchExists(file);
+});
+
+/// 這張圖的縮圖有變動（到了、被正式縮圖取代）時遞增的版本號（D-099）；
+/// UI 監聽它，收到後重新問 `ImageStore.thumbFileFor`。
+final thumbVersionProvider = StreamProvider.family<int, String>((
+  ref,
+  file,
+) async* {
+  final store = await ref.watch(imageStoreProvider.future);
+  yield* store.watchThumb(file);
 });
 
 /// 圖片所在的坑與格（同步進度 sheet 顯示「坑 · 格」）；找不到為 null。
