@@ -17,6 +17,22 @@ class SyncAuthException implements Exception {
   String toString() => message;
 }
 
+/// 網絡層失敗（逾時、斷線、伺服器暫時錯誤）且重試用盡：向上報錯，由同步流程顯示並稍後重排。
+class SyncNetworkException implements Exception {
+  SyncNetworkException(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
+/// 單次同步太久沒有任何進展而被看門狗中止。
+class SyncStalledException implements Exception {
+  SyncStalledException() : message = l10nStatic.syncuiStalled;
+  final String message;
+  @override
+  String toString() => message;
+}
+
 /// 傳輸中的位元組進度：[done] 已傳位元組，[total] 總位元組（未知為 null）。
 typedef TransferProgress = void Function(int done, int? total);
 

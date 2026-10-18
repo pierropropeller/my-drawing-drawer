@@ -6,6 +6,7 @@ import '../data/database.dart';
 import '../data/image_store.dart';
 import 'remote.dart';
 import 'sync_kinds.dart';
+import 'sync_log.dart';
 import 'sync_transfer.dart';
 import '../l10n/l10n.dart';
 
@@ -18,6 +19,22 @@ const syncFormatVersion = 2;
 class SyncFormatException extends SyncAuthException {
   SyncFormatException() : super(l10nStatic.syncNeedsAppUpdate);
 }
+
+/// 讓呼叫端（看門狗）中止一次同步：引擎在每個步驟之間檢查，被中止就丟 [SyncStalledException]。
+class SyncCancel {
+  bool _cancelled = false;
+  bool get isCancelled => _cancelled;
+  void cancel() => _cancelled = true;
+  void throwIfCancelled() {
+    if (_cancelled) throw SyncStalledException();
+  }
+}
+
+/// 拉取文件時一次並行下載幾份（Drive 對單一使用者的請求頻率有限，不宜太高）。
+const syncPullConcurrency = 8;
+
+/// 連續這麼多張圖片下載失敗就放棄整次同步（多半是網絡或授權問題，不要把每張都等到逾時）。
+const syncImageFailureLimit = 5;
 
 /// 同步目前進行到哪個階段。
 enum SyncStage { pulling, downloadingImages, uploading }
@@ -32,8 +49,15 @@ class SyncProgress {
     this.imagesTotal, {
     this.transfers = const [],
     this.transfersPlanned = false,
+    this.docsDone = 0,
+    this.docsTotal = 0,
   });
   final SyncStage stage;
+
+  /// 拉取階段：要下載的雲端文件（meta）份數與已處理份數；[docsTotal] 為 0＝還在列出雲端內容
+  /// （或沒有東西要拉）。
+  final int docsDone;
+  final int docsTotal;
   final int imagesDone;
   final int imagesTotal;
 
@@ -57,6 +81,12 @@ class SyncResult {
   int imagesUp = 0;
   int imagesDown = 0;
 
+  /// 雲端文件讀不了（損壞、欄位不符）而略過的檔名；其餘照常同步。
+  final List<String> skippedDocs = [];
+
+  /// 下載失敗（已略過、下次再試）的圖片張數。
+  int imageFailures = 0;
+
   bool get changed => pushed + pulled + imagesUp + imagesDown > 0;
   @override
   String toString() =>
@@ -77,6 +107,13 @@ class _Pending {
   final Map<String, dynamic> data;
 }
 
+class _PullJob {
+  _PullJob(this.kind, this.id, this.file);
+  final SyncKind kind;
+  final String id;
+  final RemoteFile file;
+}
+
 class _PushPlan {
   _PushPlan(this.pending, this.uploads);
   final List<_Pending> pending;
@@ -94,6 +131,8 @@ class _Tracker {
   var _total = 0;
   var _planned = false;
   var _items = <SyncTransfer>[];
+  var _docsDone = 0;
+  var _docsTotal = 0;
   final _uploadIdx = <String, int>{};
   final _clock = Stopwatch()..start();
   int? _lastMs;
@@ -118,6 +157,13 @@ class _Tracker {
     _done = done;
     _total = total;
     _emit(force: true);
+  }
+
+  void pull(int done, int total) {
+    _stage = SyncStage.pulling;
+    _docsDone = done;
+    _docsTotal = total;
+    _emit(force: done == 0 || done >= total);
   }
 
   void start(int i) {
@@ -155,6 +201,8 @@ class _Tracker {
         _total,
         transfers: List.unmodifiable(_items),
         transfersPlanned: _planned,
+        docsDone: _docsDone,
+        docsTotal: _docsTotal,
       ),
     );
   }
@@ -187,29 +235,45 @@ class SyncEngine {
   ///
   /// 順序：拉取文件 → 規劃傳輸清單（下載＋上傳，此後 [SyncProgress.transfersPlanned] 為 true）
   /// → 逐張下載 → 逐張上傳。傳輸是一張接一張（不併行），所以同時最多一張 active。
-  Future<SyncResult> sync({SyncProgressListener? onProgress}) async {
+  Future<SyncResult> sync({
+    SyncProgressListener? onProgress,
+    SyncCancel? cancel,
+  }) async {
     final result = SyncResult();
+    void check() => cancel?.throwIfCancelled();
     final tracker = _Tracker(progressInterval, onProgress);
     void report(SyncStage s, [int done = 0, int total = 0]) =>
         tracker.report(s, done, total);
 
     report(SyncStage.pulling);
+    syncLog('sync: listing remote');
     final files = {for (final f in await remote.list()) f.name: f};
+    check();
+    syncLog('sync: remote has ${files.length} files');
     final remoteFormat = await _checkFormat(files);
     final known = {
       for (final r in await db.select(db.syncDocs).get()) _key(r.kind, r.id): r,
     };
 
-    await _pull(files, known, result);
+    await _pull(files, known, result, tracker, check);
 
     // 規劃：要下載的、要上傳的，這時才知道總數。
     final toDownload = await _missingImages(files);
     final plan = await _planPush(files, known);
     tracker.plan(toDownload, plan.uploads);
 
-    await _pullMissingImages(files, toDownload, result, report, tracker);
-    await _push(files, known, plan, result, report, tracker);
+    syncLog(
+      'sync: plan download=${toDownload.length} upload=${plan.uploads.length} '
+      'docsToPush=${plan.pending.length}',
+    );
+    await _pullMissingImages(files, toDownload, result, report, tracker, check);
+    await _push(files, known, plan, result, report, tracker, check);
     await _writeFormat(remoteFormat);
+    syncLog(
+      'sync: done pulled=${result.pulled} pushed=${result.pushed} '
+      'imgDown=${result.imagesDown} imgUp=${result.imagesUp} '
+      'skippedDocs=${result.skippedDocs.length} imgFail=${result.imageFailures}',
+    );
     return result;
   }
 
@@ -270,10 +334,15 @@ class SyncEngine {
     Map<String, RemoteFile> files,
     Map<String, SyncDoc> known,
     SyncResult result,
+    _Tracker tracker,
+    void Function() check,
   ) async {
+    // 先決定要下載哪些文件（依實體種類順序），總數確定後才開始下載，介面才有確定的進度。
+    final jobs = <_PullJob>[];
+    final localVersions = <String, Map<String, int>>{};
     for (final kind in kinds) {
       final prefix = 'meta__${kind.name}__';
-      final local = await kind.versions(db);
+      localVersions[kind.name] = await kind.versions(db);
       for (final f in files.values) {
         if (!f.name.startsWith(prefix) || !f.name.endsWith('.json')) continue;
         final id = f.name.substring(
@@ -282,31 +351,75 @@ class SyncEngine {
         );
         final seen = known[_key(kind.name, id)];
         if (seen != null && seen.remoteModified == f.modified) continue; // 遠端沒變
+        jobs.add(_PullJob(kind, id, f));
+      }
+    }
+    syncLog('pull: ${jobs.length} docs to fetch');
+    tracker.pull(0, jobs.length);
 
-        final bytes = await remote.download(f.name);
-        if (bytes == null) continue;
-        Map<String, dynamic> doc;
-        try {
-          doc = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-        } catch (_) {
-          continue; // 壞掉的文件略過
-        }
-        // 較新格式的文件：整個同步停下來，不碰本機資料。
-        _requireSupported(doc['formatVersion']);
-        final remoteMs = doc['updatedAt'] as int;
-        final localMs = local[id];
-        if (localMs == null || remoteMs > localMs) {
-          await kind.apply(db, doc['data'] as Map<String, dynamic>);
-          result.pulled++;
-        }
-        await _record(kind.name, id, remoteMs, f.modified);
-        known[_key(kind.name, id)] = SyncDoc(
-          kind: kind.name,
-          id: id,
-          updatedAtMs: remoteMs,
-          remoteModified: f.modified,
+    // 分批並行下載（每批 [syncPullConcurrency] 份），每批依序套用，一批一批回報進度。
+    for (var i = 0; i < jobs.length; i += syncPullConcurrency) {
+      check();
+      final batch = jobs.sublist(
+        i,
+        i + syncPullConcurrency > jobs.length
+            ? jobs.length
+            : i + syncPullConcurrency,
+      );
+      final bytes = await Future.wait([
+        for (final j in batch) remote.download(j.file.name),
+      ]);
+      check();
+      for (var k = 0; k < batch.length; k++) {
+        final job = batch[k];
+        final data = bytes[k];
+        if (data == null) continue;
+        await _applyDoc(
+          job,
+          data,
+          localVersions[job.kind.name]!,
+          known,
+          result,
         );
       }
+      tracker.pull(i + batch.length, jobs.length);
+      syncLog('pull: ${i + batch.length}/${jobs.length}');
+    }
+  }
+
+  /// 套用一份雲端文件。單份壞掉（無法解析、欄位型別不符、舊新 schema 差異）只略過這一份並記錄，
+  /// 不擋住其餘文件；較新格式（[SyncFormatException]）仍整個停下來。
+  Future<void> _applyDoc(
+    _PullJob job,
+    Uint8List bytes,
+    Map<String, int> local,
+    Map<String, SyncDoc> known,
+    SyncResult result,
+  ) async {
+    final kind = job.kind;
+    final f = job.file;
+    try {
+      final doc = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+      // 較新格式的文件：整個同步停下來，不碰本機資料。
+      _requireSupported(doc['formatVersion']);
+      final remoteMs = (doc['updatedAt'] as num).toInt();
+      final localMs = local[job.id];
+      if (localMs == null || remoteMs > localMs) {
+        await kind.apply(db, doc['data'] as Map<String, dynamic>);
+        result.pulled++;
+      }
+      await _record(kind.name, job.id, remoteMs, f.modified);
+      known[_key(kind.name, job.id)] = SyncDoc(
+        kind: kind.name,
+        id: job.id,
+        updatedAtMs: remoteMs,
+        remoteModified: f.modified,
+      );
+    } on SyncFormatException {
+      rethrow;
+    } catch (e) {
+      syncLog('pull: skip ${kind.name} doc (${e.runtimeType})');
+      result.skippedDocs.add(f.name);
     }
   }
 
@@ -364,23 +477,42 @@ class SyncEngine {
     SyncResult result,
     void Function(SyncStage, [int, int]) report,
     _Tracker tracker,
+    void Function() check,
   ) async {
     var done = 0;
+    var consecutiveFailures = 0;
     report(SyncStage.downloadingImages, done, todo.length);
     for (var i = 0; i < todo.length; i++) {
+      check();
       final name = todo[i];
       tracker.start(i);
-      final bytes = await remote.download(
-        _imageName(name),
-        onProgress: (d, t) => tracker.progress(i, d, t),
-      );
-      if (bytes != null) {
-        await images.save(name, bytes);
-        result.imagesDown++;
+      try {
+        final bytes = await remote.download(
+          _imageName(name),
+          onProgress: (d, t) => tracker.progress(i, d, t),
+        );
+        if (bytes != null) {
+          await images.save(name, bytes);
+          result.imagesDown++;
+        }
+        consecutiveFailures = 0;
+      } on SyncAuthException {
+        rethrow;
+      } catch (e) {
+        // 單張失敗：記錄、略過（下次同步會再試）；連續失敗太多代表網絡或授權有問題，整次中止。
+        result.imageFailures++;
+        consecutiveFailures++;
+        syncLog(
+          'images: download ${i + 1}/${todo.length} failed (${e.runtimeType})',
+        );
+        if (consecutiveFailures >= syncImageFailureLimit) rethrow;
       }
       // 下載失敗的也算處理過，避免進度卡住；下次同步會再試。
       tracker.finish(i);
       report(SyncStage.downloadingImages, ++done, todo.length);
+      if (done % 20 == 0) {
+        syncLog('images: $done/${todo.length}');
+      }
     }
   }
 
@@ -424,12 +556,14 @@ class SyncEngine {
     SyncResult result,
     void Function(SyncStage, [int, int]) report,
     _Tracker tracker,
+    void Function() check,
   ) async {
     final total = plan.uploads.length;
     var done = 0;
     report(SyncStage.uploading, done, total);
 
     for (final p in plan.pending) {
+      check();
       // 圖片先傳。
       for (final file in p.kind.imageFiles(p.data)) {
         final name = _imageName(file);

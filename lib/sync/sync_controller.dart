@@ -8,6 +8,7 @@ import 'drive_remote.dart';
 import 'google_auth.dart';
 import 'remote.dart';
 import 'sync_engine.dart';
+import 'sync_log.dart';
 import 'sync_transfer.dart';
 import '../l10n/l10n.dart';
 
@@ -28,8 +29,18 @@ class SyncState {
     this.needsAppUpdate = false,
     this.transfers = const [],
     this.transfersPlanned = false,
+    this.docsDone = 0,
+    this.docsTotal = 0,
+    this.retryable = false,
   });
   final SyncPhase phase;
+
+  /// 拉取階段的雲端文件進度（「資料 N / M」）；[docsTotal] 為 0＝還在列出雲端內容。
+  final int docsDone;
+  final int docsTotal;
+
+  /// 失敗是暫時性的（逾時、斷線、看門狗中止），稍後自動重試有意義；授權／格式問題不會。
+  final bool retryable;
   final DateTime? lastSyncAt;
   final String? message;
   final SyncResult? lastResult;
@@ -85,6 +96,25 @@ class SyncState {
     return null;
   }
 
+  /// 還在列出雲端內容（尚未知道有多少文件要拉）。
+  bool get isListing =>
+      isSyncing &&
+      stage == SyncStage.pulling &&
+      docsTotal == 0 &&
+      imagesTotal == 0 &&
+      !transfersPlanned;
+
+  /// 正在拉取雲端文件且數量已知。
+  bool get hasDocProgress =>
+      isSyncing && stage == SyncStage.pulling && docsTotal > 0;
+
+  /// 拉取階段的 0~1 進度。
+  double? get docFraction =>
+      docsTotal > 0 ? (docsDone / docsTotal).clamp(0.0, 1.0) : null;
+
+  /// 目前階段的進度（拉取階段看文件數，其後看圖片數）；不知道時為 null（不確定進度條）。
+  double? get progressFraction => hasDocProgress ? docFraction : imageFraction;
+
   /// 是否有圖片進度可以顯示（頂部橫條「同步中・圖片 N / M」）。
   bool get hasImageProgress => isSyncing && imagesTotal > 0;
 
@@ -104,6 +134,9 @@ class SyncState {
     bool? needsAppUpdate,
     List<SyncTransfer>? transfers,
     bool? transfersPlanned,
+    int? docsDone,
+    int? docsTotal,
+    bool? retryable,
   }) => SyncState(
     phase: phase ?? this.phase,
     lastSyncAt: lastSyncAt ?? this.lastSyncAt,
@@ -116,6 +149,9 @@ class SyncState {
     needsAppUpdate: needsAppUpdate ?? this.needsAppUpdate,
     transfers: transfers ?? this.transfers,
     transfersPlanned: transfersPlanned ?? this.transfersPlanned,
+    docsDone: docsDone ?? this.docsDone,
+    docsTotal: docsTotal ?? this.docsTotal,
+    retryable: retryable ?? this.retryable,
   );
 }
 
@@ -127,83 +163,161 @@ final accountServiceProvider = Provider<AccountService>(
 final syncRemoteProvider = Provider<SyncRemote?>((ref) {
   final email = ref.watch(settingsProvider.select((s) => s.accountEmail));
   if (email == null) return null;
-  return DriveRemote(headers: ref.read(accountServiceProvider).headers);
+  final accounts = ref.read(accountServiceProvider);
+  return DriveRemote(
+    headers: accounts.headers,
+    refreshAuth: () async {
+      final a = accounts;
+      if (a is GoogleAccountService) a.invalidateToken();
+    },
+  );
 });
+
+/// 單次同步連續這麼久沒有任何進展（沒有新的進度回報）就由看門狗中止、報錯並稍後重試。
+/// 每個 Drive 請求另有自己的逾時與重試（見 `DriveRemote`），這是最後一道保險。
+/// 測試可覆寫成很短的時間。
+final syncStallTimeoutProvider = Provider<Duration>(
+  (ref) => const Duration(minutes: 3),
+);
 
 class SyncController extends Notifier<SyncState> {
   bool _running = false;
+  int _generation = 0;
 
   @override
   SyncState build() => const SyncState();
 
-  /// 立即同步。離線、未連結或正在同步時不做事。回傳是否實際執行。
+  /// 立即同步。未連結或正在同步時不做事（**不看 connectivity**：沒有明確斷線就嘗試，
+  /// 以實際請求的成敗為準，失敗會顯示在 [SyncState.message]）。回傳是否實際執行。
   Future<bool> syncNow() async {
     final remote = ref.read(syncRemoteProvider);
     if (remote == null || _running) return false;
-    final online = ref.read(onlineProvider).value ?? true;
-    if (!online) return false;
     _running = true;
+    final gen = ++_generation;
     final settings = ref.read(settingsProvider);
     final email = settings.accountEmail;
     final first = email != null && settings.syncedAccount != email;
+    syncLog('syncNow start first=$first');
     state = SyncState(
       phase: SyncPhase.syncing,
       lastSyncAt: state.lastSyncAt,
       isFirstSync: first,
     );
+    // 看門狗：太久沒有進展就中止這一次（引擎在步驟之間檢查 cancel；卡在某個 await 的
+    // 請求則由 Future.any 放棄它）。
+    final stall = ref.read(syncStallTimeoutProvider);
+    final cancel = SyncCancel();
+    final stalled = Completer<SyncResult>();
+    stalled.future.ignore();
+    var lastActivity = DateTime.now();
+    final checkEvery = stall ~/ 4 > const Duration(seconds: 10)
+        ? const Duration(seconds: 10)
+        : stall ~/ 4;
+    // 引擎第一次回報進度（＝開始同步）時才啟動計時，之後每次回報都算有進展。
+    Timer? watchdog;
+    void armWatchdog() {
+      watchdog ??= Timer.periodic(
+        checkEvery < const Duration(milliseconds: 20)
+            ? const Duration(milliseconds: 20)
+            : checkEvery,
+        (_) {
+          if (!stalled.isCompleted &&
+              DateTime.now().difference(lastActivity) > stall) {
+            syncLog('watchdog: no progress for ${stall.inSeconds}s, aborting');
+            cancel.cancel();
+            stalled.completeError(SyncStalledException());
+          }
+        },
+      );
+    }
+
+    SyncState failed(
+      String message, {
+      bool needsUpdate = false,
+      bool retry = false,
+    }) => SyncState(
+      phase: SyncPhase.error,
+      lastSyncAt: state.lastSyncAt,
+      message: message,
+      isFirstSync: first,
+      needsAppUpdate: needsUpdate,
+      retryable: retry,
+    );
     try {
-      final engine = SyncEngine(
-        db: ref.read(databaseProvider),
-        remote: remote,
-        images: await ref.read(imageStoreProvider.future),
-      );
-      final r = await engine.sync(
-        onProgress: (p) => state = SyncState(
-          phase: SyncPhase.syncing,
-          lastSyncAt: state.lastSyncAt,
-          stage: p.stage,
-          imagesDone: p.imagesDone,
-          imagesTotal: p.imagesTotal,
-          isFirstSync: first,
-          transfers: p.transfers,
-          transfersPlanned: p.transfersPlanned,
-        ),
-      );
+      lastActivity = DateTime.now();
+      Future<SyncResult> run() async {
+        final engine = SyncEngine(
+          db: ref.read(databaseProvider),
+          remote: remote,
+          images: await ref.read(imageStoreProvider.future),
+        );
+        return engine.sync(
+          cancel: cancel,
+          onProgress: (p) {
+            lastActivity = DateTime.now();
+            armWatchdog();
+            if (gen != _generation) return; // 已被看門狗放棄的舊一次同步
+            state = SyncState(
+              phase: SyncPhase.syncing,
+              lastSyncAt: state.lastSyncAt,
+              stage: p.stage,
+              imagesDone: p.imagesDone,
+              imagesTotal: p.imagesTotal,
+              isFirstSync: first,
+              transfers: p.transfers,
+              transfersPlanned: p.transfersPlanned,
+              docsDone: p.docsDone,
+              docsTotal: p.docsTotal,
+            );
+          },
+        );
+      }
+
+      final r = await Future.any([run(), stalled.future]);
       if (email != null) {
         ref.read(settingsProvider.notifier).setSyncedAccount(email);
       }
-      state = SyncState(
-        phase: SyncPhase.idle,
-        lastSyncAt: DateTime.now(),
-        lastResult: r,
-      );
+      // 部分文件／圖片讀不了：不是整體失敗（其餘都已同步、帳號已記下），但要讓使用者看得出來。
+      final partial = r.skippedDocs.isNotEmpty
+          ? l10nStatic.syncuiSkippedDocs(r.skippedDocs.length)
+          : (r.imageFailures > 0
+                ? l10nStatic.syncuiImagesFailed(r.imageFailures)
+                : null);
+      state = partial != null
+          ? SyncState(
+              phase: SyncPhase.error,
+              lastSyncAt: DateTime.now(),
+              lastResult: r,
+              message: partial,
+              isFirstSync: first,
+            )
+          : SyncState(
+              phase: SyncPhase.idle,
+              lastSyncAt: DateTime.now(),
+              lastResult: r,
+            );
       return true;
     } on SyncFormatException catch (e) {
-      state = SyncState(
-        phase: SyncPhase.error,
-        lastSyncAt: state.lastSyncAt,
-        message: e.message,
-        isFirstSync: first,
-        needsAppUpdate: true,
-      );
+      state = failed(e.message, needsUpdate: true);
       return true;
     } on SyncAuthException catch (e) {
-      state = SyncState(
-        phase: SyncPhase.error,
-        lastSyncAt: state.lastSyncAt,
-        message: e.message,
-        isFirstSync: first,
-      );
+      syncLog('syncNow auth error');
+      state = failed(e.message);
+      return true;
+    } on SyncStalledException catch (e) {
+      state = failed(e.message, retry: true);
+      return true;
+    } on SyncNetworkException catch (e) {
+      syncLog('syncNow network error: ${e.message}');
+      state = failed(l10nStatic.syncFailed(e.message), retry: true);
       return true;
     } catch (e) {
-      state = SyncState(
-        phase: SyncPhase.error,
-        lastSyncAt: state.lastSyncAt,
-        message: l10nStatic.syncFailed('$e'),
-        isFirstSync: first,
-      );
+      syncLog('syncNow error ${e.runtimeType}');
+      state = failed(l10nStatic.syncFailed('$e'), retry: true);
       return true;
     } finally {
+      watchdog?.cancel();
+      _generation++; // 讓被放棄的舊一次同步之後的回報失效
       _running = false;
     }
   }

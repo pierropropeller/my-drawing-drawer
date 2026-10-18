@@ -70,6 +70,7 @@ class _SyncFirstPageState extends ConsumerState<SyncFirstPage> {
     required SyncState sync,
     required String subtitle,
     required double? fraction,
+    required String detail,
     required bool isError,
   }) {
     final t = context.tokens;
@@ -143,12 +144,7 @@ class _SyncFirstPageState extends ConsumerState<SyncFirstPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          sync.hasImageProgress
-                              ? context.l10n.loginImagesProgress(
-                                  sync.imagesDone,
-                                  sync.imagesTotal,
-                                )
-                              : '',
+                          detail,
                           style: TextStyle(fontSize: 13, color: t.text3),
                         ),
                         Text(
@@ -210,7 +206,21 @@ class _SyncFirstPageState extends ConsumerState<SyncFirstPage> {
       if (prev?.isSyncing == true && !next.isSyncing) _checkDone();
     });
     final sync = ref.watch(syncControllerProvider);
-    final fraction = sync.isSyncing ? sync.imageFraction : null;
+    // 拉取階段看文件數（資料 N / M）、之後看圖片數；列出雲端內容時是不確定進度＋說明文字。
+    final fraction = sync.isSyncing ? sync.progressFraction : null;
+    final String detail;
+    if (sync.isListing) {
+      detail = context.l10n.syncuiListing;
+    } else if (sync.hasDocProgress) {
+      detail = context.l10n.syncuiPullProgress(sync.docsDone, sync.docsTotal);
+    } else if (sync.hasImageProgress) {
+      detail = context.l10n.loginImagesProgress(
+        sync.imagesDone,
+        sync.imagesTotal,
+      );
+    } else {
+      detail = '';
+    }
     final String subtitle;
     if (sync.phase == SyncPhase.error && sync.message != null) {
       subtitle = sync.message!;
@@ -229,6 +239,7 @@ class _SyncFirstPageState extends ConsumerState<SyncFirstPage> {
             sync: sync,
             subtitle: subtitle,
             fraction: fraction,
+            detail: detail,
             isError: isError,
           ),
         ),
@@ -297,12 +308,7 @@ class _SyncFirstPageState extends ConsumerState<SyncFirstPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                sync.hasImageProgress
-                                    ? context.l10n.loginImagesProgress(
-                                        sync.imagesDone,
-                                        sync.imagesTotal,
-                                      )
-                                    : '',
+                                detail,
                                 style: TextStyle(
                                   fontSize: 12.5,
                                   color: t.text3,

@@ -34,6 +34,16 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
   bool _wentBackground = false;
   DateTime? _lastTrigger;
 
+  /// 暫時性失敗（逾時、斷線、看門狗中止）後的自動重試：依序等這些時間再試，用完就交給
+  /// 平常的觸發（回前景、定時、資料變動）。同步成功就歸零。
+  static const retryDelays = [
+    Duration(seconds: 15),
+    Duration(seconds: 60),
+    Duration(seconds: 180),
+  ];
+  Timer? _retry;
+  int _retries = 0;
+
   /// 從 inactive 回到 resumed（下拉通知中心、系統對話框、分屏切換焦點）時，離上次觸發
   /// 不到這麼久就不重複觸發。
   static const _resumeCooldown = Duration(seconds: 30);
@@ -101,6 +111,7 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
     WidgetsBinding.instance.removeObserver(this);
     _periodic?.cancel();
     _debounce?.cancel();
+    _retry?.cancel();
     _dbSub?.cancel();
     super.dispose();
   }
@@ -113,6 +124,18 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
     );
     ref.listen(settingsProvider.select((s) => s.accountEmail), (prev, next) {
       if (prev == null && next != null) _trigger();
+    });
+    ref.listen(syncControllerProvider, (prev, next) {
+      if (prev?.phase == next.phase) return;
+      if (next.phase == SyncPhase.idle) {
+        _retries = 0;
+        _retry?.cancel();
+      } else if (next.phase == SyncPhase.error &&
+          next.retryable &&
+          _retries < retryDelays.length) {
+        _retry?.cancel();
+        _retry = Timer(retryDelays[_retries++], _trigger);
+      }
     });
     ref.listen(onlineProvider, (prev, next) {
       if (next.value == true && prev?.value == false) _trigger(); // 恢復網絡後自動上傳

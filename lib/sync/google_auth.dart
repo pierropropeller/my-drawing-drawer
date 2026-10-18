@@ -1,6 +1,7 @@
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'remote.dart';
+import 'sync_log.dart';
 import '../l10n/l10n.dart';
 
 /// Drive 的「App 專用資料夾」scope（使用者在 Drive 裡看不到這些檔案）。
@@ -49,7 +50,10 @@ class GoogleAccountService implements AccountService {
       final account = await GoogleSignIn.instance.authenticate(
         scopeHint: [driveAppDataScope],
       );
-      await account.authorizationClient.authorizeScopes([driveAppDataScope]);
+      final authz = await account.authorizationClient.authorizeScopes([
+        driveAppDataScope,
+      ]);
+      _cacheToken(authz.accessToken);
       _account = account;
       return account.email;
     } on GoogleSignInException catch (e) {
@@ -83,8 +87,7 @@ class GoogleAccountService implements AccountService {
       await GoogleSignIn.instance.signOut();
     } catch (_) {}
     _account = null;
-    _token = null;
-    _tokenUntil = null;
+    invalidateToken();
   }
 
   // 記憶體裡的存取權杖（Google 的權杖約 1 小時有效，保守取 45 分鐘），同步時不用每次都問。
@@ -101,9 +104,27 @@ class GoogleAccountService implements AccountService {
     'X-Goog-AuthUser': '0',
   };
 
+  void _cacheToken(String token) {
+    _token = token;
+    _tokenUntil = DateTime.now().add(const Duration(minutes: 45));
+  }
+
+  /// 丟掉快取的存取權杖（收到 401 時呼叫），下一次 [headers] 會重新授權。
+  void invalidateToken() {
+    _token = null;
+    _tokenUntil = null;
+  }
+
+  // 同時多個請求一起要授權時只問一次（同步會並行下載）。
+  Future<Map<String, String>>? _inflight;
+
   @override
-  Future<Map<String, String>> headers() async {
-    if (_tokenValid) return _bearer(_token!);
+  Future<Map<String, String>> headers() {
+    if (_tokenValid) return Future.value(_bearer(_token!));
+    return _inflight ??= _fetchHeaders().whenComplete(() => _inflight = null);
+  }
+
+  Future<Map<String, String>> _fetchHeaders() async {
     try {
       await _init();
       // 1) 先「靜默授權」：之前授權過 Drive 的話，不需要先登入、也不會彈出
@@ -111,7 +132,9 @@ class GoogleAccountService implements AccountService {
       var authz = await GoogleSignIn.instance.authorizationClient
           .authorizationForScopes([driveAppDataScope]);
       if (authz == null) {
-        // 2) 要互動才能授權（第一次、或授權過期）：才去還原帳號，必要時顯示 Google 的畫面。
+        // 2) 要互動才能授權（第一次、或授權過期；iOS 上 authorizationForScopes 常回 null）：
+        //    才去還原帳號，必要時顯示 Google 的畫面。拿不到就丟出授權失敗，絕不回空標頭。
+        syncLog('auth: silent authorization unavailable, going interactive');
         _account ??= await GoogleSignIn.instance
             .attemptLightweightAuthentication();
         final client =
@@ -121,16 +144,25 @@ class GoogleAccountService implements AccountService {
             await client.authorizationForScopes([driveAppDataScope]) ??
             await client.authorizeScopes([driveAppDataScope]);
       }
-      _token = authz.accessToken;
-      _tokenUntil = DateTime.now().add(const Duration(minutes: 45));
+      if (authz.accessToken.isEmpty) {
+        throw SyncAuthException(
+          l10nStatic.syncAuthExpiredDetail('empty token'),
+        );
+      }
+      _cacheToken(authz.accessToken);
+      syncLog('auth: token acquired');
       return _bearer(authz.accessToken);
+    } on SyncAuthException {
+      rethrow;
     } on GoogleSignInException catch (e) {
+      syncLog('auth: GoogleSignInException ${e.code.name}');
       throw SyncAuthException(
         l10nStatic.syncAuthExpiredDetail(
           '${e.code.name}：${e.description ?? ''}',
         ),
       );
     } catch (e) {
+      syncLog('auth: ${e.runtimeType}');
       throw SyncAuthException(l10nStatic.syncAuthExpiredDetail('$e'));
     }
   }

@@ -3,6 +3,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../sync/network_kind.dart';
 import '../theme/tokens.dart';
 import '../l10n/l10n.dart';
 
@@ -245,8 +246,9 @@ final themeModeProvider = Provider<ThemeMode>(
 final onlineProvider = StreamProvider<bool>((ref) async* {
   // 以 connectivity_plus 監聽；任何非 none 視為在線。
   final c = Connectivity();
-  yield !(await c.checkConnectivity()).contains(ConnectivityResult.none);
+  // 只有「明確斷線」才算離線；vpn／other／空清單都當成在線（見 isExplicitlyOffline）。
+  yield !isExplicitlyOffline(await c.checkConnectivity());
   await for (final r in c.onConnectivityChanged) {
-    yield !r.contains(ConnectivityResult.none);
+    yield !isExplicitlyOffline(r);
   }
 });
