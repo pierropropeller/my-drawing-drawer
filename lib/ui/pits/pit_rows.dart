@@ -74,7 +74,12 @@ class PitRow extends ConsumerWidget {
     final l = context.l10n;
     if (status == PitStatus.shallow) {
       final d = pit.description?.trim() ?? '';
-      if (d.isNotEmpty) return d.split('\n').first;
+      if (d.isNotEmpty) {
+        // 只列第一行；後面還有內容時硬換行不會自動出現省略號，這裡補上。
+        final lines = d.split('\n');
+        final more = lines.skip(1).any((e) => e.trim().isNotEmpty);
+        return more ? '${lines.first.trimRight()}…' : lines.first;
+      }
       final open = [
         for (final k in PitSectionKey.values)
           if (pit.sectionOpen(k)) k,

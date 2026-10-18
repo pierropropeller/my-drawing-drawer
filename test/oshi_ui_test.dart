@@ -14,6 +14,7 @@ import 'package:huakeng/l10n/l10n.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/state/settings.dart';
 import 'package:huakeng/theme/app_theme.dart';
+import 'package:huakeng/ui/common/clamped_text.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/common/timeline.dart';
 import 'package:huakeng/ui/oshi/oshi_date_guess.dart';
@@ -27,6 +28,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// 推活 UI（D-057／D-062／D-063／D-065／D-066）：預設日期推測、共用時間軸、列表（時間軸／網格／分組／
 /// tag 篩選）、新增與編輯、詳情與刪除、導覽列規則。
+/// 目前畫面上所有 [ClampedText] 實際畫出的字串（以 \u0001 隔開）。
+String clampedShown(WidgetTester tester) => [
+  for (final e in find.byType(ClampedParagraph).evaluate())
+    (e.renderObject! as RenderClampedText).shownText,
+].join('\u0001');
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late AppDatabase db;
@@ -296,7 +303,7 @@ void main() {
       expect(find.text('2026 年 10 月'), findsOneWidget);
       expect(find.text('2026 年 9 月'), findsOneWidget);
       expect(find.text('一週年展・現場'), findsOneWidget);
-      expect(find.text('排了兩小時隊'), findsOneWidget);
+      expect(clampedShown(tester), contains('排了兩小時隊'));
       expect(find.text('#角色1'), findsOneWidget);
       expect(find.text('2'), findsOneWidget); // 兩張圖的圓形數字
       expect(
@@ -331,6 +338,25 @@ void main() {
       expect(find.text('痛包完成'), findsOneWidget);
       expect(find.text('十連出貨'), findsOneWidget);
       expect(navBarHiddenCount.value, 0);
+      await unmount(tester);
+    });
+
+    testWidgets('時間軸描述超過 2 行（硬換行）：第 2 行最後一個字後面有「…」', (tester) async {
+      await tester.runAsync(() async {
+        await rec(
+          date: DateTime(2026, 10, 5),
+          title: '多行',
+          description: '第一行\n第二行\n\n第四行',
+        );
+        await rec(
+          date: DateTime(2026, 10, 4),
+          title: '剛好兩行',
+          description: '甲\n乙',
+        );
+      });
+      await show(tester, OshiListPage(pitId: pitId));
+      expect(clampedShown(tester), contains('第一行\n第二行…'));
+      expect(clampedShown(tester), contains('甲\n乙')); // 放得下：沒有省略號
       await unmount(tester);
     });
 

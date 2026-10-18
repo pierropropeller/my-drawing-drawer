@@ -1,3 +1,5 @@
+import '../common/clamped_text.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -430,10 +432,9 @@ class _IdeaCard extends StatelessWidget {
           ),
           if (idea.body.isNotEmpty) ...[
             const SizedBox(height: 5),
-            Text(
+            ClampedText(
               idea.body,
               maxLines: 2,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(color: t.text2, fontSize: 13, height: 1.55),
             ),
           ],

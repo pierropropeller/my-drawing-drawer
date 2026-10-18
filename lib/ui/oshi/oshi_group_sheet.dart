@@ -1,3 +1,5 @@
+import '../common/themed_sheet.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,15 +23,8 @@ Future<OshiGroupChoice?> showOshiGroupSheet(
   /// 預選：選取的紀錄都在同一組時傳 [OshiGroupChoice]（groupId 可為 null＝都沒分組）。
   OshiGroupChoice? initial,
 }) {
-  final t = context.tokens;
-  return showModalBottomSheet<OshiGroupChoice>(
+  return showThemedSheet<OshiGroupChoice>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: t.ground,
-    barrierColor: const Color(0xFF1E1A17).withValues(alpha: 0.42),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-    ),
     builder: (_) =>
         OshiGroupSheet(pitId: pitId, count: count, initial: initial),
   );

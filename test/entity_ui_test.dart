@@ -11,6 +11,7 @@ import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/state/providers.dart';
+import 'package:huakeng/ui/common/clamped_text.dart';
 import 'package:huakeng/ui/album/album_image.dart';
 import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
@@ -28,6 +29,12 @@ import 'package:huakeng/ui/entity/piece_widgets.dart';
 import 'package:huakeng/ui/tags/tag_manage_page.dart';
 
 /// 腦洞／摸魚／tag 畫面的互動與規則（D-001～D-005、D-015～D-018、D-037、D-043）。
+/// 目前畫面上所有 [ClampedText] 實際畫出的字串（以 \u0001 隔開）。
+String clampedShown(WidgetTester tester) => [
+  for (final e in find.byType(ClampedParagraph).evaluate())
+    (e.renderObject! as RenderClampedText).shownText,
+].join('\u0001');
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late AppDatabase db;
@@ -623,6 +630,24 @@ void main() {
       expect(find.textContaining('連接'), findsNothing);
       await tester.tap(find.text('#角色1'));
       expect(tapped, tagA);
+      await unmount(tester);
+    });
+  });
+
+  group('列表內文行數上限', () {
+    testWidgets('腦洞卡片內文三行只顯示兩行，並以「…」結尾', (tester) async {
+      await db.saveIdea(
+        pitId: pitId,
+        title: '長內文',
+        body: '第一行\n第二行\n第三行',
+        images: const [],
+        tagIds: const [],
+        draftIds: const [],
+        pieceIds: const [],
+      );
+      await show(tester, IdeaListPage(pitId: pitId));
+      expect(clampedShown(tester), contains('第一行\n第二行…'));
+      expect(find.textContaining('第三行'), findsNothing);
       await unmount(tester);
     });
   });

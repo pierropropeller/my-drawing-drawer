@@ -1,3 +1,5 @@
+import '../common/themed_sheet.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,16 +19,9 @@ import 'sync_icons.dart';
 ///
 /// 設計稿的 sheet 蓋住底部導覽列，所以用最上層 Navigator（全域 sheet）。
 Future<void> showSyncSheet(BuildContext context) {
-  final t = context.tokens;
-  return showModalBottomSheet<void>(
+  return showThemedSheet<void>(
     context: context,
     useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: t.ground,
-    barrierColor: const Color(0xFF1E1A17).withValues(alpha: 0.42),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-    ),
     builder: (_) => const SyncSheet(),
   );
 }

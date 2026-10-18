@@ -1,3 +1,5 @@
+import '../common/themed_sheet.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
@@ -189,15 +191,8 @@ Future<bool?> showOshiTagSheet(
   required String pitId,
   required List<String> ids,
 }) {
-  final t = context.tokens;
-  return showModalBottomSheet<bool>(
+  return showThemedSheet<bool>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: t.ground,
-    barrierColor: const Color(0xFF1E1A17).withValues(alpha: 0.42),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-    ),
     builder: (_) => BatchTagSheet(
       pitId: pitId,
       backend: OshiSelectActions.tagBackend,

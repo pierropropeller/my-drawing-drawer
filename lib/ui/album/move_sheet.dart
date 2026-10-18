@@ -1,3 +1,5 @@
+import '../common/themed_sheet.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,15 +43,8 @@ Future<MoveTarget?> showMoveSheet(
   required int count,
   String? initialGroupId,
 }) {
-  final t = context.tokens;
-  return showModalBottomSheet<MoveTarget>(
+  return showThemedSheet<MoveTarget>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: t.ground,
-    barrierColor: const Color(0xFF1E1A17).withValues(alpha: 0.42),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-    ),
     builder: (_) => MoveSheet(
       pitId: pitId,
       from: from,
