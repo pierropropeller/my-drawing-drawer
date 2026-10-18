@@ -1533,12 +1533,6 @@ abstract class AppLocalizations {
   /// **'請至少選擇一張圖片'**
   String get pieceFormMissingImage;
 
-  /// No description provided for @pieceFormLinkHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'貼上連結網址'**
-  String get pieceFormLinkHint;
-
   /// No description provided for @pieceFormPublishDate.
   ///
   /// In zh, this message translates to:
@@ -1622,18 +1616,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'成品圖'**
   String get pieceFormImages;
-
-  /// No description provided for @pieceFormTitleHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'為這張成圖命名'**
-  String get pieceFormTitleHint;
-
-  /// No description provided for @pieceFormBodyHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'想說的話、創作筆記…'**
-  String get pieceFormBodyHint;
 
   /// No description provided for @pieceFormPublished.
   ///
@@ -3542,6 +3524,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已設為好看同人圖封面'**
   String get albumFanCoverSet;
+
+  /// No description provided for @draftSelectedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選 {count} 份'**
+  String draftSelectedCount(int count);
+
+  /// No description provided for @draftDeleteSelectedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除 {count} 份摸魚？'**
+  String draftDeleteSelectedTitle(int count);
+
+  /// No description provided for @pieceDeleteSelectedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除 {count} 張成圖？'**
+  String pieceDeleteSelectedTitle(int count);
 
   /// No description provided for @shallowName.
   ///

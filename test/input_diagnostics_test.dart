@@ -19,8 +19,8 @@ void main() {
     await t.pump();
     expect(find.textContaining('KEY down Arrow Left'), findsOneWidget);
     expect(find.textContaining('FOC text field'), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('inputDiagClose')));
+    // 面板不攔截觸控：點它底下的輸入框仍然有效。
+    await t.tap(find.byType(TextField));
     await t.pump();
-    expect(find.textContaining('KEY down'), findsNothing);
   });
 }

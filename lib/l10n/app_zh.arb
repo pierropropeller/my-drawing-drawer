@@ -574,7 +574,6 @@
   "draftFormImages": "摸魚圖",
   "draftFormCreate": "建立摸魚",
   "pieceFormMissingImage": "請至少選擇一張圖片",
-  "pieceFormLinkHint": "貼上連結網址",
   "pieceFormPublishDate": "發佈日期",
   "pieceFormSocialLinks": "社交媒體連結",
   "pieceFormAddSocialLink": "加社交連結",
@@ -589,8 +588,6 @@
   "pieceFormTitleNew": "新增成圖",
   "pieceFormTitleEdit": "編輯成圖",
   "pieceFormImages": "成品圖",
-  "pieceFormTitleHint": "為這張成圖命名",
-  "pieceFormBodyHint": "想說的話、創作筆記…",
   "pieceFormPublished": "已公開發佈",
   "pieceFormCommission": "商稿",
   "pieceFormFinishedAt": "完成時間",
@@ -1362,6 +1359,30 @@
   "pieceDetailPayment": "收款",
   "albumFanEmpty": "還沒有同人圖",
   "albumFanCoverSet": "已設為好看同人圖封面",
+  "draftSelectedCount": "已選 {count} 份",
+  "@draftSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "draftDeleteSelectedTitle": "刪除 {count} 份摸魚？",
+  "@draftDeleteSelectedTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pieceDeleteSelectedTitle": "刪除 {count} 張成圖？",
+  "@pieceDeleteSelectedTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "shallowName": "淺坑",
   "shallowTypeLabel": "類型",
   "shallowTypePit": "坑",

@@ -814,9 +814,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pieceFormMissingImage => '請至少選擇一張圖片';
 
   @override
-  String get pieceFormLinkHint => '貼上連結網址';
-
-  @override
   String get pieceFormPublishDate => '發佈日期';
 
   @override
@@ -857,12 +854,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pieceFormImages => '成品圖';
-
-  @override
-  String get pieceFormTitleHint => '為這張成圖命名';
-
-  @override
-  String get pieceFormBodyHint => '想說的話、創作筆記…';
 
   @override
   String get pieceFormPublished => '已公開發佈';
@@ -1958,6 +1949,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get albumFanCoverSet => '已設為好看同人圖封面';
+
+  @override
+  String draftSelectedCount(int count) {
+    return '已選 $count 份';
+  }
+
+  @override
+  String draftDeleteSelectedTitle(int count) {
+    return '刪除 $count 份摸魚？';
+  }
+
+  @override
+  String pieceDeleteSelectedTitle(int count) {
+    return '刪除 $count 張成圖？';
+  }
 
   @override
   String get shallowName => '淺坑';

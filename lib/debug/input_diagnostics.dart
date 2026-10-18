@@ -149,7 +149,8 @@ class InputDiagnosticsOverlay extends StatefulWidget {
 
 class _InputDiagnosticsOverlayState extends State<InputDiagnosticsOverlay> {
   final _log = InputDiagLog.instance;
-  bool _visible = true;
+  // 整個面板不吃任何觸控（避免蓋住頁面右上角的按鈕）；只在 debug 版出現。
+  final bool _visible = true;
   TextEditingController? _ctl;
   TextSelection? _lastSel;
   int _lastLen = 0;
@@ -232,7 +233,7 @@ class _InputDiagnosticsOverlayState extends State<InputDiagnosticsOverlay> {
         Positioned.fill(child: widget.child),
         if (_visible)
           Positioned(
-            top: MediaQuery.paddingOf(context).top + 4,
+            top: MediaQuery.paddingOf(context).top + 64,
             right: 4,
             width: 300,
             child: Directionality(
@@ -243,7 +244,7 @@ class _InputDiagnosticsOverlayState extends State<InputDiagnosticsOverlay> {
                     child: ListenableBuilder(
                       listenable: _log,
                       builder: (_, _) => Container(
-                        padding: const EdgeInsets.fromLTRB(6, 4, 22, 4),
+                        padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
                         color: const Color(0xCC000000),
                         child: Text(
                           _log.lines.isEmpty
@@ -256,29 +257,6 @@ class _InputDiagnosticsOverlayState extends State<InputDiagnosticsOverlay> {
                             fontFamily: 'monospace',
                             decoration: TextDecoration.none,
                             fontWeight: FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      key: const ValueKey('inputDiagClose'),
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => setState(() => _visible = false),
-                      child: const SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: Center(
-                          child: Text(
-                            'x',
-                            style: TextStyle(
-                              color: Color(0xFFFFFFFF),
-                              fontSize: 14,
-                              decoration: TextDecoration.none,
-                            ),
                           ),
                         ),
                       ),
