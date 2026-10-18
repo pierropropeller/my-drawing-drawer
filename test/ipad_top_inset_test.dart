@@ -60,9 +60,9 @@ void main() {
   }
 
   group('iPad（iOS）', () {
+    // 視窗尺寸 → 是否小於螢幕（display 834x1194）。
     const sizes = <String, Size>{
       '全螢幕直向 834x1194': Size(834, 1194),
-      '全螢幕橫向 1194x834': Size(1194, 834),
       '大視窗 1366x1024': Size(1366, 1024),
       '視窗模式 700x600': Size(700, 600),
       '窄分屏 400x900': Size(400, 900),
@@ -80,7 +80,7 @@ void main() {
         );
         expect(headerTop(tester), greaterThanOrEqualTo(kTabletTopInsetFloor));
       });
-      iosTest('${e.key}：系統 top=0（視窗模式）→ 仍 ≥ 保底值', (tester) async {
+      iosTest('${e.key}：系統 top=0 → 全螢幕 28／視窗化 72', (tester) async {
         await pumpPage(
           tester,
           window: e.value,
@@ -88,7 +88,11 @@ void main() {
           systemTop: 0,
           platform: TargetPlatform.iOS,
         );
-        expect(headerTop(tester), kTabletTopInsetFloor);
+        final windowed = e.value.width < 834 - 1 || e.value.height < 1194 - 1;
+        expect(
+          headerTop(tester),
+          windowed ? kTabletWindowedTopInsetFloor : kTabletTopInsetFloor,
+        );
       });
     }
 
@@ -138,6 +142,187 @@ void main() {
       );
       expect(headerTop(tester), kTabletTopInsetFloor);
     });
+  });
+
+  group('視窗控制點（原生回報）', () {
+    const display = Size(1194, 834);
+
+    iosTest('量到控制點下緣 65 → 起點 ＝ 73（下緣＋8），高於保底', (tester) async {
+      await pumpPage(
+        tester,
+        window: const Size(582, 800),
+        display: display,
+        systemTop: 0,
+        platform: TargetPlatform.iOS,
+        native: const NativeWindowInsets(
+          isPad: true,
+          windowed: true,
+          controlsRight: 82,
+          controlsBottom: 65,
+        ),
+      );
+      expect(headerTop(tester), 65 + kTabletControlsGap);
+    });
+
+    iosTest('量到控制點但很矮（下緣 20）→ 以原生數字為準（不低於 28）', (tester) async {
+      await pumpPage(
+        tester,
+        window: const Size(582, 800),
+        display: display,
+        systemTop: 0,
+        platform: TargetPlatform.iOS,
+        native: const NativeWindowInsets(
+          isPad: true,
+          windowed: true,
+          controlsBottom: 20,
+        ),
+      );
+      // 下緣＋8＝28，但已有原生確切數字就以它為準，不再套 72。
+      expect(headerTop(tester), 28);
+    });
+
+    iosTest('量不到控制點、windowed=true → 72', (tester) async {
+      await pumpPage(
+        tester,
+        window: display,
+        display: display,
+        systemTop: 24,
+        platform: TargetPlatform.iOS,
+        native: const NativeWindowInsets(isPad: true, windowed: true),
+      );
+      expect(headerTop(tester), kTabletWindowedTopInsetFloor);
+    });
+
+    iosTest('windowed=false（即使視窗較小）→ 維持 28', (tester) async {
+      await pumpPage(
+        tester,
+        window: const Size(700, 600),
+        display: display,
+        systemTop: 24,
+        platform: TargetPlatform.iOS,
+        native: const NativeWindowInsets(isPad: true, windowed: false),
+      );
+      expect(headerTop(tester), kTabletTopInsetFloor);
+    });
+
+    iosTest('全螢幕、原生沒回報控制點 → 28', (tester) async {
+      await pumpPage(
+        tester,
+        window: display,
+        display: display,
+        systemTop: 24,
+        platform: TargetPlatform.iOS,
+        native: const NativeWindowInsets(isPad: true, windowed: false, top: 24),
+      );
+      expect(headerTop(tester), kTabletTopInsetFloor);
+    });
+
+    iosTest('原生通知 windowInsetsChanged：拉窗後位置跟著變', (tester) async {
+      await pumpPage(
+        tester,
+        window: display,
+        display: display,
+        systemTop: 0,
+        platform: TargetPlatform.iOS,
+        native: const NativeWindowInsets(isPad: true, windowed: false),
+      );
+      expect(headerTop(tester), 28);
+      Future<void> push(Map<String, Object?> args) async {
+        const codec = StandardMethodCodec();
+        await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+          'io.molly.drawer/window',
+          codec.encodeMethodCall(MethodCall('windowInsetsChanged', args)),
+          (_) {},
+        );
+        await tester.pump();
+      }
+
+      await push({
+        'isPad': true,
+        'windowed': true,
+        'controlsRight': 82.0,
+        'controlsBottom': 64.0,
+      });
+      expect(headerTop(tester), 72);
+      await push({'isPad': true, 'windowed': false});
+      expect(headerTop(tester), 28);
+    });
+
+    // 各種視窗尺寸：頭像列＋返回鍵都在控制點下緣（65）之下，且不溢位。
+    const windows = <String, Size>{
+      '390x844': Size(390, 844),
+      '400x900': Size(400, 900),
+      '700x1000': Size(700, 1000),
+      '834x1194': Size(834, 1194),
+      '1194x834': Size(1194, 834),
+      '1366x1024': Size(1366, 1024),
+    };
+    for (final e in windows.entries) {
+      iosTest('${e.key}（視窗化）：頭像／返回鍵 ≥ 控制點下緣，無溢位', (tester) async {
+        final errors = <FlutterErrorDetails>[];
+        final old = FlutterError.onError;
+        FlutterError.onError = errors.add;
+        addTearDown(() => FlutterError.onError = old);
+        debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = e.value;
+        tester.view.display.size = const Size(1366, 1024);
+        addTearDown(() {
+          tester.view.reset();
+          tester.view.display.reset();
+        });
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => TabletTopInsetGuard(
+              loadNative: () async => const NativeWindowInsets(
+                isPad: true,
+                windowed: true,
+                controlsBottom: 65,
+              ),
+              child: child!,
+            ),
+            home: Scaffold(
+              // 側欄頂部頭像（rail／sidebar）＋右側頁面（AppBar 返回鍵）。
+              body: Row(
+                children: [
+                  const SafeArea(
+                    right: false,
+                    child: SizedBox(
+                      width: 84,
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: SizedBox(
+                          key: Key('avatar'),
+                          width: 44,
+                          height: 44,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Scaffold(
+                      appBar: AppBar(
+                        leading: const BackButton(key: Key('back')),
+                      ),
+                      body: const SafeArea(child: SizedBox(key: header)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+        expect(tester.getTopLeft(find.byKey(const Key('avatar'))).dy, 73);
+        expect(
+          tester.getTopLeft(find.byKey(const Key('back'))).dy,
+          greaterThanOrEqualTo(65),
+        );
+        expect(errors, isEmpty);
+        debugDefaultTargetPlatformOverride = null;
+      });
+    }
   });
 
   group('不變的情況', () {
@@ -205,6 +390,24 @@ void main() {
         );
     expect(r(24), 28);
     expect(r(0), 28);
+    expect(
+      resolveTopInset(
+        current: 0,
+        isIos: true,
+        isTablet: true,
+        windowedByGeometry: true,
+      ),
+      72,
+    );
+    expect(
+      resolveTopInset(
+        current: 0,
+        isIos: true,
+        isTablet: false,
+        windowedByGeometry: true,
+      ),
+      0,
+    );
     expect(r(0, n: 31), 31);
     expect(r(50, n: 31), 50);
     expect(r(0, tablet: false), 0);
@@ -219,7 +422,11 @@ void main() {
       'top': 24,
       'leading': 'bad',
       'windowed': false,
+      'controlsRight': 82,
+      'controlsBottom': 0,
     })!;
+    expect(v.controlsRight, 82.0);
+    expect(v.controlsBottom, isNull);
     expect(v.isPad, isTrue);
     expect(v.top, 24.0);
     expect(v.leading, isNull);

@@ -70,34 +70,115 @@ import UIKit
 
     // 視窗資訊（lib/ui/common/window_top_inset.dart）：iPad 視窗模式下頁面頂部要讓開視窗控制點。
     // 取不到的欄位不放進去（Dart 端用保底值）；整個失敗回 nil。
+    // 視窗大小／位置改變時，原生會再主動呼叫 Dart 的 `windowInsetsChanged`（同樣格式）。
     let windowCh = FlutterMethodChannel(name: "io.molly.drawer/window", binaryMessenger: messenger)
-    windowCh.setMethodCallHandler { call, result in
+    windowCh.setMethodCallHandler { [weak self] call, result in
       switch call.method {
       case "windowInsets":
-        DispatchQueue.main.async { result(AppDelegate.windowInsets()) }
+        DispatchQueue.main.async {
+          self?.attachWindowObservers()
+          result(AppDelegate.windowInsets())
+        }
       default:
         result(FlutterMethodNotImplemented)
       }
     }
     windowChannel = windowCh
+
+    // 視窗變成 key／App 回到前景時重新掛觀察並回報（scene 可能剛建立、控制點剛出現）。
+    for name in [UIWindow.didBecomeKeyNotification, UIApplication.didBecomeActiveNotification] {
+      NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) {
+        [weak self] _ in
+        self?.attachWindowObservers()
+        self?.scheduleWindowPush()
+      }
+    }
   }
 
   // MARK: - 視窗資訊
 
-  /// isPad、top（max(window safe inset top, 狀態列高度)）、leading、windowed（視窗小於整個螢幕）。
-  /// 只用長期穩定的 API（未使用 iOS 26 的 layoutGuide(for:)，避免舊 SDK 編譯失敗）。
-  private static func windowInsets() -> [String: Any]? {
+  private var boundsObservation: NSKeyValueObservation?
+  private weak var observedView: UIView?
+  private var pendingPush: DispatchWorkItem?
+
+  private static func activeScene() -> UIWindowScene? {
     let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-    guard let scene = scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first
-    else { return nil }
+    return scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first
+  }
+
+  private static func mainWindow(_ scene: UIWindowScene) -> UIWindow? {
+    return scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first
+  }
+
+  /// 觀察 Flutter 根 view 的 bounds：視窗被拉動、分屏、Stage Manager 改變大小時都會變。
+  /// （就是 viewDidLayoutSubviews 會看到的那個變化；不必子類化 FlutterViewController。）
+  private func attachWindowObservers() {
+    guard let scene = AppDelegate.activeScene(),
+      let view = AppDelegate.mainWindow(scene)?.rootViewController?.view
+    else { return }
+    if observedView === view { return }
+    observedView = view
+    boundsObservation = view.layer.observe(\.bounds, options: [.new]) { [weak self] _, _ in
+      self?.scheduleWindowPush()
+    }
+  }
+
+  /// 合併短時間內的多次變化；等一個 layout 週期再量（控制點的 layout guide 在 layout 之後才更新），
+  /// 並在 0.35 秒（視窗動畫結束）後再量一次。
+  private func scheduleWindowPush() {
+    pendingPush?.cancel()
+    let work = DispatchWorkItem { [weak self] in
+      self?.pushWindowInsets()
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { self?.pushWindowInsets() }
+    }
+    pendingPush = work
+    DispatchQueue.main.async(execute: work)
+  }
+
+  private func pushWindowInsets() {
+    guard let info = AppDelegate.windowInsets() else { return }
+    windowChannel?.invokeMethod("windowInsetsChanged", arguments: info)
+  }
+
+  /// iOS 26 視窗控制區域（紅黃綠三個點）：用 `layoutGuide(for:)` 取「避開視窗控制點的安全區」，
+  /// 和一般安全區比較，得到左側被占用的寬度（controlsRight）與頂部被占用到的 y（controlsBottom）。
+  /// 沒有調整（全螢幕、沒有控制點）時回 nil。
+  /// 需要 Xcode 26（Swift 6.2）；舊 SDK 整段不編譯，回 nil＝Dart 用保底。
+  private static func controlsRegion(in view: UIView) -> (right: Double, bottom: Double)? {
+    #if compiler(>=6.2)
+      if #available(iOS 26.0, *) {
+        let base = view.safeAreaLayoutGuide.layoutFrame
+        let horizontal = view.layoutGuide(for: .safeArea(cornerAdaptation: .horizontal)).layoutFrame
+        let vertical = view.layoutGuide(for: .safeArea(cornerAdaptation: .vertical)).layoutFrame
+        let right = Double(horizontal.minX - base.minX)
+        let bottom = Double(vertical.minY)
+        guard right.isFinite, bottom.isFinite else { return nil }
+        // 比一般安全區多出來的部分才算控制點。
+        let hasRight = right > 0.5
+        let hasBottom = bottom > Double(base.minY) + 0.5
+        if !hasRight && !hasBottom { return nil }
+        return (hasRight ? right + Double(base.minX) : 0, hasBottom ? bottom : 0)
+      }
+    #endif
+    return nil
+  }
+
+  /// isPad、top（max(window safe inset top, 狀態列高度)）、leading、windowed（視窗小於整個螢幕）、
+  /// controlsRight／controlsBottom（iOS 26 視窗控制區域，視窗座標、單位 pt；取不到不放）。
+  private static func windowInsets() -> [String: Any]? {
+    guard let scene = activeScene() else { return nil }
     var out: [String: Any] = [:]
     out["isPad"] = UIDevice.current.userInterfaceIdiom == .pad
     let statusBar = Double(scene.statusBarManager?.statusBarFrame.height ?? 0)
-    if let win = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first {
+    if let win = mainWindow(scene) {
       out["top"] = max(Double(win.safeAreaInsets.top), statusBar)
       out["leading"] = Double(win.safeAreaInsets.left)
       let screen = scene.screen.bounds.size
       out["windowed"] = win.bounds.width < screen.width - 1 || win.bounds.height < screen.height - 1
+      if let view = win.rootViewController?.view, let c = controlsRegion(in: view) {
+        out["controlsRight"] = c.right
+        out["controlsBottom"] = c.bottom
+      }
     } else {
       out["top"] = statusBar
     }
