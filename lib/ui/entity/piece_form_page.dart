@@ -253,8 +253,6 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
               onChanged: (_) => setState(() {}),
               style: const TextStyle(fontSize: 13),
               decoration: InputDecoration(
-                hintText: context.l10n.pieceFormLinkHint,
-                hintStyle: TextStyle(color: t.text4, fontSize: 13),
                 isDense: true,
                 filled: false,
                 border: InputBorder.none,
@@ -291,6 +289,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
     children: [
       FormLabel(context.l10n.pieceFormPublishDate),
       PieceDateField(
+        allowFuture: true, // 發佈日期可預訂未來（D-096 只限制成圖的「日期」）
         date: _publishedAt ?? _finishedAt,
         semanticLabel: context.l10n.pieceFormPublishDate,
         onChanged: (d) => setState(() => _publishedAt = d),
@@ -447,6 +446,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
         const SizedBox(height: 14),
         FormLabel(context.l10n.pieceFormDueDate),
         PieceDateField(
+          allowFuture: true, // 交稿日期本來就是未來的事
           date: _dueAt,
           semanticLabel: context.l10n.pieceFormDueDate,
           onChanged: (d) => setState(() => _dueAt = d),
@@ -488,10 +488,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
         key: const Key('piece-title'),
         controller: _title,
         style: const TextStyle(fontSize: 15),
-        decoration: entityFieldDecoration(
-          context,
-          context.l10n.pieceFormTitleHint,
-        ),
+        decoration: entityFieldDecoration(context, ''),
         validator: (v) => (v == null || v.trim().isEmpty)
             ? context.l10n.entityTitleRequired
             : null,
@@ -503,10 +500,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
         minLines: 3,
         maxLines: 8,
         style: const TextStyle(fontSize: 15, height: 1.55),
-        decoration: entityFieldDecoration(
-          context,
-          context.l10n.pieceFormBodyHint,
-        ),
+        decoration: entityFieldDecoration(context, ''),
       ),
       const SizedBox(height: 16),
       TagPicker(

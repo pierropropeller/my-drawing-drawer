@@ -19,7 +19,7 @@ import 'package:huakeng/ui/pits/pit_rows.dart';
 
 /// 淺坑的封面（跟現坑一樣從坑內的圖挑）：
 /// - 淺坑內頁：每個有內容的開啟格子，長按進入「選擇該格封面」，點圖後只改那一格（手機、iPad）。
-/// - 主頁「淺坑」分頁的列：長按進入「選擇坑封面」（之前漏了，這是使用者回報的情況）。
+/// - 主頁「淺坑」分頁的列：長按不開選封面（D-093）。
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -217,7 +217,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('主頁淺坑分頁的列：長按進入選這個坑的封面，點圖設為坑封面', (tester) async {
+  testWidgets('主頁淺坑分頁的列：長按不會開選封面（D-093）', (tester) async {
     setView(tester, 1080, 2400, 3);
     final id = (await tester.runAsync(shallowPitWithEverything))!;
     final pit = (await tester.runAsync(() => db.watchPit(id).first))!;
@@ -229,14 +229,6 @@ void main() {
     );
     await tester.longPress(find.text('淺坑甲'));
     await settle(tester);
-    final page = find.byType(CoverPickPage);
-    expect(page, findsOneWidget);
-    expect(tester.widget<CoverPickPage>(page).kind, isNull);
-    expect(tester.widget<CoverPickPage>(page).pitId, id);
-    await tester.tap(find.bySemanticsLabel('設為封面').first);
-    await settle(tester);
-    final after = (await tester.runAsync(() => db.watchPit(id).first))!;
-    expect(after.coverImageId, isNotNull);
     expect(find.byType(CoverPickPage), findsNothing);
     await unmount(tester);
   });

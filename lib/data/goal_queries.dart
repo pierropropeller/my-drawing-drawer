@@ -329,12 +329,13 @@ extension GoalQueries on AppDatabase {
 
   /// 某月每天最新一張成圖（作為月曆上的圓形日期圖）。key＝日（1~31）。
   Stream<Map<int, String>> watchMonthCovers(int year, int month) {
-    return watchAssembled(this, {pieces, entityImages}, () async {
+    return watchAssembled(this, {pieces, pits, entityImages}, () async {
       final rows =
           await (select(pieces)
                 ..where(
                   (p) =>
                       p.deletedAt.isNull() &
+                      notInArchivedPit(p.pitId) &
                       p.finishedAt.isBiggerOrEqualValue(
                         monthStart(year, month),
                       ) &
@@ -374,12 +375,13 @@ extension GoalQueries on AppDatabase {
     final end = start.add(const Duration(days: 1));
     return watchAssembled(
       this,
-      {ideas, drafts, pieces, entityImages, tags, tagLinks},
+      {ideas, drafts, pieces, pits, entityImages, tags, tagLinks},
       () async {
         final ideaRows =
             await (select(ideas)..where(
                   (x) =>
                       x.deletedAt.isNull() &
+                      notInArchivedPit(x.pitId) &
                       x.date.isBiggerOrEqualValue(start) &
                       x.date.isSmallerThanValue(end),
                 ))
@@ -388,6 +390,7 @@ extension GoalQueries on AppDatabase {
             await (select(drafts)..where(
                   (x) =>
                       x.deletedAt.isNull() &
+                      notInArchivedPit(x.pitId) &
                       x.date.isBiggerOrEqualValue(start) &
                       x.date.isSmallerThanValue(end),
                 ))
@@ -396,6 +399,7 @@ extension GoalQueries on AppDatabase {
             await (select(pieces)..where(
                   (x) =>
                       x.deletedAt.isNull() &
+                      notInArchivedPit(x.pitId) &
                       x.finishedAt.isBiggerOrEqualValue(start) &
                       x.finishedAt.isSmallerThanValue(end),
                 ))

@@ -150,9 +150,13 @@ class PieceDateField extends StatelessWidget {
     required this.onChanged,
     this.emptyText,
     this.semanticLabel,
+    this.allowFuture = false,
   });
   final DateTime? date;
   final ValueChanged<DateTime> onChanged;
+
+  /// 預設日期上限是今天（D-096，未來的日子灰掉）；交稿日期、發佈日期維持可選未來。
+  final bool allowFuture;
 
   /// 沒選日期時的文字；沒傳時用「選擇日期」。
   final String? emptyText;
@@ -168,11 +172,18 @@ class PieceDateField extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: () async {
           final now = DateTime.now();
+          final today = DateUtils.dateOnly(now);
+          final last = allowFuture
+              ? now.add(const Duration(days: 365 * 3))
+              : today;
+          var initial = date ?? now;
+          // 舊資料若已有未來日期，初始值夾到上限（不改資料本身）。
+          if (DateUtils.dateOnly(initial).isAfter(last)) initial = last;
           final d = await showDatePicker(
             context: context,
-            initialDate: date ?? now,
+            initialDate: initial,
             firstDate: DateTime(2000),
-            lastDate: now.add(const Duration(days: 365 * 3)),
+            lastDate: last,
           );
           if (d != null) onChanged(d);
         },
