@@ -12,6 +12,8 @@
   "syncuiDownload": "下載",
   "syncuiLocation": "{pit} · {cell}",
   "@syncuiLocation": {"placeholders": {"pit": {"type": "String"}, "cell": {"type": "String"}}},
+  "syncuiLocationTitled": "{pit} · {cell} · {title}",
+  "@syncuiLocationTitled": {"placeholders": {"pit": {"type": "String"}, "cell": {"type": "String"}, "title": {"type": "String"}}},
   "syncuiPercent": "{percent}%",
   "@syncuiPercent": {"placeholders": {"percent": {"type": "int"}}},
   "syncuiWaiting": "等待中",
