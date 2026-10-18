@@ -1027,6 +1027,8 @@
       }
     }
   },
+  "officialtagEditTitle": "編輯官方圖",
+  "searchCategoryOfficial": "官方圖",
   "oshiTitle": "推活",
   "oshiCountRecords": "{count} 筆",
   "@oshiCountRecords": {

@@ -1558,6 +1558,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get officialtagEditTitle => '編輯官方圖';
+
+  @override
+  String get searchCategoryOfficial => '官方圖';
+
+  @override
   String get oshiTitle => '推活';
 
   @override

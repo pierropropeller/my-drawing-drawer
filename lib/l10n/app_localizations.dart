@@ -2847,6 +2847,18 @@ abstract class AppLocalizations {
   /// **'{count} 張成圖'**
   String moveReviewPieceCount(int count);
 
+  /// No description provided for @officialtagEditTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯官方圖'**
+  String get officialtagEditTitle;
+
+  /// No description provided for @searchCategoryOfficial.
+  ///
+  /// In zh, this message translates to:
+  /// **'官方圖'**
+  String get searchCategoryOfficial;
+
   /// No description provided for @oshiTitle.
   ///
   /// In zh, this message translates to:
