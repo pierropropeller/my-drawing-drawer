@@ -184,7 +184,9 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('開新坑：1194 開置中 modal 並建立；834 與手機一樣整頁', (tester) async {
+    testWidgets('開新坑：1194 開置中 modal 並建立；834 也是 modal（≥600）；手機整頁', (
+      tester,
+    ) async {
       setView(tester, 1194, 834);
       await pumpHome(tester, const PitsPage());
       await tester.tap(find.text('開新坑'));
@@ -207,7 +209,17 @@ void main() {
       expect(pits!.map((p) => p.name), contains('新坑'));
       await unmount(tester);
 
+      // 834（Medium，≥600）：RespSpec 彈出頁＝置中 form sheet。
       setView(tester, 834, 1194);
+      await pumpHome(tester, const PitsPage());
+      await tester.tap(find.text('開新坑'));
+      await settle(tester);
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byType(PitNewPage), findsOneWidget);
+      await unmount(tester);
+
+      // 手機（＜600、非 iPad）：整頁。
+      setView(tester, 390, 844);
       await pumpHome(tester, const PitsPage());
       await tester.tap(find.text('開新坑'));
       await settle(tester);
@@ -396,12 +408,12 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('834（<840）維持整頁編輯；窗小時 modal 縮到不超出視窗', (tester) async {
+    testWidgets('834（≥600）開置中 modal 編輯；窗小時 modal 縮到不超出視窗', (tester) async {
       setView(tester, 834, 1194);
       await pumpHome(tester, PitPage(pitId: pitId));
       await tester.tap(find.text('編輯坑').first);
       await settle(tester);
-      expect(find.byType(Dialog), findsNothing);
+      expect(find.byType(Dialog), findsOneWidget);
       expect(find.byType(PitEditPage), findsOneWidget);
       await unmount(tester);
 
@@ -434,7 +446,7 @@ void main() {
       ),
     );
 
-    testWidgets('寬窗開 Dialog、窄窗開整頁，回傳值一致', (tester) async {
+    testWidgets('≥600 開 Dialog、手機窄窗開整頁，回傳值一致', (tester) async {
       String? got;
       Future<void> run(Size s) async {
         setView(tester, s.width, s.height);
