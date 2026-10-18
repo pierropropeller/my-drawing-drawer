@@ -38,7 +38,7 @@ class TagCoverageEntry {
   bool get tapAdds => coverage != TagCoverage.all;
 }
 
-/// 官方圖冊、好看同人圖多選後的批量 tag（D-060）；推活多選（D-079）用 `...For(TagTarget.oshi, ids)` 版本。
+/// 官方圖冊、好看同人圖多選後的批量 tag（D-060）；推活多選（D-079）、摸魚／成圖多選（D-095）用 `...For(TagTarget.oshi／draft／piece, ids)` 版本。
 extension BatchTagQueries on AppDatabase {
   TagTarget _batchTarget(AlbumCell cell) => switch (cell) {
     AlbumCell.official => TagTarget.official,
@@ -81,6 +81,18 @@ extension BatchTagQueries on AppDatabase {
         )..where((i) => i.id.isIn(ids) & i.deletedAt.isNull())).get())
           r.id: r.pitId,
       },
+      TagTarget.draft => {
+        for (final r in await (select(
+          drafts,
+        )..where((i) => i.id.isIn(ids) & i.deletedAt.isNull())).get())
+          r.id: r.pitId,
+      },
+      TagTarget.piece => {
+        for (final r in await (select(
+          pieces,
+        )..where((i) => i.id.isIn(ids) & i.deletedAt.isNull())).get())
+          r.id: r.pitId,
+      },
       _ => throw ArgumentError.value(target, 'target', '這種項目不支援批量 tag'),
     };
   }
@@ -101,7 +113,7 @@ extension BatchTagQueries on AppDatabase {
     Iterable<String> ids,
   ) async => tagCoverageFor(_batchTarget(cell), ids);
 
-  /// [tagCoverage] 的通用版：[target] 可以是 `official`／`fanArt`／`oshi`（D-079，[ids] 是推活紀錄 id）。
+  /// [tagCoverage] 的通用版：[target] 可以是 `official`／`fanArt`／`oshi`／`draft`／`piece`（[ids] 是推活紀錄、摸魚、成圖的 id）。
   Future<List<TagCoverageEntry>> tagCoverageFor(
     TagTarget target,
     Iterable<String> ids,
@@ -157,6 +169,8 @@ extension BatchTagQueries on AppDatabase {
       officialImages,
       fanArts,
       oshiRecords,
+      drafts,
+      pieces,
     }, () => tagCoverageFor(target, idList));
   }
 
@@ -271,6 +285,14 @@ extension BatchTagQueries on AppDatabase {
           case TagTarget.oshi:
             await (update(oshiRecords)..where((i) => i.id.isIn(changed))).write(
               OshiRecordsCompanion(updatedAt: Value(now)),
+            );
+          case TagTarget.draft:
+            await (update(drafts)..where((i) => i.id.isIn(changed))).write(
+              DraftsCompanion(updatedAt: Value(now)),
+            );
+          case TagTarget.piece:
+            await (update(pieces)..where((i) => i.id.isIn(changed))).write(
+              PiecesCompanion(updatedAt: Value(now)),
             );
           default:
             await (update(fanArts)..where((i) => i.id.isIn(changed))).write(
