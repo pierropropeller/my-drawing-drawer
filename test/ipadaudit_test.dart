@@ -248,6 +248,49 @@ void main() {
     });
   });
 
+  group('好看同人圖列表欄數（RespFan400／700／1000／1366）', () {
+    int cols(WidgetTester tester) {
+      final w = tester.widget<MasonryGridView>(find.byType(MasonryGridView));
+      final d =
+          w.gridDelegate as SliverSimpleGridDelegateWithFixedCrossAxisCount;
+      return d.crossAxisCount;
+    }
+
+    final cases = <(Size, int, bool)>[
+      (split, 2, false),
+      (medium, 3, false),
+      (const Size(1000, 834), 3, true),
+      (const Size(1366, 834), 4, true),
+    ];
+    for (final (size, expected, panel) in cases) {
+      testWidgets('同人圖 ${size.width.toInt()} 寬：$expected 欄', (tester) async {
+        debugTabletDeviceOverride = true;
+        // 模擬左側 icon rail（84）：≥600 時列表只佔剩下的寬度。
+        final page = FanArtListPage(pitId: pitId);
+        await show(
+          tester,
+          size.width >= 600
+              ? Row(
+                  children: [
+                    const SizedBox(width: 84),
+                    Expanded(child: page),
+                  ],
+                )
+              : page,
+          size,
+        );
+        expect(cols(tester), expected);
+        final l = AppLocalizations.of(tester.element(find.byType(Scaffold)));
+        // ≥840 右側固定預覽面板（沒選時顯示提示）；較窄沒有。
+        expect(
+          find.text(l.ipadListsPreviewEmpty),
+          panel ? findsOneWidget : findsNothing,
+        );
+        await unmount(tester);
+      });
+    }
+  });
+
   group('加圖來源選單', () {
     Future<AddSource?> openMenu(WidgetTester tester, Size size) async {
       AddSource? picked;
