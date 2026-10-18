@@ -321,15 +321,16 @@ void main() {
       return picked;
     }
 
-    testWidgets('400：底部 action sheet，另有獨立的取消鈕', (tester) async {
+    testWidgets('400：貼底 sheet，×關閉，沒有獨立的取消鈕', (tester) async {
       await openMenu(tester, split);
       expect(find.byType(MediaSourceActionSheet), findsOneWidget);
       expect(find.byType(MediaSourcePopover), findsNothing);
-      expect(find.text('加圖來源'), findsOneWidget);
+      expect(find.text('加圖'), findsOneWidget);
       expect(find.byKey(const Key('media-source-photos')), findsOneWidget);
       expect(find.byKey(const Key('media-source-paste')), findsOneWidget);
-      // 取消關閉選單。
-      await tester.tap(find.byKey(const Key('media-source-cancel')));
+      expect(find.byKey(const Key('media-source-cancel')), findsNothing);
+      // × 關閉選單。
+      await tester.tap(find.byKey(const Key('media-source-close')));
       await settle(tester);
       expect(find.byType(MediaSourceActionSheet), findsNothing);
       await unmount(tester);

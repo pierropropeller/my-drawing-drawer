@@ -70,6 +70,11 @@ abstract class ClipboardImageService {
   Future<XFile?> read(Directory dir);
 }
 
+/// 選配：探測時已經讀到剪貼簿圖片的服務（給窄視窗 sheet 的 44px 縮圖用）。
+abstract interface class ClipboardPreviewSource {
+  Uint8List? get previewBytes;
+}
+
 /// 平台能力的集合。
 class MediaSourceServices {
   const MediaSourceServices({
@@ -138,10 +143,14 @@ class ImagePickerCameraSource implements CameraSourceService {
 /// `pasteboard`：沒有「只問有沒有圖」的 API，只能讀內容。
 /// - iOS：讀內容會跳「允許貼上」，所以選單打開時不探測（[ClipboardProbe.unknown]），點了才讀。
 /// - 其他平台：探測時就讀（沒有提示），位元組留著，使用者點「貼上」時直接用。
-class PasteboardClipboardSource implements ClipboardImageService {
+class PasteboardClipboardSource
+    implements ClipboardImageService, ClipboardPreviewSource {
   const PasteboardClipboardSource();
 
   static Uint8List? _cached;
+
+  @override
+  Uint8List? get previewBytes => _cached;
 
   @override
   Future<ClipboardProbe> probe() async {

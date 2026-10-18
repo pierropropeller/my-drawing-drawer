@@ -16,6 +16,14 @@ abstract final class MediaSourceIcons {
   static const camera =
       '<path d="M4 8h3l2-3h6l2 3h3v11H4z" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5"/>';
 
+  /// 窄視窗 sheet（MediaMenu400）的拍照（圓角機身）。
+  static const cameraSheet =
+      '<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.4"/>';
+
+  /// sheet 右上的 ×（14px、線寬 2.6）。
+  static const close =
+      '<path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>';
+
   /// 貼上（剪貼簿）。
   static const paste =
       '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1" stroke-linecap="round"/>';
