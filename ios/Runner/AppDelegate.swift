@@ -166,7 +166,7 @@ import UIKit
   private func checkSharedPasteboard() {
     if shareBusy { return }
     guard ShareHandoff.hasPending else { return }
-    let images = ShareHandoff.takeImageData()
+    let images = ShareHandoff.takeImages()
     if images.isEmpty { return }
     shareBusy = true
     DispatchQueue.global(qos: .userInitiated).async { [weak self] in

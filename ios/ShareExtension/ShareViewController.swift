@@ -1,11 +1,14 @@
-import ImageIO
 import UIKit
+import UniformTypeIdentifiers
 
 /// 畫匣的 Share Extension（純 UIKit，不連 Flutter、不用 App Group）。
 ///
-/// 流程：把分享進來的圖片讀出來（過大的縮小）→ 放進通用剪貼簿（自訂 type、僅本機、5 分鐘後過期）
+/// 流程：把分享進來的圖片「原樣」讀出來 → 放進通用剪貼簿（自訂 type、僅本機、5 分鐘後過期）
 /// → 嘗試用 `drawer://share` 喚起主程式。主程式回到前景時會從剪貼簿取出圖片並清掉我們的資料。
-/// 詳見 docs/IOS_SHARE_EXTENSION.md。
+/// 詳見 docs/IOS_SHARE_EXTENSION.md、docs/IOS_IMPORT_PATHS.md。
+///
+/// 品質原則（Molly）：**不轉檔、不縮圖、不重新編碼**。HEIC／JPEG／PNG／GIF／WebP 都是原始位元組。
+/// 放不下（擴充記憶體有限）的圖片不會被偷偷降畫質或丟掉：會停止收更多、並在畫面上明講「已加入 N 張，其餘 M 張未加入」。
 ///
 /// 常數（pasteboard type、scheme）要與 ios/Runner/ShareHandoff.swift 保持一致。
 class ShareViewController: UIViewController {
@@ -18,17 +21,30 @@ class ShareViewController: UIViewController {
 
   // MARK: - 限制
 
-  /// 一次最多帶幾張（Info.plist 的 ActivationRule 也限制為 30）。
-  private static let maxImages = 30
-  /// 單張原檔不超過這個大小才原樣放進剪貼簿，否則縮小重新編碼成 JPEG。
-  private static let maxRawBytes = 6 * 1024 * 1024
-  /// 全部圖片加總的上限（擴充的記憶體只有約 120 MB，剪貼簿資料也會再複製一份）。
-  private static let totalBudget = 32 * 1024 * 1024
-  /// 縮小時的最長邊（像素）。預算快用完時改用較小的值。
-  private static let largeSide = 2560
-  private static let smallSide = 1280
+  /// 全部圖片加總的上限。擴充的記憶體上限約 120 MB；放進剪貼簿時系統會序列化一份資料，
+  /// 所以抓保守值（檔案以 mapped 方式讀入，多半不算髒頁，但序列化那份會）。
+  /// 超過就停止收更多並明講（不降畫質）。真機驗證穩定後可以調高。
+  private static let totalBudget = 64 * 1024 * 1024
   /// 剪貼簿資料的存活時間（秒）。
   private static let expiry: TimeInterval = 5 * 60
+
+  // MARK: - 圖片型別（依序挑原始型別，避免挑到 `public.image` 這種泛型而觸發轉檔）
+
+  /// 認得的原始格式與副檔名。
+  private static let knownTypes: [String: String] = [
+    "com.compuserve.gif": "gif",
+    "org.webmproject.webp": "webp",
+    "public.heic": "heic",
+    "public.png": "png",
+    "public.jpeg": "jpg",
+    "public.heif": "heif",
+  ]
+  /// 同一個項目同時提供多種格式時的優先順序：
+  /// GIF／WebP 最前（可能有動畫，常伴隨一張靜態 PNG／JPEG）；其次 HEIC（原始照片，JPEG 是轉出來的）、PNG、JPEG。
+  private static let preferredOrder = [
+    "com.compuserve.gif", "org.webmproject.webp", "public.heic", "public.png", "public.jpeg",
+    "public.heif",
+  ]
 
   // MARK: - 介面文字（擴充沒有 ARB，直接寫在這裡；書面語繁體中文）
 
@@ -37,6 +53,31 @@ class ShareViewController: UIViewController {
     static let saved = "已儲存，請打開畫匣"
     static let nothing = "沒有可加入的圖片"
     static let done = "完成"
+    static let open = "打開畫匣"
+
+    /// 結果說明。有圖片沒加進去時一定要講清楚（不靜默丟圖）。
+    static func summary(added: Int, over: Int, failed: Int) -> String {
+      var s = ""
+      if added > 0 {
+        s = "已加入 \(added) 張"
+        if over > 0 {
+          s += "，其餘 \(over) 張因 iOS 擴充容量限制未加入，請改用拖放或 App 內選圖。"
+          if failed > 0 { s += "另有 \(failed) 張無法讀取。" }
+        } else if failed > 0 {
+          s += "，另有 \(failed) 張無法讀取，未加入。"
+        } else {
+          s += "。"
+        }
+        return s
+      }
+      if over > 0 {
+        s = "\(over) 張圖片因 iOS 擴充容量限制未能加入，請改用拖放或 App 內選圖。"
+      }
+      if failed > 0 {
+        s += "\(failed) 張圖片無法讀取，未加入。"
+      }
+      return s.isEmpty ? nothing : s
+    }
   }
 
   // MARK: - 介面
@@ -44,6 +85,7 @@ class ShareViewController: UIViewController {
   private let card = UIView()
   private let spinner = UIActivityIndicatorView(style: .medium)
   private let label = UILabel()
+  private let openButton = UIButton(type: .system)
   private let doneButton = UIButton(type: .system)
   private var started = false
 
@@ -64,12 +106,17 @@ class ShareViewController: UIViewController {
     label.textAlignment = .center
     label.numberOfLines = 0
 
+    openButton.setTitle(Text.open, for: .normal)
+    openButton.titleLabel?.font = UIFont.preferredFont(forTextStyle: .headline)
+    openButton.addTarget(self, action: #selector(openTapped), for: .touchUpInside)
+    openButton.isHidden = true
+
     doneButton.setTitle(Text.done, for: .normal)
     doneButton.titleLabel?.font = UIFont.preferredFont(forTextStyle: .headline)
     doneButton.addTarget(self, action: #selector(finish), for: .touchUpInside)
     doneButton.isHidden = true
 
-    let stack = UIStackView(arrangedSubviews: [spinner, label, doneButton])
+    let stack = UIStackView(arrangedSubviews: [spinner, label, openButton, doneButton])
     stack.axis = .vertical
     stack.alignment = .center
     stack.spacing = 14
@@ -79,7 +126,7 @@ class ShareViewController: UIViewController {
     NSLayoutConstraint.activate([
       card.centerXAnchor.constraint(equalTo: view.centerXAnchor),
       card.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-      card.widthAnchor.constraint(lessThanOrEqualToConstant: 320),
+      card.widthAnchor.constraint(lessThanOrEqualToConstant: 340),
       card.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 32),
       card.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -32),
       stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 24),
@@ -97,179 +144,200 @@ class ShareViewController: UIViewController {
   }
 
   @objc private func finish() {
+    removeStagingDirectory()
     extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
   }
 
+  @objc private func openTapped() {
+    openHostApp()
+  }
+
+  /// 只顯示訊息＋「完成」。
   private func showMessage(_ text: String) {
     spinner.stopAnimating()
     spinner.isHidden = true
     label.text = text
+    openButton.isHidden = true
     doneButton.isHidden = false
   }
 
-  // MARK: - 讀出圖片
-
-  /// 一張一張循序處理，同一時間記憶體裡只放一張的解碼資料。
-  private final class Collected {
-    var images: [Data] = []
-    var bytes = 0
+  /// 顯示結果說明＋「打開畫匣」＋「完成」（有圖片沒加進去時不自動跳走，讓使用者看得到說明）。
+  private func showResult(_ text: String) {
+    showMessage(text)
+    openButton.isHidden = false
   }
 
+  // MARK: - 讀出圖片（原樣，不轉檔、不縮圖）
+
+  /// 暫存到擴充自己 tmp 資料夾的一張圖（原始位元組的複製，APFS 上是 clone，不佔記憶體）。
+  private struct Staged {
+    let url: URL
+    let uti: String
+    let ext: String
+  }
+
+  /// 逐張循序處理的狀態。只在「一張處理完才開始下一張」的鏈上存取，不會同時被兩條執行緒碰。
+  private final class Collector {
+    var staged: [Staged] = []
+    var bytes = 0
+    var failed = 0
+    var stoppedForLimit = false
+  }
+
+  private var providers: [NSItemProvider] = []
+  private let collector = Collector()
+  private var stagingDirectory: URL?
+
   private func collectImages() {
-    var providers: [NSItemProvider] = []
+    var found: [NSItemProvider] = []
     let items = extensionContext?.inputItems as? [NSExtensionItem] ?? []
     for item in items {
       for provider in item.attachments ?? [] {
         if provider.hasItemConformingToTypeIdentifier("public.image") {
-          providers.append(provider)
+          found.append(provider)
         }
       }
     }
-    if providers.count > ShareViewController.maxImages {
-      providers = Array(providers.prefix(ShareViewController.maxImages))
-    }
-    if providers.isEmpty {
+    if found.isEmpty {
       showMessage(Text.nothing)
       return
     }
-    step(providers: providers, index: 0, collected: Collected())
-  }
-
-  private func step(providers: [NSItemProvider], index: Int, collected: Collected) {
-    if index >= providers.count {
-      DispatchQueue.main.async { self.handoff(collected.images) }
+    let dir = FileManager.default.temporaryDirectory
+      .appendingPathComponent("share_\(UUID().uuidString)", isDirectory: true)
+    do {
+      try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    } catch {
+      showMessage(Text.nothing)
       return
     }
-    let provider = providers[index]
-    let next: (Data?) -> Void = { [weak self] data in
-      guard let self = self else { return }
-      if let data = data {
-        collected.images.append(data)
-        collected.bytes += data.count
-      }
-      self.step(providers: providers, index: index + 1, collected: collected)
-    }
+    stagingDirectory = dir
+    providers = found
+    step(0)
+  }
 
-    provider.loadFileRepresentation(forTypeIdentifier: "public.image") { [weak self] url, _ in
-      guard let self = self else { return }
-      if let url = url {
-        // 這個暫存檔只在 handler 內有效，所以要在這裡讀完。
-        let data = autoreleasepool { () -> Data? in
-          self.encode(fileURL: url, usedBytes: collected.bytes)
-        }
-        next(data)
-        return
-      }
-      // 後備：有些來源只提供 item（URL／Data／UIImage）。
-      provider.loadItem(forTypeIdentifier: "public.image", options: nil) { [weak self] item, _ in
-        guard let self = self else { return }
-        let data = autoreleasepool { () -> Data? in
-          self.encode(item: item, usedBytes: collected.bytes)
-        }
-        next(data)
-      }
+  private func removeStagingDirectory() {
+    if let dir = stagingDirectory {
+      try? FileManager.default.removeItem(at: dir)
+      stagingDirectory = nil
     }
   }
 
-  // MARK: - 編碼（原樣或縮小）
-
-  private static func isPassThroughFormat(_ head: Data) -> Bool {
-    let b = [UInt8](head.prefix(12))
-    // JPEG
-    if b.count >= 3, b[0] == 0xFF, b[1] == 0xD8, b[2] == 0xFF { return true }
-    // PNG
-    if b.count >= 4, b[0] == 0x89, b[1] == 0x50, b[2] == 0x4E, b[3] == 0x47 { return true }
-    // GIF
-    if b.count >= 4, b[0] == 0x47, b[1] == 0x49, b[2] == 0x46, b[3] == 0x38 { return true }
-    // WebP（RIFF....WEBP）
-    if b.count >= 12, b[0] == 0x52, b[1] == 0x49, b[2] == 0x46, b[3] == 0x46,
-      b[8] == 0x57, b[9] == 0x45, b[10] == 0x42, b[11] == 0x50
-    {
-      return true
+  /// 挑這個項目要取哪一種型別。回傳 (型別, 副檔名)；副檔名空字串＝之後從檔案本身決定。
+  private static func pickType(for provider: NSItemProvider) -> (uti: String, ext: String)? {
+    let registered = provider.registeredTypeIdentifiers
+    // 1) 認得的原始格式，依優先順序。
+    for uti in preferredOrder where registered.contains(uti) {
+      return (uti, knownTypes[uti] ?? "")
     }
-    return false
-  }
-
-  private func encode(fileURL: URL, usedBytes: Int) -> Data? {
-    let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? Int.max
-    var head = Data()
-    if let handle = try? FileHandle(forReadingFrom: fileURL) {
-      head = (try? handle.read(upToCount: 12)) ?? Data()
-      try? handle.close()
-    }
-    // JPEG／PNG／GIF／WebP 且不大：原樣放進去（保留透明與動畫）。
-    if ShareViewController.isPassThroughFormat(head),
-      size <= ShareViewController.maxRawBytes,
-      usedBytes + size <= ShareViewController.totalBudget,
-      let raw = try? Data(contentsOf: fileURL)
-    {
-      return raw
-    }
-    // 其他格式（HEIC 等）或太大：縮小成 JPEG。預算吃緊時縮得更小。
-    let tight = usedBytes > ShareViewController.totalBudget / 2
-    let side = tight ? ShareViewController.smallSide : ShareViewController.largeSide
-    guard let source = CGImageSourceCreateWithURL(fileURL as CFURL, nil) else { return nil }
-    return ShareViewController.downsample(source, maxSide: side, usedBytes: usedBytes)
-  }
-
-  private func encode(item: Any?, usedBytes: Int) -> Data? {
-    if let url = item as? URL, url.isFileURL {
-      return encode(fileURL: url, usedBytes: usedBytes)
-    }
-    if let data = item as? Data {
-      if ShareViewController.isPassThroughFormat(data),
-        data.count <= ShareViewController.maxRawBytes,
-        usedBytes + data.count <= ShareViewController.totalBudget
-      {
-        return data
+    // 2) 其他具體的圖片型別（TIFF、BMP、RAW…）：照原樣取，不轉檔。
+    for uti in registered {
+      if uti == "public.image" || uti.hasPrefix("dyn.") { continue }
+      if let type = UTType(uti), type.conforms(to: .image) {
+        return (uti, type.preferredFilenameExtension ?? "")
       }
-      guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
-      return ShareViewController.downsample(
-        source, maxSide: ShareViewController.largeSide, usedBytes: usedBytes)
     }
-    if let image = item as? UIImage, let jpeg = image.jpegData(compressionQuality: 0.85),
-      usedBytes + jpeg.count <= ShareViewController.totalBudget
-    {
-      return jpeg
+    // 3) 最後手段：泛型 public.image（來源可能替我們轉檔，但至少不丟圖）。
+    if provider.hasItemConformingToTypeIdentifier("public.image") {
+      return ("public.image", "")
     }
     return nil
   }
 
-  private static func downsample(_ source: CGImageSource, maxSide: Int, usedBytes: Int) -> Data? {
-    let options: [CFString: Any] = [
-      kCGImageSourceCreateThumbnailFromImageAlways: true,
-      kCGImageSourceCreateThumbnailWithTransform: true,
-      kCGImageSourceShouldCacheImmediately: true,
-      kCGImageSourceThumbnailMaxPixelSize: maxSide,
-    ]
-    guard let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
-      return nil
+  /// 一張一張循序處理：取得檔案 URL → 檢查大小 → 複製到自己的 tmp。記憶體裡不放圖片資料。
+  private func step(_ index: Int) {
+    if index >= providers.count || collector.stoppedForLimit {
+      DispatchQueue.main.async { self.finishCollecting() }
+      return
     }
-    guard let jpeg = UIImage(cgImage: cg).jpegData(compressionQuality: 0.85) else { return nil }
-    if usedBytes + jpeg.count > totalBudget { return nil }
-    return jpeg
+    let provider = providers[index]
+    guard let pick = ShareViewController.pickType(for: provider) else {
+      collector.failed += 1
+      DispatchQueue.global(qos: .userInitiated).async { self.step(index + 1) }
+      return
+    }
+    provider.loadFileRepresentation(forTypeIdentifier: pick.uti) { [weak self] url, _ in
+      guard let self = self else { return }
+      // 這個暫存檔只在 handler 內有效，所以要在這裡複製完。
+      autoreleasepool { self.stage(url, pick: pick, index: index) }
+      // 下一張改丟到別的 queue 開始，避免 handler 層層巢狀。
+      DispatchQueue.global(qos: .userInitiated).async { self.step(index + 1) }
+    }
+  }
+
+  private func stage(_ url: URL?, pick: (uti: String, ext: String), index: Int) {
+    guard let url = url, let dir = stagingDirectory,
+      let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize, size > 0
+    else {
+      collector.failed += 1
+      return
+    }
+    if collector.bytes + size > ShareViewController.totalBudget {
+      // 超過安全上限：這張和後面的都不收（不降畫質、不縮圖），最後明講。
+      collector.stoppedForLimit = true
+      return
+    }
+    var ext = pick.ext
+    if ext.isEmpty { ext = url.pathExtension.lowercased() }
+    if ext.isEmpty { ext = "img" }
+    let dest = dir.appendingPathComponent("\(index).\(ext)")
+    do {
+      try FileManager.default.copyItem(at: url, to: dest)
+    } catch {
+      collector.failed += 1
+      return
+    }
+    collector.staged.append(Staged(url: dest, uti: pick.uti, ext: ext))
+    collector.bytes += size
+  }
+
+  /// 全部處理完（主執行緒）。
+  private func finishCollecting() {
+    let added = collector.staged.count
+    let failed = collector.failed
+    let over = collector.stoppedForLimit ? max(0, providers.count - added - failed) : 0
+    if added == 0 {
+      removeStagingDirectory()
+      showMessage(Text.summary(added: 0, over: over, failed: failed))
+      return
+    }
+    handoff(over: over, failed: failed)
   }
 
   // MARK: - 放進剪貼簿、喚起主程式
 
-  private func handoff(_ images: [Data]) {
-    if images.isEmpty {
-      showMessage(Text.nothing)
+  private func handoff(over: Int, failed: Int) {
+    // 到這裡才把檔案以 mapped 方式讀進來（盡量不佔髒頁記憶體），原始位元組一個都不改。
+    var imageItems: [[String: Any]] = []
+    var metaItems: [[String: String]] = []
+    var unreadable = 0
+    for staged in collector.staged {
+      guard let data = try? Data(contentsOf: staged.url, options: .mappedIfSafe), !data.isEmpty
+      else {
+        unreadable += 1
+        continue
+      }
+      imageItems.append([ShareViewController.imageType: data])
+      metaItems.append(["uti": staged.uti, "ext": staged.ext])
+    }
+    if imageItems.isEmpty {
+      removeStagingDirectory()
+      showMessage(Text.summary(added: 0, over: over, failed: failed + unreadable))
       return
     }
+    // v2：items[i] 對應第 i 張圖片的原始型別與副檔名（主程式依副檔名寫成原檔）。
     let meta: [String: Any] = [
-      "v": 1,
-      "count": images.count,
+      "v": 2,
+      "count": imageItems.count,
       "createdAt": Date().timeIntervalSince1970,
+      "items": metaItems,
     ]
     guard let metaData = try? JSONSerialization.data(withJSONObject: meta) else {
+      removeStagingDirectory()
       showMessage(Text.nothing)
       return
     }
     var items: [[String: Any]] = [[ShareViewController.metaType: metaData]]
-    for data in images {
-      items.append([ShareViewController.imageType: data])
-    }
+    items.append(contentsOf: imageItems)
     // 只存本機（不經 Handoff／通用剪貼簿同步到其他裝置）、5 分鐘後自動消失。
     UIPasteboard.general.setItems(
       items,
@@ -277,8 +345,15 @@ class ShareViewController: UIViewController {
         .localOnly: true,
         .expirationDate: Date().addingTimeInterval(ShareViewController.expiry),
       ])
+    removeStagingDirectory()
 
-    openHostApp()
+    let totalFailed = failed + unreadable
+    if over == 0 && totalFailed == 0 {
+      openHostApp()
+    } else {
+      // 有圖片沒加進去：先讓使用者看到說明，不自動跳走。
+      showResult(Text.summary(added: imageItems.count, over: over, failed: totalFailed))
+    }
   }
 
   /// 嘗試喚起主程式。沒有可靠的成功訊號，所以不論結果如何，約 1 秒後都顯示「已儲存，請打開畫匣」＋「完成」。

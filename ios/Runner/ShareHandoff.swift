@@ -8,6 +8,12 @@ import UIKit
 ///
 /// 常數要與擴充裡的相同（改動時兩邊一起改）。
 enum ShareHandoff {
+  /// 一張交接過來的圖片：原始位元組＋副檔名（來自擴充記錄的原始型別；HEIC 等不會被轉檔）。
+  struct SharedImage {
+    let data: Data
+    let ext: String
+  }
+
   static let metaType = "io.molly.drawer.share"
   static let imageType = "io.molly.drawer.share.image"
   static let urlScheme = "drawer"
@@ -33,7 +39,7 @@ enum ShareHandoff {
 
   /// 讀出剪貼簿裡我們的圖片資料，並清掉剪貼簿。要在主執行緒呼叫（讀剪貼簿）。
   /// 沒有、過期或內容不對時回空陣列（有我們的 type 但不能用時一樣會清掉，避免殘留）。
-  static func takeImageData() -> [Data] {
+  static func takeImages() -> [SharedImage] {
     let board = UIPasteboard.general
     guard board.contains(pasteboardTypes: [metaType]) else { return [] }
     let items = board.items
@@ -45,23 +51,44 @@ enum ShareHandoff {
     }
 
     var createdAt: TimeInterval?
-    var images: [Data] = []
+    var exts: [String?] = []
+    var datas: [Data] = []
     for item in items {
       if createdAt == nil, let raw = item[metaType], let data = asData(raw),
         let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
         let t = (obj["createdAt"] as? NSNumber)?.doubleValue
       {
         createdAt = t
+        // v2：items[i].ext 是第 i 張圖的原始副檔名；舊版（v1）沒有這個欄位，改用內容判斷。
+        if let list = obj["items"] as? [Any] {
+          for entry in list {
+            let dict = entry as? [String: Any]
+            exts.append(ShareHandoff.cleanExtension(dict?["ext"] as? String))
+          }
+        }
       }
       if let raw = item[imageType], let data = asData(raw), !data.isEmpty {
-        images.append(data)
+        datas.append(data)
       }
     }
     guard let created = createdAt else { return [] }
     let age = Date().timeIntervalSince1970 - created
     // 時鐘被往回調（age < 0）也視為不可信。
     if age < -60 || age > maxAge { return [] }
+    var images: [SharedImage] = []
+    for (i, data) in datas.enumerated() {
+      let declared = i < exts.count ? exts[i] : nil
+      images.append(SharedImage(data: data, ext: declared ?? ShareHandoff.fileExtension(for: data)))
+    }
     return images
+  }
+
+  /// 副檔名只留小寫英數、最長 5 字元（來自別的行程的資料，不直接信任）。
+  private static func cleanExtension(_ raw: String?) -> String? {
+    guard let raw = raw?.lowercased(), !raw.isEmpty, raw.count <= 5,
+      raw.unicodeScalars.allSatisfy({ ($0.value >= 97 && $0.value <= 122) || ($0.value >= 48 && $0.value <= 57) })
+    else { return nil }
+    return raw
   }
 
   private static func asData(_ value: Any) -> Data? {
@@ -70,18 +97,18 @@ enum ShareHandoff {
     return nil
   }
 
-  /// 把圖片寫成本機暫存檔，回傳路徑。可在背景執行緒呼叫。
-  static func writeFiles(_ images: [Data]) -> [String] {
+  /// 把圖片寫成本機暫存檔（原始位元組，副檔名依原始格式，例如 .heic），回傳路徑。可在背景執行緒呼叫。
+  static func writeFiles(_ images: [SharedImage]) -> [String] {
     guard let dir = importDirectory else { return [] }
     let fm = FileManager.default
     try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
     cleanOldFiles(in: dir)
     let stamp = Int(Date().timeIntervalSince1970 * 1000)
     var paths: [String] = []
-    for (i, data) in images.enumerated() {
-      let url = dir.appendingPathComponent("share_\(stamp)_\(i).\(fileExtension(for: data))")
+    for (i, image) in images.enumerated() {
+      let url = dir.appendingPathComponent("share_\(stamp)_\(i).\(image.ext)")
       do {
-        try data.write(to: url, options: .atomic)
+        try image.data.write(to: url, options: .atomic)
         paths.append(url.path)
       } catch {
         continue
@@ -115,6 +142,13 @@ enum ShareHandoff {
       b[8] == 0x57, b[9] == 0x45, b[10] == 0x42, b[11] == 0x50
     {
       return "webp"
+    }
+    // HEIC／HEIF：ISO 基礎媒體檔，第 4～8 位元組 `ftyp`，第 8～12 位元組是 brand。
+    if b.count >= 12, b[4] == 0x66, b[5] == 0x74, b[6] == 0x79, b[7] == 0x70 {
+      let brand = String(bytes: b[8..<12], encoding: .ascii)?.lowercased() ?? ""
+      if ["heic", "heix", "heim", "heis", "hevc", "hevx", "mif1", "msf1"].contains(brand) {
+        return "heic"
+      }
     }
     return "jpg"
   }

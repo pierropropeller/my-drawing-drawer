@@ -27,7 +27,7 @@
 			<key>NSExtensionActivationRule</key>
 			<dict>
 				<key>NSExtensionActivationSupportsImageWithMaxCount</key>
-				<integer>30</integer>
+				<integer>500</integer>
 			</dict>
 		</dict>
 		<key>NSExtensionPointIdentifier</key>
