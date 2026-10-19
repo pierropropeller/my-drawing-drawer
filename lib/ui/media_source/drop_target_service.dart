@@ -16,11 +16,12 @@ import 'package:image_picker/image_picker.dart';
 /// - 能解出來的只有 0.1.x（2023 年版），和現在的 Flutter／AGP 9／Kotlin 2.4 不相容，
 ///   而且它需要在 Android／iOS 建置時編譯 Rust（cargokit），CI 的 APK 建置會多一個無法在這台機器驗證的風險。
 ///
-/// 所以只做 Dart 側：[DropTargetService] 提供一串拖放事件，[DropZone] 負責落點判斷、提示條與載入狀態，
-/// 全部可用 [FakeDropTargetService] 測試。**原生側還沒做**，預設的 [ChannelDropTargetService]
-/// 在沒有原生實作時 `start()` 回傳 false，整個功能安靜地不啟用（不顯示拖曳提示文字，也不會出錯）。
+/// 所以 Dart 側自己定義：[DropTargetService] 提供一串拖放事件，[DropZone] 負責落點判斷、提示條與載入狀態，
+/// 全部可用 [FakeDropTargetService] 測試。原生側：**iOS 已實作**（ios/Runner/DropReceiver.swift）；
+/// **Android 還沒做**，預設的 [ChannelDropTargetService] 在沒有原生實作時 `start()` 回傳 false，
+/// 整個功能安靜地不啟用（不顯示拖曳提示文字，也不會出錯）。
 ///
-/// ## 原生側待做（契約）
+/// ## 原生側契約（iOS 已實作，Android 待做）
 /// MethodChannel 名稱 [ChannelDropTargetService.channelName]。座標一律是 Flutter 視圖內的邏輯座標
 /// （iOS：UIKit point；Android：px ÷ density）。
 /// - Dart → 原生 `start`：註冊整個 Flutter view 為落點（iOS `UIDropInteraction`，接受 `public.image`／`public.movie`；
@@ -29,6 +30,8 @@ import 'package:image_picker/image_picker.dart';
 ///   `drop {x, y, items: [{id, name}]}`（`id` 由原生產生，之後用來載入）。
 /// - Dart → 原生 `load {id}`：把該項目轉成 App 可讀的暫存檔（iOS 用
 ///   `NSItemProvider.loadFileRepresentation`，HEIC 照原樣；iCloud 照片會先下載，可能很久），回傳路徑字串，失敗回傳 null 或丟錯。
+///   （iOS：UIKit 規定要在 `performDrop` 內就開始載入，所以原生在放開當下就替每個項目開始複製到
+///   `Caches/drop_import/`，`load` 只是等那份結果；沒人 `load` 的檔案隔次放開或 2 小時後清掉。）
 /// - Dart → 原生 `cancel {id}`：放棄載入（目前 Dart 側不會呼叫，保留）。
 abstract class DropTargetService {
   /// 啟動（可重複呼叫，結果相同）。回傳這個平台是否支援拖放接收。
@@ -76,7 +79,7 @@ class DropItem {
   final Future<XFile?> Function() load;
 }
 
-/// MethodChannel 版（原生側待做，見 [DropTargetService] 說明）。
+/// MethodChannel 版（iOS 原生側已實作；契約見 [DropTargetService] 說明）。
 class ChannelDropTargetService implements DropTargetService {
   ChannelDropTargetService({MethodChannel? channel})
     : _channel = channel ?? const MethodChannel(channelName) {

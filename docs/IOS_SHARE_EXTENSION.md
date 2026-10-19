@@ -13,12 +13,15 @@ Molly 用 Sideloadly 以免費 Apple ID 側載。免費帳號可能拿不到 App
 
 ```
 照片／其他 App ──分享──▶ ShareExtension（io.molly.drawer.ShareExtension）
-   1. NSItemProvider 讀出圖片（最多 30 張，一張一張循序處理）
-   2. 小的 JPEG／PNG／GIF／WebP 原樣保留；HEIC 等其他格式、或單張 > 6 MB：用 ImageIO 縮到最長邊 2560 px
-      （總量快滿時 1280 px），轉 JPEG 品質 0.85；全部加總上限 32 MB（超過的張會被略過）
-   3. UIPasteboard.general.setItems：
-        item 0：{ "io.molly.drawer.share": JSON {v, count, createdAt} }
-        item 1…n：{ "io.molly.drawer.share.image": 圖片 Data }
+   1. NSItemProvider 一張一張循序處理：依 registeredTypeIdentifiers 挑**原始型別**
+      （GIF／WebP > HEIC > PNG > JPEG > HEIF > 其他具體圖片型別；最後才用泛型 public.image），
+      `loadFileRepresentation` 取得檔案 URL，檢查大小後 `copyItem` 到擴充自己的 tmp（APFS 上是 clone，記憶體裡不放圖片）
+   2. **不轉檔、不縮圖、不重新編碼**。累計超過 64 MB（記憶體安全上限）就停止收更多，
+      並在擴充畫面明講「已加入 N 張，其餘 M 張因 iOS 擴充容量限制未加入，請改用拖放或 App 內選圖」；
+      這時不自動跳去主程式，讓使用者看得到說明，再按「打開畫匣」
+   3. 全部收完後以 `Data(contentsOf:, options: .mappedIfSafe)` 讀入，UIPasteboard.general.setItems：
+        item 0：{ "io.molly.drawer.share": JSON {v: 2, count, createdAt, items: [{uti, ext}, …]} }
+        item 1…n：{ "io.molly.drawer.share.image": 原始位元組 Data }
       選項 localOnly = true、expirationDate = 5 分鐘後
    4. 喚起主程式 drawer://share（見下）
                                    │
@@ -26,10 +29,12 @@ Molly 用 Sideloadly 以免費 Apple ID 側載。免費帳號可能拿不到 App
    - UIApplication.didBecomeActive／application(_:open:)（drawer://share）／Dart 呼叫 getInitialShare 時檢查
    - UIPasteboard.general.contains(pasteboardTypes: ["io.molly.drawer.share"])
        沒有 → 什麼都不做（完全不讀剪貼簿，不會跳「貼上自…」提示）
-       有   → 讀出圖片資料 → 清掉剪貼簿 → 寫成 Caches/share_import/share_<時間>_<n>.<副檔名>
+       有   → 讀出圖片資料 → 清掉剪貼簿 → 依 metadata 的 ext（沒有則看檔頭，HEIC 認 ftyp brand）
+              原樣寫成 Caches/share_import/share_<時間>_<n>.<副檔名>（例如 .heic）
    - 經 MethodChannel `io.molly.drawer/share` 交給 Dart（與 Android 同一套）：
        冷啟動：Dart 呼叫 getInitialShare 取得；熱啟動：原生呼叫 Dart 的 onShare
    - Dart：ShareInbox 排隊 → ShareHost 開「加入到」sheet → 使用者確認後才複製進 App 儲存空間（D-053）
+     （HEIC 原檔：Flutter 在 iOS 可解碼；尺寸讀不出時 `heifDimensions` 從檔案結構備援；縮圖失敗只是沒有縮圖）
 ```
 
 ### 喚起主程式
@@ -58,8 +63,8 @@ iOS 沒有給 Share Extension 開啟主程式的官方 API。擴充依序嘗試�
 | 檔案 | 用途 |
 |---|---|
 | `ios/ShareExtension/ShareViewController.swift` | 擴充本體（純 UIKit，不連 Flutter／Pods）。介面文字直接寫在檔內（擴充沒有 ARB）。 |
-| `ios/ShareExtension/Info.plist` | `NSExtension`：`com.apple.share-services`、只對圖片啟用（最多 30 張）、`CFBundleDisplayName` = 畫匣。 |
-| `ios/Runner/ShareHandoff.swift` | 主程式端：偵測、讀取、寫暫存檔、清剪貼簿。 |
+| `ios/ShareExtension/Info.plist` | `NSExtension`：`com.apple.share-services`、只對圖片啟用（最多 500 張，超過時系統不會列出畫匣）、`CFBundleDisplayName` = 畫匣。 |
+| `ios/Runner/ShareHandoff.swift` | 主程式端：偵測、讀取、依副檔名寫暫存檔、清剪貼簿。 |
 | `ios/Runner/AppDelegate.swift` | `io.molly.drawer/share` channel、`didBecomeActive`、`application(_:open:)`。 |
 | `ios/Runner/Info.plist` | `drawer` URL scheme、`FlutterDeepLinkingEnabled`。 |
 | `ios/Runner.xcodeproj/project.pbxproj` | 新增 `ShareExtension` target（由 `tool/add_share_extension.py` 產生）。 |
@@ -73,9 +78,13 @@ iOS 沒有給 Share Extension 開啟主程式的官方 API。擴充依序嘗試�
 - **會覆蓋使用者原本的剪貼簿**：擴充用 `setItems` 取代剪貼簿內容，分享後使用者剛複製的東西會消失（iOS 沒有安全的暫存方式）。
 - **iOS 16 起可能跳「允許貼上」**：主程式讀取別的行程寫的剪貼簿資料時，系統可能問一次「畫匣想貼上自 畫匣」（同一 App 的擴充是否會問，各版本行為不同）。選「允許貼上」即可；若選「不允許」，這次分享會被丟掉（剪貼簿仍會被清掉）。
 - 只支援圖片（影片、PDF 等不會出現在分享清單）。
-- 一次最多 30 張；總量上限 32 MB，超過的張會略過；HEIC 一律轉成 JPEG；過大的 PNG 會變成 JPEG（失去透明）。
+- **原樣交接，不轉檔不縮圖**（HEIC 就是 HEIC）。總量上限 64 MB（`ShareViewController.totalBudget`），
+  超過就停止收更多、畫面明講未加入的張數；不會偷偷降畫質。要一次放很多大圖請改用拖放或 App 內選圖。
+- 來源 App 決定給我們什麼：從「照片」分享時，若分享面板「選項」選了「最相容」，照片 App 會先把 HEIC 轉成 JPEG 才交給擴充
+  （那是 iOS 的行為，擴充收到的已經是 JPEG）。要保留 HEIC，選項請選「自動」或「原始」（見 `docs/IOS_IMPORT_PATHS.md`）。
+- 擴充的暫存目錄（tmp）在擴充結束時清掉；擴充被系統強制結束時可能殘留，由系統清理。
 - 剪貼簿資料 5 分鐘後過期；分享後超過 5 分鐘才打開畫匣，不會有東西。
-- 擴充的記憶體上限約 120 MB，所以圖片是一張一張處理。
+- 擴充的記憶體上限約 120 MB，所以圖片是一張一張處理、先複製成檔案，最後才 mapped 讀入並一次放進剪貼簿。
 - Sideloadly：**不要勾選「Remove app extensions」類的選項**；免費帳號每週 App ID 數量有限（主程式 + 擴充各佔一個）。若 Sideloadly 因 App ID 上限失敗，就只能先移除擴充（此時分享清單沒有畫匣，其他功能不受影響）。
 - 側載後 Bundle ID 會被改成帶你 Team 的形式（見 `docs/IOS_SETUP.md`），擴充的 Bundle ID 會由 Sideloadly 一併改成「主程式 ID + `.ShareExtension`」；`drawer://` scheme 與 Bundle ID 無關，不受影響。
 
