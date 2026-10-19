@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import 'album_queries.dart';
+import 'heif_size.dart';
 import 'media.dart';
 
 /// 圖片存在 App 內部資料夾；資料庫只記錄檔名（相對路徑），之後同步到 Drive 也用同一個名字。
@@ -246,7 +247,14 @@ class ImageStore {
           desc.dispose();
           buffer.dispose();
         } catch (_) {
-          // 讀不到尺寸就當作未知，瀑布流改用方形。
+          // 解碼器讀不到尺寸：HEIC 直接從檔案結構讀（備援），其餘當作未知，瀑布流改用方形。
+        }
+        if (w <= 0 || h <= 0) {
+          final heif = heifDimensions(bytes);
+          if (heif != null) {
+            w = heif.width;
+            h = heif.height;
+          }
         }
       }
     }

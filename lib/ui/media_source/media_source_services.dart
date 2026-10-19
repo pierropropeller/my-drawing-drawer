@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -140,12 +140,25 @@ class ImagePickerCameraSource implements CameraSourceService {
   );
 }
 
-/// `pasteboard`：沒有「只問有沒有圖」的 API，只能讀內容。
-/// - iOS：讀內容會跳「允許貼上」，所以選單打開時不探測（[ClipboardProbe.unknown]），點了才讀。
-/// - 其他平台：探測時就讀（沒有提示），位元組留著，使用者點「貼上」時直接用。
+/// 貼上剪貼簿裡的圖片。
+/// - iOS：走自己的原生通道 `io.molly.drawer/clipboard`（ios/Runner/ClipboardImage.swift）直接讀剪貼簿的
+///   **原始資料**（HEIC／PNG／JPEG／GIF／WebP 原樣、不重新編碼）。`pasteboard` 套件在 iOS 是
+///   `UIImage.pngData()`，會把圖解碼後重編成 PNG（檔案變大、原格式與 EXIF 色彩描述檔都沒了）。
+///   讀資料會跳「允許貼上」，所以選單打開時不探測（[ClipboardProbe.unknown]），點了「貼上」才讀。
+///   原生通道不存在（舊版原生碼）時退回 `pasteboard`。
+/// - 其他平台：`pasteboard`（沒有「只問有沒有圖」的 API，只能讀內容）。探測時就讀（沒有提示），
+///   位元組留著，使用者點「貼上」時直接用。
 class PasteboardClipboardSource
     implements ClipboardImageService, ClipboardPreviewSource {
-  const PasteboardClipboardSource();
+  const PasteboardClipboardSource({this.isIOS});
+
+  /// iOS 原生通道（讀剪貼簿原始資料）。
+  static const nativeChannel = MethodChannel('io.molly.drawer/clipboard');
+
+  /// 測試用：強制當成（不是）iOS；預設看 [Platform.isIOS]。
+  final bool? isIOS;
+
+  bool get _ios => isIOS ?? Platform.isIOS;
 
   static Uint8List? _cached;
 
@@ -155,7 +168,7 @@ class PasteboardClipboardSource
   @override
   Future<ClipboardProbe> probe() async {
     _cached = null;
-    if (Platform.isIOS) return ClipboardProbe.unknown;
+    if (_ios) return ClipboardProbe.unknown;
     try {
       final bytes = await Pasteboard.image;
       if (bytes == null || bytes.isEmpty) return ClipboardProbe.none;
@@ -168,6 +181,21 @@ class PasteboardClipboardSource
 
   @override
   Future<XFile?> read(Directory dir) async {
+    if (_ios) {
+      try {
+        final r = await nativeChannel.invokeMapMethod<String, Object?>(
+          'readImage',
+          {'dir': dir.path},
+        );
+        // 原生回 null＝剪貼簿沒有圖片（不要再用 pasteboard 讀第二次，會再跳一次貼上提示）。
+        final path = r?['path'];
+        return path is String && path.isNotEmpty ? XFile(path) : null;
+      } on MissingPluginException {
+        // 原生端沒有這個通道：退回 pasteboard（PNG 重編）。
+      } on PlatformException {
+        // 讀取失敗：同上，至少貼得上。
+      }
+    }
     final bytes = _cached ?? await Pasteboard.image;
     _cached = null;
     if (bytes == null || bytes.isEmpty) return null;
@@ -180,7 +208,7 @@ class PasteboardClipboardSource
   }
 }
 
-/// 看檔頭決定副檔名（GIF 要認得，匯入才會當成 GIF；其餘預設 png）。
+/// 看檔頭決定副檔名（GIF 要認得，匯入才會當成 GIF；HEIC 保留原副檔名；其餘預設 png）。
 String sniffImageExtension(List<int> head) {
   bool at(int i, List<int> m) {
     if (head.length < i + m.length) return false;
@@ -192,6 +220,12 @@ String sniffImageExtension(List<int> head) {
 
   if (at(0, const [0xFF, 0xD8, 0xFF])) return 'jpg';
   if (at(0, const [0x47, 0x49, 0x46, 0x38])) return 'gif';
+  // HEIC／HEIF：第 4～8 位元組 `ftyp`，第 8～12 位元組是 brand。
+  if (at(4, const [0x66, 0x74, 0x79, 0x70]) && head.length >= 12) {
+    final brand = String.fromCharCodes(head.sublist(8, 12)).toLowerCase();
+    const heic = {'heic', 'heix', 'heim', 'heis', 'hevc', 'hevx', 'mif1', 'msf1'};
+    if (heic.contains(brand)) return 'heic';
+  }
   if (at(0, const [0x52, 0x49, 0x46, 0x46]) &&
       at(8, const [0x57, 0x45, 0x42, 0x50])) {
     return 'webp';
