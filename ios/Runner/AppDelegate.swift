@@ -9,6 +9,9 @@ import UIKit
   private var appIconChannel: FlutterMethodChannel?
   private var windowChannel: FlutterMethodChannel?
   private var shareChannel: FlutterMethodChannel?
+  // 「貼上」讀剪貼簿原始資料（ClipboardImage.swift）、分屏拖放接收（DropReceiver.swift）。
+  private var clipboardChannel: ClipboardImageChannel?
+  private var dropReceiver: DropReceiver?
 
   override func application(
     _ application: UIApplication,
@@ -114,6 +117,12 @@ import UIKit
       }
     }
     shareChannel = share
+
+    // 剪貼簿圖片原始資料（lib/ui/media_source/media_source_services.dart 的「貼上」）。
+    clipboardChannel = ClipboardImageChannel(messenger: messenger)
+
+    // 分屏拖放接收（lib/ui/media_source/drop_target_service.dart）。Dart 呼叫 `start` 時才掛上落點。
+    dropReceiver = DropReceiver(messenger: messenger)
     NotificationCenter.default.addObserver(
       forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main
     ) { [weak self] _ in

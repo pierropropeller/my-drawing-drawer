@@ -19,6 +19,8 @@
 		F38F4F9286E33B22BD90EEFC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177917569FC890760BBE30D4 /* ShareViewController.swift */; };
 		FBACDF9015A4495A9E39EFF2 /* ShareHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0EC4CB4FD278BAA5350132 /* ShareHandoff.swift */; };
 		98802000C2CE19B89B7BF06F /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6B9271DCC00F1EF8A8DE1C26 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A53E18DECE5D32B9EB6945CA /* ClipboardImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C86A276276B066CA7CE578D9 /* ClipboardImage.swift */; };
+		80D336F6AD60A4A003443778 /* DropReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB1E60F1CD7651428ABD484 /* DropReceiver.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,6 +86,8 @@
 		6B181097253BBEB79F3BC7C0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9C0EC4CB4FD278BAA5350132 /* ShareHandoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareHandoff.swift; sourceTree = "<group>"; };
 		6B9271DCC00F1EF8A8DE1C26 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		C86A276276B066CA7CE578D9 /* ClipboardImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardImage.swift; sourceTree = "<group>"; };
+		6AB1E60F1CD7651428ABD484 /* DropReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropReceiver.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -167,6 +171,8 @@
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				9C0EC4CB4FD278BAA5350132 /* ShareHandoff.swift */,
+				C86A276276B066CA7CE578D9 /* ClipboardImage.swift */,
+				6AB1E60F1CD7651428ABD484 /* DropReceiver.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
 			path = Runner;
@@ -359,6 +365,8 @@
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				FBACDF9015A4495A9E39EFF2 /* ShareHandoff.swift in Sources */,
+				A53E18DECE5D32B9EB6945CA /* ClipboardImage.swift in Sources */,
+				80D336F6AD60A4A003443778 /* DropReceiver.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
