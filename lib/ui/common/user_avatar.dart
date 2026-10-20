@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -29,13 +30,23 @@ class UserAvatar extends ConsumerWidget {
     final initial = s.nickname.isEmpty
         ? context.l10n.meAvatarFallback
         : s.nickname.characters.first;
+    // 頭像檔還沒同步下載到（換了新裝置）：先顯示暱稱第一個字，檔案或縮圖到了再換成圖片。
+    final file = s.avatarFile;
+    var hasImage = false;
+    if (file != null) {
+      final store = ref.watch(imageStoreProvider).value;
+      ref.watch(imageExistsProvider(file));
+      ref.watch(thumbVersionProvider(file));
+      hasImage =
+          store != null && (store.exists(file) || store.hasThumb(file));
+    }
     return SizedBox(
       width: size,
       height: size,
       child: ClipOval(
-        child: s.avatarFile != null
+        child: hasImage
             ? StoredImage(
-                s.avatarFile!,
+                file!,
                 cacheWidth: (size * 3).round(),
                 showDownloadBadge: false,
               )

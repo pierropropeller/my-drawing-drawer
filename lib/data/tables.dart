@@ -339,6 +339,18 @@ class ReviewSettings extends Table {
   Set<Column> get primaryKey => {year};
 }
 
+/// 使用者資料（暱稱、頭像；同步）。單例，id 固定為 'me'；以 [updatedAt] 做 last-write-wins。
+/// 頭像檔跟其他圖片一樣放在圖片資料夾，檔名記在 [avatarFile]。
+class UserProfiles extends Table {
+  TextColumn get id => text()();
+  TextColumn get nickname => text().withDefault(const Constant(''))();
+  TextColumn get avatarFile => text().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// 待上傳到 Google Drive 的變更佇列（第 4 節）。
 class Outbox extends Table {
   IntColumn get seq => integer().autoIncrement()();

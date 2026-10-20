@@ -7,6 +7,7 @@ import '../data/database.dart';
 import '../data/image_store.dart';
 import '../data/media.dart';
 import '../media/thumbnail_maker.dart';
+import '../data/profile_queries.dart';
 import 'remote.dart';
 import 'sync_kinds.dart';
 import 'sync_log.dart';
@@ -40,17 +41,26 @@ const syncPullConcurrency = 8;
 const syncImageFailureLimit = 5;
 
 /// 下載縮圖（D-099）一次並行幾張（很小，可以多一點）。
-const syncThumbConcurrency = 6;
+const syncThumbConcurrency = 8;
+
+/// 縮圖階段最長花多少時間；超過就先進入原圖階段，沒下載完的縮圖下次同步接著下載。
+const syncThumbStageBudget = Duration(seconds: 20);
 
 /// 下載原圖一次並行幾張（同步 sheet 同時最多顯示 3 張傳輸中，D-099）。
 const syncDownloadConcurrency = 3;
 
 /// 舊資料補縮圖（本機產生＋上傳）每次同步最多處理幾張，避免一次上傳上千張；
 /// 沒補完的下次同步接著補（Drive 上有沒有該縮圖就是進度，不必另外記錄）。
-const syncThumbBackfillLimit = 40;
+const syncThumbBackfillLimit = 150;
+
+/// 補縮圖階段最長花多少時間（到了就停，下次同步接著補）。
+const syncThumbBackfillBudget = Duration(seconds: 60);
 
 /// 每次同步最多向 Drive 要幾張 `thumbnailLink` 暫用縮圖。
 const syncThumbFallbackLimit = 150;
+
+/// 縮圖階段連續失敗這麼多張就放棄這個階段。
+const _thumbFailStop = 12;
 
 /// 同步目前進行到哪個階段。
 /// 順序（D-099）：拉取 meta → 下載縮圖 → 下載原圖 → 上傳。
@@ -117,6 +127,11 @@ class SyncResult {
 
   /// 縮圖相關的失敗（不影響同步成敗，下次再試）。
   int thumbFailures = 0;
+
+  /// 同步結束時，本機有原圖、非影片、但遠端仍沒有 `thumbs__` 的張數
+  /// （其中 [thumbsUnmakeable] 張是縮圖產生不了而被標記略過的）。非 0 代表別台裝置會慢。
+  int thumbsStillMissing = 0;
+  int thumbsUnmakeable = 0;
 
   bool get changed => pushed + pulled + imagesUp + imagesDown > 0;
   @override
@@ -273,7 +288,19 @@ class SyncEngine {
     this.downloadConcurrency = syncDownloadConcurrency,
     this.thumbBackfillLimit = syncThumbBackfillLimit,
     this.thumbFallbackLimit = syncThumbFallbackLimit,
+    this.thumbStageBudget = syncThumbStageBudget,
+    this.thumbBackfillBudget = syncThumbBackfillBudget,
+    this.onPulled,
   });
+
+  /// 縮圖階段的時間上限（見 [syncThumbStageBudget]）。
+  final Duration thumbStageBudget;
+
+  /// 補縮圖階段的時間上限。
+  final Duration thumbBackfillBudget;
+
+  /// 拉取階段結束（雲端文件已套用到資料庫）時呼叫，供 UI 重新載入使用者資料等。
+  final Future<void> Function()? onPulled;
 
   /// 產生縮圖（D-099）；測試可換成假的。
   final ThumbnailMaker thumbnails;
@@ -324,6 +351,11 @@ class SyncEngine {
     };
 
     await _pull(files, known, result, tracker, check);
+    try {
+      await onPulled?.call();
+    } catch (e) {
+      syncLog('sync: onPulled failed (${e.runtimeType})');
+    }
 
     // 規劃：要下載的、要上傳的，這時才知道總數。
     final toDownload = await _missingImages(files);
@@ -345,7 +377,9 @@ class SyncEngine {
       'imgDown=${result.imagesDown} imgUp=${result.imagesUp} '
       'skippedDocs=${result.skippedDocs.length} imgFail=${result.imageFailures} '
       'thumbDown=${result.thumbsDown} thumbFallback=${result.thumbsFallback} '
-      'thumbUp=${result.thumbsUp} thumbFail=${result.thumbFailures}',
+      'thumbUp=${result.thumbsUp} thumbFail=${result.thumbFailures} '
+      'thumbMissingRemote=${result.thumbsStillMissing} '
+      'thumbUnmakeable=${result.thumbsUnmakeable}',
     );
     return result;
   }
@@ -499,6 +533,9 @@ class SyncEngine {
   /// 本機資料庫引用到的所有圖片檔名。
   Future<Set<String>> _referencedImages() async {
     final needed = <String>{};
+    // 頭像排最前面，同步時最先下載。
+    final avatar = (await db.getProfile())?.avatarFile;
+    if (avatar != null && avatar.isNotEmpty) needed.add(avatar);
     // 淺坑自己選的封面檔（D-088）。
     for (final r in await db.select(db.pits).get()) {
       final c = r.coverFile;
@@ -639,7 +676,7 @@ class SyncEngine {
     syncLog('thumbs: ${real.length} to download, ${fallback.length} fallback');
     var done = 0;
     tracker.thumbs(0, total);
-    var failedBatches = 0;
+    var failedRun = 0; // 連續失敗張數
 
     Future<bool> one(String name, bool isFallback) async {
       try {
@@ -647,6 +684,9 @@ class SyncEngine {
             ? await fb!.fallbackThumbnail(_imageName(name))
             : await remote.download(thumbRemoteName(name));
         if (bytes == null || bytes.isEmpty) return false;
+        syncLog(
+          'thumbs: ${isFallback ? 'fallback' : 'download'} ${bytes.length}B',
+        );
         if (isFallback) {
           await images.saveTempThumb(name, bytes);
           result.thumbsFallback++;
@@ -667,29 +707,45 @@ class SyncEngine {
       }
     }
 
+    final deadline = DateTime.now().add(thumbStageBudget);
+    var timedOut = false;
+
+    // 工作池：每個工作者做完一張就接下一張（不必等同批最慢的那張）。
     Future<void> run(List<String> list, bool isFallback) async {
-      for (var i = 0; i < list.length; i += syncThumbConcurrency) {
-        check();
-        final end = i + syncThumbConcurrency > list.length
-            ? list.length
-            : i + syncThumbConcurrency;
-        final batch = list.sublist(i, end);
-        final ok = await Future.wait([
-          for (final n in batch) one(n, isFallback),
-        ]);
-        // 一整批都失敗：多半是網絡不通，連續兩批就放棄這個階段（原圖階段會報真正的錯誤）。
-        failedBatches = ok.any((x) => x) ? 0 : failedBatches + 1;
-        done += batch.length;
-        tracker.thumbs(done, total);
-        if (failedBatches >= 2) {
-          syncLog('thumbs: stop this stage after repeated failures');
-          return;
+      var next = 0;
+      Future<void> worker() async {
+        while (failedRun < _thumbFailStop && !timedOut) {
+          check();
+          if (DateTime.now().isAfter(deadline)) {
+            timedOut = true;
+            return;
+          }
+          final i = next++;
+          if (i >= list.length) return;
+          final ok = await one(list[i], isFallback);
+          // 連續失敗太多：多半是網絡不通，放棄這個階段（原圖階段會報真正的錯誤）。
+          failedRun = ok ? 0 : failedRun + 1;
+          tracker.thumbs(++done, total);
         }
       }
+
+      await Future.wait([
+        for (var w = 0; w < syncThumbConcurrency && w < list.length; w++)
+          worker(),
+      ]);
     }
 
     await run(real, false);
-    if (failedBatches < 2) await run(fallback, true);
+    if (failedRun < _thumbFailStop && !timedOut) await run(fallback, true);
+    if (failedRun >= _thumbFailStop) {
+      syncLog('thumbs: stop this stage after repeated failures');
+    }
+    if (timedOut) {
+      syncLog(
+        'thumbs: stage budget ${thumbStageBudget.inSeconds}s reached, '
+        'done=$done/$total; the rest continue next sync',
+      );
+    }
     tracker.thumbs(total, total);
   }
 
@@ -707,6 +763,7 @@ class SyncEngine {
     if (images.thumbFailed(file) || !images.exists(file)) return null;
     final bytes = await thumbnails.make(images.fileOf(file));
     if (bytes == null || bytes.isEmpty) {
+      syncLog('thumbs: cannot make thumb (ext=${file.split('.').last})');
       await images.markThumbFailed(file);
       return null;
     }
@@ -732,6 +789,7 @@ class SyncEngine {
       );
       files[name] = RemoteFile(name: name, modified: modified);
       result.thumbsUp++;
+      syncLog('thumbs: uploaded ${bytes.length}B');
     } on SyncAuthException {
       rethrow;
     } catch (e) {
@@ -750,14 +808,29 @@ class SyncEngine {
     _Tracker tracker,
     void Function() check,
   ) async {
+    // 候選：本機有原圖、非影片、雲端沒有縮圖、沒被標記產生不了。
+    // 最近加入的優先（以本機檔案修改時間排序）：新拍的圖最先讓別台裝置拿到縮圖。
+    final candidates = <(String, int)>[];
+    for (final name in referenced) {
+      if (name.isEmpty || _isVideoFile(name) || !images.exists(name)) continue;
+      if (files.containsKey(thumbRemoteName(name))) continue;
+      if (images.thumbFailed(name)) {
+        result.thumbsUnmakeable++;
+        continue;
+      }
+      var ms = 0;
+      try {
+        ms = images.fileOf(name).lastModifiedSync().millisecondsSinceEpoch;
+      } catch (_) {}
+      candidates.add((name, ms));
+    }
+    candidates.sort((x, y) => y.$2.compareTo(x.$2));
+
+    final deadline = DateTime.now().add(thumbBackfillBudget);
     var budget = thumbBackfillLimit;
     var consecutiveFailures = 0;
-    for (final name in referenced) {
-      if (budget <= 0) break;
-      if (name.isEmpty || _isVideoFile(name) || !images.exists(name)) continue;
-      // 雲端已經有的由縮圖階段下載；這裡只處理「雲端沒有」的。
-      if (files.containsKey(thumbRemoteName(name))) continue;
-      if (images.thumbFailed(name)) continue;
+    for (final (name, _) in candidates) {
+      if (budget <= 0 || DateTime.now().isAfter(deadline)) break;
       check();
       budget--;
       final before = result.thumbsUp;
@@ -769,6 +842,21 @@ class SyncEngine {
       } else if (result.thumbFailures > failedBefore) {
         if (++consecutiveFailures >= 3) break; // 多半是網絡問題，下次再補
       }
+    }
+
+    // 盤點：同步結束時仍沒有雲端縮圖的（別台裝置會退回 thumbnailLink 或下載原圖，所以要看得見）。
+    var missing = 0;
+    for (final name in referenced) {
+      if (name.isEmpty || _isVideoFile(name) || !images.exists(name)) continue;
+      if (!files.containsKey(thumbRemoteName(name))) missing++;
+    }
+    result.thumbsStillMissing = missing;
+    if (missing > 0) {
+      syncLog(
+        'thumbs: $missing local images still have no remote thumb '
+        '(unmakeable=${result.thumbsUnmakeable}, uploaded this sync='
+        '${result.thumbsUp})',
+      );
     }
   }
 

@@ -4,6 +4,7 @@ import '../data/album_queries.dart';
 import '../data/database.dart';
 import '../data/entity_queries.dart';
 import '../data/media.dart';
+import '../data/profile_queries.dart';
 
 /// 一種可同步的實體。每筆實體序列化成一份 JSON 文件；
 /// 連接關係、tag、圖片清單等「附屬資料」跟著擁有它的實體文件一起走：
@@ -646,6 +647,37 @@ class ReviewSettingsKind extends SyncKind {
       db.into(db.reviewSettings).upsertFull(ReviewSetting.fromJson(data));
 }
 
+/// 使用者資料（暱稱、頭像）：單例文件，id 固定 `me`；頭像檔跟其他圖片一起上傳／下載。
+/// 舊版 App 沒有這個種類，讀遠端時只認得自己知道的 `meta__{kind}__` 前綴，直接忽略，不需提高格式版本。
+class ProfileKind extends SyncKind {
+  const ProfileKind();
+  @override
+  String get name => 'profile';
+  @override
+  Future<Map<String, int>> versions(AppDatabase db) async => {
+    for (final r in await db.select(db.userProfiles).get())
+      r.id: r.updatedAt.millisecondsSinceEpoch,
+  };
+  @override
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>
+      (await (db.select(
+        db.userProfiles,
+      )..where((t) => t.id.equals(id))).getSingle()).toJson();
+  @override
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) {
+    final row = UserProfile.fromJson(
+      withDefaults(data, {'id': profileDocId, 'nickname': ''}),
+    );
+    return db.into(db.userProfiles).upsertFull(row);
+  }
+
+  @override
+  Set<String> imageFiles(Map<String, dynamic> data) => {
+    if ((data['avatarFile'] as String?)?.isNotEmpty ?? false)
+      data['avatarFile'] as String,
+  };
+}
+
 const allSyncKinds = <SyncKind>[
   PitsKind(),
   GroupsKind(),
@@ -661,4 +693,5 @@ const allSyncKinds = <SyncKind>[
   GoalsKind(),
   ReviewMonthsKind(),
   ReviewSettingsKind(),
+  ProfileKind(),
 ];

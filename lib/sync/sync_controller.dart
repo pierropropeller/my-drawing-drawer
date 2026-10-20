@@ -271,6 +271,8 @@ class SyncController extends Notifier<SyncState> {
           db: ref.read(databaseProvider),
           remote: remote,
           images: await ref.read(imageStoreProvider.future),
+          // 暱稱／頭像是同步來的：文件一套用完就更新畫面，不必等圖片下載完。
+          onPulled: () => ref.read(settingsProvider.notifier).reloadProfile(),
         );
         return engine.sync(
           cancel: cancel,
@@ -297,6 +299,7 @@ class SyncController extends Notifier<SyncState> {
       }
 
       final r = await Future.any([run(), stalled.future]);
+      await ref.read(settingsProvider.notifier).reloadProfile();
       if (email != null) {
         ref.read(settingsProvider.notifier).setSyncedAccount(email);
       }

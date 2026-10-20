@@ -163,6 +163,12 @@ class SyncProgress { SyncStage stage; int imagesDone; int imagesTotal; }
 - 遠端有更高版本（標記或任一文件）→ 同步丟 `SyncFormatException`（繼承 `SyncAuthException`），
   訊息「此備份由較新版本建立，請先更新 App」，`SyncState.phase == error`、`needsAppUpdate == true`，本機資料不動、不記為已同步。
 - 向下相容：舊文件缺的欄位在 `sync_kinds.dart` 的 `withDefaults` 補預設（舊成圖視為已公開；`imageKey` 補 `id`）。
+- 新增同步種類：`profile`（暱稱、頭像；資料庫 v12 `user_profiles`，單列 id=`me`；`AppDatabase.getProfile()`／`saveProfile()` 在 `profile_queries.dart`；
+  `SettingsNotifier.saveProfile()` 存檔並設 updatedAt＝現在，`reloadProfile()` 在啟動與同步拉取完成後讓設定對齊資料庫；
+  升級前只存在設定裡的資料會以 updatedAt＝0 補進資料庫。`formatVersion` 不變：舊版只處理自己認得的種類前綴）。
+- `SyncEngine` 新參數：`onPulled`（拉取完成回呼）、`thumbStageBudget`（預設 20 秒）、`thumbBackfillBudget`（預設 60 秒）；`syncThumbBackfillLimit`＝150、`syncThumbConcurrency`＝8。
+  `SyncResult.thumbsStillMissing`／`thumbsUnmakeable`：同步結束時仍沒有雲端縮圖／產生不了縮圖的張數。
+- `DriveRemote.list()` 一併取回 `thumbnailLink`（本次同步內快取），備援縮圖每張一次請求；`DriveRemote.resizeThumbnailLink` 把 `=sNNN`／`=wNNN-hNNN…` 改成 `=s480`。
 - 新增同步種類：`junk`（雜物）、`reviewsettings`（回顧排版，以前沒同步）。
 
 本機設定（`settings.dart`，不同步）：`defaultCurrency`（預設 'CNY'，`setDefaultCurrency`）、`syncedAccount`（內部用）。

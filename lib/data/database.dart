@@ -44,6 +44,7 @@ part 'database.g.dart';
     ReviewSettings,
     Outbox,
     SyncDocs,
+    UserProfiles,
     RefViewStates,
   ],
 )
@@ -52,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -101,6 +102,10 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 11) {
         await _migrateV11(m);
+      }
+      if (from < 12) {
+        // v12：使用者資料（暱稱、頭像）同步。全新的表；本機舊資料由啟動時從設定補進去。
+        await m.createTable(userProfiles);
       }
     },
   );

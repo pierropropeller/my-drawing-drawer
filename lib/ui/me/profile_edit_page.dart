@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -59,9 +61,14 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage>
   }
 
   void _save() {
-    final n = ref.read(settingsProvider.notifier);
-    n.setNickname(_nick.text.trim());
-    if (_pendingAvatar != null) n.setAvatar(_pendingAvatar);
+    unawaited(
+      ref
+          .read(settingsProvider.notifier)
+          .saveProfile(
+            nickname: _nick.text.trim(),
+            avatarFile: _pendingAvatar ?? ref.read(settingsProvider).avatarFile,
+          ),
+    );
     Navigator.of(context).maybePop();
   }
 

@@ -374,14 +374,14 @@ void main() {
   });
 
   test('縮圖下載整批失敗：放棄縮圖階段但原圖照常', () async {
-    final names = await addImages(14);
+    final names = await addImages(30);
     await SyncEngine(db: a, remote: remote, images: storeA).sync();
     final broken = _BrokenThumbs(remote);
     final r = await SyncEngine(db: b, remote: broken, images: storeB).sync();
     expect(r.imagesDown, names.length);
     expect(r.thumbsDown, 0);
-    // 兩批（各 6 張）都失敗就停，不會把 14 張都試完
-    expect(broken.thumbTries, lessThanOrEqualTo(12));
+    // 連續失敗 12 張就停（並行 8 張，最多再多幾張在途），不會把 30 張都試完
+    expect(broken.thumbTries, lessThan(30));
   });
 
   group('DriveRemote.fallbackThumbnail（files.get thumbnailLink）', () {

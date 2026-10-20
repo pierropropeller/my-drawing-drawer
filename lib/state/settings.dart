@@ -3,7 +3,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/profile_queries.dart';
 import '../sync/network_kind.dart';
+import 'providers.dart' show databaseProvider;
 import '../theme/tokens.dart';
 import '../l10n/l10n.dart';
 
@@ -210,6 +212,47 @@ class SettingsNotifier extends Notifier<AppSettings> {
       _p?.remove('avatarFile');
     } else {
       _p?.setString('avatarFile', file);
+    }
+  }
+
+  /// 儲存暱稱與頭像（編輯個人資料頁用）：寫進資料庫並把 updatedAt 設成現在，
+  /// 之後同步會上傳（暱稱、頭像跟著帳號走）；設定裡的副本供啟動時立刻顯示。
+  /// [avatarFile] 不傳＝沿用目前頭像。
+  Future<void> saveProfile({
+    required String nickname,
+    Object? avatarFile = _keep,
+  }) async {
+    final avatar = identical(avatarFile, _keep)
+        ? state.avatarFile
+        : avatarFile as String?;
+    setNickname(nickname);
+    setAvatar(avatar);
+    await ref
+        .read(databaseProvider)
+        .saveProfile(nickname: nickname, avatarFile: avatar);
+  }
+
+  /// 讓設定裡的暱稱／頭像和資料庫（同步的來源）一致：
+  /// - 資料庫有紀錄：以它為準（同步拉下來的、或本機剛存的），畫面自動更新；
+  /// - 沒有紀錄但設定裡有（升級前存的）：補一筆，updatedAt 設為 0（epoch），
+  ///   任何裝置之後的編輯或雲端已有的紀錄都會蓋過它，不會誤蓋掉別台裝置較新的資料。
+  /// 啟動時與每次同步拉取完成後呼叫。
+  Future<void> reloadProfile() async {
+    final db = ref.read(databaseProvider);
+    final row = await db.getProfile();
+    if (row == null) {
+      if (state.nickname.isNotEmpty || state.avatarFile != null) {
+        await db.saveProfile(
+          nickname: state.nickname,
+          avatarFile: state.avatarFile,
+          at: DateTime.fromMillisecondsSinceEpoch(0),
+        );
+      }
+      return;
+    }
+    if (row.nickname != state.nickname || row.avatarFile != state.avatarFile) {
+      setNickname(row.nickname);
+      setAvatar(row.avatarFile);
     }
   }
 

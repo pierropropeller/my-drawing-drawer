@@ -49,6 +49,10 @@ class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
   final http.Client _http;
   final Map<String, String> _ids = {};
 
+  /// 本次同步 [list] 時順便取得的 `thumbnailLink`（檔名 → 連結）；連結會過期，
+  /// 每次 [list] 重建，只在這次同步內使用，這樣備援縮圖每張只要一次請求。
+  final Map<String, String> _thumbLinks = {};
+
   static const _api = 'https://www.googleapis.com/drive/v3/files';
   static const _upload = 'https://www.googleapis.com/upload/drive/v3/files';
 
@@ -137,6 +141,7 @@ class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
   @override
   Future<List<RemoteFile>> list() async {
     final out = <RemoteFile>[];
+    _thumbLinks.clear();
     String? token;
     var page = 0;
     do {
@@ -145,7 +150,7 @@ class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
         queryParameters: {
           'spaces': 'appDataFolder',
           'pageSize': '1000',
-          'fields': 'nextPageToken, files(id,name,modifiedTime)',
+          'fields': 'nextPageToken, files(id,name,modifiedTime,thumbnailLink)',
           'pageToken': ?token,
         },
       );
@@ -161,6 +166,10 @@ class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
       for (final f in (body['files'] as List<dynamic>? ?? const [])) {
         final m = f as Map<String, dynamic>;
         _ids[m['name'] as String] = m['id'] as String;
+        final link = m['thumbnailLink'] as String?;
+        if (link != null && link.isNotEmpty) {
+          _thumbLinks[m['name'] as String] = link;
+        }
         out.add(
           RemoteFile(
             name: m['name'] as String,
@@ -201,32 +210,45 @@ class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
     });
   }
 
-  /// 舊資料備援（D-099）：`files.get?fields=thumbnailLink` 取得 Drive 自己產生的縮圖連結，
-  /// 把尺寸改成長邊 480，再帶登入 token 下載。連結會過期，所以每次現取現用、不快取。
+  /// 把 Drive `thumbnailLink` 的尺寸參數改成長邊 480（`=s480`）。
+  /// 認得 `=s220`、`=s220-c`、`=w220-h160`、`=w220-h160-p-k-no` 這幾種結尾；
+  /// 完全沒有尺寸參數時直接補上 `=s480`（否則 googleusercontent 會回原尺寸）。
+  static String resizeThumbnailLink(String link) {
+    final re = RegExp(r'=(?:s\d+|w\d+-h\d+)(?:-[\w]+)*$');
+    if (re.hasMatch(link)) return link.replaceFirst(re, '=s480');
+    final tail = link.substring(link.lastIndexOf('/') + 1);
+    return tail.contains('=') ? link : '$link=s480';
+  }
+
+  /// 舊資料備援（D-099）：用 [list] 時帶回的 `thumbnailLink`（沒有才退回
+  /// `files.get?fields=thumbnailLink` 多一次請求）把尺寸改成長邊 480，再帶登入 token 下載。
   /// 失敗（沒有縮圖、連結過期、網絡）一律回傳 null，不擋同步；只有授權過期才往上丟。
   @override
   Future<Uint8List?> fallbackThumbnail(String name) async {
     final id = _ids[name];
     if (id == null) return null;
     try {
-      final meta = await _run(
-        'thumbnailLink',
-        () async => _check(
-          await _http
-              .get(
-                Uri.parse('$_api/$id')
-                    .replace(queryParameters: {'fields': 'thumbnailLink'}),
-                headers: await _headers(),
-              )
-              .timeout(requestTimeout),
-        ),
-        attempts: 2,
-      );
-      final link =
-          (jsonDecode(meta.body) as Map<String, dynamic>)['thumbnailLink']
-              as String?;
+      var link = _thumbLinks[name];
+      if (link == null) {
+        final meta = await _run(
+          'thumbnailLink',
+          () async => _check(
+            await _http
+                .get(
+                  Uri.parse('$_api/$id')
+                      .replace(queryParameters: {'fields': 'thumbnailLink'}),
+                  headers: await _headers(),
+                )
+                .timeout(requestTimeout),
+          ),
+          attempts: 2,
+        );
+        link =
+            (jsonDecode(meta.body) as Map<String, dynamic>)['thumbnailLink']
+                as String?;
+      }
       if (link == null || link.isEmpty) return null;
-      final sized = link.replaceFirst(RegExp(r'=s\d+(-\w+)*$'), '=s480');
+      final sized = resizeThumbnailLink(link);
       final r = await _run(
         'thumbnail',
         () async => _check(
@@ -236,6 +258,7 @@ class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
         ),
         attempts: 2,
       );
+      syncLog('thumbnail fallback ${r.bodyBytes.length}B');
       return r.bodyBytes.isEmpty ? null : r.bodyBytes;
     } on SyncAuthException {
       rethrow;

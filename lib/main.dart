@@ -42,6 +42,7 @@ class _PosterFixerHost extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(posterFixerProvider);
+    ref.watch(profileBootProvider);
     // 播放器備援擷取影片截圖用的隱形畫布（畫在螢幕外，平常是空的）。
     return PosterCaptureScope(
       slot: ref.watch(posterCaptureSlotProvider),
@@ -49,6 +50,11 @@ class _PosterFixerHost extends ConsumerWidget {
     );
   }
 }
+
+/// 啟動時讓設定裡的暱稱／頭像和資料庫（同步的來源）對齊一次（升級前存的補進資料庫）。
+final profileBootProvider = FutureProvider<void>(
+  (ref) => ref.read(settingsProvider.notifier).reloadProfile(),
+);
 
 const appLocale = Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
 
