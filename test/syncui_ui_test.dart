@@ -251,7 +251,10 @@ void main() {
     });
     final c = await pumpApp(tester);
     await settle(tester);
-    // 排隊中（沒有進度）：轉圈。
+    // 排隊中（沒有進度）：轉圈。沒有在同步時不顯示角標（角標只在同步進行中出現）。
+    expect(find.bySemanticsLabel('尚未下載'), findsNothing);
+    fake(c).set(_transferring([_dl('cover.png')]));
+    await settle(tester);
     expect(find.bySemanticsLabel('尚未下載'), findsOneWidget);
 
     fake(c)
