@@ -40,27 +40,28 @@ const syncPullConcurrency = 8;
 /// 連續這麼多張圖片下載失敗就放棄整次同步（多半是網絡或授權問題，不要把每張都等到逾時）。
 const syncImageFailureLimit = 5;
 
-/// 下載縮圖（D-099）一次並行幾張（很小，可以多一點）。
+/// 下載占位圖（D-099，長邊 32px、約 1KB）一次並行幾張。
 const syncThumbConcurrency = 8;
-
-/// 縮圖階段最長花多少時間；超過就先進入原圖階段，沒下載完的縮圖下次同步接著下載。
-const syncThumbStageBudget = Duration(seconds: 20);
 
 /// 下載原圖一次並行幾張（同步 sheet 同時最多顯示 3 張傳輸中，D-099）。
 const syncDownloadConcurrency = 3;
 
-/// 舊資料補縮圖（本機產生＋上傳）每次同步最多處理幾張，避免一次上傳上千張；
-/// 沒補完的下次同步接著補（Drive 上有沒有該縮圖就是進度，不必另外記錄）。
-const syncThumbBackfillLimit = 150;
+/// 舊資料補占位圖（本機產生＋上傳，每張約 1KB）每次同步最多處理幾張，避免一次上傳上千張；
+/// 沒補完的下次同步接著補（Drive 上有沒有該占位圖就是進度，不必另外記錄）。
+const syncThumbBackfillLimit = 300;
 
-/// 補縮圖階段最長花多少時間（到了就停，下次同步接著補）。
+/// 補占位圖階段最長花多少時間（到了就停，下次同步接著補）。
 const syncThumbBackfillBudget = Duration(seconds: 60);
 
-/// 每次同步最多向 Drive 要幾張 `thumbnailLink` 暫用縮圖。
+/// 每次同步最多向 Drive 要幾張 `thumbnailLink` 暫用占位圖（`=s32`）。
 const syncThumbFallbackLimit = 150;
 
-/// 縮圖階段連續失敗這麼多張就放棄這個階段。
+/// 占位圖階段連續失敗這麼多張就放棄這個階段。
 const _thumbFailStop = 12;
+
+/// 補本機列表縮圖（480，只在本機）每次同步最多處理幾張／最長花多久。
+const _listThumbLimit = 200;
+const _listThumbBudget = Duration(seconds: 30);
 
 /// 同步目前進行到哪個階段。
 /// 順序（D-099）：拉取 meta → 下載縮圖 → 下載原圖 → 上傳。
@@ -288,13 +289,9 @@ class SyncEngine {
     this.downloadConcurrency = syncDownloadConcurrency,
     this.thumbBackfillLimit = syncThumbBackfillLimit,
     this.thumbFallbackLimit = syncThumbFallbackLimit,
-    this.thumbStageBudget = syncThumbStageBudget,
     this.thumbBackfillBudget = syncThumbBackfillBudget,
     this.onPulled,
   });
-
-  /// 縮圖階段的時間上限（見 [syncThumbStageBudget]）。
-  final Duration thumbStageBudget;
 
   /// 補縮圖階段的時間上限。
   final Duration thumbBackfillBudget;
@@ -372,6 +369,7 @@ class SyncEngine {
     await _push(files, known, plan, result, report, tracker, check);
     await _writeFormat(remoteFormat);
     await _backfillThumbs(files, referenced, result, tracker, check);
+    await _ensureListThumbs(referenced, check);
     syncLog(
       'sync: done pulled=${result.pulled} pushed=${result.pushed} '
       'imgDown=${result.imagesDown} imgUp=${result.imagesUp} '
@@ -660,13 +658,12 @@ class SyncEngine {
         : null;
     for (final name in referenced) {
       if (name.isEmpty || _isVideoFile(name)) continue;
-      if (images.hasRealThumb(name)) continue;
+      // 原圖已在本機（不需要占位圖），或已有占位圖／舊版留下的 480 縮圖（照舊接受）。
+      if (images.exists(name) || images.hasThumb(name)) continue;
       if (files.containsKey(thumbRemoteName(name))) {
         real.add(name);
       } else if (fb != null &&
           fallback.length < thumbFallbackLimit &&
-          !images.exists(name) && // 原圖在本機的由補縮圖自己產生
-          !images.hasThumb(name) &&
           files.containsKey(_imageName(name))) {
         fallback.add(name);
       }
@@ -688,10 +685,10 @@ class SyncEngine {
           'thumbs: ${isFallback ? 'fallback' : 'download'} ${bytes.length}B',
         );
         if (isFallback) {
-          await images.saveTempThumb(name, bytes);
+          await images.savePlaceholder(name, bytes);
           result.thumbsFallback++;
         } else {
-          await images.saveThumb(name, bytes);
+          await images.savePlaceholder(name, bytes);
           result.thumbsDown++;
         }
         return true;
@@ -707,19 +704,12 @@ class SyncEngine {
       }
     }
 
-    final deadline = DateTime.now().add(thumbStageBudget);
-    var timedOut = false;
-
     // 工作池：每個工作者做完一張就接下一張（不必等同批最慢的那張）。
     Future<void> run(List<String> list, bool isFallback) async {
       var next = 0;
       Future<void> worker() async {
-        while (failedRun < _thumbFailStop && !timedOut) {
+        while (failedRun < _thumbFailStop) {
           check();
-          if (DateTime.now().isAfter(deadline)) {
-            timedOut = true;
-            return;
-          }
           final i = next++;
           if (i >= list.length) return;
           final ok = await one(list[i], isFallback);
@@ -736,42 +726,67 @@ class SyncEngine {
     }
 
     await run(real, false);
-    if (failedRun < _thumbFailStop && !timedOut) await run(fallback, true);
+    if (failedRun < _thumbFailStop) await run(fallback, true);
     if (failedRun >= _thumbFailStop) {
       syncLog('thumbs: stop this stage after repeated failures');
-    }
-    if (timedOut) {
-      syncLog(
-        'thumbs: stage budget ${thumbStageBudget.inSeconds}s reached, '
-        'done=$done/$total; the rest continue next sync',
-      );
     }
     tracker.thumbs(total, total);
   }
 
-  /// 這張原圖要上傳的縮圖位元組：本機已有就讀它，沒有就產生並存進本機縮圖快取。
+  /// 這張原圖要上傳的占位圖位元組（長邊 32px、約 1KB）：本機已有（下載來的或先前產生的）就讀它，
+  /// 沒有就由原圖產生並存起來。舊版下載到的 480 縮圖不拿來上傳（太大）。
   /// 影片、壞檔、已標記產生不了的回傳 null。
-  Future<Uint8List?> _thumbBytes(String file) async {
+  Future<Uint8List?> _placeholderBytes(String file) async {
     if (_isVideoFile(file)) return null;
-    if (images.hasRealThumb(file)) {
+    if (images.hasPlaceholder(file)) {
       try {
-        return await images.thumbFileOf(file).readAsBytes();
+        return await images.placeholderFileOf(file).readAsBytes();
       } catch (_) {
         // 讀不到就重新產生。
       }
     }
     if (images.thumbFailed(file) || !images.exists(file)) return null;
-    final bytes = await thumbnails.make(images.fileOf(file));
+    final bytes = await thumbnails.make(
+      images.fileOf(file),
+      placeholder: true,
+    );
     if (bytes == null || bytes.isEmpty) {
-      syncLog('thumbs: cannot make thumb (ext=${file.split('.').last})');
+      syncLog('thumbs: cannot make placeholder (ext=${file.split('.').last})');
       await images.markThumbFailed(file);
       return null;
     }
-    await images.saveThumb(file, bytes);
+    // 原圖在本機，占位圖不必留（留著也不會顯示）；只用來上傳。
     return bytes;
   }
 
-  /// 上傳縮圖；失敗只記錄（下次補縮圖會再試），不影響原圖與文件。
+  /// 補本機列表縮圖（480，只在本機、永不上傳）：本機有原圖、還沒有列表縮圖的，由原圖產生。
+  /// 每次同步有數量與時間上限，沒補完的下次接著補。
+  Future<void> _ensureListThumbs(
+    Set<String> referenced,
+    void Function() check,
+  ) async {
+    final deadline = DateTime.now().add(_listThumbBudget);
+    var budget = _listThumbLimit;
+    for (final name in referenced) {
+      if (budget <= 0 || DateTime.now().isAfter(deadline)) break;
+      if (name.isEmpty || _isVideoFile(name) || !images.exists(name)) continue;
+      if (images.hasRealThumb(name) || images.thumbFailed(name)) continue;
+      check();
+      budget--;
+      try {
+        final bytes = await thumbnails.make(images.fileOf(name));
+        if (bytes == null || bytes.isEmpty) {
+          await images.markThumbFailed(name);
+        } else {
+          await images.saveThumb(name, bytes);
+        }
+      } catch (_) {
+        // 列表縮圖只是加速用，失敗不影響同步。
+      }
+    }
+  }
+
+  /// 上傳占位圖；失敗只記錄（下次補縮圖會再試），不影響原圖與文件。
   Future<void> _uploadThumb(
     Map<String, RemoteFile> files,
     String file,
@@ -780,7 +795,7 @@ class SyncEngine {
     final name = thumbRemoteName(file);
     if (files.containsKey(name)) return;
     try {
-      final bytes = await _thumbBytes(file);
+      final bytes = await _placeholderBytes(file);
       if (bytes == null) return;
       final modified = await remote.upload(
         name,
@@ -798,9 +813,9 @@ class SyncEngine {
     }
   }
 
-  /// 舊資料補縮圖（一次性遷移）：本機有原圖、Drive 沒有 `thumbs__` 的，由這台裝置產生並上傳。
-  /// 每次同步最多 [thumbBackfillLimit] 張（限速）；是否已補好以 Drive 上有沒有該檔為準，
-  /// 所以可中斷續傳、不會重複上傳。順便補好本機縮圖快取（列表／封面優先用它）。
+  /// 舊資料補占位圖（一次性遷移）：本機有原圖、Drive 沒有 `thumbs__` 的，由這台裝置產生
+  /// 長邊 32px 的占位圖並上傳（很便宜）。每次同步最多 [thumbBackfillLimit] 張；
+  /// 是否已補好以 Drive 上有沒有該檔為準，所以可中斷續傳、不會重複上傳。
   Future<void> _backfillThumbs(
     Map<String, RemoteFile> files,
     Set<String> referenced,
@@ -922,7 +937,7 @@ class SyncEngine {
           continue;
         }
         if (idx != null) tracker.start(idx);
-        // 先傳縮圖再傳原圖：別的裝置先拿到縮圖（D-099）。縮圖失敗不影響原圖。
+        // 先傳占位圖再傳原圖：別的裝置先拿到占位圖（D-099）。占位圖失敗不影響原圖。
         await _uploadThumb(files, file, result);
         final modified = await remote.upload(
           name,

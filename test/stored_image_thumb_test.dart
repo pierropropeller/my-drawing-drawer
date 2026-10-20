@@ -11,7 +11,7 @@ import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/ui/album/album_image.dart';
 import 'package:image/image.dart' as img;
 
-/// D-099：列表／封面的顯示優先順序＝本機縮圖 → 本機原圖 → 占位。
+/// D-099：原圖在本機＝原圖（小尺寸用本機 480 列表縮圖）；原圖不在＝模糊占位圖；都沒有＝占位。
 void main() {
   late Directory tmp;
   late ImageStore store;
@@ -66,10 +66,34 @@ void main() {
     expect(shown(tester)!.path, store.fileOf('b.jpg').path);
   });
 
-  testWidgets('原圖還沒下載但縮圖已到：顯示縮圖（蓋層照舊），不是灰色占位', (tester) async {
-    await tester.runAsync(() => store.saveThumb('c.jpg', jpg));
+  testWidgets('原圖還沒下載但占位圖已到：模糊顯示占位圖（蓋層照舊），不是灰色占位', (tester) async {
+    await tester.runAsync(() => store.savePlaceholder('c.jpg', jpg));
     await pump(tester, const StoredImage('c.jpg', cacheWidth: 300));
-    expect(shown(tester)!.path, store.thumbFileOf('c.jpg').path);
+    expect(shown(tester)!.path, store.placeholderFileOf('c.jpg').path);
+    expect(find.byType(ImageFiltered), findsOneWidget);
+  });
+
+  testWidgets('原圖到了：占位圖換成原圖（不卡在模糊圖），占位檔已刪', (tester) async {
+    await tester.runAsync(() => store.savePlaceholder('f.jpg', jpg));
+    await pump(tester, const StoredImage('f.jpg', cacheWidth: 1200));
+    expect(find.byType(ImageFiltered), findsOneWidget);
+    await tester.runAsync(() => store.save('f.jpg', jpg));
+    expect(store.hasPlaceholder('f.jpg'), isFalse);
+    expect(store.placeholderFileOf('f.jpg').existsSync(), isFalse);
+    await pump(tester, const StoredImage('f.jpg', cacheWidth: 1200));
+    expect(find.byType(ImageFiltered), findsNothing);
+    expect(shown(tester)!.path, store.fileOf('f.jpg').path);
+  });
+
+  testWidgets('占位圖不會被當成列表縮圖：原圖在本機時小尺寸仍讀原圖', (tester) async {
+    await tester.runAsync(() async {
+      await store.savePlaceholder('g.jpg', jpg);
+      await store.save('g.jpg', jpg);
+      await store.savePlaceholder('g.jpg', jpg);
+    });
+    expect(store.hasRealThumb('g.jpg'), isFalse);
+    await pump(tester, const StoredImage('g.jpg', cacheWidth: 300));
+    expect(shown(tester)!.path, store.fileOf('g.jpg').path);
   });
 
   testWidgets('原圖沒有、縮圖也沒有：占位', (tester) async {
@@ -77,8 +101,8 @@ void main() {
     expect(find.byType(Image), findsNothing);
   });
 
-  testWidgets('不顯示角標的地方（原圖沒有但縮圖有）也用縮圖，不顯示破圖 icon', (tester) async {
-    await tester.runAsync(() => store.saveThumb('e.jpg', jpg));
+  testWidgets('不顯示角標的地方（原圖沒有但縮圖有）也用模糊占位圖，不顯示破圖 icon', (tester) async {
+    await tester.runAsync(() => store.savePlaceholder('e.jpg', jpg));
     await pump(
       tester,
       const StoredImage('e.jpg', cacheWidth: 300, showDownloadBadge: false),

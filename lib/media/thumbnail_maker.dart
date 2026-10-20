@@ -6,11 +6,14 @@ import 'package:image/image.dart' as img;
 
 import '../data/image_store.dart';
 
-/// 由原圖產生縮圖（D-099）：長邊 [ImageStore.thumbMaxEdge]px、JPEG 品質 [thumbQuality]（約 30KB）。
+/// 由原圖產生縮圖（D-099）。
+/// - 預設：本機列表縮圖，長邊 [ImageStore.thumbMaxEdge]px、JPEG 品質 [thumbQuality]（約 30KB）。
+/// - 占位圖（[placeholder]）：長邊 [ImageStore.placeholderMaxEdge]px、品質
+///   [ImageStore.placeholderQuality]（約 1KB），同步到 Drive 供原圖未到時模糊顯示。
 /// GIF 取第一格；影片不在這裡處理（它的 poster 是另一張 jpg，自己有縮圖）。
 abstract class ThumbnailMaker {
   /// 回傳 JPEG 位元組；讀不了（壞檔、不支援的格式）回傳 null，不丟例外。
-  Future<Uint8List?> make(File source);
+  Future<Uint8List?> make(File source, {bool placeholder = false});
 }
 
 const thumbQuality = 80;
@@ -24,7 +27,13 @@ class DefaultThumbnailMaker implements ThumbnailMaker {
   const DefaultThumbnailMaker();
 
   @override
-  Future<Uint8List?> make(File source) async {
+  Future<Uint8List?> make(File source, {bool placeholder = false}) async {
+    final edge = placeholder
+        ? ImageStore.placeholderMaxEdge
+        : ImageStore.thumbMaxEdge;
+    final quality = placeholder
+        ? ImageStore.placeholderQuality
+        : thumbQuality;
     final Uint8List bytes;
     try {
       bytes = await source.readAsBytes();
@@ -33,15 +42,15 @@ class DefaultThumbnailMaker implements ThumbnailMaker {
     }
     if (bytes.isEmpty) return null;
     try {
-      final raw = await _decodeScaled(bytes);
+      final raw = await _decodeScaled(bytes, edge);
       if (raw != null) {
-        return await compute(_encodeRaw, raw);
+        return await compute(_encodeRaw, (raw, quality));
       }
     } catch (_) {
       // 引擎解不了：改用純 Dart。
     }
     try {
-      return await compute(_encodeFromBytes, bytes);
+      return await compute(_encodeFromBytes, (bytes, edge, quality));
     } catch (_) {
       return null;
     }
@@ -55,7 +64,7 @@ class _Raw {
   final int height;
 }
 
-Future<_Raw?> _decodeScaled(Uint8List bytes) async {
+Future<_Raw?> _decodeScaled(Uint8List bytes, int edge) async {
   ui.ImmutableBuffer? buffer;
   ui.ImageDescriptor? desc;
   ui.Codec? codec;
@@ -64,7 +73,6 @@ Future<_Raw?> _decodeScaled(Uint8List bytes) async {
     desc = await ui.ImageDescriptor.encoded(buffer);
     final w = desc.width, h = desc.height;
     if (w <= 0 || h <= 0) return null;
-    const edge = ImageStore.thumbMaxEdge;
     final scale = (w > h ? w : h) > edge ? edge / (w > h ? w : h) : 1.0;
     final tw = (w * scale).round().clamp(1, edge);
     final th = (h * scale).round().clamp(1, edge);
@@ -87,7 +95,8 @@ Future<_Raw?> _decodeScaled(Uint8List bytes) async {
 }
 
 /// 透明背景鋪白底再編成 JPEG。
-Uint8List _encodeRaw(_Raw raw) {
+Uint8List _encodeRaw((_Raw, int) args) {
+  final raw = args.$1, quality = args.$2;
   final px = raw.rgba;
   for (var i = 0; i + 3 < px.length; i += 4) {
     final a = px[i + 3];
@@ -105,14 +114,14 @@ Uint8List _encodeRaw(_Raw raw) {
     numChannels: 4,
     order: img.ChannelOrder.rgba,
   );
-  return Uint8List.fromList(img.encodeJpg(image, quality: thumbQuality));
+  return Uint8List.fromList(img.encodeJpg(image, quality: quality));
 }
 
-Uint8List? _encodeFromBytes(Uint8List bytes) {
+Uint8List? _encodeFromBytes((Uint8List, int, int) args) {
+  final bytes = args.$1, edge = args.$2, quality = args.$3;
   var image = img.decodeImage(bytes);
   if (image == null) return null;
   image = img.bakeOrientation(image);
-  const edge = ImageStore.thumbMaxEdge;
   if (image.width > edge || image.height > edge) {
     image = image.width >= image.height
         ? img.copyResize(image, width: edge)
@@ -127,5 +136,5 @@ Uint8List? _encodeFromBytes(Uint8List bytes) {
     img.compositeImage(bg, image);
     image = bg;
   }
-  return Uint8List.fromList(img.encodeJpg(image, quality: thumbQuality));
+  return Uint8List.fromList(img.encodeJpg(image, quality: quality));
 }

@@ -22,7 +22,7 @@ import 'package:huakeng/sync/sync_kinds.dart';
 /// 假縮圖機：不碰引擎解碼。
 class _Maker implements ThumbnailMaker {
   @override
-  Future<Uint8List?> make(File source) async =>
+  Future<Uint8List?> make(File source, {bool placeholder = false}) async =>
       Uint8List.fromList([0xFF, 0xD8, 1, 2, 3]);
 }
 
@@ -75,7 +75,8 @@ void main() {
     expect(row.nickname, '小莫');
     expect(row.avatarFile, 'av.jpg');
     expect(storeB.exists('av.jpg'), isTrue);
-    expect(storeB.hasRealThumb('av.jpg'), isTrue);
+    expect(storeB.hasRealThumb('av.jpg'), isTrue); // 本機列表縮圖
+    expect(storeB.hasPlaceholder('av.jpg'), isFalse); // 原圖到了，占位圖已清掉
   });
 
   test('頭像排在下載清單最前面（先於其他圖片）', () async {
@@ -234,18 +235,18 @@ void main() {
       expect(r.thumbsStillMissing, 2);
     });
 
-    test('預設補縮圖上限提高到 150', () {
-      expect(syncThumbBackfillLimit, 150);
+    test('預設補占位圖上限提高到 300', () {
+      expect(syncThumbBackfillLimit, 300);
     });
   });
 
   group('DriveRemote 縮圖連結', () {
-    test('resizeThumbnailLink 各種結尾都變成 =s480', () {
+    test('resizeThumbnailLink 各種結尾都變成 =s32', () {
       const base = 'https://lh3.googleusercontent.com/abc';
       for (final tail in ['=s220', '=s220-c', '=w220-h160', '=w220-h160-p-k-no']) {
-        expect(DriveRemote.resizeThumbnailLink('$base$tail'), '$base=s480');
+        expect(DriveRemote.resizeThumbnailLink('$base$tail'), '$base=s32');
       }
-      expect(DriveRemote.resizeThumbnailLink(base), '$base=s480');
+      expect(DriveRemote.resizeThumbnailLink(base), '$base=s32');
     });
 
     test('list 一次帶回 thumbnailLink：備援縮圖只要一次下載請求（不再 files.get）', () async {
@@ -271,7 +272,7 @@ void main() {
       final bytes = await d.fallbackThumbnail('images__a.png');
       expect(bytes, [0xFF, 0xD8, 7]);
       expect(seen.length, 2);
-      expect(seen[1].url.toString(), 'https://lh3.googleusercontent.com/x=s480');
+      expect(seen[1].url.toString(), 'https://lh3.googleusercontent.com/x=s32');
     });
   });
 }

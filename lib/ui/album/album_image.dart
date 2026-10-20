@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -118,29 +119,36 @@ class StoredImage extends ConsumerWidget {
         ? ref.watch(imageTransferProvider(file))
         : ImageDownloadStatus.present;
     if (status.isMissing) {
-      // 縮圖到了要重建（D-099：本機縮圖 → 本機原圖 → 占位）。
+      // 占位圖到了要重建（D-099：原圖還沒到＝模糊占位圖，原圖到了才換成清楚的）。
       ref.watch(thumbVersionProvider(file));
       return _MissingImage(
         color: placeholderColor ?? t.chipBg,
         progress: status.progress,
         showBadge: status.showBadge,
-        thumb: store.thumbFileFor(file),
-        cacheWidth: cacheWidth,
+        placeholder: store.placeholderFileFor(file),
       );
     }
     Widget broken(BuildContext _, Object _, StackTrace? _) {
-      // 原圖讀不到（還沒下載、不顯示角標的地方）：有縮圖就用縮圖。
-      final thumb = store.thumbFileFor(file);
-      if (thumb != null) {
-        return Image.file(thumb, fit: fit, cacheWidth: cacheWidth);
-      }
+      // 原圖讀不到（還沒下載、不顯示角標的地方）：有占位圖就模糊顯示。
+      final ph = store.placeholderFileFor(file);
+      if (ph != null) return BlurredPlaceholder(ph);
       return ColoredBox(
         color: t.chipBg,
         child: Icon(Icons.broken_image_outlined, color: t.text4),
       );
     }
 
+    if (!showDownloadBadge) {
+      // 不顯示角標的地方（頭像等）：原圖不在本機就模糊占位圖；原圖到了自動換。
+      ref.watch(imageExistsProvider(file));
+      if (!store.exists(file)) {
+        ref.watch(thumbVersionProvider(file));
+        return broken(context, '', null);
+      }
+    }
+
     // 列表用的小尺寸優先讀本機縮圖（約 30KB，比解碼原圖快很多）；GIF 要動時才讀原檔。
+    // （thumbFileFor 只回本機產生的列表縮圖，下載來的占位圖不算。）
     if (!animate &&
         cacheWidth != null &&
         cacheWidth! <= ImageStore.thumbMaxEdge) {
@@ -183,23 +191,62 @@ class StoredImage extends ConsumerWidget {
   }
 }
 
-/// 還沒下載的圖：底色＋圖片佔位 icon＋[DownloadOverlay]。
+/// 原圖還沒到時的模糊占位圖（D-099）：32px 的小圖放大填滿格子，再套強烈高斯模糊，
+/// 裁在格子範圍內（舊版留下的 480 縮圖也照此顯示）。模糊程度依格子大小等比放大。
+class BlurredPlaceholder extends StatelessWidget {
+  const BlurredPlaceholder(this.file, {super.key});
+  final File file;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = c.hasBoundedWidth ? c.maxWidth : 120.0;
+        final h = c.hasBoundedHeight ? c.maxHeight : 120.0;
+        final side = w < h ? w : h;
+        final sigma = (side / 10).clamp(2.0, 30.0);
+        return SizedBox(
+          width: w,
+          height: h,
+          child: ClipRect(
+            child: ImageFiltered(
+              imageFilter: ui.ImageFilter.blur(
+                sigmaX: sigma,
+                sigmaY: sigma,
+                tileMode: TileMode.clamp,
+              ),
+              child: Image.file(
+                file,
+                width: w,
+                height: h,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
+                cacheWidth: ImageStore.placeholderCacheWidth,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// 還沒下載的圖：底色＋（模糊占位圖，沒有就圖片佔位 icon）＋[DownloadOverlay]。
 /// 外層沒有給定大小（無限制）時退回 120 見方，免得 Stack 撐不開。
 class _MissingImage extends StatelessWidget {
   const _MissingImage({
     required this.color,
     required this.progress,
     this.showBadge = true,
-    this.thumb,
-    this.cacheWidth,
+    this.placeholder,
   });
   final Color color;
   final double? progress;
   final bool showBadge;
 
-  /// 本機已有縮圖時畫縮圖（蓋層照舊），否則畫占位 icon。
-  final File? thumb;
-  final int? cacheWidth;
+  /// 本機已有占位圖時模糊畫它（蓋層照舊），否則畫占位 icon。
+  final File? placeholder;
 
   @override
   Widget build(BuildContext context) {
@@ -220,13 +267,8 @@ class _MissingImage extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (thumb != null)
-                  Image.file(
-                    thumb!,
-                    fit: BoxFit.cover,
-                    cacheWidth: cacheWidth,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                  )
+                if (placeholder != null)
+                  BlurredPlaceholder(placeholder!)
                 else if (iconSize > 0)
                   Center(
                     child: SvgIcon(

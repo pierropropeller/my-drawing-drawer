@@ -538,7 +538,7 @@ String? syncLocationText(AppLocalizations l, SyncRowInfo? info) {
   return l.syncuiLocation(pit, cell);
 }
 
-/// 一行左邊 44×44 的縮圖（D-099）：本機縮圖 → 本機原圖 → 該分類的底色＋分類 icon。
+/// 一行左邊 44×44 的縮圖（D-099）：本機原圖（或列表縮圖）→ 模糊占位圖 → 該分類的底色＋分類 icon。
 /// 影片用它的 poster。資料還沒查到時是沒有 icon 的中性底色，不用通用的灰色圖片 icon。
 class SyncRowThumb extends ConsumerWidget {
   const SyncRowThumb({super.key, required this.file, required this.info});
@@ -555,21 +555,17 @@ class SyncRowThumb extends ConsumerWidget {
     final shownFile = isVideo ? info?.posterFile : file;
     Widget child = placeholder;
     if (store != null && shownFile != null) {
-      ref.watch(thumbVersionProvider(shownFile)); // 縮圖到了重建
-      final thumb = store.thumbFileFor(shownFile);
-      if (thumb != null) {
-        child = Image.file(
-          thumb,
-          fit: BoxFit.cover,
-          cacheWidth: 150,
-          errorBuilder: (_, _, _) => placeholder,
-        );
-      } else if (ref.watch(imageExistsProvider(shownFile)).value ?? false) {
+      ref.watch(thumbVersionProvider(shownFile)); // 占位圖到了重建
+      if (ref.watch(imageExistsProvider(shownFile)).value ?? false) {
         child = StoredImage(
           shownFile,
           cacheWidth: 150,
           showDownloadBadge: false,
         );
+      } else {
+        // 原圖還沒到：模糊占位圖（沒有就維持分類底色＋icon）。
+        final ph = store.placeholderFileFor(shownFile);
+        if (ph != null) child = BlurredPlaceholder(ph);
       }
     }
     return ClipRRect(

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/painting.dart' show FileImage, ImageProvider, ResizeImage;
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -49,48 +50,62 @@ class ImageStore {
     return out.stream;
   }
 
-  // ---- 縮圖（D-099）----
+  // ---- 縮圖與占位圖（D-099）----
   //
-  // 本機縮圖放在 `<images>/thumbs/`：
-  // - `<主檔名>.jpg`      ＝正式縮圖（長邊 480、JPEG 80；本機產生或從 Drive 的 thumbs 下載）
-  // - `<主檔名>.tmp.jpg`  ＝暫用縮圖（Drive `thumbnailLink` 備援；正式縮圖到了就被取代）
-  // - `<主檔名>.skip`     ＝這張圖產生不了縮圖（壞檔、不支援的格式）；補縮圖時不再重試
+  // 兩種東西，分開存、不會混淆：
+  // - 列表縮圖：`<images>/thumbs/<主檔名>.jpg`（長邊 480、JPEG 80），**只在本機由原圖產生**，
+  //   純粹為了列表捲動順暢；永不上傳、永不下載。
+  // - 占位圖（blurry placeholder）：`<images>/placeholders/<主檔名>.jpg`（長邊 32、JPEG 55，約 1KB），
+  //   同步到 Drive 的 `thumbs__…`，只在原圖還沒下載完時模糊顯示；原圖到了就刪。
+  // - `thumbs/<主檔名>.skip`：這張圖產生不了縮圖（壞檔、不支援的格式），不再重試。
+  // 舊版下載到 `thumbs/` 的 480 縮圖照舊當列表縮圖用；原圖不在本機時也可當占位圖（模糊顯示）。
   // 主檔名＝圖片檔名去掉副檔名（uuid）。影片原檔不做縮圖，它的 poster 是一張獨立的 jpg，有自己的縮圖。
 
-  /// 縮圖長邊（像素）。
+  /// 列表縮圖長邊（像素）。
   static const thumbMaxEdge = 480;
 
+  /// 占位圖長邊與 JPEG 品質（同步到 Drive 的那一份）。
+  static const placeholderMaxEdge = 32;
+  static const placeholderQuality = 55;
+
+  /// UI 畫占位圖時的解碼寬度（固定值，方便清圖片快取）。
+  static const placeholderCacheWidth = 96;
+
   Directory get thumbDir => Directory(p.join(dir.path, 'thumbs'));
+  Directory get placeholderDir => Directory(p.join(dir.path, 'placeholders'));
 
   static String thumbStem(String name) => p.basenameWithoutExtension(name);
 
   File thumbFileOf(String name) =>
       File(p.join(thumbDir.path, '${thumbStem(name)}.jpg'));
-  File tempThumbFileOf(String name) =>
-      File(p.join(thumbDir.path, '${thumbStem(name)}.tmp.jpg'));
+  File placeholderFileOf(String name) =>
+      File(p.join(placeholderDir.path, '${thumbStem(name)}.jpg'));
   File _skipFileOf(String name) =>
       File(p.join(thumbDir.path, '${thumbStem(name)}.skip'));
 
   final _thumbChanges = StreamController<String>.broadcast();
 
-  /// 有縮圖寫進來（含取代暫用縮圖）時送出圖片檔名。
+  /// 有縮圖或占位圖寫進來／被刪掉時送出圖片檔名。
   Stream<String> get thumbChanges => _thumbChanges.stream;
 
-  // 縮圖目錄的記憶體索引（主檔名集合），讓列表格子可以同步查「有沒有縮圖」而不必每格 stat。
+  // 目錄的記憶體索引（主檔名集合），讓列表格子可以同步查「有沒有縮圖」而不必每格 stat。
   // 還沒載入（[loadThumbIndex] 沒呼叫過，例如測試）時退回直接查檔案。
   Set<String>? _realThumbs;
-  Set<String>? _tempThumbs;
+  Set<String>? _placeholders;
   Set<String>? _skipped;
 
-  /// 掃描縮圖目錄建立索引（App 啟動時做一次）。
+  /// 掃描縮圖與占位圖目錄建立索引（App 啟動時做一次）。
   Future<void> loadThumbIndex() async {
-    final real = <String>{}, temp = <String>{}, skip = <String>{};
+    final real = <String>{}, holders = <String>{}, skip = <String>{};
     final d = thumbDir;
     if (await d.exists()) {
       await for (final e in d.list()) {
         final n = p.basename(e.path);
         if (n.endsWith('.tmp.jpg')) {
-          temp.add(n.substring(0, n.length - '.tmp.jpg'.length));
+          // 舊版的暫用縮圖（480）：已由占位圖取代，清掉。
+          try {
+            await File(e.path).delete();
+          } catch (_) {}
         } else if (n.endsWith('.jpg')) {
           real.add(n.substring(0, n.length - '.jpg'.length));
         } else if (n.endsWith('.skip')) {
@@ -98,26 +113,38 @@ class ImageStore {
         }
       }
     }
+    final pd = placeholderDir;
+    if (await pd.exists()) {
+      await for (final e in pd.list()) {
+        final n = p.basename(e.path);
+        if (n.endsWith('.jpg')) holders.add(n.substring(0, n.length - 4));
+      }
+    }
     _realThumbs = real;
-    _tempThumbs = temp;
+    _placeholders = holders;
     _skipped = skip;
   }
 
-  /// 有正式縮圖。
+  /// 有本機列表縮圖（480；不含下載來的占位圖）。
   bool hasRealThumb(String name) =>
       _realThumbs?.contains(thumbStem(name)) ?? thumbFileOf(name).existsSync();
 
-  bool hasTempThumb(String name) =>
-      _tempThumbs?.contains(thumbStem(name)) ??
-      tempThumbFileOf(name).existsSync();
+  /// 有下載來（或本機補產生）的占位圖。
+  bool hasPlaceholder(String name) =>
+      _placeholders?.contains(thumbStem(name)) ??
+      placeholderFileOf(name).existsSync();
 
-  /// 有任何可用的縮圖（正式或暫用）。
-  bool hasThumb(String name) => hasRealThumb(name) || hasTempThumb(name);
+  /// 有任何可用來模糊顯示的圖（占位圖，或舊版留下的 480 縮圖）。
+  bool hasThumb(String name) => hasPlaceholder(name) || hasRealThumb(name);
 
-  /// 目前該用哪個縮圖檔（正式優先，其次暫用）；沒有為 null。
-  File? thumbFileFor(String name) {
+  /// 本機列表縮圖檔（480）；沒有為 null。占位圖不算。
+  File? thumbFileFor(String name) =>
+      hasRealThumb(name) ? thumbFileOf(name) : null;
+
+  /// 原圖還沒到時模糊顯示用的檔：占位圖優先，其次舊版留下的 480 縮圖；沒有為 null。
+  File? placeholderFileFor(String name) {
+    if (hasPlaceholder(name)) return placeholderFileOf(name);
     if (hasRealThumb(name)) return thumbFileOf(name);
-    if (hasTempThumb(name)) return tempThumbFileOf(name);
     return null;
   }
 
@@ -125,28 +152,43 @@ class ImageStore {
   bool thumbFailed(String name) =>
       _skipped?.contains(thumbStem(name)) ?? _skipFileOf(name).existsSync();
 
-  /// 寫入正式縮圖（本機產生或同步下載），並取代暫用縮圖。
+  /// 寫入本機列表縮圖（480，本機由原圖產生）。
   Future<void> saveThumb(String name, Uint8List bytes) async {
     await thumbDir.create(recursive: true);
     await thumbFileOf(name).writeAsBytes(bytes, flush: true);
     _realThumbs?.add(thumbStem(name));
-    final tmp = tempThumbFileOf(name);
-    if (tmp.existsSync()) {
-      try {
-        tmp.deleteSync();
-      } catch (_) {}
-    }
-    _tempThumbs?.remove(thumbStem(name));
+    _evict(thumbFileOf(name));
     _thumbChanges.add(name);
   }
 
-  /// 寫入暫用縮圖（Drive thumbnailLink 備援）。已經有正式縮圖就不寫。
-  Future<void> saveTempThumb(String name, Uint8List bytes) async {
-    if (hasRealThumb(name)) return;
-    await thumbDir.create(recursive: true);
-    await tempThumbFileOf(name).writeAsBytes(bytes, flush: true);
-    _tempThumbs?.add(thumbStem(name));
+  /// 寫入占位圖（同步下載、thumbnailLink 備援，或本機補產生）。
+  Future<void> savePlaceholder(String name, Uint8List bytes) async {
+    await placeholderDir.create(recursive: true);
+    await placeholderFileOf(name).writeAsBytes(bytes, flush: true);
+    _placeholders?.add(thumbStem(name));
+    _evict(placeholderFileOf(name));
     _thumbChanges.add(name);
+  }
+
+  void _dropPlaceholder(String name) {
+    final f = placeholderFileOf(name);
+    if (_placeholders?.remove(thumbStem(name)) ?? f.existsSync()) {
+      try {
+        if (f.existsSync()) f.deleteSync();
+      } catch (_) {}
+      _evict(f);
+      _thumbChanges.add(name);
+    }
+  }
+
+  /// 清掉這個檔案的圖片快取（含 UI 用的固定解碼寬度版本）；測試環境沒有 binding 時略過。
+  void _evict(File f) {
+    for (final provider in <ImageProvider>[
+      FileImage(f),
+      ResizeImage(FileImage(f), width: placeholderCacheWidth),
+    ]) {
+      unawaited(provider.evict().then((_) {}, onError: (Object _) {}));
+    }
   }
 
   /// 標記這張圖產生不了縮圖。
@@ -177,6 +219,8 @@ class ImageStore {
   Future<void> save(String name, Uint8List bytes) async {
     await dir.create(recursive: true);
     await fileOf(name).writeAsBytes(bytes, flush: true);
+    _evict(fileOf(name));
+    _dropPlaceholder(name); // 原圖到了，占位圖用不到了
     _changes.add(name);
   }
 

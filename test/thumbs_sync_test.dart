@@ -32,6 +32,21 @@ Uint8List pngBytes(int w, int h, {bool alpha = false}) {
   return Uint8List.fromList(img.encodePng(image));
 }
 
+/// 帶雜訊的類照片影像（比漸層難壓）。
+Uint8List noisyPng(int w, int h) {
+  final image = img.Image(width: w, height: h, numChannels: 3);
+  var seed = 12345;
+  for (final p in image) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    final n = (seed >> 16) % 40;
+    p
+      ..r = (p.x * 255 ~/ w + n) % 256
+      ..g = (p.y * 255 ~/ h + n) % 256
+      ..b = (128 + n * 2) % 256;
+  }
+  return Uint8List.fromList(img.encodePng(image));
+}
+
 /// 不實作 [ThumbnailFallbackRemote] 的遠端（模擬沒有備援能力的後端）。
 class PlainRemote implements SyncRemote {
   PlainRemote(this.inner);
@@ -61,7 +76,7 @@ class CountingMaker implements ThumbnailMaker {
   final Set<String> fail;
   final calls = <String>[];
   @override
-  Future<Uint8List?> make(File source) async {
+  Future<Uint8List?> make(File source, {bool placeholder = false}) async {
     final n = source.uri.pathSegments.last;
     calls.add(n);
     if (fail.contains(n)) return null;
@@ -113,7 +128,7 @@ void main() {
   String thumbOf(String f) => thumbRemoteName(f);
   int count(String prefix) => log.where((e) => e.startsWith(prefix)).length;
 
-  test('上傳原圖同時上傳 thumbs（長邊 480、JPEG），縮圖先於原圖，本機也存一份', () async {
+  test('上傳原圖同時上傳 thumbs（占位圖：長邊 32、JPEG、極小），占位圖先於原圖', () async {
     final names = await addImages(2);
     final engine = SyncEngine(db: a, remote: remote, images: storeA);
     final r = await engine.sync();
@@ -123,16 +138,41 @@ void main() {
       final bytes = remote.files[thumbOf(f)]!;
       expect(bytes.sublist(0, 2), [0xFF, 0xD8]); // JPEG
       final decoded = img.decodeJpg(bytes)!;
-      expect(decoded.width, 480);
-      expect(decoded.height, 320);
-      expect(bytes.length, lessThan(60 * 1024));
+      expect(decoded.width, 32);
+      expect(decoded.height, 21);
+      expect(bytes.length, lessThan(3 * 1024));
+      // 本機列表縮圖（480）另外存、不上傳
       expect(storeA.hasRealThumb(f), isTrue);
+      expect(
+        img.decodeJpg(storeA.thumbFileOf(f).readAsBytesSync())!.width,
+        480,
+      );
       expect(
         log.indexOf('up:${thumbOf(f)}'),
         lessThan(log.indexOf('up:images__$f')),
         reason: '縮圖要先於原圖',
       );
     }
+  });
+
+  test('占位圖大小：1200x800 類照片影像 ≤ 3KB、長邊 32；直圖長邊也是 32', () async {
+    for (final bytes in [noisyPng(1200, 800), pngBytes(1200, 800)]) {
+      final f = File('${dirA.path}/ph_${bytes.length}.png')
+        ..writeAsBytesSync(bytes);
+      final out = (await const DefaultThumbnailMaker().make(
+        f,
+        placeholder: true,
+      ))!;
+      expect(out.length, lessThanOrEqualTo(3 * 1024));
+      final d = img.decodeJpg(out)!;
+      expect([d.width, d.height], [32, 21]);
+    }
+    final tall = File('${dirA.path}/tall.png')
+      ..writeAsBytesSync(noisyPng(600, 1200));
+    final t = img.decodeJpg(
+      (await const DefaultThumbnailMaker().make(tall, placeholder: true))!,
+    )!;
+    expect([t.width, t.height], [16, 32]);
   });
 
   test('影片原檔與壞檔不產縮圖，也不報錯；壞檔標記後不再重試', () async {
@@ -172,7 +212,7 @@ void main() {
       onTransfer: (n, up) async {
         log.add('${up ? 'up' : 'down'}:$n');
         if (!up && n.startsWith('images__') && !thumbsReadyWhenFirstImage) {
-          thumbsReadyWhenFirstImage = names.every(storeB.hasRealThumb);
+          thumbsReadyWhenFirstImage = names.every(storeB.hasPlaceholder);
         }
       },
     )..files.addAll(remote.files);
@@ -207,6 +247,37 @@ void main() {
       stages.last.transfers.every((t) => !t.file.startsWith('thumbs__')),
       isTrue,
     );
+  });
+
+  test('下載來的占位圖不算列表縮圖；原圖到了就換掉（占位檔刪除、原圖在本機）', () async {
+    final names = await addImages(2);
+    await SyncEngine(db: a, remote: remote, images: storeA).sync();
+    final failing = _FailImages(remote); // 原圖下載中（失敗）
+    final engineB = SyncEngine(db: b, remote: failing, images: storeB);
+    final r = await engineB.sync();
+    expect(r.thumbsDown, 2);
+    for (final f in names) {
+      expect(storeB.hasPlaceholder(f), isTrue);
+      expect(storeB.hasRealThumb(f), isFalse);
+      expect(storeB.thumbFileFor(f), isNull);
+      expect(
+        storeB.placeholderFileFor(f)!.path,
+        storeB.placeholderFileOf(f).path,
+      );
+      expect(storeB.exists(f), isFalse);
+    }
+    // 原圖到了
+    await SyncEngine(db: b, remote: remote, images: storeB).sync();
+    for (final f in names) {
+      expect(storeB.exists(f), isTrue);
+      expect(storeB.hasPlaceholder(f), isFalse);
+      expect(storeB.placeholderFileOf(f).existsSync(), isFalse);
+      expect(storeB.hasRealThumb(f), isTrue); // 本機由原圖產生 480
+      expect(
+        img.decodeJpg(storeB.thumbFileOf(f).readAsBytesSync())!.width,
+        480,
+      );
+    }
   });
 
   test('B 已經有本機縮圖就不再下載；B 的原圖進來後兩邊縮圖一致不重傳', () async {
@@ -246,6 +317,20 @@ void main() {
   });
 
   group('舊資料補縮圖（一次性遷移）', () {
+    test('補占位圖上傳的是 32px 小圖（≤ 3KB），不是 480 縮圖', () async {
+      final pit = await a.createPit(name: '坑A');
+      File('${dirA.path}/n.png').writeAsBytesSync(noisyPng(1200, 800));
+      await a.addFanArts(pit, [
+        NewImage(file: 'n.png', width: 1200, height: 800),
+      ], author: 'x');
+      await remote.upload('images__n.png', Uint8List.fromList([1]));
+      final r = await SyncEngine(db: a, remote: remote, images: storeA).sync();
+      expect(r.thumbsUp, 1);
+      final up = remote.files[thumbOf('n.png')]!;
+      expect(up.length, lessThanOrEqualTo(3 * 1024));
+      expect(img.decodeJpg(up)!.width, 32);
+    });
+
     test('限速（每次最多 N 張）、可續傳、不重複上傳；全補完後不再動作', () async {
       final names = await addImages(5);
       // 模擬舊版 App：Drive 上有原圖與 meta，沒有縮圖；本機也沒有縮圖快取。
@@ -271,7 +356,6 @@ void main() {
       expect(ups.toSet().length, 5, reason: '同一張縮圖不能傳兩次');
       for (final f in names) {
         expect(remote.files.containsKey(thumbOf(f)), isTrue);
-        expect(storeA.hasRealThumb(f), isTrue);
       }
     });
 
@@ -289,7 +373,7 @@ void main() {
   });
 
   group('thumbnailLink 備援', () {
-    test('雲端還沒有縮圖：先拿 Drive 的 thumbnailLink 縮圖頂著，之後正式縮圖到了取代', () async {
+    test('雲端還沒有占位圖：先拿 Drive 的 thumbnailLink（=s32）頂著，且不算列表縮圖', () async {
       final names = await addImages(3);
       await SyncEngine(db: a, remote: remote, images: storeA).sync();
       remote.files.removeWhere((k, _) => k.startsWith('thumbs__'));
@@ -306,28 +390,23 @@ void main() {
       final r = await engineB.sync();
       expect(r.thumbsFallback, 3);
       for (final f in names) {
-        expect(storeB.hasThumb(f), isTrue);
+        expect(storeB.hasPlaceholder(f), isTrue);
         expect(storeB.hasRealThumb(f), isFalse);
-        expect(storeB.thumbFileFor(f)!.path, endsWith('.tmp.jpg'));
+        expect(storeB.thumbFileFor(f), isNull);
       }
       // 再同步一次：暫用縮圖已有，不再重複向 Drive 要
       final calls = remote.fallbackCalls;
       await engineB.sync();
       expect(remote.fallbackCalls, calls);
 
-      // A 補好正式縮圖 → B 下次同步換成正式的，暫用的刪掉
+      // A 補好占位圖；B 已有占位圖，照單全收不再下載
       await SyncEngine(db: a, remote: remote, images: storeA).sync();
       expect(
         remote.files.keys.where((k) => k.startsWith('thumbs__')),
         hasLength(3),
       );
       final r2 = await engineB.sync();
-      expect(r2.thumbsDown, 3);
-      for (final f in names) {
-        expect(storeB.hasRealThumb(f), isTrue);
-        expect(storeB.thumbFileFor(f)!.path, isNot(endsWith('.tmp.jpg')));
-        expect(storeB.tempThumbFileOf(f).existsSync(), isFalse);
-      }
+      expect(r2.thumbsDown, 0);
     });
 
     test('備援失敗（回 null、丟例外）不阻塞同步，原圖照常下載', () async {
@@ -417,7 +496,7 @@ void main() {
       return http.Response.bytes([0xFF, 0xD8, 7], linkStatus);
     });
 
-    test('帶 token 取連結，尺寸改成 480 再帶 token 下載', () async {
+    test('帶 token 取連結，尺寸改成 =s32（極小）再帶 token 下載', () async {
       final seen = <http.Request>[];
       final remote = make(client(seen));
       await remote.list();
@@ -427,7 +506,7 @@ void main() {
       expect(get.url.queryParameters['fields'], 'thumbnailLink');
       expect(get.headers['Authorization'], 'Bearer tok');
       final dl = seen[2];
-      expect(dl.url.toString(), 'https://lh3.googleusercontent.com/x=s480');
+      expect(dl.url.toString(), 'https://lh3.googleusercontent.com/x=s32');
       expect(dl.headers['Authorization'], 'Bearer tok');
     });
 
@@ -487,26 +566,36 @@ void main() {
     });
   });
 
-  test('ImageStore：正式縮圖取代暫用縮圖；索引重載後一致', () async {
-    await storeA.saveTempThumb('p1.png', Uint8List.fromList([1]));
-    expect(storeA.thumbFileFor('p1.png')!.path, endsWith('.tmp.jpg'));
+  test('ImageStore：占位圖與列表縮圖分開存；索引重載後一致', () async {
+    await storeA.savePlaceholder('p1.png', Uint8List.fromList([1]));
+    expect(storeA.hasPlaceholder('p1.png'), isTrue);
+    expect(storeA.hasRealThumb('p1.png'), isFalse);
+    expect(storeA.thumbFileFor('p1.png'), isNull);
+    expect(
+      storeA.placeholderFileFor('p1.png')!.path,
+      contains('placeholders'),
+    );
     await storeA.saveThumb('p1.png', Uint8List.fromList([2]));
-    expect(storeA.thumbFileFor('p1.png')!.path, isNot(endsWith('.tmp.jpg')));
-    expect(storeA.tempThumbFileOf('p1.png').existsSync(), isFalse);
-    // 已有正式的就不再寫暫用的
-    await storeA.saveTempThumb('p1.png', Uint8List.fromList([3]));
-    expect(storeA.tempThumbFileOf('p1.png').existsSync(), isFalse);
+    expect(storeA.hasRealThumb('p1.png'), isTrue);
+    expect(storeA.thumbFileFor('p1.png')!.path, contains('thumbs'));
+    // 原圖到了：占位圖刪除，列表縮圖留著
+    await storeA.save('p1.png', Uint8List.fromList([9]));
+    expect(storeA.hasPlaceholder('p1.png'), isFalse);
+    expect(storeA.hasRealThumb('p1.png'), isTrue);
     await storeA.markThumbFailed('bad.png');
+    await storeA.savePlaceholder('q.png', Uint8List.fromList([1]));
     final fresh = ImageStore(dirA);
     await fresh.loadThumbIndex();
     expect(fresh.hasRealThumb('p1.png'), isTrue);
+    expect(fresh.hasPlaceholder('q.png'), isTrue);
+    expect(fresh.hasRealThumb('q.png'), isFalse);
     expect(fresh.thumbFailed('bad.png'), isTrue);
     expect(fresh.hasThumb('nope.png'), isFalse);
     // 版本通知：有縮圖寫入時送出遞增版本號
     final versions = <int>[];
     final sub = storeA.watchThumb('p2.png').listen(versions.add);
     await Future<void>.delayed(Duration.zero);
-    await storeA.saveTempThumb('p2.png', Uint8List.fromList([1]));
+    await storeA.savePlaceholder('p2.png', Uint8List.fromList([1]));
     await storeA.saveThumb('p2.png', Uint8List.fromList([2]));
     await Future<void>.delayed(Duration.zero);
     expect(versions, [0, 1, 2]);

@@ -210,18 +210,18 @@ class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
     });
   }
 
-  /// 把 Drive `thumbnailLink` 的尺寸參數改成長邊 480（`=s480`）。
+  /// 把 Drive `thumbnailLink` 的尺寸參數改成長邊 32（`=s32`）。
   /// 認得 `=s220`、`=s220-c`、`=w220-h160`、`=w220-h160-p-k-no` 這幾種結尾；
-  /// 完全沒有尺寸參數時直接補上 `=s480`（否則 googleusercontent 會回原尺寸）。
+  /// 完全沒有尺寸參數時直接補上 `=s32`（否則 googleusercontent 會回原尺寸）。
   static String resizeThumbnailLink(String link) {
     final re = RegExp(r'=(?:s\d+|w\d+-h\d+)(?:-[\w]+)*$');
-    if (re.hasMatch(link)) return link.replaceFirst(re, '=s480');
+    if (re.hasMatch(link)) return link.replaceFirst(re, '=s32');
     final tail = link.substring(link.lastIndexOf('/') + 1);
-    return tail.contains('=') ? link : '$link=s480';
+    return tail.contains('=') ? link : '$link=s32';
   }
 
   /// 舊資料備援（D-099）：用 [list] 時帶回的 `thumbnailLink`（沒有才退回
-  /// `files.get?fields=thumbnailLink` 多一次請求）把尺寸改成長邊 480，再帶登入 token 下載。
+  /// `files.get?fields=thumbnailLink` 多一次請求）把尺寸改成長邊 32（`=s32`），再帶登入 token 下載。
   /// 失敗（沒有縮圖、連結過期、網絡）一律回傳 null，不擋同步；只有授權過期才往上丟。
   @override
   Future<Uint8List?> fallbackThumbnail(String name) async {

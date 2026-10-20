@@ -290,10 +290,10 @@ void main() {
     );
   });
 
-  testWidgets('縮圖到了就換成縮圖（本機縮圖優先），影片用 poster 的縮圖', (tester) async {
+  testWidgets('占位圖到了就換成模糊占位圖，影片用 poster 的縮圖', (tester) async {
     await seed(tester);
     await tester.runAsync(() async {
-      await store.saveThumb(
+      await store.savePlaceholder(
         'fan.png',
         Uint8List.fromList(img.encodeJpg(img.Image(width: 8, height: 8))),
       );
@@ -315,7 +315,7 @@ void main() {
       final p = w.image;
       final inner = p is ResizeImage ? p.imageProvider : p;
       return inner is FileImage &&
-          inner.file.path == store.thumbFileOf(name).path;
+          inner.file.path == store.placeholderFileOf(name).path;
     }
 
     expect(
@@ -333,7 +333,7 @@ void main() {
 
     // 後來才到的縮圖：即時換上
     await tester.runAsync(() async {
-      await store.saveThumb(
+      await store.savePlaceholder(
         'draft.png',
         Uint8List.fromList(img.encodeJpg(img.Image(width: 8, height: 8))),
       );
