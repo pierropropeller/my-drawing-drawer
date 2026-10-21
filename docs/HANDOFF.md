@@ -275,6 +275,7 @@ Drive/App 專用資料夾/
 | `OfficialList` | 官方圖冊 | 瀑布流；分組 chips，最右固定「管理分組」icon |
 | `ImagePreview` | 圖片預覽 | 深色全屏、圖片滿版；分組標籤＋tag（點 tag＝按 tag 篩選，D-089）；分享、下載、設為封面、編輯、刪除 |
 | `OfficialNew` | 新增官方圖 | 圖片、分組、tag（D-089）；亦作編輯頁 |
+| `FormImagePreview` | 表單內圖片預覽 | 所有新增／編輯頁點小圖進入；黑底、×、「1 / N」、左右滑，沒有動作列（D-102） |
 | `OfficialSelect` | 多選 | **長按**進入；下載、移動、tag、刪除 |
 | `FanArtTagSheet` | 多選 · tag | 同人圖／官方圖多選後批量加減 tag（D-060） |
 | `MoveSheet` | 移動到 | 可選坑（跨坑，D-054）＋官方圖冊／好看同人圖／雜物；選官方圖冊時展開分組。獨有欄位移動時保留但隱藏 |
@@ -346,7 +347,7 @@ Drive/App 專用資料夾/
 | `ProfileEdit` | 編輯個人資料 | 點頭像更換、暱稱 |
 | `Theme` | 主題 | 四色（見第 7 節主題色表）＋淺／深／跟隨系統 |
 | `LanguagePick` | 語言 | 跟隨系統／繁體中文／English（停用，「即將推出」） |
-| `Backup` | 備份與同步 | 立即同步、更換帳號、最底紅字「取消連結」 |
+| `Backup` | 備份與同步 | 儲存空間（D-101）、立即同步、更換帳號、最底紅字「取消連結」 |
 | `BackupUnlink` | 取消連結 | 一個確認視窗：說明後果＋「確認取消連結」 |
 | `About` | 關於 App | 圖示、名稱、版本、資料存放說明、開源授權 |
 | `AppIconPick` | App 圖示 | 兩欄大卡（icon＋名稱），選中＝主色框＋勾；撳一下即換，底部 toast「桌面圖示已換成「三筆」」（D-086） |
@@ -367,7 +368,8 @@ Drive/App 專用資料夾/
 | `ColorSystem` | 主題色系統 | 四色 × 淺／深 |
 | `SyncFirst` | 首次同步中 | 連結後先進這頁；可「先開始使用」，同步在背景繼續 |
 | `MainSyncing` | 主頁 · 同步中 | 不用橫條；頭像外圈進度環，傳輸中可點開同步進度；未下載完的圖右下角進度環角標（D-052） |
-| `SyncSheet` | 同步進度 | 總進度＋逐張上傳／下載進度（D-052） |
+| `SyncSheet` | 同步進度 | 總進度＋逐張上傳／下載進度（D-052、D-099） |
+| `SyncSheetDone` | 同步完成 | sheet 開著時跑完不自動關，變成完成狀態＋「完成」按鈕（D-100） |
 | `ReviewPick` | 年度回顧 · 選擇月份圖片 | 長按多於一張成圖的月份，選代表圖（D-056） |
 | `MainEmpty` / `OfficialEmpty` / `IdeaEmpty` / `GoalEmpty` | 空白狀態 | 同人圖、摸魚、成圖的空白頁沿用 `OfficialEmpty` 模板，只換顏色、icon、文字 |
 | `MainDark` / `PitDark` / `IdeaListDark` | 深色模式示範 | 其他畫面依第 7 節對照表轉換 |
