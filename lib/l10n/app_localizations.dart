@@ -580,6 +580,12 @@ abstract class AppLocalizations {
   /// **'移除圖片'**
   String get albumRemoveImage;
 
+  /// No description provided for @albumPreviewImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'預覽圖片'**
+  String get albumPreviewImage;
+
   /// No description provided for @albumChangeGroup.
   ///
   /// In zh, this message translates to:

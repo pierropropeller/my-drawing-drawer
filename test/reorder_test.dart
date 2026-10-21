@@ -32,7 +32,10 @@ void main() {
   });
 
   Finder removeButtons() => find.byWidgetPredicate(
-    (w) => w is Semantics && w.properties.button == true,
+    (w) =>
+        w is Semantics &&
+        w.properties.button == true &&
+        w.properties.label == '移除圖片',
   );
 
   Future<(List<ImageItem>, List<String>, Directory)> pumpField(

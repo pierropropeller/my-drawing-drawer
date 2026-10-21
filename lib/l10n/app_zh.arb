@@ -212,6 +212,7 @@
   "albumGroupAdd": "新增分組",
   "albumGroupLabel": "分組",
   "albumRemoveImage": "移除圖片",
+  "albumPreviewImage": "預覽圖片",
   "albumChangeGroup": "更換分組",
   "albumGroupChanged": "已更換分組",
   "albumCoverSetOfficial": "已設為官方圖冊封面",
