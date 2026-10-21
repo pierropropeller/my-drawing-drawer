@@ -11,6 +11,7 @@ import '../common/svg_icon.dart';
 import '../common/window_class.dart';
 import '../login/sync_first_page.dart';
 import '../pits/pit_form.dart';
+import 'backup_storage_card.dart';
 import 'me_icons.dart';
 import 'me_widgets.dart';
 import '../../l10n/l10n.dart';
@@ -328,6 +329,7 @@ class BackupPage extends ConsumerWidget {
             ),
           ] else ...[
             const SizedBox(height: 14),
+            const BackupStorageCard(),
             MePanel(
               padding: EdgeInsets.symmetric(
                 horizontal: wide ? 20 : 16,

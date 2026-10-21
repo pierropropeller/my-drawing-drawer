@@ -44,6 +44,7 @@ part 'database.g.dart';
     ReviewSettings,
     Outbox,
     SyncDocs,
+    RemoteFileSizes,
     UserProfiles,
     RefViewStates,
   ],
@@ -53,7 +54,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -106,6 +107,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 12) {
         // v12：使用者資料（暱稱、頭像）同步。全新的表；本機舊資料由啟動時從設定補進去。
         await m.createTable(userProfiles);
+      }
+      if (from < 13) {
+        // v13：畫匣在 Drive 上的用量（D-101）。全新的本機表，沒有舊資料可回填；
+        // 舊的上傳記錄由下一次同步列出遠端內容時一次補齊（見 SyncEngine._reconcileSizes）。
+        await m.createTable(remoteFileSizes);
       }
     },
   );

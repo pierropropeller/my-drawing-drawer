@@ -342,6 +342,7 @@ class SyncEngine {
     final files = {for (final f in await remote.list()) f.name: f};
     check();
     syncLog('sync: remote has ${files.length} files');
+    await _reconcileSizes(files);
     final remoteFormat = await _checkFormat(files);
     final known = {
       for (final r in await db.select(db.syncDocs).get()) _key(r.kind, r.id): r,
@@ -403,13 +404,11 @@ class SyncEngine {
   /// 遠端沒有標記、或標記比這版舊時，補寫這版的格式版本。
   Future<void> _writeFormat(int? remoteVersion) async {
     if (remoteVersion != null && remoteVersion >= syncFormatVersion) return;
-    await remote.upload(
-      _formatFile,
-      Uint8List.fromList(
-        utf8.encode(jsonEncode({'formatVersion': syncFormatVersion})),
-      ),
-      contentType: 'application/json',
+    final bytes = Uint8List.fromList(
+      utf8.encode(jsonEncode({'formatVersion': syncFormatVersion})),
     );
+    await remote.upload(_formatFile, bytes, contentType: 'application/json');
+    await _recordSize(_formatFile, bytes.length);
   }
 
   void _requireSupported(Object? version) {
@@ -746,10 +745,7 @@ class SyncEngine {
       }
     }
     if (images.thumbFailed(file) || !images.exists(file)) return null;
-    final bytes = await thumbnails.make(
-      images.fileOf(file),
-      placeholder: true,
-    );
+    final bytes = await thumbnails.make(images.fileOf(file), placeholder: true);
     if (bytes == null || bytes.isEmpty) {
       syncLog('thumbs: cannot make placeholder (ext=${file.split('.').last})');
       await images.markThumbFailed(file);
@@ -802,7 +798,12 @@ class SyncEngine {
         bytes,
         contentType: 'image/jpeg',
       );
-      files[name] = RemoteFile(name: name, modified: modified);
+      files[name] = RemoteFile(
+        name: name,
+        modified: modified,
+        size: bytes.length,
+      );
+      await _recordSize(name, bytes.length);
       result.thumbsUp++;
       syncLog('thumbs: uploaded ${bytes.length}B');
     } on SyncAuthException {
@@ -939,14 +940,20 @@ class SyncEngine {
         if (idx != null) tracker.start(idx);
         // 先傳占位圖再傳原圖：別的裝置先拿到占位圖（D-099）。占位圖失敗不影響原圖。
         await _uploadThumb(files, file, result);
+        final imageBytes = await f.readAsBytes();
         final modified = await remote.upload(
           name,
-          await f.readAsBytes(),
+          imageBytes,
           onProgress: idx == null
               ? null
               : (d, t) => tracker.progress(idx, d, t),
         );
-        files[name] = RemoteFile(name: name, modified: modified);
+        files[name] = RemoteFile(
+          name: name,
+          modified: modified,
+          size: imageBytes.length,
+        );
+        await _recordSize(name, imageBytes.length);
         result.imagesUp++;
         if (idx != null) tracker.finish(idx);
         report(SyncStage.uploading, ++done, total);
@@ -959,11 +966,14 @@ class SyncEngine {
         'updatedAt': p.version,
         'data': p.data,
       };
+      final metaName = _metaName(p.kind.name, p.id);
+      final metaBytes = Uint8List.fromList(utf8.encode(jsonEncode(doc)));
       final modified = await remote.upload(
-        _metaName(p.kind.name, p.id),
-        Uint8List.fromList(utf8.encode(jsonEncode(doc))),
+        metaName,
+        metaBytes,
         contentType: 'application/json',
       );
+      await _recordSize(metaName, metaBytes.length);
       await _record(p.kind.name, p.id, p.version, modified);
       known[_key(p.kind.name, p.id)] = SyncDoc(
         kind: p.kind.name,
@@ -976,5 +986,47 @@ class SyncEngine {
   }
 
   /// 更換 Google 帳號時：清掉同步記錄，下次會把本機資料整個上傳到新帳號。
-  Future<void> resetState() => db.delete(db.syncDocs).go();
+  Future<void> resetState() async {
+    await db.delete(db.syncDocs).go();
+    await db.delete(db.remoteFileSizes).go(); // 新帳號：舊帳號的用量記錄作廢
+  }
+
+  /// 記下一個剛上傳（或覆蓋）的遠端檔的大小（D-101）。
+  Future<void> _recordSize(String name, int size) => db
+      .into(db.remoteFileSizes)
+      .insertOnConflictUpdate(
+        RemoteFileSizesCompanion.insert(name: name, size: size),
+      );
+
+  /// 以遠端列表校正本機的用量記錄（D-101）：列表有回報大小的檔案寫入／更新，
+  /// 遠端已經沒有的檔案刪除。舊資料（這個欄位出現之前上傳的）和其他裝置上傳的檔案
+  /// 都靠這一步補齊；遠端不回報大小（`size` 為 null）的檔案維持上傳時記下的值。
+  /// 失敗不影響同步。
+  Future<void> _reconcileSizes(Map<String, RemoteFile> files) async {
+    try {
+      await db.transaction(() async {
+        final have = {
+          for (final r in await db.select(db.remoteFileSizes).get())
+            r.name: r.size,
+        };
+        final gone = have.keys.where((n) => !files.containsKey(n)).toList();
+        await db.batch((b) {
+          for (final f in files.values) {
+            final size = f.size;
+            if (size == null || have[f.name] == size) continue;
+            b.insert(
+              db.remoteFileSizes,
+              RemoteFileSizesCompanion.insert(name: f.name, size: size),
+              mode: InsertMode.insertOrReplace,
+            );
+          }
+          for (final n in gone) {
+            b.deleteWhere(db.remoteFileSizes, (t) => t.name.equals(n));
+          }
+        });
+      });
+    } catch (e) {
+      syncLog('sync: reconcile sizes failed (${e.runtimeType})');
+    }
+  }
 }

@@ -11,7 +11,8 @@ import '../l10n/l10n.dart';
 
 /// Google Drive 的 App 專用資料夾（appDataFolder，使用者在 Drive 看不到，
 /// scope 只要 `drive.appdata`）。直接呼叫 Drive REST v3。
-class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
+class DriveRemote
+    implements SyncRemote, ThumbnailFallbackRemote, StorageQuotaRemote {
   DriveRemote({
     required this.headers,
     http.Client? client,
@@ -54,6 +55,7 @@ class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
   final Map<String, String> _thumbLinks = {};
 
   static const _api = 'https://www.googleapis.com/drive/v3/files';
+  static const _about = 'https://www.googleapis.com/drive/v3/about';
   static const _upload = 'https://www.googleapis.com/upload/drive/v3/files';
 
   Future<Map<String, String>> _headers() async {
@@ -150,7 +152,8 @@ class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
         queryParameters: {
           'spaces': 'appDataFolder',
           'pageSize': '1000',
-          'fields': 'nextPageToken, files(id,name,modifiedTime,thumbnailLink)',
+          'fields':
+              'nextPageToken, files(id,name,modifiedTime,size,thumbnailLink)',
           'pageToken': ?token,
         },
       );
@@ -175,6 +178,7 @@ class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
             name: m['name'] as String,
             modified: m['modifiedTime'] as String,
             id: m['id'] as String,
+            size: int.tryParse('${m['size'] ?? ''}'),
           ),
         );
       }
@@ -182,6 +186,29 @@ class DriveRemote implements SyncRemote, ThumbnailFallbackRemote {
       syncLog('list p$page: ${out.length} files so far, more=${token != null}');
     } while (token != null);
     return out;
+  }
+
+  /// 帳號的儲存空間（D-101）：`about.get?fields=storageQuota`，`drive.appdata` 權限就讀得到。
+  @override
+  Future<StorageQuota> storageQuota() async {
+    final r = await _run(
+      'about',
+      () async => _check(
+        await _http
+            .get(
+              Uri.parse(_about)
+                  .replace(queryParameters: {'fields': 'storageQuota'}),
+              headers: await _headers(),
+            )
+            .timeout(requestTimeout),
+      ),
+      attempts: 2,
+    );
+    final q = StorageQuota.fromJson(
+      (jsonDecode(r.body) as Map<String, dynamic>)['storageQuota'],
+    );
+    if (q == null) throw const FormatException('storageQuota');
+    return q;
   }
 
   @override

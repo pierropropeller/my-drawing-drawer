@@ -370,3 +370,15 @@ class SyncDocs extends Table {
   @override
   Set<Column> get primaryKey => {kind, id};
 }
+
+/// 畫匣在 Google Drive 上佔用的檔案大小（D-101）：每個遠端檔（`images__`、`thumbs__`、
+/// `meta__`、格式標記）一列，**純本機、不同步**。上傳時記下位元組數；每次同步列出遠端內容時
+/// 以 Drive 回報的 `size` 校正（補舊資料、也算進其他裝置上傳的檔案）。總和就是「畫匣」用量，
+/// 不用每次去 Drive 逐個查。
+class RemoteFileSizes extends Table {
+  TextColumn get name => text()();
+  IntColumn get size => integer()();
+
+  @override
+  Set<Column> get primaryKey => {name};
+}

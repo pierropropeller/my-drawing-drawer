@@ -12504,6 +12504,214 @@ class SyncDocsCompanion extends UpdateCompanion<SyncDoc> {
   }
 }
 
+class $RemoteFileSizesTable extends RemoteFileSizes
+    with TableInfo<$RemoteFileSizesTable, RemoteFileSize> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RemoteFileSizesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sizeMeta = const VerificationMeta('size');
+  @override
+  late final GeneratedColumn<int> size = GeneratedColumn<int>(
+    'size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [name, size];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'remote_file_sizes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RemoteFileSize> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('size')) {
+      context.handle(
+        _sizeMeta,
+        size.isAcceptableOrUnknown(data['size']!, _sizeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sizeMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {name};
+  @override
+  RemoteFileSize map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RemoteFileSize(
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      size: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}size'],
+      )!,
+    );
+  }
+
+  @override
+  $RemoteFileSizesTable createAlias(String alias) {
+    return $RemoteFileSizesTable(attachedDatabase, alias);
+  }
+}
+
+class RemoteFileSize extends DataClass implements Insertable<RemoteFileSize> {
+  final String name;
+  final int size;
+  const RemoteFileSize({required this.name, required this.size});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['name'] = Variable<String>(name);
+    map['size'] = Variable<int>(size);
+    return map;
+  }
+
+  RemoteFileSizesCompanion toCompanion(bool nullToAbsent) {
+    return RemoteFileSizesCompanion(name: Value(name), size: Value(size));
+  }
+
+  factory RemoteFileSize.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RemoteFileSize(
+      name: serializer.fromJson<String>(json['name']),
+      size: serializer.fromJson<int>(json['size']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'name': serializer.toJson<String>(name),
+      'size': serializer.toJson<int>(size),
+    };
+  }
+
+  RemoteFileSize copyWith({String? name, int? size}) =>
+      RemoteFileSize(name: name ?? this.name, size: size ?? this.size);
+  RemoteFileSize copyWithCompanion(RemoteFileSizesCompanion data) {
+    return RemoteFileSize(
+      name: data.name.present ? data.name.value : this.name,
+      size: data.size.present ? data.size.value : this.size,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RemoteFileSize(')
+          ..write('name: $name, ')
+          ..write('size: $size')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(name, size);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RemoteFileSize &&
+          other.name == this.name &&
+          other.size == this.size);
+}
+
+class RemoteFileSizesCompanion extends UpdateCompanion<RemoteFileSize> {
+  final Value<String> name;
+  final Value<int> size;
+  final Value<int> rowid;
+  const RemoteFileSizesCompanion({
+    this.name = const Value.absent(),
+    this.size = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RemoteFileSizesCompanion.insert({
+    required String name,
+    required int size,
+    this.rowid = const Value.absent(),
+  }) : name = Value(name),
+       size = Value(size);
+  static Insertable<RemoteFileSize> custom({
+    Expression<String>? name,
+    Expression<int>? size,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (name != null) 'name': name,
+      if (size != null) 'size': size,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RemoteFileSizesCompanion copyWith({
+    Value<String>? name,
+    Value<int>? size,
+    Value<int>? rowid,
+  }) {
+    return RemoteFileSizesCompanion(
+      name: name ?? this.name,
+      size: size ?? this.size,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (size.present) {
+      map['size'] = Variable<int>(size.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RemoteFileSizesCompanion(')
+          ..write('name: $name, ')
+          ..write('size: $size, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $UserProfilesTable extends UserProfiles
     with TableInfo<$UserProfilesTable, UserProfile> {
   @override
@@ -13450,6 +13658,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ReviewSettingsTable reviewSettings = $ReviewSettingsTable(this);
   late final $OutboxTable outbox = $OutboxTable(this);
   late final $SyncDocsTable syncDocs = $SyncDocsTable(this);
+  late final $RemoteFileSizesTable remoteFileSizes = $RemoteFileSizesTable(
+    this,
+  );
   late final $UserProfilesTable userProfiles = $UserProfilesTable(this);
   late final $RefViewStatesTable refViewStates = $RefViewStatesTable(this);
   @override
@@ -13479,6 +13690,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     reviewSettings,
     outbox,
     syncDocs,
+    remoteFileSizes,
     userProfiles,
     refViewStates,
   ];
@@ -19823,6 +20035,159 @@ typedef $$SyncDocsTableProcessedTableManager =
       SyncDoc,
       PrefetchHooks Function()
     >;
+typedef $$RemoteFileSizesTableCreateCompanionBuilder =
+    RemoteFileSizesCompanion Function({
+      required String name,
+      required int size,
+      Value<int> rowid,
+    });
+typedef $$RemoteFileSizesTableUpdateCompanionBuilder =
+    RemoteFileSizesCompanion Function({
+      Value<String> name,
+      Value<int> size,
+      Value<int> rowid,
+    });
+
+class $$RemoteFileSizesTableFilterComposer
+    extends Composer<_$AppDatabase, $RemoteFileSizesTable> {
+  $$RemoteFileSizesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get size => $composableBuilder(
+    column: $table.size,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RemoteFileSizesTableOrderingComposer
+    extends Composer<_$AppDatabase, $RemoteFileSizesTable> {
+  $$RemoteFileSizesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get size => $composableBuilder(
+    column: $table.size,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RemoteFileSizesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RemoteFileSizesTable> {
+  $$RemoteFileSizesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get size =>
+      $composableBuilder(column: $table.size, builder: (column) => column);
+}
+
+class $$RemoteFileSizesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RemoteFileSizesTable,
+          RemoteFileSize,
+          $$RemoteFileSizesTableFilterComposer,
+          $$RemoteFileSizesTableOrderingComposer,
+          $$RemoteFileSizesTableAnnotationComposer,
+          $$RemoteFileSizesTableCreateCompanionBuilder,
+          $$RemoteFileSizesTableUpdateCompanionBuilder,
+          (
+            RemoteFileSize,
+            BaseReferences<
+              _$AppDatabase,
+              $RemoteFileSizesTable,
+              RemoteFileSize
+            >,
+          ),
+          RemoteFileSize,
+          PrefetchHooks Function()
+        > {
+  $$RemoteFileSizesTableTableManager(
+    _$AppDatabase db,
+    $RemoteFileSizesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RemoteFileSizesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RemoteFileSizesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RemoteFileSizesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> name = const Value.absent(),
+            Value<int> size = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => RemoteFileSizesCompanion(name: name, size: size, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String name,
+                required int size,
+                Value<int> rowid = const Value.absent(),
+              }) => RemoteFileSizesCompanion.insert(
+                name: name,
+                size: size,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$RemoteFileSizesTable, RemoteFileSize>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $RemoteFileSizesTable,
+                    RemoteFileSize
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RemoteFileSizesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RemoteFileSizesTable,
+      RemoteFileSize,
+      $$RemoteFileSizesTableFilterComposer,
+      $$RemoteFileSizesTableOrderingComposer,
+      $$RemoteFileSizesTableAnnotationComposer,
+      $$RemoteFileSizesTableCreateCompanionBuilder,
+      $$RemoteFileSizesTableUpdateCompanionBuilder,
+      (
+        RemoteFileSize,
+        BaseReferences<_$AppDatabase, $RemoteFileSizesTable, RemoteFileSize>,
+      ),
+      RemoteFileSize,
+      PrefetchHooks Function()
+    >;
 typedef $$UserProfilesTableCreateCompanionBuilder =
     UserProfilesCompanion Function({
       required String id,
@@ -20365,6 +20730,8 @@ class $AppDatabaseManager {
       $$OutboxTableTableManager(_db, _db.outbox);
   $$SyncDocsTableTableManager get syncDocs =>
       $$SyncDocsTableTableManager(_db, _db.syncDocs);
+  $$RemoteFileSizesTableTableManager get remoteFileSizes =>
+      $$RemoteFileSizesTableTableManager(_db, _db.remoteFileSizes);
   $$UserProfilesTableTableManager get userProfiles =>
       $$UserProfilesTableTableManager(_db, _db.userProfiles);
   $$RefViewStatesTableTableManager get refViewStates =>

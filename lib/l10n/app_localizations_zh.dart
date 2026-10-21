@@ -620,6 +620,32 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get backupStorageTitle => '儲存空間';
+
+  @override
+  String backupStorageOfLimit(String limit) {
+    return ' / $limit';
+  }
+
+  @override
+  String get backupStorageUsedLabel => '已用';
+
+  @override
+  String backupStorageDrawer(String size) {
+    return '畫匣 $size';
+  }
+
+  @override
+  String backupStorageOther(String size) {
+    return '其他 $size';
+  }
+
+  @override
+  String backupStorageSemantics(String used, String drawer, String other) {
+    return '儲存空間，已用 $used，畫匣 $drawer，其他 $other';
+  }
+
+  @override
   String get appTagline => '把想畫的、畫好的，都收進坑裡。';
 
   @override

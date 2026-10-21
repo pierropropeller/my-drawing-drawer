@@ -1173,6 +1173,42 @@ abstract class AppLocalizations {
   /// **'桌面圖示已換成「{name}」'**
   String appiconToast(String name);
 
+  /// No description provided for @backupStorageTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'儲存空間'**
+  String get backupStorageTitle;
+
+  /// No description provided for @backupStorageOfLimit.
+  ///
+  /// In zh, this message translates to:
+  /// **' / {limit}'**
+  String backupStorageOfLimit(String limit);
+
+  /// No description provided for @backupStorageUsedLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'已用'**
+  String get backupStorageUsedLabel;
+
+  /// No description provided for @backupStorageDrawer.
+  ///
+  /// In zh, this message translates to:
+  /// **'畫匣 {size}'**
+  String backupStorageDrawer(String size);
+
+  /// No description provided for @backupStorageOther.
+  ///
+  /// In zh, this message translates to:
+  /// **'其他 {size}'**
+  String backupStorageOther(String size);
+
+  /// No description provided for @backupStorageSemantics.
+  ///
+  /// In zh, this message translates to:
+  /// **'儲存空間，已用 {used}，畫匣 {drawer}，其他 {other}'**
+  String backupStorageSemantics(String used, String drawer, String other);
+
   /// 關於 App 的標語
   ///
   /// In zh, this message translates to:

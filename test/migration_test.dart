@@ -9,6 +9,7 @@ import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/junk_queries.dart';
 import 'package:huakeng/data/material_queries.dart';
 import 'package:huakeng/data/oshi_queries.dart';
+import 'package:huakeng/data/remote_size_queries.dart';
 
 /// 舊版（v1）資料庫：官方圖與同人圖沒有寬高，entity_images 沒有寬高，沒有 sync_docs。
 void main() {
@@ -72,6 +73,7 @@ void main() {
     expect(e.single.imageFile, 'e.png');
     expect(e.single.height, 0);
     expect(await db.select(db.syncDocs).get(), isEmpty); // 表已建立
+    expect(await db.select(db.remoteFileSizes).get(), isEmpty); // v13 的用量表也建立
     await db.close();
   });
 
@@ -599,6 +601,35 @@ void main() {
     final p = await db.select(db.pits).getSingle();
     expect((p.id, p.status), (pitId, PitStatus.shallow));
     expect(p.enabledSections, {PitSectionKey.fan});
+    await db.close();
+    await dir.delete(recursive: true);
+  });
+
+  // v13：畫匣在 Drive 上的用量表（批次 18，D-101）。全新本機表，沒有舊資料可回填。
+  test('v12 → v13（用真實的 v12 結構：拆掉用量表）：其他資料不動、表重新建立且可記錄加總', () async {
+    final dir = await Directory.systemTemp.createTemp('mig_v12');
+    final file = File('${dir.path}/db.sqlite');
+    var db = AppDatabase(NativeDatabase(file));
+    final pitId = await db.createPit(name: '舊坑');
+    await db.customStatement('DROP TABLE remote_file_sizes');
+    await db.customStatement('PRAGMA user_version = 12');
+    await db.close();
+
+    db = AppDatabase(NativeDatabase(file));
+    expect((await db.select(db.pits).getSingle()).id, pitId);
+    expect(await db.select(db.remoteFileSizes).get(), isEmpty);
+    expect(await db.drawerRemoteBytes(), 0);
+    await db
+        .into(db.remoteFileSizes)
+        .insert(
+          RemoteFileSizesCompanion.insert(name: 'images__a.png', size: 1000),
+        );
+    await db
+        .into(db.remoteFileSizes)
+        .insert(
+          RemoteFileSizesCompanion.insert(name: 'thumbs__a.jpg', size: 24),
+        );
+    expect(await db.drawerRemoteBytes(), 1024);
     await db.close();
     await dir.delete(recursive: true);
   });
