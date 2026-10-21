@@ -22,7 +22,9 @@ import '../pits/pits_icons.dart';
 import 'sync_colors.dart';
 import 'sync_icons.dart';
 
-/// 打開「同步進度」bottom sheet（SyncSheet，D-052）。傳完會自動關閉。
+/// 打開「同步進度」bottom sheet（SyncSheet，D-052）。
+///
+/// 傳完**不自動關**：原地變成完成狀態（D-100，SyncSheetDone），按「完成」、下拉或點外面才關。
 ///
 /// 設計稿的 sheet 蓋住底部導覽列，所以用最上層 Navigator（全域 sheet）。
 Future<void> showSyncSheet(BuildContext context) {
@@ -39,6 +41,18 @@ const syncSheetMaxRows = 4;
 /// 同時最多顯示幾張「傳輸中」（各自顯示百分比）。
 const syncSheetMaxActive = 3;
 
+/// 剛傳完那一次同步的張數（完成狀態顯示用；新變更進來切回同步中就丟掉）。
+class SyncDoneSummary {
+  const SyncDoneSummary({
+    required this.total,
+    required this.uploaded,
+    required this.downloaded,
+  });
+  final int total;
+  final int uploaded;
+  final int downloaded;
+}
+
 class SyncSheet extends ConsumerStatefulWidget {
   const SyncSheet({super.key});
 
@@ -48,6 +62,7 @@ class SyncSheet extends ConsumerStatefulWidget {
 
 class _SyncSheetState extends ConsumerState<SyncSheet> {
   bool _closing = false;
+  SyncDoneSummary? _done;
 
   void _close() {
     if (_closing || !mounted) return;
@@ -58,7 +73,7 @@ class _SyncSheetState extends ConsumerState<SyncSheet> {
   @override
   void initState() {
     super.initState();
-    // 打開的瞬間剛好傳完：直接關。
+    // 打開的瞬間沒有在傳（剛好傳完或根本沒東西傳）：直接關。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && !ref.read(syncControllerProvider).isTransferring) {
         _close();
@@ -68,29 +83,50 @@ class _SyncSheetState extends ConsumerState<SyncSheet> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(syncControllerProvider.select((s) => s.isTransferring), (
-      _,
-      transferring,
-    ) {
-      if (!transferring) _close();
+    ref.listen(syncControllerProvider, (prev, next) {
+      if (prev == null) return;
+      if (prev.isTransferring && !next.isTransferring) {
+        // 正常傳完（phase 回到 idle）→ 原地變完成狀態；失敗等其他情況照舊關閉。
+        if (next.phase == SyncPhase.idle && prev.transferTotal > 0) {
+          setState(
+            () => _done = SyncDoneSummary(
+              total: prev.transferTotal,
+              uploaded: prev.uploadCount,
+              downloaded: prev.downloadCount,
+            ),
+          );
+        } else {
+          _close();
+        }
+      } else if (!prev.isTransferring && next.isTransferring && _done != null) {
+        // 完成狀態下又有新的變更要同步：切回同步中。
+        setState(() => _done = null);
+      }
     });
-    return const SyncSheetBody();
+    return SyncSheetBody(done: _done, onDone: _close);
   }
 }
 
 /// bottom sheet 的內容（把手、標頭、清單）；關閉邏輯由外層負責。
+///
+/// [done] 非 null＝同步完成狀態（D-100）：標題勾＋「同步完成」、全滿綠色進度條、張數與完成時間、
+/// 底部「完成」按鈕（[onDone]），沒有清單。
 class SyncSheetBody extends StatelessWidget {
-  const SyncSheetBody({super.key});
+  const SyncSheetBody({super.key, this.done, this.onDone});
+
+  final SyncDoneSummary? done;
+  final VoidCallback? onDone;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final l = context.l10n;
+    final done = this.done;
     return Semantics(
       scopesRoute: true,
       namesRoute: true,
       explicitChildNodes: true,
-      label: l.syncuiSheetLabel,
+      label: done != null ? l.syncuiDoneTitle : l.syncuiSheetLabel,
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 26),
@@ -109,12 +145,129 @@ class SyncSheetBody extends StatelessWidget {
                   ),
                 ),
               ),
-              const SyncProgressHeader(),
-              const SyncProgressRows(),
+              if (done != null) ...[
+                SyncDoneContent(summary: done),
+                Padding(
+                  padding: const EdgeInsets.only(top: 22),
+                  child: SizedBox(
+                    height: 48,
+                    child: FilledButton(
+                      key: const Key('sync-done-button'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: t.accent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: onDone,
+                      child: Text(
+                        l.commonDone,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                const SyncProgressHeader(),
+                const SyncProgressRows(),
+              ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 完成狀態的標頭（SyncSheetDone）：綠勾圈＋「同步完成」、右邊「N / N」綠字、全滿綠色進度條、
+/// 「上傳 N 張　下載 N 張」＋右邊完成時間。
+class SyncDoneContent extends StatelessWidget {
+  const SyncDoneContent({super.key, required this.summary});
+  final SyncDoneSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final colors = SyncColors.of(context);
+    final l = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: colors.doneFill,
+                    shape: BoxShape.circle,
+                  ),
+                  child: SvgIcon(
+                    SyncIcons.check,
+                    size: 15,
+                    strokeWidth: 3,
+                    color: colors.doneCheck,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  l.syncuiDoneTitle,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              l.syncuiProgress(summary.total, summary.total),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: colors.doneText,
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 8),
+          child: Container(
+            key: const Key('sync-done-bar'),
+            height: 6,
+            decoration: BoxDecoration(
+              color: colors.doneFill,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+        ),
+        Row(
+          children: [
+            Text(
+              l.syncuiUploadCount(summary.uploaded),
+              style: TextStyle(fontSize: 13, color: t.text2),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              l.syncuiDownloadCount(summary.downloaded),
+              style: TextStyle(fontSize: 13, color: t.text2),
+            ),
+            const Spacer(),
+            Text(
+              l.syncuiDoneJustNow,
+              style: TextStyle(fontSize: 13, color: t.text2),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

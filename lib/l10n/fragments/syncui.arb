@@ -1,5 +1,7 @@
 {
   "syncuiSheetLabel": "同步進度",
+  "syncuiDoneTitle": "同步完成",
+  "syncuiDoneJustNow": "剛剛",
   "syncuiRingChecking": "同步中，正在檢查",
   "syncuiRingTransferring": "同步中，查看進度",
   "syncuiProgress": "{done} / {total}",

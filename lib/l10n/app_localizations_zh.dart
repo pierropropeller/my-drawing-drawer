@@ -2140,6 +2140,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncuiSheetLabel => '同步進度';
 
   @override
+  String get syncuiDoneTitle => '同步完成';
+
+  @override
+  String get syncuiDoneJustNow => '剛剛';
+
+  @override
   String get syncuiRingChecking => '同步中，正在檢查';
 
   @override

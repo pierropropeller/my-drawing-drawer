@@ -323,6 +323,12 @@ void main() {
       fake(c).set(const SyncState());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
+      // D-100：傳完不自動關，變完成狀態；按「完成」才關。
+      expect(find.byType(SyncSheet), findsOneWidget);
+      expect(find.text('同步完成'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('sync-done-button')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(SyncSheet), findsNothing);
       await unmount(tester);
     });

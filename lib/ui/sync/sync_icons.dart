@@ -10,4 +10,7 @@ class SyncIcons {
 
   /// sheet 列的「下載」標籤 icon（SyncSheet，線寬 2.2）。
   static const download = '<path d="M12 5v11M7.5 11.5L12 16l4.5-4.5M6 19h12"/>';
+
+  /// 同步完成標題左邊的勾（SyncSheetDone，15px、線寬 3）。
+  static const check = '<path d="M5 12.5l4 4 10-10"/>';
 }

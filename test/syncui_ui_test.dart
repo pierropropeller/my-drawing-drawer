@@ -234,8 +234,79 @@ void main() {
     expect(find.text('2 / 7'), findsOneWidget);
     expect(find.text('還有 1 張等待中'), findsOneWidget);
 
-    // 傳完：sheet 自動關閉。
+    // 傳完（D-100）：sheet 不自動關，原地變成完成狀態。
     fake(c).set(const SyncState());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(SyncSheet), findsOneWidget);
+    expect(find.text('同步完成'), findsOneWidget);
+    expect(find.text('同步中'), findsNothing);
+    expect(find.text('7 / 7'), findsOneWidget);
+    expect(find.text('上傳 1 張'), findsOneWidget);
+    expect(find.text('下載 6 張'), findsOneWidget);
+    expect(find.text('剛剛'), findsOneWidget);
+    expect(find.text('坑A · 官方圖冊'), findsNothing); // 列表消失
+    expect(find.text('還有 1 張等待中'), findsNothing);
+    final bar = tester.getSize(find.byKey(const Key('sync-done-bar')));
+    final inner = tester.getSize(find.byType(SyncDoneContent));
+    expect(bar.width, inner.width); // 進度條全滿
+    expect(find.byKey(const Key('sync-done-button')), findsOneWidget);
+
+    // 按「完成」才關。
+    await tester.tap(find.byKey(const Key('sync-done-button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(SyncSheet), findsNothing);
+    await unmount(tester);
+  });
+
+  testWidgets('完成狀態：新變更進來切回同步中；點外面也能關；沒開著時傳完不彈任何東西', (tester) async {
+    await addImages(tester, ['u0.png', 'd1.png']);
+    final c = await pumpApp(tester);
+    await settle(tester);
+
+    // sheet 沒開著時傳完：不彈任何東西。
+    fake(c).set(_transferring([_dl('d1.png', s: TransferState.active, p: .5)]));
+    await tester.pump();
+    fake(c).set(const SyncState());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(SyncSheet), findsNothing);
+
+    // 開著 sheet 傳完 → 完成；又有新變更 → 切回同步中（張數是新一次的）。
+    fake(c).set(
+      _transferring([
+        _ul('u0.png', s: TransferState.active, p: .3),
+        _dl('d1.png'),
+      ]),
+    );
+    await tester.pump();
+    await tester.tap(find.byType(SyncRing));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await settle(tester);
+    expect(find.byType(SyncSheet), findsOneWidget);
+    fake(c).set(const SyncState());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('同步完成'), findsOneWidget);
+    expect(find.text('2 / 2'), findsOneWidget);
+
+    fake(c).set(_transferring([_dl('d1.png', s: TransferState.active, p: .5)]));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('同步完成'), findsNothing);
+    expect(find.text('同步中'), findsOneWidget);
+    expect(find.text('0 / 1'), findsOneWidget);
+
+    // 再傳完 → 完成（張數是剛剛這次的 0 上傳 1 下載）；點 sheet 外面關閉。
+    fake(c).set(const SyncState());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('1 / 1'), findsOneWidget);
+    expect(find.text('上傳 0 張'), findsOneWidget);
+    expect(find.text('下載 1 張'), findsOneWidget);
+    await tester.tapAt(const Offset(200, 100));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byType(SyncSheet), findsNothing);

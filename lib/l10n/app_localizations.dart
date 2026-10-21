@@ -3843,6 +3843,18 @@ abstract class AppLocalizations {
   /// **'同步進度'**
   String get syncuiSheetLabel;
 
+  /// No description provided for @syncuiDoneTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步完成'**
+  String get syncuiDoneTitle;
+
+  /// No description provided for @syncuiDoneJustNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'剛剛'**
+  String get syncuiDoneJustNow;
+
   /// No description provided for @syncuiRingChecking.
   ///
   /// In zh, this message translates to:

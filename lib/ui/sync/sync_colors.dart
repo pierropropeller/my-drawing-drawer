@@ -11,6 +11,9 @@ class SyncColors {
     required this.waitText,
     required this.divider,
     required this.badgeBg,
+    required this.doneFill,
+    required this.doneCheck,
+    required this.doneText,
   });
 
   /// 進度（深藍 #5B7A99）。
@@ -35,6 +38,15 @@ class SyncColors {
   /// 未下載角標的白色圓底。
   final Color badgeBg;
 
+  /// 同步完成（D-100，SyncSheetDone）：綠色勾圈、全滿進度條 #5c8a5c。
+  final Color doneFill;
+
+  /// 勾圈裡的勾。
+  final Color doneCheck;
+
+  /// 右上「N / N」綠字 #4E7A4E。
+  final Color doneText;
+
   static const light = SyncColors._(
     progress: Color(0xFF5B7A99),
     track: Color(0xFFD6E0EA),
@@ -44,6 +56,9 @@ class SyncColors {
     waitText: Color(0xFFA49A8C),
     divider: Color(0xFFF1EADF),
     badgeBg: Color(0xF0FFFFFF),
+    doneFill: Color(0xFF5C8A5C),
+    doneCheck: Color(0xFFFFFFFF),
+    doneText: Color(0xFF4E7A4E),
   );
 
   /// 深色（P-022，SyncPopoverDark）：環 #7F9DBB、軌道 #2E3A46、文字 #93AECB。
@@ -56,6 +71,10 @@ class SyncColors {
     waitText: Color(0xFF8C8378),
     divider: Color(0xFF332D28),
     badgeBg: Color(0xF026221F),
+    // 設計稿沒有深色完成稿：沿用備份頁深色模式的綠 #8DBB8D，勾用深底色。
+    doneFill: Color(0xFF8DBB8D),
+    doneCheck: Color(0xFF26221F),
+    doneText: Color(0xFF8DBB8D),
   );
 
   static SyncColors of(BuildContext context) =>
