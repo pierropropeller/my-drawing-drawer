@@ -17,6 +17,7 @@ import '../common/dashed_box.dart';
 import '../common/media_widgets.dart';
 import '../common/reorder_tile.dart';
 import '../common/svg_icon.dart';
+import 'form_image_preview_page.dart';
 
 /// 表單裡的一張圖：剛從相簿選的（[picked]）或已存在 App 內的（[stored]）。
 class ImageItem {
@@ -151,9 +152,20 @@ class ImagePickerField extends ConsumerWidget {
           // 「×」按鈕超出縮圖右上角 6px（D-018、OfficialNew）。
           clipBehavior: Clip.none,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(Radii.image),
-              child: ImageItemThumb(items[i], cacheWidth: 300),
+            // 點一下開全螢幕預覽（D-102）；長按仍是拖曳排序，× 在縮圖右上角另外接。
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: hide
+                  ? null
+                  : () => FormImagePreviewPage.open(context, items, i),
+              child: Semantics(
+                button: true,
+                label: context.l10n.albumPreviewImage,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(Radii.image),
+                  child: ImageItemThumb(items[i], cacheWidth: 300),
+                ),
+              ),
             ),
             if (!hide)
               Positioned(

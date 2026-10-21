@@ -287,6 +287,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get albumRemoveImage => '移除圖片';
 
   @override
+  String get albumPreviewImage => '預覽圖片';
+
+  @override
   String get albumChangeGroup => '更換分組';
 
   @override
