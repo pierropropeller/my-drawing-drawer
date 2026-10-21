@@ -463,6 +463,46 @@
       }
     }
   },
+  "backupStorageTitle": "儲存空間",
+  "backupStorageOfLimit": " / {limit}",
+  "@backupStorageOfLimit": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "backupStorageUsedLabel": "已用",
+  "backupStorageDrawer": "畫匣 {size}",
+  "@backupStorageDrawer": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "backupStorageOther": "其他 {size}",
+  "@backupStorageOther": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "backupStorageSemantics": "儲存空間，已用 {used}，畫匣 {drawer}，其他 {other}",
+  "@backupStorageSemantics": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "drawer": {
+        "type": "String"
+      },
+      "other": {
+        "type": "String"
+      }
+    }
+  },
   "appTagline": "把想畫的、畫好的，都收進坑裡。",
   "@appTagline": {
     "description": "關於 App 的標語"
