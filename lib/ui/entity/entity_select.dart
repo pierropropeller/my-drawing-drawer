@@ -101,11 +101,15 @@ class EntitySelectBar extends StatelessWidget {
     required this.onDownload,
     required this.onTag,
     required this.onDelete,
+    this.onSensitive,
   });
   final VoidCallback onShare;
   final VoidCallback onDownload;
   final VoidCallback onTag;
   final VoidCallback onDelete;
+
+  /// 「敏感」動作（D-104）；null＝不顯示（總開關或這個坑的敏感內容沒開）。
+  final VoidCallback? onSensitive;
 
   @override
   Widget build(BuildContext context) {
@@ -140,6 +144,17 @@ class EntitySelectBar extends StatelessWidget {
                 onTap: onDownload,
               ),
             ),
+            if (onSensitive != null)
+              Expanded(
+                child: _BarAction(
+                  key: const ValueKey('entitySelectSensitive'),
+                  label: l.sensitiveAction,
+                  svg: AppIcons.eyeSlash,
+                  color: t.ink,
+                  strokeWidth: 1.9,
+                  onTap: onSensitive!,
+                ),
+              ),
             Expanded(
               child: _BarAction(
                 key: const ValueKey('entitySelectTag'),

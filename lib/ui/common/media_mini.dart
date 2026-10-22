@@ -19,7 +19,11 @@ class MiniMediaThumb extends StatelessWidget {
     this.inset = 3,
     this.animate = true,
     this.placeholderColor,
+    this.protectSensitive = true,
   });
+
+  /// 見 [MediaThumb.protectSensitive]（詳情頁的縮圖列傳 false）。
+  final bool protectSensitive;
 
   final MediaSource media;
   final int? cacheWidth;
@@ -38,6 +42,7 @@ class MiniMediaThumb extends StatelessWidget {
       animate: animate,
       showBadge: false,
       placeholderColor: placeholderColor,
+      protectSensitive: protectSensitive,
     );
     final Widget? badge = media.isGif
         ? _pill(

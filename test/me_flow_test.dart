@@ -112,9 +112,12 @@ void main() {
     final c = await pumpApp(tester, prefs: {'onboarded': true});
     await tester.tap(find.text('我的').last);
     await settle(tester);
-    expect(find.text('主題色'), findsOneWidget);
+    // D-106：主題色收進個人化。
+    expect(find.text('個人化'), findsOneWidget);
     expect(find.text('備份與同步'), findsOneWidget);
 
+    await tester.tap(find.text('個人化'));
+    await settle(tester);
     await tester.tap(find.text('主題色'));
     await settle(tester);
     await tester.tap(find.text('霧藍'));
@@ -131,6 +134,10 @@ void main() {
       (await SharedPreferences.getInstance()).getString('themeMode'),
       'dark',
     );
+    await tester.tap(find.byTooltip('返回'));
+    await settle(tester);
+    // 子頁返回回到個人化，再返回才是我的。
+    expect(find.text('主題色'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await settle(tester);
 

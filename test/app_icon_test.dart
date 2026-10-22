@@ -95,9 +95,16 @@ void main() {
     await tester.pump(const Duration(milliseconds: 10));
   }
 
-  Future<void> openIconPage(WidgetTester tester) async {
+  /// 我的 → 個人化（D-106：App 圖示收進個人化）。
+  Future<void> openPersonalize(WidgetTester tester) async {
     await tester.tap(find.text('我的').last);
     await settle(tester);
+    await tester.tap(find.text('個人化'));
+    await settle(tester);
+  }
+
+  Future<void> openIconPage(WidgetTester tester) async {
+    await openPersonalize(tester);
     await tester.tap(find.text('App 圖示'));
     await settle(tester);
   }
@@ -167,11 +174,10 @@ void main() {
     expect(none.read(settingsProvider).appIcon, 'huati');
   });
 
-  testWidgets('我的：主題色下面有「App 圖示」列，右邊顯示目前名稱，點進去沒有導覽列', (tester) async {
+  testWidgets('個人化：主題色下面有「App 圖示」列，右邊顯示目前名稱，點進去沒有導覽列', (tester) async {
     final icons = MemoryAppIconService('IconSanbi');
     await pumpApp(tester, icons: icons);
-    await tester.tap(find.text('我的').last);
-    await settle(tester);
+    await openPersonalize(tester);
     // 順序：主題色 → App 圖示 → 語言。
     final themeY = tester.getTopLeft(find.text('主題色')).dy;
     final iconY = tester.getTopLeft(find.text('App 圖示')).dy;
@@ -246,11 +252,10 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('啟動時平台已是花體：我的那一列顯示「花體」', (tester) async {
+  testWidgets('啟動時平台已是花體：個人化的那一列顯示「花體」', (tester) async {
     final icons = MemoryAppIconService('IconHuati');
     await pumpApp(tester, icons: icons);
-    await tester.tap(find.text('我的').last);
-    await settle(tester);
+    await openPersonalize(tester);
     expect(find.text('花體'), findsOneWidget);
     expect(
       tester.widget<AppIconImage>(find.byType(AppIconImage)).option.key,

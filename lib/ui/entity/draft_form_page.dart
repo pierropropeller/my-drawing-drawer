@@ -173,6 +173,7 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
             : context.l10n.draftFormImages,
       ),
       FormImageGrid(
+        pitId: widget.pitId,
         items: _images,
         size: 84,
         onAdd: _addImages,

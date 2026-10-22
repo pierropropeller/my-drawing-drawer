@@ -9,6 +9,7 @@ import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import 'entity_icons.dart';
 import 'entity_widgets.dart';
+import '../common/sensitive_gate.dart';
 
 /// 可被關聯的對象種類（腦洞、草稿、成圖）。
 enum ConnectKind {
@@ -363,7 +364,11 @@ class _PickRow extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                       child: o.file == null
                           ? const ImagePlaceholder(iconSize: 18)
-                          : StoredImage(o.file!, cacheWidth: 200),
+                          : SensitiveGate(
+                              file: o.file!,
+                              badgeInset: 3,
+                              child: StoredImage(o.file!, cacheWidth: 200),
+                            ),
                     ),
                     if (o.imageCount > 1)
                       Positioned(

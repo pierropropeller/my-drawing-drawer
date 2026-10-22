@@ -208,6 +208,21 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _sensitiveEnabledMeta = const VerificationMeta(
+    'sensitiveEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> sensitiveEnabled = GeneratedColumn<bool>(
+    'sensitive_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sensitive_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -228,6 +243,7 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
     enabledSections,
     coverFile,
     junkEnabled,
+    sensitiveEnabled,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -363,6 +379,15 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
         ),
       );
     }
+    if (data.containsKey('sensitive_enabled')) {
+      context.handle(
+        _sensitiveEnabledMeta,
+        sensitiveEnabled.isAcceptableOrUnknown(
+          data['sensitive_enabled']!,
+          _sensitiveEnabledMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -448,6 +473,10 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
         DriftSqlType.bool,
         data['${effectivePrefix}junk_enabled'],
       )!,
+      sensitiveEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sensitive_enabled'],
+      )!,
     );
   }
 
@@ -501,6 +530,10 @@ class Pit extends DataClass implements Insertable<Pit> {
   /// 編輯坑的「雜物」開關；開啟後坑內頁最底才出現雜物入口（D-034）。
   /// 淺坑：與 [enabledSections] 是否含 `junk` 保持一致（舊版 App 只看得到這個欄位）。
   final bool junkEnabled;
+
+  /// 這個坑開了敏感內容標記（D-104）；預設關。關閉時坑內完全沒有標記入口、也不模糊
+  /// （就算圖片資料裡有標記），重新開啟後標記自動恢復。還要搭配裝置的總開關才生效。
+  final bool sensitiveEnabled;
   const Pit({
     required this.id,
     required this.createdAt,
@@ -520,6 +553,7 @@ class Pit extends DataClass implements Insertable<Pit> {
     required this.enabledSections,
     this.coverFile,
     required this.junkEnabled,
+    required this.sensitiveEnabled,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -570,6 +604,7 @@ class Pit extends DataClass implements Insertable<Pit> {
       map['cover_file'] = Variable<String>(coverFile);
     }
     map['junk_enabled'] = Variable<bool>(junkEnabled);
+    map['sensitive_enabled'] = Variable<bool>(sensitiveEnabled);
     return map;
   }
 
@@ -613,6 +648,7 @@ class Pit extends DataClass implements Insertable<Pit> {
           ? const Value.absent()
           : Value(coverFile),
       junkEnabled: Value(junkEnabled),
+      sensitiveEnabled: Value(sensitiveEnabled),
     );
   }
 
@@ -644,6 +680,7 @@ class Pit extends DataClass implements Insertable<Pit> {
       ),
       coverFile: serializer.fromJson<String?>(json['coverFile']),
       junkEnabled: serializer.fromJson<bool>(json['junkEnabled']),
+      sensitiveEnabled: serializer.fromJson<bool>(json['sensitiveEnabled']),
     );
   }
   @override
@@ -672,6 +709,7 @@ class Pit extends DataClass implements Insertable<Pit> {
       ),
       'coverFile': serializer.toJson<String?>(coverFile),
       'junkEnabled': serializer.toJson<bool>(junkEnabled),
+      'sensitiveEnabled': serializer.toJson<bool>(sensitiveEnabled),
     };
   }
 
@@ -694,6 +732,7 @@ class Pit extends DataClass implements Insertable<Pit> {
     Set<PitSectionKey>? enabledSections,
     Value<String?> coverFile = const Value.absent(),
     bool? junkEnabled,
+    bool? sensitiveEnabled,
   }) => Pit(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -725,6 +764,7 @@ class Pit extends DataClass implements Insertable<Pit> {
     enabledSections: enabledSections ?? this.enabledSections,
     coverFile: coverFile.present ? coverFile.value : this.coverFile,
     junkEnabled: junkEnabled ?? this.junkEnabled,
+    sensitiveEnabled: sensitiveEnabled ?? this.sensitiveEnabled,
   );
   Pit copyWithCompanion(PitsCompanion data) {
     return Pit(
@@ -766,6 +806,9 @@ class Pit extends DataClass implements Insertable<Pit> {
       junkEnabled: data.junkEnabled.present
           ? data.junkEnabled.value
           : this.junkEnabled,
+      sensitiveEnabled: data.sensitiveEnabled.present
+          ? data.sensitiveEnabled.value
+          : this.sensitiveEnabled,
     );
   }
 
@@ -789,7 +832,8 @@ class Pit extends DataClass implements Insertable<Pit> {
           ..write('status: $status, ')
           ..write('enabledSections: $enabledSections, ')
           ..write('coverFile: $coverFile, ')
-          ..write('junkEnabled: $junkEnabled')
+          ..write('junkEnabled: $junkEnabled, ')
+          ..write('sensitiveEnabled: $sensitiveEnabled')
           ..write(')'))
         .toString();
   }
@@ -814,6 +858,7 @@ class Pit extends DataClass implements Insertable<Pit> {
     enabledSections,
     coverFile,
     junkEnabled,
+    sensitiveEnabled,
   );
   @override
   bool operator ==(Object other) =>
@@ -836,7 +881,8 @@ class Pit extends DataClass implements Insertable<Pit> {
           other.status == this.status &&
           other.enabledSections == this.enabledSections &&
           other.coverFile == this.coverFile &&
-          other.junkEnabled == this.junkEnabled);
+          other.junkEnabled == this.junkEnabled &&
+          other.sensitiveEnabled == this.sensitiveEnabled);
 }
 
 class PitsCompanion extends UpdateCompanion<Pit> {
@@ -858,6 +904,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
   final Value<Set<PitSectionKey>> enabledSections;
   final Value<String?> coverFile;
   final Value<bool> junkEnabled;
+  final Value<bool> sensitiveEnabled;
   final Value<int> rowid;
   const PitsCompanion({
     this.id = const Value.absent(),
@@ -878,6 +925,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     this.enabledSections = const Value.absent(),
     this.coverFile = const Value.absent(),
     this.junkEnabled = const Value.absent(),
+    this.sensitiveEnabled = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PitsCompanion.insert({
@@ -899,6 +947,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     this.enabledSections = const Value.absent(),
     this.coverFile = const Value.absent(),
     this.junkEnabled = const Value.absent(),
+    this.sensitiveEnabled = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Pit> custom({
@@ -920,6 +969,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     Expression<String>? enabledSections,
     Expression<String>? coverFile,
     Expression<bool>? junkEnabled,
+    Expression<bool>? sensitiveEnabled,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -941,6 +991,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
       if (enabledSections != null) 'enabled_sections': enabledSections,
       if (coverFile != null) 'cover_file': coverFile,
       if (junkEnabled != null) 'junk_enabled': junkEnabled,
+      if (sensitiveEnabled != null) 'sensitive_enabled': sensitiveEnabled,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -964,6 +1015,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     Value<Set<PitSectionKey>>? enabledSections,
     Value<String?>? coverFile,
     Value<bool>? junkEnabled,
+    Value<bool>? sensitiveEnabled,
     Value<int>? rowid,
   }) {
     return PitsCompanion(
@@ -985,6 +1037,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
       enabledSections: enabledSections ?? this.enabledSections,
       coverFile: coverFile ?? this.coverFile,
       junkEnabled: junkEnabled ?? this.junkEnabled,
+      sensitiveEnabled: sensitiveEnabled ?? this.sensitiveEnabled,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1050,6 +1103,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     if (junkEnabled.present) {
       map['junk_enabled'] = Variable<bool>(junkEnabled.value);
     }
+    if (sensitiveEnabled.present) {
+      map['sensitive_enabled'] = Variable<bool>(sensitiveEnabled.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1077,6 +1133,7 @@ class PitsCompanion extends UpdateCompanion<Pit> {
           ..write('enabledSections: $enabledSections, ')
           ..write('coverFile: $coverFile, ')
           ..write('junkEnabled: $junkEnabled, ')
+          ..write('sensitiveEnabled: $sensitiveEnabled, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1721,6 +1778,21 @@ class $OfficialImagesTable extends OfficialImages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sensitiveMeta = const VerificationMeta(
+    'sensitive',
+  );
+  @override
+  late final GeneratedColumn<bool> sensitive = GeneratedColumn<bool>(
+    'sensitive',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sensitive" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _pitIdMeta = const VerificationMeta('pitId');
   @override
   late final GeneratedColumn<String> pitId = GeneratedColumn<String>(
@@ -1807,6 +1879,7 @@ class $OfficialImagesTable extends OfficialImages
     kind,
     durationMs,
     posterFile,
+    sensitive,
     pitId,
     groupId,
     imageFile,
@@ -1864,6 +1937,12 @@ class $OfficialImagesTable extends OfficialImages
       context.handle(
         _posterFileMeta,
         posterFile.isAcceptableOrUnknown(data['poster_file']!, _posterFileMeta),
+      );
+    }
+    if (data.containsKey('sensitive')) {
+      context.handle(
+        _sensitiveMeta,
+        sensitive.isAcceptableOrUnknown(data['sensitive']!, _sensitiveMeta),
       );
     }
     if (data.containsKey('pit_id')) {
@@ -1957,6 +2036,10 @@ class $OfficialImagesTable extends OfficialImages
         DriftSqlType.string,
         data['${effectivePrefix}poster_file'],
       ),
+      sensitive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sensitive'],
+      )!,
       pitId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}pit_id'],
@@ -2011,6 +2094,10 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
   /// 影片第一格的截圖檔名（與 imageFile 同一個圖片資料夾，也同步）；
   /// 影片剛匯入、尚未產生截圖時為 null。圖片與 GIF 不使用。
   final String? posterFile;
+
+  /// 敏感內容標記（D-104，HANDOFF 3.13）：這張圖有沒有被使用者標為敏感。
+  /// 只記錄標記；顯示與否由「總開關＋該坑開關＋安全模式」決定，關掉開關不會清掉標記。
+  final bool sensitive;
   final String pitId;
   final String groupId;
   final String imageFile;
@@ -2032,6 +2119,7 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     required this.kind,
     this.durationMs,
     this.posterFile,
+    required this.sensitive,
     required this.pitId,
     required this.groupId,
     required this.imageFile,
@@ -2061,6 +2149,7 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     if (!nullToAbsent || posterFile != null) {
       map['poster_file'] = Variable<String>(posterFile);
     }
+    map['sensitive'] = Variable<bool>(sensitive);
     map['pit_id'] = Variable<String>(pitId);
     map['group_id'] = Variable<String>(groupId);
     map['image_file'] = Variable<String>(imageFile);
@@ -2087,6 +2176,7 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       posterFile: posterFile == null && nullToAbsent
           ? const Value.absent()
           : Value(posterFile),
+      sensitive: Value(sensitive),
       pitId: Value(pitId),
       groupId: Value(groupId),
       imageFile: Value(imageFile),
@@ -2113,6 +2203,7 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       ),
       durationMs: serializer.fromJson<int?>(json['durationMs']),
       posterFile: serializer.fromJson<String?>(json['posterFile']),
+      sensitive: serializer.fromJson<bool>(json['sensitive']),
       pitId: serializer.fromJson<String>(json['pitId']),
       groupId: serializer.fromJson<String>(json['groupId']),
       imageFile: serializer.fromJson<String>(json['imageFile']),
@@ -2136,6 +2227,7 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       ),
       'durationMs': serializer.toJson<int?>(durationMs),
       'posterFile': serializer.toJson<String?>(posterFile),
+      'sensitive': serializer.toJson<bool>(sensitive),
       'pitId': serializer.toJson<String>(pitId),
       'groupId': serializer.toJson<String>(groupId),
       'imageFile': serializer.toJson<String>(imageFile),
@@ -2155,6 +2247,7 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     MediaKind? kind,
     Value<int?> durationMs = const Value.absent(),
     Value<String?> posterFile = const Value.absent(),
+    bool? sensitive,
     String? pitId,
     String? groupId,
     String? imageFile,
@@ -2171,6 +2264,7 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     kind: kind ?? this.kind,
     durationMs: durationMs.present ? durationMs.value : this.durationMs,
     posterFile: posterFile.present ? posterFile.value : this.posterFile,
+    sensitive: sensitive ?? this.sensitive,
     pitId: pitId ?? this.pitId,
     groupId: groupId ?? this.groupId,
     imageFile: imageFile ?? this.imageFile,
@@ -2193,6 +2287,7 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
       posterFile: data.posterFile.present
           ? data.posterFile.value
           : this.posterFile,
+      sensitive: data.sensitive.present ? data.sensitive.value : this.sensitive,
       pitId: data.pitId.present ? data.pitId.value : this.pitId,
       groupId: data.groupId.present ? data.groupId.value : this.groupId,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
@@ -2214,6 +2309,7 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
           ..write('kind: $kind, ')
           ..write('durationMs: $durationMs, ')
           ..write('posterFile: $posterFile, ')
+          ..write('sensitive: $sensitive, ')
           ..write('pitId: $pitId, ')
           ..write('groupId: $groupId, ')
           ..write('imageFile: $imageFile, ')
@@ -2235,6 +2331,7 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
     kind,
     durationMs,
     posterFile,
+    sensitive,
     pitId,
     groupId,
     imageFile,
@@ -2255,6 +2352,7 @@ class OfficialImage extends DataClass implements Insertable<OfficialImage> {
           other.kind == this.kind &&
           other.durationMs == this.durationMs &&
           other.posterFile == this.posterFile &&
+          other.sensitive == this.sensitive &&
           other.pitId == this.pitId &&
           other.groupId == this.groupId &&
           other.imageFile == this.imageFile &&
@@ -2273,6 +2371,7 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
   final Value<MediaKind> kind;
   final Value<int?> durationMs;
   final Value<String?> posterFile;
+  final Value<bool> sensitive;
   final Value<String> pitId;
   final Value<String> groupId;
   final Value<String> imageFile;
@@ -2290,6 +2389,7 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     this.kind = const Value.absent(),
     this.durationMs = const Value.absent(),
     this.posterFile = const Value.absent(),
+    this.sensitive = const Value.absent(),
     this.pitId = const Value.absent(),
     this.groupId = const Value.absent(),
     this.imageFile = const Value.absent(),
@@ -2308,6 +2408,7 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     this.kind = const Value.absent(),
     this.durationMs = const Value.absent(),
     this.posterFile = const Value.absent(),
+    this.sensitive = const Value.absent(),
     required String pitId,
     required String groupId,
     required String imageFile,
@@ -2328,6 +2429,7 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     Expression<String>? kind,
     Expression<int>? durationMs,
     Expression<String>? posterFile,
+    Expression<bool>? sensitive,
     Expression<String>? pitId,
     Expression<String>? groupId,
     Expression<String>? imageFile,
@@ -2346,6 +2448,7 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
       if (kind != null) 'kind': kind,
       if (durationMs != null) 'duration_ms': durationMs,
       if (posterFile != null) 'poster_file': posterFile,
+      if (sensitive != null) 'sensitive': sensitive,
       if (pitId != null) 'pit_id': pitId,
       if (groupId != null) 'group_id': groupId,
       if (imageFile != null) 'image_file': imageFile,
@@ -2366,6 +2469,7 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     Value<MediaKind>? kind,
     Value<int?>? durationMs,
     Value<String?>? posterFile,
+    Value<bool>? sensitive,
     Value<String>? pitId,
     Value<String>? groupId,
     Value<String>? imageFile,
@@ -2384,6 +2488,7 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
       kind: kind ?? this.kind,
       durationMs: durationMs ?? this.durationMs,
       posterFile: posterFile ?? this.posterFile,
+      sensitive: sensitive ?? this.sensitive,
       pitId: pitId ?? this.pitId,
       groupId: groupId ?? this.groupId,
       imageFile: imageFile ?? this.imageFile,
@@ -2424,6 +2529,9 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
     if (posterFile.present) {
       map['poster_file'] = Variable<String>(posterFile.value);
     }
+    if (sensitive.present) {
+      map['sensitive'] = Variable<bool>(sensitive.value);
+    }
     if (pitId.present) {
       map['pit_id'] = Variable<String>(pitId.value);
     }
@@ -2462,6 +2570,7 @@ class OfficialImagesCompanion extends UpdateCompanion<OfficialImage> {
           ..write('kind: $kind, ')
           ..write('durationMs: $durationMs, ')
           ..write('posterFile: $posterFile, ')
+          ..write('sensitive: $sensitive, ')
           ..write('pitId: $pitId, ')
           ..write('groupId: $groupId, ')
           ..write('imageFile: $imageFile, ')
@@ -2569,6 +2678,21 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sensitiveMeta = const VerificationMeta(
+    'sensitive',
+  );
+  @override
+  late final GeneratedColumn<bool> sensitive = GeneratedColumn<bool>(
+    'sensitive',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sensitive" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _pitIdMeta = const VerificationMeta('pitId');
   @override
   late final GeneratedColumn<String> pitId = GeneratedColumn<String>(
@@ -2675,6 +2799,7 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     kind,
     durationMs,
     posterFile,
+    sensitive,
     pitId,
     imageFile,
     width,
@@ -2734,6 +2859,12 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
       context.handle(
         _posterFileMeta,
         posterFile.isAcceptableOrUnknown(data['poster_file']!, _posterFileMeta),
+      );
+    }
+    if (data.containsKey('sensitive')) {
+      context.handle(
+        _sensitiveMeta,
+        sensitive.isAcceptableOrUnknown(data['sensitive']!, _sensitiveMeta),
       );
     }
     if (data.containsKey('pit_id')) {
@@ -2837,6 +2968,10 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
         DriftSqlType.string,
         data['${effectivePrefix}poster_file'],
       ),
+      sensitive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sensitive'],
+      )!,
       pitId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}pit_id'],
@@ -2899,6 +3034,10 @@ class FanArt extends DataClass implements Insertable<FanArt> {
   /// 影片第一格的截圖檔名（與 imageFile 同一個圖片資料夾，也同步）；
   /// 影片剛匯入、尚未產生截圖時為 null。圖片與 GIF 不使用。
   final String? posterFile;
+
+  /// 敏感內容標記（D-104，HANDOFF 3.13）：這張圖有沒有被使用者標為敏感。
+  /// 只記錄標記；顯示與否由「總開關＋該坑開關＋安全模式」決定，關掉開關不會清掉標記。
+  final bool sensitive;
   final String pitId;
   final String imageFile;
   final int width;
@@ -2924,6 +3063,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     required this.kind,
     this.durationMs,
     this.posterFile,
+    required this.sensitive,
     required this.pitId,
     required this.imageFile,
     required this.width,
@@ -2953,6 +3093,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     if (!nullToAbsent || posterFile != null) {
       map['poster_file'] = Variable<String>(posterFile);
     }
+    map['sensitive'] = Variable<bool>(sensitive);
     map['pit_id'] = Variable<String>(pitId);
     map['image_file'] = Variable<String>(imageFile);
     map['width'] = Variable<int>(width);
@@ -2983,6 +3124,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       posterFile: posterFile == null && nullToAbsent
           ? const Value.absent()
           : Value(posterFile),
+      sensitive: Value(sensitive),
       pitId: Value(pitId),
       imageFile: Value(imageFile),
       width: Value(width),
@@ -3013,6 +3155,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       ),
       durationMs: serializer.fromJson<int?>(json['durationMs']),
       posterFile: serializer.fromJson<String?>(json['posterFile']),
+      sensitive: serializer.fromJson<bool>(json['sensitive']),
       pitId: serializer.fromJson<String>(json['pitId']),
       imageFile: serializer.fromJson<String>(json['imageFile']),
       width: serializer.fromJson<int>(json['width']),
@@ -3038,6 +3181,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       ),
       'durationMs': serializer.toJson<int?>(durationMs),
       'posterFile': serializer.toJson<String?>(posterFile),
+      'sensitive': serializer.toJson<bool>(sensitive),
       'pitId': serializer.toJson<String>(pitId),
       'imageFile': serializer.toJson<String>(imageFile),
       'width': serializer.toJson<int>(width),
@@ -3059,6 +3203,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     MediaKind? kind,
     Value<int?> durationMs = const Value.absent(),
     Value<String?> posterFile = const Value.absent(),
+    bool? sensitive,
     String? pitId,
     String? imageFile,
     int? width,
@@ -3077,6 +3222,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     kind: kind ?? this.kind,
     durationMs: durationMs.present ? durationMs.value : this.durationMs,
     posterFile: posterFile.present ? posterFile.value : this.posterFile,
+    sensitive: sensitive ?? this.sensitive,
     pitId: pitId ?? this.pitId,
     imageFile: imageFile ?? this.imageFile,
     width: width ?? this.width,
@@ -3101,6 +3247,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       posterFile: data.posterFile.present
           ? data.posterFile.value
           : this.posterFile,
+      sensitive: data.sensitive.present ? data.sensitive.value : this.sensitive,
       pitId: data.pitId.present ? data.pitId.value : this.pitId,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
       width: data.width.present ? data.width.value : this.width,
@@ -3124,6 +3271,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           ..write('kind: $kind, ')
           ..write('durationMs: $durationMs, ')
           ..write('posterFile: $posterFile, ')
+          ..write('sensitive: $sensitive, ')
           ..write('pitId: $pitId, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
@@ -3147,6 +3295,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     kind,
     durationMs,
     posterFile,
+    sensitive,
     pitId,
     imageFile,
     width,
@@ -3169,6 +3318,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           other.kind == this.kind &&
           other.durationMs == this.durationMs &&
           other.posterFile == this.posterFile &&
+          other.sensitive == this.sensitive &&
           other.pitId == this.pitId &&
           other.imageFile == this.imageFile &&
           other.width == this.width &&
@@ -3189,6 +3339,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
   final Value<MediaKind> kind;
   final Value<int?> durationMs;
   final Value<String?> posterFile;
+  final Value<bool> sensitive;
   final Value<String> pitId;
   final Value<String> imageFile;
   final Value<int> width;
@@ -3208,6 +3359,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.kind = const Value.absent(),
     this.durationMs = const Value.absent(),
     this.posterFile = const Value.absent(),
+    this.sensitive = const Value.absent(),
     this.pitId = const Value.absent(),
     this.imageFile = const Value.absent(),
     this.width = const Value.absent(),
@@ -3228,6 +3380,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.kind = const Value.absent(),
     this.durationMs = const Value.absent(),
     this.posterFile = const Value.absent(),
+    this.sensitive = const Value.absent(),
     required String pitId,
     required String imageFile,
     this.width = const Value.absent(),
@@ -3249,6 +3402,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Expression<String>? kind,
     Expression<int>? durationMs,
     Expression<String>? posterFile,
+    Expression<bool>? sensitive,
     Expression<String>? pitId,
     Expression<String>? imageFile,
     Expression<int>? width,
@@ -3269,6 +3423,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       if (kind != null) 'kind': kind,
       if (durationMs != null) 'duration_ms': durationMs,
       if (posterFile != null) 'poster_file': posterFile,
+      if (sensitive != null) 'sensitive': sensitive,
       if (pitId != null) 'pit_id': pitId,
       if (imageFile != null) 'image_file': imageFile,
       if (width != null) 'width': width,
@@ -3291,6 +3446,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Value<MediaKind>? kind,
     Value<int?>? durationMs,
     Value<String?>? posterFile,
+    Value<bool>? sensitive,
     Value<String>? pitId,
     Value<String>? imageFile,
     Value<int>? width,
@@ -3311,6 +3467,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       kind: kind ?? this.kind,
       durationMs: durationMs ?? this.durationMs,
       posterFile: posterFile ?? this.posterFile,
+      sensitive: sensitive ?? this.sensitive,
       pitId: pitId ?? this.pitId,
       imageFile: imageFile ?? this.imageFile,
       width: width ?? this.width,
@@ -3352,6 +3509,9 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     }
     if (posterFile.present) {
       map['poster_file'] = Variable<String>(posterFile.value);
+    }
+    if (sensitive.present) {
+      map['sensitive'] = Variable<bool>(sensitive.value);
     }
     if (pitId.present) {
       map['pit_id'] = Variable<String>(pitId.value);
@@ -3397,6 +3557,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
           ..write('kind: $kind, ')
           ..write('durationMs: $durationMs, ')
           ..write('posterFile: $posterFile, ')
+          ..write('sensitive: $sensitive, ')
           ..write('pitId: $pitId, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
@@ -3507,6 +3668,21 @@ class $JunkImagesTable extends JunkImages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sensitiveMeta = const VerificationMeta(
+    'sensitive',
+  );
+  @override
+  late final GeneratedColumn<bool> sensitive = GeneratedColumn<bool>(
+    'sensitive',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sensitive" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _pitIdMeta = const VerificationMeta('pitId');
   @override
   late final GeneratedColumn<String> pitId = GeneratedColumn<String>(
@@ -3582,6 +3758,7 @@ class $JunkImagesTable extends JunkImages
     kind,
     durationMs,
     posterFile,
+    sensitive,
     pitId,
     imageFile,
     width,
@@ -3638,6 +3815,12 @@ class $JunkImagesTable extends JunkImages
       context.handle(
         _posterFileMeta,
         posterFile.isAcceptableOrUnknown(data['poster_file']!, _posterFileMeta),
+      );
+    }
+    if (data.containsKey('sensitive')) {
+      context.handle(
+        _sensitiveMeta,
+        sensitive.isAcceptableOrUnknown(data['sensitive']!, _sensitiveMeta),
       );
     }
     if (data.containsKey('pit_id')) {
@@ -3723,6 +3906,10 @@ class $JunkImagesTable extends JunkImages
         DriftSqlType.string,
         data['${effectivePrefix}poster_file'],
       ),
+      sensitive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sensitive'],
+      )!,
       pitId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}pit_id'],
@@ -3773,6 +3960,10 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
   /// 影片第一格的截圖檔名（與 imageFile 同一個圖片資料夾，也同步）；
   /// 影片剛匯入、尚未產生截圖時為 null。圖片與 GIF 不使用。
   final String? posterFile;
+
+  /// 敏感內容標記（D-104，HANDOFF 3.13）：這張圖有沒有被使用者標為敏感。
+  /// 只記錄標記；顯示與否由「總開關＋該坑開關＋安全模式」決定，關掉開關不會清掉標記。
+  final bool sensitive;
   final String pitId;
   final String imageFile;
   final int width;
@@ -3793,6 +3984,7 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
     required this.kind,
     this.durationMs,
     this.posterFile,
+    required this.sensitive,
     required this.pitId,
     required this.imageFile,
     required this.width,
@@ -3821,6 +4013,7 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
     if (!nullToAbsent || posterFile != null) {
       map['poster_file'] = Variable<String>(posterFile);
     }
+    map['sensitive'] = Variable<bool>(sensitive);
     map['pit_id'] = Variable<String>(pitId);
     map['image_file'] = Variable<String>(imageFile);
     map['width'] = Variable<int>(width);
@@ -3846,6 +4039,7 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
       posterFile: posterFile == null && nullToAbsent
           ? const Value.absent()
           : Value(posterFile),
+      sensitive: Value(sensitive),
       pitId: Value(pitId),
       imageFile: Value(imageFile),
       width: Value(width),
@@ -3871,6 +4065,7 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
       ),
       durationMs: serializer.fromJson<int?>(json['durationMs']),
       posterFile: serializer.fromJson<String?>(json['posterFile']),
+      sensitive: serializer.fromJson<bool>(json['sensitive']),
       pitId: serializer.fromJson<String>(json['pitId']),
       imageFile: serializer.fromJson<String>(json['imageFile']),
       width: serializer.fromJson<int>(json['width']),
@@ -3893,6 +4088,7 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
       ),
       'durationMs': serializer.toJson<int?>(durationMs),
       'posterFile': serializer.toJson<String?>(posterFile),
+      'sensitive': serializer.toJson<bool>(sensitive),
       'pitId': serializer.toJson<String>(pitId),
       'imageFile': serializer.toJson<String>(imageFile),
       'width': serializer.toJson<int>(width),
@@ -3911,6 +4107,7 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
     MediaKind? kind,
     Value<int?> durationMs = const Value.absent(),
     Value<String?> posterFile = const Value.absent(),
+    bool? sensitive,
     String? pitId,
     String? imageFile,
     int? width,
@@ -3926,6 +4123,7 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
     kind: kind ?? this.kind,
     durationMs: durationMs.present ? durationMs.value : this.durationMs,
     posterFile: posterFile.present ? posterFile.value : this.posterFile,
+    sensitive: sensitive ?? this.sensitive,
     pitId: pitId ?? this.pitId,
     imageFile: imageFile ?? this.imageFile,
     width: width ?? this.width,
@@ -3947,6 +4145,7 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
       posterFile: data.posterFile.present
           ? data.posterFile.value
           : this.posterFile,
+      sensitive: data.sensitive.present ? data.sensitive.value : this.sensitive,
       pitId: data.pitId.present ? data.pitId.value : this.pitId,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
       width: data.width.present ? data.width.value : this.width,
@@ -3967,6 +4166,7 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
           ..write('kind: $kind, ')
           ..write('durationMs: $durationMs, ')
           ..write('posterFile: $posterFile, ')
+          ..write('sensitive: $sensitive, ')
           ..write('pitId: $pitId, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
@@ -3987,6 +4187,7 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
     kind,
     durationMs,
     posterFile,
+    sensitive,
     pitId,
     imageFile,
     width,
@@ -4006,6 +4207,7 @@ class JunkImage extends DataClass implements Insertable<JunkImage> {
           other.kind == this.kind &&
           other.durationMs == this.durationMs &&
           other.posterFile == this.posterFile &&
+          other.sensitive == this.sensitive &&
           other.pitId == this.pitId &&
           other.imageFile == this.imageFile &&
           other.width == this.width &&
@@ -4023,6 +4225,7 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
   final Value<MediaKind> kind;
   final Value<int?> durationMs;
   final Value<String?> posterFile;
+  final Value<bool> sensitive;
   final Value<String> pitId;
   final Value<String> imageFile;
   final Value<int> width;
@@ -4039,6 +4242,7 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
     this.kind = const Value.absent(),
     this.durationMs = const Value.absent(),
     this.posterFile = const Value.absent(),
+    this.sensitive = const Value.absent(),
     this.pitId = const Value.absent(),
     this.imageFile = const Value.absent(),
     this.width = const Value.absent(),
@@ -4056,6 +4260,7 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
     this.kind = const Value.absent(),
     this.durationMs = const Value.absent(),
     this.posterFile = const Value.absent(),
+    this.sensitive = const Value.absent(),
     required String pitId,
     required String imageFile,
     this.width = const Value.absent(),
@@ -4074,6 +4279,7 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
     Expression<String>? kind,
     Expression<int>? durationMs,
     Expression<String>? posterFile,
+    Expression<bool>? sensitive,
     Expression<String>? pitId,
     Expression<String>? imageFile,
     Expression<int>? width,
@@ -4091,6 +4297,7 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
       if (kind != null) 'kind': kind,
       if (durationMs != null) 'duration_ms': durationMs,
       if (posterFile != null) 'poster_file': posterFile,
+      if (sensitive != null) 'sensitive': sensitive,
       if (pitId != null) 'pit_id': pitId,
       if (imageFile != null) 'image_file': imageFile,
       if (width != null) 'width': width,
@@ -4110,6 +4317,7 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
     Value<MediaKind>? kind,
     Value<int?>? durationMs,
     Value<String?>? posterFile,
+    Value<bool>? sensitive,
     Value<String>? pitId,
     Value<String>? imageFile,
     Value<int>? width,
@@ -4127,6 +4335,7 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
       kind: kind ?? this.kind,
       durationMs: durationMs ?? this.durationMs,
       posterFile: posterFile ?? this.posterFile,
+      sensitive: sensitive ?? this.sensitive,
       pitId: pitId ?? this.pitId,
       imageFile: imageFile ?? this.imageFile,
       width: width ?? this.width,
@@ -4166,6 +4375,9 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
     if (posterFile.present) {
       map['poster_file'] = Variable<String>(posterFile.value);
     }
+    if (sensitive.present) {
+      map['sensitive'] = Variable<bool>(sensitive.value);
+    }
     if (pitId.present) {
       map['pit_id'] = Variable<String>(pitId.value);
     }
@@ -4201,6 +4413,7 @@ class JunkImagesCompanion extends UpdateCompanion<JunkImage> {
           ..write('kind: $kind, ')
           ..write('durationMs: $durationMs, ')
           ..write('posterFile: $posterFile, ')
+          ..write('sensitive: $sensitive, ')
           ..write('pitId: $pitId, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
@@ -7494,6 +7707,21 @@ class $MaterialImagesTable extends MaterialImages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sensitiveMeta = const VerificationMeta(
+    'sensitive',
+  );
+  @override
+  late final GeneratedColumn<bool> sensitive = GeneratedColumn<bool>(
+    'sensitive',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sensitive" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _imageFileMeta = const VerificationMeta(
     'imageFile',
   );
@@ -7544,6 +7772,7 @@ class $MaterialImagesTable extends MaterialImages
     kind,
     durationMs,
     posterFile,
+    sensitive,
     imageFile,
     width,
     height,
@@ -7598,6 +7827,12 @@ class $MaterialImagesTable extends MaterialImages
       context.handle(
         _posterFileMeta,
         posterFile.isAcceptableOrUnknown(data['poster_file']!, _posterFileMeta),
+      );
+    }
+    if (data.containsKey('sensitive')) {
+      context.handle(
+        _sensitiveMeta,
+        sensitive.isAcceptableOrUnknown(data['sensitive']!, _sensitiveMeta),
       );
     }
     if (data.containsKey('image_file')) {
@@ -7663,6 +7898,10 @@ class $MaterialImagesTable extends MaterialImages
         DriftSqlType.string,
         data['${effectivePrefix}poster_file'],
       ),
+      sensitive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sensitive'],
+      )!,
       imageFile: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}image_file'],
@@ -7711,6 +7950,10 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
   /// 影片第一格的截圖檔名（與 imageFile 同一個圖片資料夾，也同步）；
   /// 影片剛匯入、尚未產生截圖時為 null。圖片與 GIF 不使用。
   final String? posterFile;
+
+  /// 敏感內容標記（D-104，HANDOFF 3.13）：這張圖有沒有被使用者標為敏感。
+  /// 只記錄標記；顯示與否由「總開關＋該坑開關＋安全模式」決定，關掉開關不會清掉標記。
+  final bool sensitive;
   final String imageFile;
   final int width;
   final int height;
@@ -7724,6 +7967,7 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
     required this.kind,
     this.durationMs,
     this.posterFile,
+    required this.sensitive,
     required this.imageFile,
     required this.width,
     required this.height,
@@ -7750,6 +7994,7 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
     if (!nullToAbsent || posterFile != null) {
       map['poster_file'] = Variable<String>(posterFile);
     }
+    map['sensitive'] = Variable<bool>(sensitive);
     map['image_file'] = Variable<String>(imageFile);
     map['width'] = Variable<int>(width);
     map['height'] = Variable<int>(height);
@@ -7777,6 +8022,7 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
       posterFile: posterFile == null && nullToAbsent
           ? const Value.absent()
           : Value(posterFile),
+      sensitive: Value(sensitive),
       imageFile: Value(imageFile),
       width: Value(width),
       height: Value(height),
@@ -7800,6 +8046,7 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
       ),
       durationMs: serializer.fromJson<int?>(json['durationMs']),
       posterFile: serializer.fromJson<String?>(json['posterFile']),
+      sensitive: serializer.fromJson<bool>(json['sensitive']),
       imageFile: serializer.fromJson<String>(json['imageFile']),
       width: serializer.fromJson<int>(json['width']),
       height: serializer.fromJson<int>(json['height']),
@@ -7822,6 +8069,7 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
       ),
       'durationMs': serializer.toJson<int?>(durationMs),
       'posterFile': serializer.toJson<String?>(posterFile),
+      'sensitive': serializer.toJson<bool>(sensitive),
       'imageFile': serializer.toJson<String>(imageFile),
       'width': serializer.toJson<int>(width),
       'height': serializer.toJson<int>(height),
@@ -7840,6 +8088,7 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
     MediaKind? kind,
     Value<int?> durationMs = const Value.absent(),
     Value<String?> posterFile = const Value.absent(),
+    bool? sensitive,
     String? imageFile,
     int? width,
     int? height,
@@ -7853,6 +8102,7 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
     kind: kind ?? this.kind,
     durationMs: durationMs.present ? durationMs.value : this.durationMs,
     posterFile: posterFile.present ? posterFile.value : this.posterFile,
+    sensitive: sensitive ?? this.sensitive,
     imageFile: imageFile ?? this.imageFile,
     width: width ?? this.width,
     height: height ?? this.height,
@@ -7872,6 +8122,7 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
       posterFile: data.posterFile.present
           ? data.posterFile.value
           : this.posterFile,
+      sensitive: data.sensitive.present ? data.sensitive.value : this.sensitive,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
       width: data.width.present ? data.width.value : this.width,
       height: data.height.present ? data.height.value : this.height,
@@ -7890,6 +8141,7 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
           ..write('kind: $kind, ')
           ..write('durationMs: $durationMs, ')
           ..write('posterFile: $posterFile, ')
+          ..write('sensitive: $sensitive, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
           ..write('height: $height, ')
@@ -7908,6 +8160,7 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
     kind,
     durationMs,
     posterFile,
+    sensitive,
     imageFile,
     width,
     height,
@@ -7925,6 +8178,7 @@ class MaterialImage extends DataClass implements Insertable<MaterialImage> {
           other.kind == this.kind &&
           other.durationMs == this.durationMs &&
           other.posterFile == this.posterFile &&
+          other.sensitive == this.sensitive &&
           other.imageFile == this.imageFile &&
           other.width == this.width &&
           other.height == this.height &&
@@ -7940,6 +8194,7 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
   final Value<MediaKind> kind;
   final Value<int?> durationMs;
   final Value<String?> posterFile;
+  final Value<bool> sensitive;
   final Value<String> imageFile;
   final Value<int> width;
   final Value<int> height;
@@ -7954,6 +8209,7 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
     this.kind = const Value.absent(),
     this.durationMs = const Value.absent(),
     this.posterFile = const Value.absent(),
+    this.sensitive = const Value.absent(),
     this.imageFile = const Value.absent(),
     this.width = const Value.absent(),
     this.height = const Value.absent(),
@@ -7969,6 +8225,7 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
     this.kind = const Value.absent(),
     this.durationMs = const Value.absent(),
     this.posterFile = const Value.absent(),
+    this.sensitive = const Value.absent(),
     required String imageFile,
     this.width = const Value.absent(),
     this.height = const Value.absent(),
@@ -7985,6 +8242,7 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
     Expression<String>? kind,
     Expression<int>? durationMs,
     Expression<String>? posterFile,
+    Expression<bool>? sensitive,
     Expression<String>? imageFile,
     Expression<int>? width,
     Expression<int>? height,
@@ -8000,6 +8258,7 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
       if (kind != null) 'kind': kind,
       if (durationMs != null) 'duration_ms': durationMs,
       if (posterFile != null) 'poster_file': posterFile,
+      if (sensitive != null) 'sensitive': sensitive,
       if (imageFile != null) 'image_file': imageFile,
       if (width != null) 'width': width,
       if (height != null) 'height': height,
@@ -8017,6 +8276,7 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
     Value<MediaKind>? kind,
     Value<int?>? durationMs,
     Value<String?>? posterFile,
+    Value<bool>? sensitive,
     Value<String>? imageFile,
     Value<int>? width,
     Value<int>? height,
@@ -8032,6 +8292,7 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
       kind: kind ?? this.kind,
       durationMs: durationMs ?? this.durationMs,
       posterFile: posterFile ?? this.posterFile,
+      sensitive: sensitive ?? this.sensitive,
       imageFile: imageFile ?? this.imageFile,
       width: width ?? this.width,
       height: height ?? this.height,
@@ -8069,6 +8330,9 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
     if (posterFile.present) {
       map['poster_file'] = Variable<String>(posterFile.value);
     }
+    if (sensitive.present) {
+      map['sensitive'] = Variable<bool>(sensitive.value);
+    }
     if (imageFile.present) {
       map['image_file'] = Variable<String>(imageFile.value);
     }
@@ -8100,6 +8364,7 @@ class MaterialImagesCompanion extends UpdateCompanion<MaterialImage> {
           ..write('kind: $kind, ')
           ..write('durationMs: $durationMs, ')
           ..write('posterFile: $posterFile, ')
+          ..write('sensitive: $sensitive, ')
           ..write('imageFile: $imageFile, ')
           ..write('width: $width, ')
           ..write('height: $height, ')
@@ -8205,6 +8470,21 @@ class $EntityImagesTable extends EntityImages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sensitiveMeta = const VerificationMeta(
+    'sensitive',
+  );
+  @override
+  late final GeneratedColumn<bool> sensitive = GeneratedColumn<bool>(
+    'sensitive',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sensitive" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<OwnerType, String> ownerType =
       GeneratedColumn<String>(
@@ -8278,6 +8558,7 @@ class $EntityImagesTable extends EntityImages
     kind,
     durationMs,
     posterFile,
+    sensitive,
     ownerType,
     ownerId,
     imageFile,
@@ -8334,6 +8615,12 @@ class $EntityImagesTable extends EntityImages
       context.handle(
         _posterFileMeta,
         posterFile.isAcceptableOrUnknown(data['poster_file']!, _posterFileMeta),
+      );
+    }
+    if (data.containsKey('sensitive')) {
+      context.handle(
+        _sensitiveMeta,
+        sensitive.isAcceptableOrUnknown(data['sensitive']!, _sensitiveMeta),
       );
     }
     if (data.containsKey('owner_id')) {
@@ -8413,6 +8700,10 @@ class $EntityImagesTable extends EntityImages
         DriftSqlType.string,
         data['${effectivePrefix}poster_file'],
       ),
+      sensitive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sensitive'],
+      )!,
       ownerType: $EntityImagesTable.$converterownerType.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -8467,6 +8758,10 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
   /// 影片第一格的截圖檔名（與 imageFile 同一個圖片資料夾，也同步）；
   /// 影片剛匯入、尚未產生截圖時為 null。圖片與 GIF 不使用。
   final String? posterFile;
+
+  /// 敏感內容標記（D-104，HANDOFF 3.13）：這張圖有沒有被使用者標為敏感。
+  /// 只記錄標記；顯示與否由「總開關＋該坑開關＋安全模式」決定，關掉開關不會清掉標記。
+  final bool sensitive;
   final OwnerType ownerType;
   final String ownerId;
   final String imageFile;
@@ -8482,6 +8777,7 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     required this.kind,
     this.durationMs,
     this.posterFile,
+    required this.sensitive,
     required this.ownerType,
     required this.ownerId,
     required this.imageFile,
@@ -8510,6 +8806,7 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     if (!nullToAbsent || posterFile != null) {
       map['poster_file'] = Variable<String>(posterFile);
     }
+    map['sensitive'] = Variable<bool>(sensitive);
     {
       map['owner_type'] = Variable<String>(
         $EntityImagesTable.$converterownerType.toSql(ownerType),
@@ -8539,6 +8836,7 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
       posterFile: posterFile == null && nullToAbsent
           ? const Value.absent()
           : Value(posterFile),
+      sensitive: Value(sensitive),
       ownerType: Value(ownerType),
       ownerId: Value(ownerId),
       imageFile: Value(imageFile),
@@ -8564,6 +8862,7 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
       ),
       durationMs: serializer.fromJson<int?>(json['durationMs']),
       posterFile: serializer.fromJson<String?>(json['posterFile']),
+      sensitive: serializer.fromJson<bool>(json['sensitive']),
       ownerType: $EntityImagesTable.$converterownerType.fromJson(
         serializer.fromJson<String>(json['ownerType']),
       ),
@@ -8588,6 +8887,7 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
       ),
       'durationMs': serializer.toJson<int?>(durationMs),
       'posterFile': serializer.toJson<String?>(posterFile),
+      'sensitive': serializer.toJson<bool>(sensitive),
       'ownerType': serializer.toJson<String>(
         $EntityImagesTable.$converterownerType.toJson(ownerType),
       ),
@@ -8608,6 +8908,7 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     MediaKind? kind,
     Value<int?> durationMs = const Value.absent(),
     Value<String?> posterFile = const Value.absent(),
+    bool? sensitive,
     OwnerType? ownerType,
     String? ownerId,
     String? imageFile,
@@ -8623,6 +8924,7 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     kind: kind ?? this.kind,
     durationMs: durationMs.present ? durationMs.value : this.durationMs,
     posterFile: posterFile.present ? posterFile.value : this.posterFile,
+    sensitive: sensitive ?? this.sensitive,
     ownerType: ownerType ?? this.ownerType,
     ownerId: ownerId ?? this.ownerId,
     imageFile: imageFile ?? this.imageFile,
@@ -8644,6 +8946,7 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
       posterFile: data.posterFile.present
           ? data.posterFile.value
           : this.posterFile,
+      sensitive: data.sensitive.present ? data.sensitive.value : this.sensitive,
       ownerType: data.ownerType.present ? data.ownerType.value : this.ownerType,
       ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
       imageFile: data.imageFile.present ? data.imageFile.value : this.imageFile,
@@ -8664,6 +8967,7 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
           ..write('kind: $kind, ')
           ..write('durationMs: $durationMs, ')
           ..write('posterFile: $posterFile, ')
+          ..write('sensitive: $sensitive, ')
           ..write('ownerType: $ownerType, ')
           ..write('ownerId: $ownerId, ')
           ..write('imageFile: $imageFile, ')
@@ -8684,6 +8988,7 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
     kind,
     durationMs,
     posterFile,
+    sensitive,
     ownerType,
     ownerId,
     imageFile,
@@ -8703,6 +9008,7 @@ class EntityImage extends DataClass implements Insertable<EntityImage> {
           other.kind == this.kind &&
           other.durationMs == this.durationMs &&
           other.posterFile == this.posterFile &&
+          other.sensitive == this.sensitive &&
           other.ownerType == this.ownerType &&
           other.ownerId == this.ownerId &&
           other.imageFile == this.imageFile &&
@@ -8720,6 +9026,7 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
   final Value<MediaKind> kind;
   final Value<int?> durationMs;
   final Value<String?> posterFile;
+  final Value<bool> sensitive;
   final Value<OwnerType> ownerType;
   final Value<String> ownerId;
   final Value<String> imageFile;
@@ -8736,6 +9043,7 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     this.kind = const Value.absent(),
     this.durationMs = const Value.absent(),
     this.posterFile = const Value.absent(),
+    this.sensitive = const Value.absent(),
     this.ownerType = const Value.absent(),
     this.ownerId = const Value.absent(),
     this.imageFile = const Value.absent(),
@@ -8753,6 +9061,7 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     this.kind = const Value.absent(),
     this.durationMs = const Value.absent(),
     this.posterFile = const Value.absent(),
+    this.sensitive = const Value.absent(),
     required OwnerType ownerType,
     required String ownerId,
     required String imageFile,
@@ -8772,6 +9081,7 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     Expression<String>? kind,
     Expression<int>? durationMs,
     Expression<String>? posterFile,
+    Expression<bool>? sensitive,
     Expression<String>? ownerType,
     Expression<String>? ownerId,
     Expression<String>? imageFile,
@@ -8789,6 +9099,7 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
       if (kind != null) 'kind': kind,
       if (durationMs != null) 'duration_ms': durationMs,
       if (posterFile != null) 'poster_file': posterFile,
+      if (sensitive != null) 'sensitive': sensitive,
       if (ownerType != null) 'owner_type': ownerType,
       if (ownerId != null) 'owner_id': ownerId,
       if (imageFile != null) 'image_file': imageFile,
@@ -8808,6 +9119,7 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     Value<MediaKind>? kind,
     Value<int?>? durationMs,
     Value<String?>? posterFile,
+    Value<bool>? sensitive,
     Value<OwnerType>? ownerType,
     Value<String>? ownerId,
     Value<String>? imageFile,
@@ -8825,6 +9137,7 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
       kind: kind ?? this.kind,
       durationMs: durationMs ?? this.durationMs,
       posterFile: posterFile ?? this.posterFile,
+      sensitive: sensitive ?? this.sensitive,
       ownerType: ownerType ?? this.ownerType,
       ownerId: ownerId ?? this.ownerId,
       imageFile: imageFile ?? this.imageFile,
@@ -8864,6 +9177,9 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
     if (posterFile.present) {
       map['poster_file'] = Variable<String>(posterFile.value);
     }
+    if (sensitive.present) {
+      map['sensitive'] = Variable<bool>(sensitive.value);
+    }
     if (ownerType.present) {
       map['owner_type'] = Variable<String>(
         $EntityImagesTable.$converterownerType.toSql(ownerType.value),
@@ -8901,6 +9217,7 @@ class EntityImagesCompanion extends UpdateCompanion<EntityImage> {
           ..write('kind: $kind, ')
           ..write('durationMs: $durationMs, ')
           ..write('posterFile: $posterFile, ')
+          ..write('sensitive: $sensitive, ')
           ..write('ownerType: $ownerType, ')
           ..write('ownerId: $ownerId, ')
           ..write('imageFile: $imageFile, ')
@@ -13715,6 +14032,7 @@ typedef $$PitsTableCreateCompanionBuilder = PitsCompanion Function({
   Value<Set<PitSectionKey>> enabledSections,
   Value<String?> coverFile,
   Value<bool> junkEnabled,
+  Value<bool> sensitiveEnabled,
   Value<int> rowid,
 });
 typedef $$PitsTableUpdateCompanionBuilder = PitsCompanion Function({
@@ -13736,6 +14054,7 @@ typedef $$PitsTableUpdateCompanionBuilder = PitsCompanion Function({
   Value<Set<PitSectionKey>> enabledSections,
   Value<String?> coverFile,
   Value<bool> junkEnabled,
+  Value<bool> sensitiveEnabled,
   Value<int> rowid,
 });
 
@@ -13838,6 +14157,11 @@ class $$PitsTableFilterComposer extends Composer<_$AppDatabase, $PitsTable> {
     column: $table.junkEnabled,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<bool> get sensitiveEnabled => $composableBuilder(
+    column: $table.sensitiveEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$PitsTableOrderingComposer extends Composer<_$AppDatabase, $PitsTable> {
@@ -13937,6 +14261,11 @@ class $$PitsTableOrderingComposer extends Composer<_$AppDatabase, $PitsTable> {
     column: $table.junkEnabled,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get sensitiveEnabled => $composableBuilder(
+    column: $table.sensitiveEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PitsTableAnnotationComposer
@@ -14022,6 +14351,11 @@ class $$PitsTableAnnotationComposer
     column: $table.junkEnabled,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get sensitiveEnabled => $composableBuilder(
+    column: $table.sensitiveEnabled,
+    builder: (column) => column,
+  );
 }
 
 class $$PitsTableTableManager
@@ -14071,6 +14405,7 @@ class $$PitsTableTableManager
                     const Value.absent(),
                 Value<String?> coverFile = const Value.absent(),
                 Value<bool> junkEnabled = const Value.absent(),
+                Value<bool> sensitiveEnabled = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PitsCompanion(
                 id: id,
@@ -14091,6 +14426,7 @@ class $$PitsTableTableManager
                 enabledSections: enabledSections,
                 coverFile: coverFile,
                 junkEnabled: junkEnabled,
+                sensitiveEnabled: sensitiveEnabled,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -14114,6 +14450,7 @@ class $$PitsTableTableManager
                     const Value.absent(),
                 Value<String?> coverFile = const Value.absent(),
                 Value<bool> junkEnabled = const Value.absent(),
+                Value<bool> sensitiveEnabled = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PitsCompanion.insert(
                 id: id,
@@ -14134,6 +14471,7 @@ class $$PitsTableTableManager
                 enabledSections: enabledSections,
                 coverFile: coverFile,
                 junkEnabled: junkEnabled,
+                sensitiveEnabled: sensitiveEnabled,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -14460,6 +14798,7 @@ typedef $$OfficialImagesTableCreateCompanionBuilder =
       Value<MediaKind> kind,
       Value<int?> durationMs,
       Value<String?> posterFile,
+      Value<bool> sensitive,
       required String pitId,
       required String groupId,
       required String imageFile,
@@ -14479,6 +14818,7 @@ typedef $$OfficialImagesTableUpdateCompanionBuilder =
       Value<MediaKind> kind,
       Value<int?> durationMs,
       Value<String?> posterFile,
+      Value<bool> sensitive,
       Value<String> pitId,
       Value<String> groupId,
       Value<String> imageFile,
@@ -14536,6 +14876,11 @@ class $$OfficialImagesTableFilterComposer
 
   ColumnFilters<String> get posterFile => $composableBuilder(
     column: $table.posterFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get sensitive => $composableBuilder(
+    column: $table.sensitive,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14624,6 +14969,11 @@ class $$OfficialImagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get sensitive => $composableBuilder(
+    column: $table.sensitive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get pitId => $composableBuilder(
     column: $table.pitId,
     builder: (column) => ColumnOrderings(column),
@@ -14697,6 +15047,9 @@ class $$OfficialImagesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get sensitive =>
+      $composableBuilder(column: $table.sensitive, builder: (column) => column);
+
   GeneratedColumn<String> get pitId =>
       $composableBuilder(column: $table.pitId, builder: (column) => column);
 
@@ -14760,6 +15113,7 @@ class $$OfficialImagesTableTableManager
                 Value<MediaKind> kind = const Value.absent(),
                 Value<int?> durationMs = const Value.absent(),
                 Value<String?> posterFile = const Value.absent(),
+                Value<bool> sensitive = const Value.absent(),
                 Value<String> pitId = const Value.absent(),
                 Value<String> groupId = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
@@ -14777,6 +15131,7 @@ class $$OfficialImagesTableTableManager
                 kind: kind,
                 durationMs: durationMs,
                 posterFile: posterFile,
+                sensitive: sensitive,
                 pitId: pitId,
                 groupId: groupId,
                 imageFile: imageFile,
@@ -14796,6 +15151,7 @@ class $$OfficialImagesTableTableManager
                 Value<MediaKind> kind = const Value.absent(),
                 Value<int?> durationMs = const Value.absent(),
                 Value<String?> posterFile = const Value.absent(),
+                Value<bool> sensitive = const Value.absent(),
                 required String pitId,
                 required String groupId,
                 required String imageFile,
@@ -14813,6 +15169,7 @@ class $$OfficialImagesTableTableManager
                 kind: kind,
                 durationMs: durationMs,
                 posterFile: posterFile,
+                sensitive: sensitive,
                 pitId: pitId,
                 groupId: groupId,
                 imageFile: imageFile,
@@ -14865,6 +15222,7 @@ typedef $$FanArtsTableCreateCompanionBuilder = FanArtsCompanion Function({
   Value<MediaKind> kind,
   Value<int?> durationMs,
   Value<String?> posterFile,
+  Value<bool> sensitive,
   required String pitId,
   required String imageFile,
   Value<int> width,
@@ -14885,6 +15243,7 @@ typedef $$FanArtsTableUpdateCompanionBuilder = FanArtsCompanion Function({
   Value<MediaKind> kind,
   Value<int?> durationMs,
   Value<String?> posterFile,
+  Value<bool> sensitive,
   Value<String> pitId,
   Value<String> imageFile,
   Value<int> width,
@@ -14944,6 +15303,11 @@ class $$FanArtsTableFilterComposer
 
   ColumnFilters<String> get posterFile => $composableBuilder(
     column: $table.posterFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get sensitive => $composableBuilder(
+    column: $table.sensitive,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15042,6 +15406,11 @@ class $$FanArtsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get sensitive => $composableBuilder(
+    column: $table.sensitive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get pitId => $composableBuilder(
     column: $table.pitId,
     builder: (column) => ColumnOrderings(column),
@@ -15125,6 +15494,9 @@ class $$FanArtsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get sensitive =>
+      $composableBuilder(column: $table.sensitive, builder: (column) => column);
+
   GeneratedColumn<String> get pitId =>
       $composableBuilder(column: $table.pitId, builder: (column) => column);
 
@@ -15189,6 +15561,7 @@ class $$FanArtsTableTableManager
                 Value<MediaKind> kind = const Value.absent(),
                 Value<int?> durationMs = const Value.absent(),
                 Value<String?> posterFile = const Value.absent(),
+                Value<bool> sensitive = const Value.absent(),
                 Value<String> pitId = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
                 Value<int> width = const Value.absent(),
@@ -15208,6 +15581,7 @@ class $$FanArtsTableTableManager
                 kind: kind,
                 durationMs: durationMs,
                 posterFile: posterFile,
+                sensitive: sensitive,
                 pitId: pitId,
                 imageFile: imageFile,
                 width: width,
@@ -15229,6 +15603,7 @@ class $$FanArtsTableTableManager
                 Value<MediaKind> kind = const Value.absent(),
                 Value<int?> durationMs = const Value.absent(),
                 Value<String?> posterFile = const Value.absent(),
+                Value<bool> sensitive = const Value.absent(),
                 required String pitId,
                 required String imageFile,
                 Value<int> width = const Value.absent(),
@@ -15248,6 +15623,7 @@ class $$FanArtsTableTableManager
                 kind: kind,
                 durationMs: durationMs,
                 posterFile: posterFile,
+                sensitive: sensitive,
                 pitId: pitId,
                 imageFile: imageFile,
                 width: width,
@@ -15299,6 +15675,7 @@ typedef $$JunkImagesTableCreateCompanionBuilder = JunkImagesCompanion Function({
   Value<MediaKind> kind,
   Value<int?> durationMs,
   Value<String?> posterFile,
+  Value<bool> sensitive,
   required String pitId,
   required String imageFile,
   Value<int> width,
@@ -15316,6 +15693,7 @@ typedef $$JunkImagesTableUpdateCompanionBuilder = JunkImagesCompanion Function({
   Value<MediaKind> kind,
   Value<int?> durationMs,
   Value<String?> posterFile,
+  Value<bool> sensitive,
   Value<String> pitId,
   Value<String> imageFile,
   Value<int> width,
@@ -15372,6 +15750,11 @@ class $$JunkImagesTableFilterComposer
 
   ColumnFilters<String> get posterFile => $composableBuilder(
     column: $table.posterFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get sensitive => $composableBuilder(
+    column: $table.sensitive,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15455,6 +15838,11 @@ class $$JunkImagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get sensitive => $composableBuilder(
+    column: $table.sensitive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get pitId => $composableBuilder(
     column: $table.pitId,
     builder: (column) => ColumnOrderings(column),
@@ -15523,6 +15911,9 @@ class $$JunkImagesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get sensitive =>
+      $composableBuilder(column: $table.sensitive, builder: (column) => column);
+
   GeneratedColumn<String> get pitId =>
       $composableBuilder(column: $table.pitId, builder: (column) => column);
 
@@ -15581,6 +15972,7 @@ class $$JunkImagesTableTableManager
                 Value<MediaKind> kind = const Value.absent(),
                 Value<int?> durationMs = const Value.absent(),
                 Value<String?> posterFile = const Value.absent(),
+                Value<bool> sensitive = const Value.absent(),
                 Value<String> pitId = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
                 Value<int> width = const Value.absent(),
@@ -15597,6 +15989,7 @@ class $$JunkImagesTableTableManager
                 kind: kind,
                 durationMs: durationMs,
                 posterFile: posterFile,
+                sensitive: sensitive,
                 pitId: pitId,
                 imageFile: imageFile,
                 width: width,
@@ -15615,6 +16008,7 @@ class $$JunkImagesTableTableManager
                 Value<MediaKind> kind = const Value.absent(),
                 Value<int?> durationMs = const Value.absent(),
                 Value<String?> posterFile = const Value.absent(),
+                Value<bool> sensitive = const Value.absent(),
                 required String pitId,
                 required String imageFile,
                 Value<int> width = const Value.absent(),
@@ -15631,6 +16025,7 @@ class $$JunkImagesTableTableManager
                 kind: kind,
                 durationMs: durationMs,
                 posterFile: posterFile,
+                sensitive: sensitive,
                 pitId: pitId,
                 imageFile: imageFile,
                 width: width,
@@ -17253,6 +17648,7 @@ typedef $$MaterialImagesTableCreateCompanionBuilder =
       Value<MediaKind> kind,
       Value<int?> durationMs,
       Value<String?> posterFile,
+      Value<bool> sensitive,
       required String imageFile,
       Value<int> width,
       Value<int> height,
@@ -17269,6 +17665,7 @@ typedef $$MaterialImagesTableUpdateCompanionBuilder =
       Value<MediaKind> kind,
       Value<int?> durationMs,
       Value<String?> posterFile,
+      Value<bool> sensitive,
       Value<String> imageFile,
       Value<int> width,
       Value<int> height,
@@ -17323,6 +17720,11 @@ class $$MaterialImagesTableFilterComposer
 
   ColumnFilters<String> get posterFile => $composableBuilder(
     column: $table.posterFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get sensitive => $composableBuilder(
+    column: $table.sensitive,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17397,6 +17799,11 @@ class $$MaterialImagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get sensitive => $composableBuilder(
+    column: $table.sensitive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get imageFile => $composableBuilder(
     column: $table.imageFile,
     builder: (column) => ColumnOrderings(column),
@@ -17455,6 +17862,9 @@ class $$MaterialImagesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get sensitive =>
+      $composableBuilder(column: $table.sensitive, builder: (column) => column);
+
   GeneratedColumn<String> get imageFile =>
       $composableBuilder(column: $table.imageFile, builder: (column) => column);
 
@@ -17509,6 +17919,7 @@ class $$MaterialImagesTableTableManager
                 Value<MediaKind> kind = const Value.absent(),
                 Value<int?> durationMs = const Value.absent(),
                 Value<String?> posterFile = const Value.absent(),
+                Value<bool> sensitive = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
                 Value<int> width = const Value.absent(),
                 Value<int> height = const Value.absent(),
@@ -17523,6 +17934,7 @@ class $$MaterialImagesTableTableManager
                 kind: kind,
                 durationMs: durationMs,
                 posterFile: posterFile,
+                sensitive: sensitive,
                 imageFile: imageFile,
                 width: width,
                 height: height,
@@ -17539,6 +17951,7 @@ class $$MaterialImagesTableTableManager
                 Value<MediaKind> kind = const Value.absent(),
                 Value<int?> durationMs = const Value.absent(),
                 Value<String?> posterFile = const Value.absent(),
+                Value<bool> sensitive = const Value.absent(),
                 required String imageFile,
                 Value<int> width = const Value.absent(),
                 Value<int> height = const Value.absent(),
@@ -17553,6 +17966,7 @@ class $$MaterialImagesTableTableManager
                 kind: kind,
                 durationMs: durationMs,
                 posterFile: posterFile,
+                sensitive: sensitive,
                 imageFile: imageFile,
                 width: width,
                 height: height,
@@ -17603,6 +18017,7 @@ typedef $$EntityImagesTableCreateCompanionBuilder =
       Value<MediaKind> kind,
       Value<int?> durationMs,
       Value<String?> posterFile,
+      Value<bool> sensitive,
       required OwnerType ownerType,
       required String ownerId,
       required String imageFile,
@@ -17621,6 +18036,7 @@ typedef $$EntityImagesTableUpdateCompanionBuilder =
       Value<MediaKind> kind,
       Value<int?> durationMs,
       Value<String?> posterFile,
+      Value<bool> sensitive,
       Value<OwnerType> ownerType,
       Value<String> ownerId,
       Value<String> imageFile,
@@ -17677,6 +18093,11 @@ class $$EntityImagesTableFilterComposer
 
   ColumnFilters<String> get posterFile => $composableBuilder(
     column: $table.posterFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get sensitive => $composableBuilder(
+    column: $table.sensitive,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17761,6 +18182,11 @@ class $$EntityImagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get sensitive => $composableBuilder(
+    column: $table.sensitive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get ownerType => $composableBuilder(
     column: $table.ownerType,
     builder: (column) => ColumnOrderings(column),
@@ -17829,6 +18255,9 @@ class $$EntityImagesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get sensitive =>
+      $composableBuilder(column: $table.sensitive, builder: (column) => column);
+
   GeneratedColumnWithTypeConverter<OwnerType, String> get ownerType =>
       $composableBuilder(column: $table.ownerType, builder: (column) => column);
 
@@ -17887,6 +18316,7 @@ class $$EntityImagesTableTableManager
                 Value<MediaKind> kind = const Value.absent(),
                 Value<int?> durationMs = const Value.absent(),
                 Value<String?> posterFile = const Value.absent(),
+                Value<bool> sensitive = const Value.absent(),
                 Value<OwnerType> ownerType = const Value.absent(),
                 Value<String> ownerId = const Value.absent(),
                 Value<String> imageFile = const Value.absent(),
@@ -17903,6 +18333,7 @@ class $$EntityImagesTableTableManager
                 kind: kind,
                 durationMs: durationMs,
                 posterFile: posterFile,
+                sensitive: sensitive,
                 ownerType: ownerType,
                 ownerId: ownerId,
                 imageFile: imageFile,
@@ -17921,6 +18352,7 @@ class $$EntityImagesTableTableManager
                 Value<MediaKind> kind = const Value.absent(),
                 Value<int?> durationMs = const Value.absent(),
                 Value<String?> posterFile = const Value.absent(),
+                Value<bool> sensitive = const Value.absent(),
                 required OwnerType ownerType,
                 required String ownerId,
                 required String imageFile,
@@ -17937,6 +18369,7 @@ class $$EntityImagesTableTableManager
                 kind: kind,
                 durationMs: durationMs,
                 posterFile: posterFile,
+                sensitive: sensitive,
                 ownerType: ownerType,
                 ownerId: ownerId,
                 imageFile: imageFile,

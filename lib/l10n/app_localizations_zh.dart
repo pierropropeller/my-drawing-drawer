@@ -2074,6 +2074,75 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get personalizeTitle => '個人化';
+
+  @override
+  String get sensitiveTitle => '敏感內容';
+
+  @override
+  String get sensitiveValueOff => '關閉';
+
+  @override
+  String get sensitiveValueOn => '開啟';
+
+  @override
+  String get sensitiveBadgeLabel => '敏感';
+
+  @override
+  String get sensitiveMasterTitle => '敏感內容標記';
+
+  @override
+  String get sensitiveSafeModeTitle => '安全模式';
+
+  @override
+  String get sensitiveSafeModeHint => '開啟後會模糊顯示已標記的圖片，關閉則正常顯示';
+
+  @override
+  String get sensitiveOffTitle => '關閉敏感內容標記？';
+
+  @override
+  String get sensitiveOffBody => '已標記的圖片會照常顯示，不再模糊，所有敏感內容選項也會隱藏。重新開啟後，標記會自動恢復。';
+
+  @override
+  String get sensitiveOffConfirm => '關閉';
+
+  @override
+  String get sensitivePitOffTitle => '關閉這個坑的敏感內容？';
+
+  @override
+  String sensitivePitOffBody(int count) {
+    return '坑內已標記的 $count 張圖會照常顯示。重新開啟後，標記會自動恢復。';
+  }
+
+  @override
+  String get sensitiveMarkAll => '全部標為敏感';
+
+  @override
+  String sensitiveMarkedCount(int marked, int total) {
+    return '$marked / $total';
+  }
+
+  @override
+  String get sensitiveMarkImage => '標為敏感';
+
+  @override
+  String get sensitiveMarkedImage => '已標為敏感';
+
+  @override
+  String get sensitiveAction => '敏感';
+
+  @override
+  String get sensitiveCoverTitle => '標為敏感內容？';
+
+  @override
+  String sensitiveCoverBody(int count) {
+    return '選中的圖片裡有 $count 張是這個坑的封面，標記後會從封面移除。';
+  }
+
+  @override
+  String get sensitiveCoverConfirm => '標記並移除封面';
+
+  @override
   String get shallowName => '淺坑';
 
   @override

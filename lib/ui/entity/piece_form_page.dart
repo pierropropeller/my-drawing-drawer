@@ -471,6 +471,7 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
     final imagesField = [
       FormLabel(context.l10n.pieceFormImages),
       PieceImageGrid(
+        pitId: widget.pitId,
         items: _images,
         onAdd: () async {
           final picked = await ref.read(imagePickerProvider)(context);

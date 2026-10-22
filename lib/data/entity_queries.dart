@@ -6,6 +6,7 @@ import 'album_queries.dart';
 import 'database.dart';
 import 'media.dart';
 import 'payment.dart';
+import 'sensitive_queries.dart' show SensitiveQueries;
 
 /// 腦洞狀態由關係推導，不儲存（HANDOFF 3.4）。
 enum IdeaStatus { open, hatching, hatched }
@@ -18,6 +19,7 @@ class ImageRef {
     this.kind = MediaKind.image,
     this.durationMs,
     this.poster,
+    this.sensitive = false,
   });
   final String file;
   final int width;
@@ -31,6 +33,9 @@ class ImageRef {
 
   /// 影片第一格截圖的檔名；影片尚未產生截圖時為 null。
   final String? poster;
+
+  /// 敏感內容標記（D-104）。
+  final bool sensitive;
 
   double get aspect => (width > 0 && height > 0) ? width / height : 1;
 
@@ -48,6 +53,7 @@ class ImageRef {
     kind: kind,
     durationMs: durationMs,
     posterFile: poster,
+    sensitive: sensitive,
   );
 }
 
@@ -59,6 +65,7 @@ ImageRef entityImageRef(EntityImage r) => ImageRef(
   kind: r.kind,
   durationMs: r.durationMs,
   poster: r.posterFile,
+  sensitive: r.sensitive,
 );
 
 class IdeaView {
@@ -325,6 +332,7 @@ extension EntityQueries on AppDatabase {
             posterFile: n.posterFile == null
                 ? const Value.absent()
                 : Value(n.posterFile),
+            sensitive: Value(n.sensitive),
           ),
         );
       } else {
@@ -338,10 +346,15 @@ extension EntityQueries on AppDatabase {
             kind: Value(images[i].kind),
             durationMs: Value(images[i].durationMs),
             posterFile: Value(images[i].posterFile),
+            sensitive: Value(images[i].sensitive),
             sortOrder: Value(i),
           ),
         );
       }
+    }
+    // 有圖標成敏感：這些圖不能當封面（D-104）。
+    if (images.any((n) => n.sensitive)) {
+      await dropCoversOfSensitiveOwner(type, id);
     }
   }
 

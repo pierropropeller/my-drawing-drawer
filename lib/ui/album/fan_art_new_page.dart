@@ -116,6 +116,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
             : context.l10n.albumFieldImage,
       ),
       ImagePickerField(
+        pitId: widget.pitId,
         items: _files,
         onAdd: _pick,
         onRemove: (i) => setState(() => _files.removeAt(i)),

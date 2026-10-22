@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
+import '../../data/sensitive_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/adaptive_modal.dart';
 import '../common/modal_form_layout.dart';
 import '../common/nav_bar_hidden.dart';
+import '../common/sensitive_dialogs.dart';
 import '../pits/pit_form.dart';
 import '../tags/tag_picker.dart';
 import 'album_actions.dart';
@@ -56,6 +58,9 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
   String? _groupId;
   List<String>? _tagIds;
   NewImage? _image;
+
+  /// 表單裡的這張圖（持有敏感標記的切換狀態，D-104）。
+  ImageItem? _item;
   bool _loaded = false;
 
   @override
@@ -82,7 +87,9 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
         kind: row.kind,
         durationMs: row.durationMs,
         posterFile: row.posterFile,
+        sensitive: row.sensitive,
       );
+      _item = ImageItem.stored(_image!);
       _loaded = true;
     });
   }
@@ -94,14 +101,21 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
   }
 
   Future<void> _save() async {
-    await ref
-        .read(databaseProvider)
-        .updateFanArt(
-          widget.imageId,
-          author: _author.text.trim(),
-          groupId: _groupId,
-          tagIds: _tagIds ?? const [],
-        );
+    final db = ref.read(databaseProvider);
+    final sensitive = _item!.sensitive;
+    // 把現任封面標成敏感：先確認（D-104）。
+    if (sensitive &&
+        !_image!.sensitive &&
+        await db.coverCountAmong(SensitiveSource.fan, [widget.imageId]) > 0) {
+      if (!mounted || !await confirmSensitiveCover(context, 1)) return;
+    }
+    await db.updateFanArt(
+      widget.imageId,
+      author: _author.text.trim(),
+      groupId: _groupId,
+      tagIds: _tagIds ?? const [],
+      sensitive: sensitive,
+    );
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -139,7 +153,8 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
     final imageField = [
       AlbumFieldLabel(context.l10n.albumFieldImage),
       ImagePickerField(
-        items: [ImageItem.stored(_image!)],
+        pitId: widget.pitId,
+        items: [_item!],
         onAdd: null,
         onRemove: (_) => _removeImage(),
       ),

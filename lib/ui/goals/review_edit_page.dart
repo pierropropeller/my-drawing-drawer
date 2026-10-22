@@ -17,6 +17,7 @@ import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../entity/entity_widgets.dart';
 import 'review_canvas.dart';
+import '../common/sensitive_gate.dart';
 
 /// 年度回顧匯出圖片存進的相簿名稱（D-007）：固定英文，不隨系統語言（Android：`Pictures/Drawer`）。
 const reviewAlbumName = 'Drawer';
@@ -104,7 +105,10 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
                         onTap: () => Navigator.pop(ctx, options[i]),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(Radii.image),
-                          child: StoredImage(options[i], cacheWidth: 300),
+                          child: SensitiveGate(
+                            file: options[i],
+                            child: StoredImage(options[i], cacheWidth: 300),
+                          ),
                         ),
                       ),
                     ),

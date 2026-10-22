@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart' show TagTarget;
 import '../../data/entity_queries.dart';
+import '../../data/sensitive_queries.dart';
+import '../../state/sensitive.dart';
+import '../common/sensitive_actions.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
@@ -137,6 +140,17 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
       ids: [for (final v in picked) v.draft.id],
     );
     if (applied == true && mounted) _sel.exit();
+  }
+
+  Future<void> _sensitive(List<DraftView> picked) async {
+    if (picked.isEmpty) return;
+    final done = await applySensitiveToSelection(
+      context,
+      ref,
+      SensitiveSource.draft,
+      [for (final v in picked) v.draft.id],
+    );
+    if (done && mounted) _sel.exit();
   }
 
   Future<void> _delete(List<DraftView> picked) async {
@@ -323,6 +337,9 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
                 onDownload: () => _download(picked),
                 onTag: () => _tag(picked),
                 onDelete: () => _delete(picked),
+                onSensitive: ref.watch(sensitiveMarkingProvider(widget.pitId))
+                    ? () => _sensitive(picked)
+                    : null,
               )
             : null,
         body: SafeArea(

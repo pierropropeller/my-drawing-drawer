@@ -88,6 +88,7 @@ class AlbumPreviewPanel extends StatelessWidget {
                           cacheWidth: 900,
                           fit: BoxFit.contain,
                           badgeInset: 10,
+                          protectSensitive: false, // 預覽不模糊（D-104）
                         ),
                       if (media.isGif)
                         Positioned(

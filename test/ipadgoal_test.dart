@@ -20,9 +20,8 @@ import 'package:huakeng/ui/goals/goal_new_page.dart';
 import 'package:huakeng/ui/goals/goals_page.dart';
 import 'package:huakeng/ui/material/material_library_page.dart';
 import 'package:huakeng/ui/me/about_page.dart';
-import 'package:huakeng/ui/me/app_icon_page.dart';
 import 'package:huakeng/ui/me/backup_page.dart';
-import 'package:huakeng/ui/me/language_page.dart';
+import 'package:huakeng/ui/me/personalize_page.dart';
 import 'package:huakeng/ui/me/profile_page.dart';
 import 'package:huakeng/ui/me/theme_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -274,30 +273,33 @@ void main() {
       });
     }
 
-    testWidgets('390×844：一欄列表，點主題色 push 整頁（手機行為）', (tester) async {
+    testWidgets('390×844：一欄列表，個人化 → 主題色 push 整頁（手機行為）', (tester) async {
       await show(tester, const ProfilePage(), size: sizes['390×844']!);
       expect(find.byType(ThemePage), findsNothing);
+      expect(find.text('主題色'), findsNothing); // D-106：收進個人化
+      await tester.tap(find.text('個人化'));
+      await settle(tester);
       await tester.tap(find.text('主題色'));
       await settle(tester);
       expect(find.byType(ThemePage), findsOneWidget);
-      expect(navBarHiddenCount.value, 1);
+      expect(navBarHiddenCount.value, 2);
       await unmount(tester);
     });
 
     testWidgets('1194×834：左列表＋右面板，點列只切換內容、不 push', (tester) async {
       await show(tester, const ProfilePage());
-      // 預設主題色：右面板有「強調色」標題的主題頁。
+      // 預設個人化（D-106）：右面板是個人化頁（四列：主題色、App 圖示、語言、敏感內容）。
       final list = tester.getTopLeft(find.text('素材庫'));
-      expect(find.byType(ThemePage), findsOneWidget);
-      expect(tester.widget<ThemePage>(find.byType(ThemePage)).embedded, true);
+      expect(find.byType(PersonalizePage), findsOneWidget);
+      expect(
+        tester.widget<PersonalizePage>(find.byType(PersonalizePage)).embedded,
+        true,
+      );
       expect(tester.getTopLeft(find.text('主題色').last).dx, greaterThan(360));
       expect(list.dx, lessThan(360));
-
-      await tester.tap(find.text('語言').first);
-      await settle(tester);
-      expect(find.byType(LanguagePage), findsOneWidget);
-      expect(find.byType(ThemePage), findsNothing);
-      expect(find.text('繁體中文'), findsOneWidget);
+      // 左列表只剩 素材庫、個人化、備份與同步、關於 App。
+      expect(find.text('語言'), findsOneWidget);
+      expect(find.text('敏感內容'), findsOneWidget);
 
       await tester.tap(find.text('備份與同步').first);
       await settle(tester);
@@ -307,9 +309,9 @@ void main() {
       await settle(tester);
       expect(find.byType(AboutPage), findsOneWidget);
 
-      await tester.tap(find.text('App 圖示').first);
+      await tester.tap(find.text('個人化').first);
       await settle(tester);
-      expect(find.byType(AppIconPickPage), findsOneWidget);
+      expect(find.byType(PersonalizePage), findsOneWidget);
       // 全程沒有 push 頁面，也沒有隱藏導覽。
       expect(navBarHiddenCount.value, 0);
       expect(tester.takeException(), isNull);
@@ -318,24 +320,27 @@ void main() {
 
     testWidgets('拉窗：選中的項目在 1194 → 390 → 834 之間保留', (tester) async {
       await show(tester, const ProfilePage());
-      await tester.tap(find.text('語言').first);
+      await tester.tap(find.text('備份與同步').first);
       await settle(tester);
-      expect(find.byType(LanguagePage), findsOneWidget);
+      expect(find.byType(BackupPage), findsOneWidget);
 
       resize(tester, sizes['390×844']!);
       await settle(tester);
-      expect(find.byType(LanguagePage), findsNothing); // 手機＝一欄列表
+      expect(find.byType(BackupPage), findsNothing); // 手機＝一欄列表
       expect(tester.takeException(), isNull);
 
       resize(tester, sizes['834×1194']!);
       await settle(tester);
-      expect(find.byType(LanguagePage), findsOneWidget);
+      expect(find.byType(BackupPage), findsOneWidget);
       expect(tester.takeException(), isNull);
       await unmount(tester);
     });
 
-    testWidgets('主題色面板：外觀三張預覽卡可切換', (tester) async {
+    testWidgets('個人化 → 主題色：外觀三張預覽卡可切換，返回回到個人化', (tester) async {
       await show(tester, const ProfilePage());
+      await tester.tap(find.text('主題色').last);
+      await settle(tester);
+      expect(find.byType(ThemePage), findsOneWidget);
       await tester.tap(find.text('深色'));
       await settle(tester);
       expect(tester.takeException(), isNull);

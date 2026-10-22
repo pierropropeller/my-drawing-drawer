@@ -11,6 +11,7 @@ import 'media_mini.dart';
 import 'media_source.dart';
 import 'app_icons.dart';
 import 'svg_icon.dart';
+import 'sensitive_gate.dart';
 
 /// 共用時間軸元件（D-063）：推活時間軸與目標「日」頁共用。
 /// 設計稿：OshiTimeline、Day。
@@ -462,7 +463,10 @@ class _EntryCard extends StatelessWidget {
                     ? const ImagePlaceholder(iconSize: 22)
                     : entry.media != null
                     ? MiniMediaThumb(entry.media!, cacheWidth: 300, inset: 5)
-                    : StoredImage(entry.imageFile!, cacheWidth: 300),
+                    : SensitiveGate(
+                        file: entry.imageFile!,
+                        child: StoredImage(entry.imageFile!, cacheWidth: 300),
+                      ),
               ),
               if (entry.imageCount > 1)
                 Positioned(

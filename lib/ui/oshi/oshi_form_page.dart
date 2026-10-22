@@ -215,6 +215,7 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage>
             : context.l10n.oshiFieldImages,
       ),
       ImagePickerField(
+        pitId: widget.pitId,
         items: _images,
         onAdd: _addImages,
         onRemove: _removeImage,

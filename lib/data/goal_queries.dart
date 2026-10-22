@@ -551,15 +551,26 @@ extension GoalQueries on AppDatabase {
   ///    該月沒有任何有圖的成圖 → 這個月不在結果裡。
   ///
   /// 候選成圖包含私稿與商稿（回顧是自己看的年度總結，不分公開與否），已刪除的不算。
-  Stream<Map<int, String?>> watchReviewMonths(int year) {
+  ///
+  /// [excludeSensitive]（D-104，總開關開著時傳 true）：預設代表圖跳過標記為敏感的圖（該坑有開敏感內容才算）；
+  /// 使用者手動挑的照樣用。
+  Stream<Map<int, String?>> watchReviewMonths(
+    int year, {
+    bool excludeSensitive = false,
+  }) {
     return watchAssembled(
       this,
-      {pieces, entityImages, yearReviewMonths},
+      {pieces, entityImages, yearReviewMonths, pits},
       () async {
         final out = <int, String?>{};
-        final byMonth = await _reviewCandidates(year);
+        final byMonth = await _reviewCandidates(
+          year,
+          excludeSensitive: excludeSensitive,
+        );
         for (final e in byMonth.entries) {
-          out[e.key] = defaultReviewPiece(e.value)?.file;
+          // 這個月的圖全是敏感的（D-104）：沒有預設圖，不放進結果（使用者仍可手動挑）。
+          final auto = defaultReviewPiece(e.value)?.autoFile;
+          if (auto != null) out[e.key] = auto;
         }
         for (final r in await (select(
           yearReviewMonths,
@@ -586,12 +597,18 @@ extension GoalQueries on AppDatabase {
 
   /// 每月的候選數與目前使用的圖（供年度回顧格決定長按是否有反應：[ReviewMonthSummary.canPick]）。
   /// 只含有候選成圖的月份。
-  Stream<Map<int, ReviewMonthSummary>> watchReviewMonthSummaries(int year) {
+  Stream<Map<int, ReviewMonthSummary>> watchReviewMonthSummaries(
+    int year, {
+    bool excludeSensitive = false,
+  }) {
     return watchAssembled(
       this,
-      {pieces, entityImages, yearReviewMonths},
+      {pieces, entityImages, yearReviewMonths, pits},
       () async {
-        final byMonth = await _reviewCandidates(year);
+        final byMonth = await _reviewCandidates(
+          year,
+          excludeSensitive: excludeSensitive,
+        );
         final rows = {
           for (final r in await (select(
             yearReviewMonths,
@@ -605,7 +622,9 @@ extension GoalQueries on AppDatabase {
               final manual = r != null && (r.imageFile?.isNotEmpty ?? true);
               return ReviewMonthSummary(
                 pieceCount: e.value.length,
-                file: manual ? r.imageFile : defaultReviewPiece(e.value)?.file,
+                file: manual
+                    ? r.imageFile
+                    : defaultReviewPiece(e.value)?.autoFile,
                 isManual: manual,
               );
             }(),
@@ -615,7 +634,19 @@ extension GoalQueries on AppDatabase {
   }
 
   /// 該年每月候選成圖（有圖、未刪除），月內 `finishedAt` 新到舊。
-  Future<Map<int, List<ReviewMonthPiece>>> _reviewCandidates(int year) async {
+  Future<Map<int, List<ReviewMonthPiece>>> _reviewCandidates(
+    int year, {
+    bool excludeSensitive = false,
+  }) async {
+    // 有開敏感內容的坑（總開關開著才需要查）：這些坑裡標記為敏感的圖，預設代表圖不用。
+    final sensitivePits = excludeSensitive
+        ? {
+            for (final t in await (select(
+              pits,
+            )..where((t) => t.sensitiveEnabled.equals(true))).get())
+              t.id,
+          }
+        : const <String>{};
     final rows =
         await (select(pieces)
               ..where(
@@ -641,10 +672,16 @@ extension GoalQueries on AppDatabase {
               .get();
       EntityImage? first;
       String? firstFile;
+      String? autoFile; // 預設代表圖用的：第一張沒有標記敏感的圖
       for (final c in candidates) {
-        firstFile = staticFileOf(c.kind, c.imageFile, c.posterFile);
-        if (firstFile != null) {
+        final f = staticFileOf(c.kind, c.imageFile, c.posterFile);
+        if (f == null) continue;
+        if (first == null) {
           first = c;
+          firstFile = f;
+        }
+        if (!(c.sensitive && sensitivePits.contains(p.pitId))) {
+          autoFile = f;
           break;
         }
       }
@@ -656,6 +693,7 @@ extension GoalQueries on AppDatabase {
               pieceId: p.id,
               title: p.title,
               file: firstFile!,
+              autoFile: autoFile,
               width: first.width,
               height: first.height,
               actualLikes: p.actualLikes,
@@ -716,12 +754,17 @@ class ReviewMonthPiece {
     required this.height,
     required this.actualLikes,
     required this.finishedAt,
+    required this.autoFile,
   });
   final String pieceId;
   final String title;
 
   /// 成圖的第一張圖。
   final String file;
+
+  /// 自動挑代表圖時用的圖（D-104：跳過標記為敏感的圖）；這張成圖的圖全都是敏感的＝null，自動挑選會跳過它。
+  /// 手動挑選（[file]）不受影響。沒有敏感內容時＝[file]。
+  final String? autoFile;
   final int width;
   final int height;
   final int actualLikes;
@@ -732,6 +775,7 @@ class ReviewMonthPiece {
 ReviewMonthPiece? defaultReviewPiece(Iterable<ReviewMonthPiece> candidates) {
   ReviewMonthPiece? best;
   for (final c in candidates) {
+    if (c.autoFile == null) continue; // 圖全是敏感的：自動挑選跳過
     if (best == null) {
       best = c;
       continue;

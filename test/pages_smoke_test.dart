@@ -43,6 +43,8 @@ import 'package:huakeng/ui/goals/review_edit_page.dart';
 import 'package:huakeng/ui/login/welcome_page.dart';
 import 'package:huakeng/ui/me/backup_page.dart';
 import 'package:huakeng/ui/me/language_page.dart';
+import 'package:huakeng/ui/me/personalize_page.dart';
+import 'package:huakeng/ui/me/sensitive_settings_page.dart';
 import 'package:huakeng/ui/me/profile_page.dart';
 import 'package:huakeng/ui/me/theme_page.dart';
 import 'package:huakeng/ui/pits/pit_edit_page.dart';
@@ -288,6 +290,8 @@ void main() {
     'ProfilePage': () => const ProfilePage(),
     'ThemePage': () => const ThemePage(),
     'LanguagePage': () => const LanguagePage(),
+    'PersonalizePage': () => const PersonalizePage(),
+    'SensitiveSettingsPage': () => const SensitiveSettingsPage(),
     'BackupPage(unlinked)': () => const BackupPage(),
     'WelcomePage': () => const WelcomePage(),
     'ConnectPage': () => const ConnectPage(),

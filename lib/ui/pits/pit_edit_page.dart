@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
 import '../../l10n/l10n.dart';
+import '../../data/sensitive_queries.dart';
 import '../../state/providers.dart';
+import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../album/cover_pick_page.dart';
@@ -13,6 +15,7 @@ import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
+import '../common/sensitive_dialogs.dart';
 import '../common/svg_icon.dart';
 import 'pit_form.dart';
 import 'pit_type_widgets.dart';
@@ -71,6 +74,9 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
   late bool _junk = widget.pit.isShallow
       ? widget.pit.enabledSections.contains(PitSectionKey.junk)
       : widget.pit.junkEnabled;
+
+  /// 這個坑的敏感內容開關（D-104）；總開關開著才顯示。
+  late bool _sensitive = widget.pit.sensitiveEnabled;
 
   /// 各格子目前的內容數量（關閉格子時決定要不要彈確認框）。
   Map<PitSectionKey, int> _counts = const {};
@@ -137,6 +143,23 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     });
   }
 
+  /// 敏感內容開關（D-104）：開→關要確認（說明坑內已標記的張數、標記會保留）。
+  Future<void> _toggleSensitive(bool on) async {
+    if (on) {
+      setState(() => _sensitive = true);
+      return;
+    }
+    final n = await ref
+        .read(databaseProvider)
+        .sensitiveCountInPit(widget.pit.id);
+    if (!mounted || !await confirmSensitivePitOff(context, n)) return;
+    if (mounted) setState(() => _sensitive = false);
+  }
+
+  /// 總開關開著才顯示坑的敏感內容開關。
+  bool get _showSensitive =>
+      ref.watch(settingsProvider.select((s) => s.sensitiveEnabled));
+
   @override
   void initState() {
     super.initState();
@@ -173,6 +196,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
       status: _status,
       enabledSections: _shallow ? _sections : null,
       junkEnabled: _shallow ? null : _junk,
+      sensitiveEnabled: _sensitive == pit.sensitiveEnabled ? null : _sensitive,
       deleteClosedContent: _shallow,
     );
     if (_coverId != pit.coverImageId) {
@@ -545,6 +569,8 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                   PitSectionSwitchList(
                     enabled: _sections,
                     onChanged: _toggleSection,
+                    sensitive: _showSensitive ? _sensitive : null,
+                    onSensitiveChanged: _toggleSensitive,
                   )
                 else if (_status == PitStatus.active)
                   PitJunkSwitchCard(
@@ -556,6 +582,14 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                       vertical: 12,
                     ),
                     onChanged: (v) => setState(() => _junk = v),
+                    sensitive: _showSensitive ? _sensitive : null,
+                    onSensitiveChanged: _toggleSensitive,
+                  )
+                else if (_showSensitive)
+                  PitSensitiveCard(
+                    radius: 14,
+                    value: _sensitive,
+                    onChanged: _toggleSensitive,
                   ),
                 const SizedBox(height: 24),
                 const Spacer(),
@@ -660,11 +694,20 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                               PitSectionSwitchList(
                                 enabled: _sections,
                                 onChanged: _toggleSection,
+                                sensitive: _showSensitive ? _sensitive : null,
+                                onSensitiveChanged: _toggleSensitive,
                               )
                             else if (_status == PitStatus.active)
                               PitJunkSwitchCard(
                                 value: _junk,
                                 onChanged: (v) => setState(() => _junk = v),
+                                sensitive: _showSensitive ? _sensitive : null,
+                                onSensitiveChanged: _toggleSensitive,
+                              )
+                            else if (_showSensitive)
+                              PitSensitiveCard(
+                                value: _sensitive,
+                                onChanged: _toggleSensitive,
                               ),
                             SizedBox(height: _shallow ? 0 : 22),
                             PitPrimaryButton(

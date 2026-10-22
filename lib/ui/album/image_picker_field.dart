@@ -17,19 +17,40 @@ import '../common/dashed_box.dart';
 import '../common/media_widgets.dart';
 import '../common/reorder_tile.dart';
 import '../common/svg_icon.dart';
+import '../../state/sensitive.dart';
 import 'form_image_preview_page.dart';
+import 'sensitive_form.dart';
 
 /// 表單裡的一張圖：剛從相簿選的（[picked]）或已存在 App 內的（[stored]）。
-class ImageItem {
-  const ImageItem.picked(XFile this.picked) : stored = null;
-  const ImageItem.stored(NewImage this.stored) : picked = null;
+///
+/// 敏感內容標記（D-104）存在 [sensitive]（表單內可切換，變動時通知監聽者，縮圖小標與「全部標為敏感」列跟著更新）；
+/// 存檔時 [resolve] 把它寫進 [NewImage.sensitive]。
+class ImageItem extends ChangeNotifier {
+  ImageItem.picked(XFile this.picked, {bool sensitive = false})
+    : stored = null,
+      // ignore: prefer_initializing_formals
+      _sensitive = sensitive;
+  ImageItem.stored(NewImage this.stored)
+    : picked = null,
+      _sensitive = stored.sensitive;
 
   final XFile? picked;
   final NewImage? stored;
+  bool _sensitive;
 
-  /// 匯入新選的圖／GIF／影片，已存在的直接沿用。
+  /// 這張圖有沒有標為敏感（D-104）。
+  bool get sensitive => _sensitive;
+  set sensitive(bool v) {
+    if (v == _sensitive) return;
+    _sensitive = v;
+    notifyListeners();
+  }
+
+  /// 匯入新選的圖／GIF／影片，已存在的直接沿用；帶著目前的敏感標記。
   Future<NewImage> resolve(ImageStore store) async =>
-      stored ?? await importPickedMedia(store, picked!);
+      (stored ?? await importPickedMedia(store, picked!)).copyWith(
+        sensitive: _sensitive,
+      );
 }
 
 Future<List<NewImage>> resolveImages(
@@ -52,6 +73,8 @@ class ImageItemThumb extends ConsumerWidget {
         MediaSource.fromNewImage(stored),
         cacheWidth: cacheWidth,
         animate: false,
+        // 表單裡的小圖不模糊（D-104）：只在左下角加小標，方便看清楚自己在標哪張。
+        protectSensitive: false,
       );
     }
     final path = item.picked!.path;
@@ -126,9 +149,14 @@ class ImagePickerField extends ConsumerWidget {
     required this.onAdd,
     required this.onRemove,
     this.onReorder,
+    this.pitId,
   });
 
   final List<ImageItem> items;
+
+  /// 表單所在的坑（D-104）：總開關和這個坑的敏感內容都開了，才出現「全部標為敏感」列、
+  /// 縮圖小標與預覽頁的逐張標記鈕。null＝沒有標記功能。
+  final String? pitId;
 
   /// 為 null＝不顯示虛線「＋」格（例如編輯單張同人圖）。
   final VoidCallback? onAdd;
@@ -140,7 +168,8 @@ class ImagePickerField extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = context.tokens;
-    return ReorderableImageGrid(
+    final marking = pitId != null && ref.watch(sensitiveMarkingProvider(pitId));
+    final grid = ReorderableImageGrid(
       count: items.length,
       size: 84,
       onReorder: onReorder,
@@ -157,13 +186,31 @@ class ImagePickerField extends ConsumerWidget {
               behavior: HitTestBehavior.opaque,
               onTap: hide
                   ? null
-                  : () => FormImagePreviewPage.open(context, items, i),
+                  : () => FormImagePreviewPage.open(
+                      context,
+                      items,
+                      i,
+                      canMark: marking,
+                    ),
               child: Semantics(
                 button: true,
                 label: context.l10n.albumPreviewImage,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(Radii.image),
-                  child: ImageItemThumb(items[i], cacheWidth: 300),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ImageItemThumb(items[i], cacheWidth: 300),
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: FormSensitiveBadge(
+                            item: items[i],
+                            pitId: pitId,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -217,6 +264,14 @@ class ImagePickerField extends ConsumerWidget {
                 ),
               ),
             ),
+    );
+    if (!marking) return grid;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        grid,
+        SensitiveMarkAllRow(items: items, pitId: pitId),
+      ],
     );
   }
 }

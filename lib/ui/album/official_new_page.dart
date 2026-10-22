@@ -4,11 +4,13 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
+import '../../data/sensitive_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/adaptive_modal.dart';
 import '../common/modal_form_layout.dart';
 import '../common/nav_bar_hidden.dart';
+import '../common/sensitive_dialogs.dart';
 import '../media_source/drop_zone.dart';
 import '../../theme/tokens.dart';
 import 'album_actions.dart';
@@ -91,6 +93,7 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
 
   // 編輯模式：載入的那一張。
   NewImage? _editImage;
+  ImageItem? _editItem; // 持有敏感標記的切換狀態（D-104）
   bool _loaded = false;
   bool get _editing => widget.editImageId != null;
 
@@ -117,7 +120,9 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
         kind: row.kind,
         durationMs: row.durationMs,
         posterFile: row.posterFile,
+        sensitive: row.sensitive,
       );
+      _editItem = ImageItem.stored(_editImage!);
       _loaded = true;
     });
   }
@@ -142,13 +147,23 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
 
   Future<void> _save(String groupId) async {
     if (_editing) {
-      await ref
-          .read(databaseProvider)
-          .updateOfficial(
-            widget.editImageId!,
-            groupId: groupId,
-            tagIds: _tagIds,
-          );
+      final db = ref.read(databaseProvider);
+      final sensitive = _editItem!.sensitive;
+      // 把現任封面標成敏感：先確認（D-104）。
+      if (sensitive &&
+          !_editImage!.sensitive &&
+          await db.coverCountAmong(SensitiveSource.official, [
+                widget.editImageId!,
+              ]) >
+              0) {
+        if (!mounted || !await confirmSensitiveCover(context, 1)) return;
+      }
+      await db.updateOfficial(
+        widget.editImageId!,
+        groupId: groupId,
+        tagIds: _tagIds,
+        sensitive: sensitive,
+      );
       if (mounted) Navigator.of(context).pop();
       return;
     }
@@ -207,12 +222,14 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
       ),
       if (_editing)
         ImagePickerField(
-          items: [ImageItem.stored(_editImage!)],
+          pitId: widget.pitId,
+          items: [_editItem!],
           onAdd: null,
           onRemove: (_) => _removeImage(),
         )
       else ...[
         ImagePickerField(
+          pitId: widget.pitId,
           items: _files,
           onAdd: _pick,
           onRemove: (i) => setState(() => _files.removeAt(i)),

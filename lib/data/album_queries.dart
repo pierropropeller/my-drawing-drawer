@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'database.dart';
 import 'junk_queries.dart';
 import 'media.dart';
+import 'sensitive_queries.dart' show SensitiveQueries;
 import 'entity_queries.dart' show watchAssembled;
 import 'tables.dart' show uuid;
 
@@ -18,6 +19,7 @@ class NewImage {
     this.kind = MediaKind.image,
     this.durationMs,
     this.posterFile,
+    this.sensitive = false,
   });
   final String file; // 相對於圖片資料夾的檔名
   final int width;
@@ -32,12 +34,16 @@ class NewImage {
   /// 影片第一格截圖的檔名；尚未產生時為 null。
   final String? posterFile;
 
+  /// 敏感內容標記（D-104）；新增／編輯表單裡逐張標記，存進資料列的 `sensitive`。
+  final bool sensitive;
+
   NewImage copyWith({
     int? width,
     int? height,
     MediaKind? kind,
     int? durationMs,
     String? posterFile,
+    bool? sensitive,
   }) => NewImage(
     file: file,
     width: width ?? this.width,
@@ -45,6 +51,7 @@ class NewImage {
     kind: kind ?? this.kind,
     durationMs: durationMs ?? this.durationMs,
     posterFile: posterFile ?? this.posterFile,
+    sensitive: sensitive ?? this.sensitive,
   );
 }
 
@@ -231,19 +238,25 @@ extension AlbumQueries on AppDatabase {
   }
 
   /// 編輯一張官方圖（D-089）：分組與 tag 一次存；tag 隨官方圖文件同步，所以一併更新 updatedAt。
+  /// [sensitive]（D-104）：null＝不變；標成敏感時若這張是封面，封面改用別張（見 [setSensitive]）。
   Future<void> updateOfficial(
     String id, {
     required String groupId,
     required List<String> tagIds,
+    bool? sensitive,
   }) {
     return transaction(() async {
       await (update(officialImages)..where((i) => i.id.equals(id))).write(
         OfficialImagesCompanion(
           groupId: Value(groupId),
+          sensitive: sensitive == null
+              ? const Value.absent()
+              : Value(sensitive),
           updatedAt: Value(DateTime.now()),
         ),
       );
       await setTags(TagTarget.official, id, tagIds);
+      if (sensitive == true) await dropCoversOfSensitiveRow(officialImages, id);
     });
   }
 
@@ -264,6 +277,7 @@ extension AlbumQueries on AppDatabase {
       kind: Value(im.kind),
       durationMs: Value(im.durationMs),
       posterFile: Value(im.posterFile),
+      sensitive: Value(im.sensitive),
       imageKey: Value(id),
     );
   }
@@ -352,6 +366,7 @@ extension AlbumQueries on AppDatabase {
             kind: Value(im.kind),
             durationMs: Value(im.durationMs),
             posterFile: Value(im.posterFile),
+            sensitive: Value(im.sensitive),
             author: Value(author),
             groupId: Value(groupId),
           ),
@@ -361,21 +376,27 @@ extension AlbumQueries on AppDatabase {
     });
   }
 
+  /// [sensitive]（D-104）：null＝不變；標成敏感時若這張是封面，封面改用別張（見 [setSensitive]）。
   Future<void> updateFanArt(
     String id, {
     required String author,
     String? groupId,
     required List<String> tagIds,
+    bool? sensitive,
   }) {
     return transaction(() async {
       await (update(fanArts)..where((i) => i.id.equals(id))).write(
         FanArtsCompanion(
           author: Value(author),
           groupId: Value(groupId),
+          sensitive: sensitive == null
+              ? const Value.absent()
+              : Value(sensitive),
           updatedAt: Value(DateTime.now()),
         ),
       );
       await setTags(TagTarget.fanArt, id, tagIds);
+      if (sensitive == true) await dropCoversOfSensitiveRow(fanArts, id);
     });
   }
 
@@ -656,7 +677,13 @@ const cellKinds = ['official', 'fan', 'draft', 'idea', 'piece', 'oshi'];
 
 extension CellCoverQueries on AppDatabase {
   /// 各格目前顯示的封面，見 [CellCovers]。
-  Stream<CellCovers> watchCellCovers(String pitId) {
+  ///
+  /// [excludeSensitive]（D-104，總開關開著時傳 true）：這個坑開了敏感內容時，標記為敏感的圖不當封面
+  /// （不管是使用者選的或自動挑的最新一張）。
+  Stream<CellCovers> watchCellCovers(
+    String pitId, {
+    bool excludeSensitive = false,
+  }) {
     return watchAssembled(
       this,
       {
@@ -673,6 +700,7 @@ extension CellCoverQueries on AppDatabase {
         final pit = await (select(
           pits,
         )..where((p) => p.id.equals(pitId))).getSingleOrNull();
+        final skip = excludeSensitive && (pit?.sensitiveEnabled ?? false);
 
         // 官方圖冊／好看同人圖：列 id 為準。
         Future<String?> album({
@@ -699,7 +727,8 @@ extension CellCoverQueries on AppDatabase {
                           i.id.equals(id) &
                           i.pitId.equals(pitId) &
                           i.deletedAt.isNull() &
-                          i.hidden.equals(false),
+                          i.hidden.equals(false) &
+                          (i.sensitive.equals(false) | Constant<bool>(!skip)),
                     ))
                     .getSingleOrNull();
             return r == null
@@ -713,7 +742,8 @@ extension CellCoverQueries on AppDatabase {
                         (i) =>
                             i.pitId.equals(pitId) &
                             i.deletedAt.isNull() &
-                            i.hidden.equals(false),
+                            i.hidden.equals(false) &
+                            (i.sensitive.equals(false) | Constant<bool>(!skip)),
                       )
                       ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
                     .get())
@@ -729,7 +759,8 @@ extension CellCoverQueries on AppDatabase {
                           i.id.equals(id) &
                           i.pitId.equals(pitId) &
                           i.deletedAt.isNull() &
-                          i.hidden.equals(false),
+                          i.hidden.equals(false) &
+                          (i.sensitive.equals(false) | Constant<bool>(!skip)),
                     ))
                     .getSingleOrNull();
             return r == null
@@ -743,7 +774,8 @@ extension CellCoverQueries on AppDatabase {
                         (i) =>
                             i.pitId.equals(pitId) &
                             i.deletedAt.isNull() &
-                            i.hidden.equals(false),
+                            i.hidden.equals(false) &
+                            (i.sensitive.equals(false) | Constant<bool>(!skip)),
                       )
                       ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
                     .get())
@@ -764,7 +796,8 @@ extension CellCoverQueries on AppDatabase {
                           e.ownerType.equalsValue(type) &
                           e.ownerId.isIn(ownerIds) &
                           e.imageFile.equals(chosenFile) &
-                          e.deletedAt.isNull(),
+                          e.deletedAt.isNull() &
+                          (e.sensitive.equals(false) | Constant<bool>(!skip)),
                     ))
                     .get();
             for (final r in rows) {
@@ -779,7 +812,8 @@ extension CellCoverQueries on AppDatabase {
                         (e) =>
                             e.ownerType.equalsValue(type) &
                             e.ownerId.equals(id) &
-                            e.deletedAt.isNull(),
+                            e.deletedAt.isNull() &
+                            (e.sensitive.equals(false) | Constant<bool>(!skip)),
                       )
                       ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
                     .get();
@@ -969,9 +1003,12 @@ extension CoverCandidateQueries on AppDatabase {
   /// 列出「這一格」內的圖（長按坑內頁的格子進入選擇封面）。
   /// [kind]：`official`／`fan`／`draft`／`idea`／`piece`／`oshi`；
   /// null＝坑封面用的全部（官方、同人圖、草稿、腦洞、成圖；**不含推活**，推活不能當主頁的坑封面）。
+  ///
+  /// [excludeSensitive]（D-104，總開關開著時傳 true）：這個坑開了敏感內容時，不列出標記為敏感的圖。
   Stream<List<CoverCandidate>> watchCoverCandidates(
     String pitId, {
     String? kind,
+    bool excludeSensitive = false,
   }) {
     return watchAssembled(
       this,
@@ -985,10 +1022,20 @@ extension CoverCandidateQueries on AppDatabase {
         entityImages,
       },
       () async {
-        if (kind != null) return _cellCandidates(pitId, kind);
+        if (kind != null) {
+          return _cellCandidates(
+            pitId,
+            kind,
+            excludeSensitive: excludeSensitive,
+          );
+        }
         return [
           for (final k in const ['official', 'fan', 'draft', 'idea', 'piece'])
-            ...await _cellCandidates(pitId, k),
+            ...await _cellCandidates(
+              pitId,
+              k,
+              excludeSensitive: excludeSensitive,
+            ),
         ];
       },
     );
@@ -996,8 +1043,16 @@ extension CoverCandidateQueries on AppDatabase {
 
   Future<List<CoverCandidate>> _cellCandidates(
     String pitId,
-    String kind,
-  ) async {
+    String kind, {
+    bool excludeSensitive = false,
+  }) async {
+    final skip =
+        excludeSensitive &&
+        ((await (select(
+                  pits,
+                )..where((p) => p.id.equals(pitId))).getSingleOrNull())
+                ?.sensitiveEnabled ??
+            false);
     switch (kind) {
       case 'official':
         return [
@@ -1007,7 +1062,8 @@ extension CoverCandidateQueries on AppDatabase {
                       (i) =>
                           i.pitId.equals(pitId) &
                           i.deletedAt.isNull() &
-                          i.hidden.equals(false),
+                          i.hidden.equals(false) &
+                          (i.sensitive.equals(false) | Constant<bool>(!skip)),
                     )
                     ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
                   .get())
@@ -1030,7 +1086,8 @@ extension CoverCandidateQueries on AppDatabase {
                       (i) =>
                           i.pitId.equals(pitId) &
                           i.deletedAt.isNull() &
-                          i.hidden.equals(false),
+                          i.hidden.equals(false) &
+                          (i.sensitive.equals(false) | Constant<bool>(!skip)),
                     )
                     ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)]))
                   .get())
@@ -1062,7 +1119,8 @@ extension CoverCandidateQueries on AppDatabase {
                   (e) =>
                       e.ownerType.equalsValue(type) &
                       e.ownerId.equals(id) &
-                      e.deletedAt.isNull(),
+                      e.deletedAt.isNull() &
+                      (e.sensitive.equals(false) | Constant<bool>(!skip)),
                 )
                 ..orderBy([(e) => OrderingTerm.asc(e.sortOrder)]))
               .get()) {

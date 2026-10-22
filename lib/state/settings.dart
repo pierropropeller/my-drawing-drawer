@@ -29,7 +29,18 @@ class AppSettings {
     this.syncedAccount,
     this.appIcon = 'sanbi',
     this.videoLoop = false,
+    this.sensitiveEnabled = false,
+    this.safeMode = true,
   });
+
+  /// 敏感內容標記的總開關（D-104，個人化 → 敏感內容）；本機設定，不同步，預設關。
+  /// 關閉時整個 App 看不到任何敏感內容相關的東西（開關、標記按鈕、小標、模糊），已標記的圖照常顯示；
+  /// 標記保留，重新開啟後自動恢復。
+  final bool sensitiveEnabled;
+
+  /// 安全模式（D-104）：總開關開著才有意義；開＝已標記的圖在列表類畫面模糊顯示，
+  /// 關＝正常顯示、只在縮圖左上角加敏感小標。本機設定，不同步，預設開。
+  final bool safeMode;
 
   final ThemeMode themeMode;
 
@@ -76,7 +87,11 @@ class AppSettings {
     Object? syncedAccount = _keep,
     String? appIcon,
     bool? videoLoop,
+    bool? sensitiveEnabled,
+    bool? safeMode,
   }) => AppSettings(
+    sensitiveEnabled: sensitiveEnabled ?? this.sensitiveEnabled,
+    safeMode: safeMode ?? this.safeMode,
     videoLoop: videoLoop ?? this.videoLoop,
     appIcon: appIcon ?? this.appIcon,
     themeMode: themeMode ?? this.themeMode,
@@ -148,7 +163,19 @@ class SettingsNotifier extends Notifier<AppSettings> {
       syncedAccount: p.getString('syncedAccount'),
       appIcon: p.getString('appIcon') ?? 'sanbi',
       videoLoop: p.getBool('videoLoop') ?? false,
+      sensitiveEnabled: p.getBool('sensitiveEnabled') ?? false,
+      safeMode: p.getBool('safeMode') ?? true,
     );
+  }
+
+  void setSensitiveEnabled(bool v) {
+    state = state.copyWith(sensitiveEnabled: v);
+    _p?.setBool('sensitiveEnabled', v);
+  }
+
+  void setSafeMode(bool v) {
+    state = state.copyWith(safeMode: v);
+    _p?.setBool('safeMode', v);
   }
 
   void setVideoLoop(bool v) {

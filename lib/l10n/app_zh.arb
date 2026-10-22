@@ -1488,6 +1488,51 @@
       }
     }
   },
+  "personalizeTitle": "個人化",
+  "sensitiveTitle": "敏感內容",
+  "sensitiveValueOff": "關閉",
+  "sensitiveValueOn": "開啟",
+  "sensitiveBadgeLabel": "敏感",
+  "sensitiveMasterTitle": "敏感內容標記",
+  "sensitiveSafeModeTitle": "安全模式",
+  "sensitiveSafeModeHint": "開啟後會模糊顯示已標記的圖片，關閉則正常顯示",
+  "sensitiveOffTitle": "關閉敏感內容標記？",
+  "sensitiveOffBody": "已標記的圖片會照常顯示，不再模糊，所有敏感內容選項也會隱藏。重新開啟後，標記會自動恢復。",
+  "sensitiveOffConfirm": "關閉",
+  "sensitivePitOffTitle": "關閉這個坑的敏感內容？",
+  "sensitivePitOffBody": "坑內已標記的 {count} 張圖會照常顯示。重新開啟後，標記會自動恢復。",
+  "@sensitivePitOffBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sensitiveMarkAll": "全部標為敏感",
+  "sensitiveMarkedCount": "{marked} / {total}",
+  "@sensitiveMarkedCount": {
+    "placeholders": {
+      "marked": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "sensitiveMarkImage": "標為敏感",
+  "sensitiveMarkedImage": "已標為敏感",
+  "sensitiveAction": "敏感",
+  "sensitiveCoverTitle": "標為敏感內容？",
+  "sensitiveCoverBody": "選中的圖片裡有 {count} 張是這個坑的封面，標記後會從封面移除。",
+  "@sensitiveCoverBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sensitiveCoverConfirm": "標記並移除封面",
   "shallowName": "淺坑",
   "shallowTypeLabel": "類型",
   "shallowTypePit": "坑",

@@ -13,6 +13,7 @@ import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/gif_image.dart';
 import '../common/media_source.dart';
+import '../common/sensitive_gate.dart';
 import '../common/svg_icon.dart';
 import '../sync/download_badge.dart';
 
@@ -315,10 +316,14 @@ class PitCoverImage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (file != null) {
-      return StoredImage(
-        file!,
-        cacheWidth: cacheWidth,
-        placeholderColor: placeholderColor,
+      // 封面不會是敏感的圖（選擇封面不列出、標記時會移除）；萬一是（標記先於開關），列表上照安全模式處理。
+      return SensitiveGate(
+        file: file!,
+        child: StoredImage(
+          file!,
+          cacheWidth: cacheWidth,
+          placeholderColor: placeholderColor,
+        ),
       );
     }
     if (hasCoverRef && ref.watch(pitCoverPendingProvider)) {

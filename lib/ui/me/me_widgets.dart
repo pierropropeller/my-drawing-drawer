@@ -154,3 +154,90 @@ class MePageFrame extends StatelessWidget {
     );
   }
 }
+
+/// 「我的」「個人化」卡片裡的一列（Profile／Personalize 稿）：38px 圓角色塊 icon（或自訂 [leading]）、
+/// 標題、右邊目前值、箭頭；列與列之間 1px 分隔線（[last] 沒有）。
+class MeListRow extends StatelessWidget {
+  const MeListRow({
+    super.key,
+    required this.title,
+    required this.onTap,
+    this.icon,
+    this.leading,
+    this.tileBg,
+    this.tileFg,
+    this.value,
+    this.last = false,
+    this.iconSize = 21,
+    this.iconStroke = 1.7,
+  });
+
+  final String? icon;
+  final Widget? leading;
+  final Color? tileBg;
+  final Color? tileFg;
+  final String title;
+  final String? value;
+  final VoidCallback onTap;
+  final bool last;
+  final double iconSize;
+  final double iconStroke;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final chevron = dark ? t.text4 : const Color(0xFFB7ADA0);
+    final divider = dark ? t.border : const Color(0xFFF1EADF);
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        decoration: BoxDecoration(
+          border: last ? null : Border(bottom: BorderSide(color: divider)),
+        ),
+        child: Row(
+          children: [
+            leading ??
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: tileBg,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Center(
+                    child: SvgIcon(
+                      icon!,
+                      size: iconSize,
+                      color: tileFg,
+                      strokeWidth: iconStroke,
+                    ),
+                  ),
+                ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            if (value != null) ...[
+              Text(value!, style: TextStyle(fontSize: 13, color: t.text4)),
+              const SizedBox(width: 12),
+            ],
+            SvgIcon(
+              AppIcons.chevronRight,
+              size: 18,
+              color: chevron,
+              strokeWidth: 2,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

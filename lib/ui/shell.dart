@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../theme/tokens.dart';
+import '../state/sensitive.dart';
 import '../state/settings.dart';
 import '../sync/sync_driver.dart';
 import 'common/root_overlay_guard.dart';
@@ -83,6 +84,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (!ref.watch(settingsProvider.select((s) => s.onboarded))) {
       return const WelcomePage();
     }
+    // 敏感內容（D-104）：總開關開著時，一進主畫面就先查好哪些圖是敏感的，列表縮圖一出來就不會露出。
+    ref.watch(sensitiveWarmupProvider);
     // 分享進來的「加入到」sheet 要在主畫面常駐監聽（D-053）。
     return SyncDriver(
       child: ShareHost(

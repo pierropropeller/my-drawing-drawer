@@ -899,3 +899,53 @@ Future<Map<String, SyncRowInfo>> AppDatabase.syncRowInfos(Iterable<String> files
 一次批次查一批圖片檔名所屬的實體（每張表一個 `IN (...)` 查詢，再各一次批次查標題與坑名，不逐張查）。優先順序：官方圖冊 → 好看同人圖 → 雜物 → 素材庫 → 成圖 → 摸魚 → 腦洞 → 推活 → 坑封面；已刪除、隱藏、擁有者已刪除的不算；影片的 poster 檔對應到同一個實體。`SyncRowInfo`：`kind`、`pitName`、`title`（腦洞／摸魚／成圖／推活，空白不算）、`materialCategory`、`posterFile`。
 `syncRowInfoProvider`（Notifier）快取查過的檔名，`ensure(files)` 只批次查還沒查過的。
 同步 sheet／popover（共用 `SyncProgressRows`）：`pickSyncRows` 取「傳輸中最多 3 張在前、等待中接著、合計最多 4 行」，其餘寫「還有 N 張等待中」；傳完的行淡出（280ms）後下面補上。
+
+## 批次 19：敏感內容標記與安全模式（D-104、D-106，schema v14）
+
+只影響顯示，**不會刪除任何標記**。介面一律叫「敏感內容」。
+
+### Schema v14
+| 表 | 新欄位 |
+|---|---|
+| `Pits` | `sensitiveEnabled` bool（預設 false）：這個坑開了敏感內容標記 |
+| `OfficialImages`、`FanArts`、`JunkImages`、`MaterialImages`、`EntityImages`（`MediaColumns`） | `sensitive` bool（預設 false） |
+
+遷移 `_migrateV14`：每個欄位先確認存在與否再加（可重複執行，較舊遷移若整張建表已有新欄位）；不動 `updated_at`。測試 `test/migration_test.dart`（v13 → v14、重複執行）。
+
+### 裝置設定（`AppSettings`，不同步）
+`sensitiveEnabled`（總開關，預設 **false**）、`safeMode`（預設 **true**）；`SettingsNotifier.setSensitiveEnabled`／`setSafeMode`，存 SharedPreferences（`sensitiveEnabled`／`safeMode`）。
+
+### 寫入
+- `NewImage.sensitive`（`copyWith(sensitive:)`）：`addOfficial`／`addFanArts`／`addJunk`／`addMaterials`／`saveIdea`／`saveDraft`／`savePiece`／`saveOshiRecord`（`replaceEntityImages`）都會寫進資料列。`ImageRef.sensitive`、`ImageRef.toNewImage()` 帶著標記，編輯表單原樣送回就保留。
+- `updateOfficial(..., sensitive:)`、`updateFanArt(..., sensitive:)`：null＝不變。
+- `updatePit(..., sensitiveEnabled:)`／`savePit`：null＝不變；`setPitSensitiveEnabled(pitId, bool)`。只改開關，標記保留。
+- 跨格／跨坑移動（`moveAlbumImages`）：標記跟著圖走。
+
+### 多選「敏感」與封面（`lib/data/sensitive_queries.dart`）
+```dart
+enum SensitiveSource { official, fan, junk, material, idea, draft, piece, oshi }
+// 圖片列來源（official/fan/junk/material）的 ids 是圖片列 id；idea/draft/piece/oshi 的 ids 是「紀錄」id，作用在底下每一張圖。
+Future<bool?> nextSensitiveValue(source, ids)   // 有未標 → true（全部標上）；全部已標 → false（全部取消）；沒有圖 → null
+Future<({int total, int marked})> sensitiveCounts(source, ids)
+Future<int> coverCountAmong(source, ids)        // 選中的圖裡有幾張是坑封面（Pits.coverImageId）；> 0 時 UI 先確認
+Future<int> setSensitive(source, ids, bool)     // 回傳實際改動張數；只動狀態不同的列、更新 updatedAt（紀錄的圖更新紀錄的 updatedAt）
+Future<String?> newestPlainImageId(pitId)       // 坑內最新（createdAt）一張沒標記、可當坑封面的圖
+Future<int> sensitiveCountInPit(pitId)          // 關閉坑開關前確認視窗的「N 張」
+```
+- 標上敏感時（`setSensitive(true)`、`updateOfficial/updateFanArt(sensitive: true)`、表單存檔含敏感的圖）：被標的圖若是**坑封面**，封面改用 `newestPlainImageId`，沒有就清成 null（UI 顯示坑名第一個字）；各格自己選的封面（`officialCoverId`／`fanArtCoverId`／`*CoverFile`）指向被標的圖也清掉。取消標記不會自動找回封面。
+- `watchCoverCandidates(pitId, {kind, excludeSensitive})`、`watchCellCovers(pitId, {excludeSensitive})`：`excludeSensitive`（總開關開著時由 provider 傳 true）＋該坑 `sensitiveEnabled` 才不列出／不挑標記的圖。
+- 年度回顧：`watchReviewMonths`／`watchReviewMonthSummaries(year, {excludeSensitive})`，預設代表圖用 `ReviewMonthPiece.autoFile`（成圖裡第一張沒標記的圖；全是敏感的成圖整張跳過，該月沒有預設圖時不放進結果）。手動挑的（`setReviewMonthImage`）照用。
+
+### 列表縮圖怎麼知道要不要模糊（UI 用）
+```dart
+Stream<Set<String>> watchSensitiveFiles()   // 「有效敏感」的圖檔名（含影片截圖檔名）：標記＋所屬坑開著（素材庫只看標記）；刪除／隱藏的不算
+// lib/state/sensitive.dart
+sensitiveFilesProvider                       // 上面那個 stream
+sensitiveDisplayProvider(file) → SensitiveDisplay { none, blur, badge, pending }   // 加上總開關與安全模式
+sensitiveMarkingProvider(pitId?)             // 標記入口該不該出現：總開關開＋坑開（null＝素材庫，只看總開關）
+```
+列表類縮圖一律走 `SensitiveGate`（`lib/ui/common/sensitive_gate.dart`，已套在 `MediaThumb`／`MiniMediaThumb`；詳情與預覽的重用傳 `protectSensitive: false`）。
+
+### 同步
+文件多帶：圖片列的 `sensitive`、腦洞／摸魚／成圖／推活文件 `images[]` 裡每張的 `sensitive`、坑文件的 `sensitiveEnabled`。**舊版 App 的文件缺這些欄位 → 套用時補預設（false）**；舊版 App 讀新文件會忽略它們（舊版再存檔時標記會被洗掉，升級各裝置即可）。測試 `test/sensitive_data_test.dart` 的「同步」群組。
+

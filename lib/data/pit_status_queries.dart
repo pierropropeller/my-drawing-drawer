@@ -390,6 +390,7 @@ extension PitStatusQueries on AppDatabase {
     PitStatus? status,
     Set<PitSectionKey>? enabledSections,
     bool? junkEnabled,
+    bool? sensitiveEnabled,
     bool deleteClosedContent = false,
   }) => transaction(() async {
     final cur = await (select(pits)..where((p) => p.id.equals(id))).getSingle();
@@ -399,7 +400,14 @@ extension PitStatusQueries on AppDatabase {
       enabledSections: enabledSections,
       junkEnabled: junkEnabled,
       deleteClosedContent: deleteClosedContent,
-      extra: PitsCompanion(name: Value(name), description: Value(description)),
+      extra: PitsCompanion(
+        name: Value(name),
+        description: Value(description),
+        // 敏感內容開關（D-104）：null＝不變；只改開關，標記保留。
+        sensitiveEnabled: sensitiveEnabled == null
+            ? const Value.absent()
+            : Value(sensitiveEnabled),
+      ),
     );
   });
 }

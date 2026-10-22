@@ -158,6 +158,12 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     }
     _deleteFiles(paths);
     if (images.isEmpty) return;
+    if (c.sensitive) {
+      // 分享匯入的「全部標為敏感」（D-104）。
+      for (var i = 0; i < images.length; i++) {
+        images[i] = images[i].copyWith(sensitive: true);
+      }
+    }
     final db = ref.read(databaseProvider);
     final pitId = c.pitId!;
     final Widget list;
@@ -203,6 +209,11 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     _deleteFiles(paths);
     if (images.isEmpty) return;
     final category = c.material!;
+    if (c.sensitive) {
+      for (var i = 0; i < images.length; i++) {
+        images[i] = images[i].copyWith(sensitive: true);
+      }
+    }
     await ref.read(databaseProvider).addMaterials(category, images);
     if (!mounted) return;
     widget.showProfileTab();

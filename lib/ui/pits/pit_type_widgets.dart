@@ -226,8 +226,14 @@ class PitSectionSwitchList extends StatelessWidget {
     super.key,
     required this.enabled,
     required this.onChanged,
+    this.sensitive,
+    this.onSensitiveChanged,
   });
   final Set<PitSectionKey> enabled;
+
+  /// 敏感內容開關（D-104）：null＝不顯示（總開關關著）；否則在同一張卡最後多一列。
+  final bool? sensitive;
+  final ValueChanged<bool>? onSensitiveChanged;
 
   /// 使用者撥動某個開關（`true`＝要開）。關掉有內容的格子的確認框由呼叫端處理。
   final void Function(PitSectionKey key, bool value) onChanged;
@@ -265,6 +271,17 @@ class PitSectionSwitchList extends StatelessWidget {
                     onChanged: (v) => onChanged(keys[i], v),
                   ),
                 ),
+              if (sensitive != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: t.border)),
+                  ),
+                  child: PitSensitiveSwitchRow(
+                    value: sensitive!,
+                    onChanged: onSensitiveChanged!,
+                  ),
+                ),
             ],
           ),
         ),
@@ -282,10 +299,16 @@ class PitJunkSwitchCard extends StatelessWidget {
     this.subtitle,
     this.radius = 16,
     this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    this.sensitive,
+    this.onSensitiveChanged,
   });
   final bool value;
   final ValueChanged<bool> onChanged;
   final String? subtitle;
+
+  /// 敏感內容開關（D-104，`PitEditR18`）：null＝不顯示（總開關關著）；否則在同一張卡「雜物」下面多一列。
+  final bool? sensitive;
+  final ValueChanged<bool>? onSensitiveChanged;
   final double radius;
   final EdgeInsetsGeometry padding;
 
@@ -299,12 +322,109 @@ class PitJunkSwitchCard extends StatelessWidget {
         border: Border.all(color: t.border),
         borderRadius: BorderRadius.circular(radius),
       ),
-      child: PitSectionSwitchRow(
-        meta: pitSectionMeta(context, PitSectionKey.junk),
-        value: value,
-        onChanged: onChanged,
-        subtitle: subtitle,
+      child: Column(
+        children: [
+          Padding(
+            padding: sensitive == null
+                ? EdgeInsets.zero
+                : const EdgeInsets.only(bottom: 10),
+            child: PitSectionSwitchRow(
+              meta: pitSectionMeta(context, PitSectionKey.junk),
+              value: value,
+              onChanged: onChanged,
+              subtitle: subtitle,
+            ),
+          ),
+          if (sensitive != null)
+            Container(
+              padding: const EdgeInsets.only(top: 10),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: t.border)),
+              ),
+              child: PitSensitiveSwitchRow(
+                value: sensitive!,
+                onChanged: onSensitiveChanged!,
+              ),
+            ),
+        ],
       ),
+    );
+  }
+}
+
+/// 「敏感內容」開關列（D-104，`PitEditR18`）：34px 圓角 10 的 icon 方塊（同人圖色）＋名稱＋開關。
+class PitSensitiveSwitchRow extends StatelessWidget {
+  const PitSensitiveSwitchRow({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final label = context.l10n.sensitiveTitle;
+    return Row(
+      key: const ValueKey('pitSensitiveRow'),
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: t.fanArt.bg,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          alignment: Alignment.center,
+          child: SvgIcon(
+            AppIcons.eyeSlash,
+            size: 18,
+            strokeWidth: 1.9,
+            color: t.fanArt.fg,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          ),
+        ),
+        AppSwitch(
+          key: const ValueKey('pitSensitiveSwitch'),
+          semanticLabel: label,
+          value: value,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+}
+
+/// 只有「敏感內容」一列的白底圓角卡（封存坑沒有雜物／格子開關，仍可開關敏感內容）。
+class PitSensitiveCard extends StatelessWidget {
+  const PitSensitiveCard({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.radius = 16,
+  });
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: t.surface,
+        border: Border.all(color: t.border),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      child: PitSensitiveSwitchRow(value: value, onChanged: onChanged),
     );
   }
 }

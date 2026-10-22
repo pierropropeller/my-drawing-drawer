@@ -9,6 +9,7 @@ import '../album/album_image.dart';
 import 'goal_widgets.dart';
 import 'day_page.dart';
 import 'goals_page.dart';
+import '../common/sensitive_gate.dart';
 
 /// 月度（Month）：月曆（當天有成圖，日期變成圓形圖片，預設最晚一張）＋月度小目標。
 class MonthView extends ConsumerStatefulWidget {
@@ -199,7 +200,11 @@ class _DayCell extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           if (hasArt)
-            StoredImage(file!, cacheWidth: 200)
+            SensitiveGate(
+              file: file!,
+              badgeInset: 2,
+              child: StoredImage(file!, cacheWidth: 200),
+            )
           else if (isToday)
             ColoredBox(color: t.accent),
           Center(
