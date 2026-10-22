@@ -277,7 +277,22 @@ void main() {
       expect(seen.any((s) => s.isTransferring), isFalse);
     });
 
-    test('失敗時清單也清掉', () async {
+    test('整次失敗（授權過期）時清單也清掉', () async {
+      await seed(1);
+      await setup(
+        MemoryRemote(
+          onTransfer: (name, up) async {
+            if (name.startsWith('images__')) throw SyncAuthException();
+          },
+        ),
+      );
+      await container.read(syncControllerProvider.notifier).syncNow();
+      final s = container.read(syncControllerProvider);
+      expect(s.phase, SyncPhase.error);
+      expect(s.transfers, isEmpty);
+    });
+
+    test('單張圖片失敗（D-109）：同步照常完成、清單清掉，失敗的記在 lastResult', () async {
       await seed(1);
       await setup(
         MemoryRemote(
@@ -288,8 +303,11 @@ void main() {
       );
       await container.read(syncControllerProvider.notifier).syncNow();
       final s = container.read(syncControllerProvider);
-      expect(s.phase, SyncPhase.error);
+      expect(s.phase, SyncPhase.idle);
       expect(s.transfers, isEmpty);
+      expect(s.hasFailures, isTrue);
+      expect(s.failedCount, 1);
+      expect(s.lastResult!.failedTransfers.single.isUpload, isTrue);
     });
 
     test('imageTransferProvider：缺圖時排隊中 null、下載中有進度、完成後 present', () async {

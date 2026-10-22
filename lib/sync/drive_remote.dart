@@ -70,6 +70,8 @@ class DriveRemote
   Future<http.Response> _check(http.Response r) async {
     if (r.statusCode == 401) throw const _Unauthorized();
     if (r.statusCode == 403) {
+      // Drive 已滿（D-103）：不是權限問題也不是限流，重試沒有用。
+      if (isStorageQuotaError(r.body)) throw SyncStorageFullException();
       if (r.body.contains('ateLimitExceeded') ||
           r.body.contains('quotaExceeded')) {
         throw _Transient('HTTP 403 rate limit');
@@ -235,6 +237,22 @@ class DriveRemote
       }
       return out.takeBytes();
     });
+  }
+
+  /// 403 回應是不是「儲存空間已滿」（`error.errors[].reason == storageQuotaExceeded`）。
+  /// 解析 JSON 失敗時退回字串比對。
+  static bool isStorageQuotaError(String body) {
+    try {
+      final j = jsonDecode(body);
+      final error = j is Map ? j['error'] : null;
+      final errors = error is Map ? error['errors'] : null;
+      if (errors is List) {
+        return errors.any(
+          (e) => e is Map && e['reason'] == 'storageQuotaExceeded',
+        );
+      }
+    } catch (_) {}
+    return body.contains('storageQuotaExceeded');
   }
 
   /// 把 Drive `thumbnailLink` 的尺寸參數改成長邊 32（`=s32`）。

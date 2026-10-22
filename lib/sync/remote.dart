@@ -33,6 +33,13 @@ class SyncNetworkException implements Exception {
   String toString() => message;
 }
 
+/// Drive 已滿（上傳回 `403 storageQuotaExceeded`，D-103）：不是失敗，上傳留在佇列，
+/// 有空間後下一次同步自動補傳；下載與其他部分照常。
+class SyncStorageFullException implements Exception {
+  @override
+  String toString() => 'SyncStorageFullException';
+}
+
 /// 單次同步太久沒有任何進展而被看門狗中止。
 class SyncStalledException implements Exception {
   SyncStalledException() : message = l10nStatic.syncuiStalled;
@@ -132,6 +139,16 @@ class MemoryRemote
 
   final Map<String, Uint8List> files = {};
 
+  /// 測試用：模擬 Drive 已滿（D-103）。為 true 時每次上傳都丟 [SyncStorageFullException]
+  /// （下載、列表照常）。
+  bool storageFull = false;
+
+  /// 測試用：被呼叫過的上傳次數（含被拒絕的）。
+  int uploadAttempts = 0;
+
+  /// 測試用：回傳非 null 就在該次傳輸丟出它（單張失敗）；[isUpload] 區分方向。
+  Object? Function(String name, bool isUpload)? failWith;
+
   /// 測試用：模擬雲端自己產生的縮圖（遠端原圖檔名 → 位元組）。
   final Map<String, Uint8List> fallbackThumbs = {};
 
@@ -162,6 +179,8 @@ class MemoryRemote
     TransferProgress? onProgress,
   ) async {
     await onTransfer?.call(name, isUpload);
+    final err = failWith?.call(name, isUpload);
+    if (err != null) throw err;
     if (progressSteps <= 0 || onProgress == null) return;
     for (var i = 1; i <= progressSteps; i++) {
       if (stepDelay > Duration.zero) await Future<void>.delayed(stepDelay);
@@ -204,6 +223,8 @@ class MemoryRemote
     String contentType = 'application/octet-stream',
     TransferProgress? onProgress,
   }) async {
+    uploadAttempts++;
+    if (storageFull) throw SyncStorageFullException();
     await _simulate(name, true, bytes.length, onProgress);
     files[name] = bytes;
     _version[name] = ++_clock;

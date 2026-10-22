@@ -19,6 +19,9 @@ class StorageInfo {
   int get usage => quota.usage;
   int? get limit => quota.limit;
 
+  /// 帳號用量已經到達上限（D-103）。無上限的帳號永遠不會滿。
+  bool get isFull => limit != null && usage >= limit!;
+
   /// 畫匣以外的用量（Drive 其他檔案、Gmail、相簿…）；畫匣記錄比帳號用量還大時（記錄過時）為 0。
   int get otherBytes => usage > drawerBytes ? usage - drawerBytes : 0;
 
@@ -90,6 +93,16 @@ class StorageUsageNotifier extends Notifier<StorageInfo?> {
     }
   }
 }
+
+/// Drive 已滿（D-103）：最近一次同步的上傳被拒絕，或帳號用量已到上限。
+/// 備份頁的儲存空間卡、自動同步的小字用它；頭像紅點只看同步結果（[SyncState.quotaFull]）。
+final driveFullProvider = Provider<bool>((ref) {
+  final byUpload = ref.watch(syncControllerProvider.select((s) => s.quotaFull));
+  final byUsage = ref.watch(
+    storageUsageProvider.select((i) => i?.isFull ?? false),
+  );
+  return byUpload || byUsage;
+});
 
 final storageUsageProvider =
     NotifierProvider<StorageUsageNotifier, StorageInfo?>(

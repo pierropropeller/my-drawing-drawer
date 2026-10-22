@@ -11,6 +11,10 @@ import 'sync_popover.dart';
 /// 外圈狀態（D-052）。
 enum SyncRingMode { none, checking, transferring }
 
+/// 外圈淡出後留在頭像右下角的小圓點：琥珀＝有圖片同步失敗（D-109），紅＝Drive 已滿（D-103）。
+/// 同步進行中不畫（外圈在轉）。
+enum SyncRingDot { none, failed, full }
+
 /// 主頁左上角頭像：同步狀態收在外圈（MainSyncing）。
 ///
 /// 檢查中＝一段短弧轉圈（不可點）；傳輸中＝進度環（按完成張數／總張數），可點開「同步進度」；
@@ -38,11 +42,22 @@ class SyncAvatar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(
       syncControllerProvider.select(
-        (s) => s.isTransferring
+        (s) => s.isRingTransferring
             ? SyncRingMode.transferring
             : s.isChecking
             ? SyncRingMode.checking
             : SyncRingMode.none,
+      ),
+    );
+    final dot = ref.watch(
+      syncControllerProvider.select(
+        (s) => s.isSyncing
+            ? SyncRingDot.none
+            : s.quotaFull
+            ? SyncRingDot.full
+            : s.hasFailures
+            ? SyncRingDot.failed
+            : SyncRingDot.none,
       ),
     );
     final fraction =
@@ -50,6 +65,7 @@ class SyncAvatar extends ConsumerWidget {
         0.0;
     return SyncRing(
       mode: mode,
+      dot: dot,
       fraction: fraction,
       size: size,
       onTap: mode == SyncRingMode.transferring
@@ -74,9 +90,13 @@ class SyncRing extends StatefulWidget {
     required this.child,
     this.size = 40,
     this.onTap,
+    this.dot = SyncRingDot.none,
   });
 
   final SyncRingMode mode;
+
+  /// 外圈收掉之後的狀態小點（見 [SyncRingDot]）。
+  final SyncRingDot dot;
 
   /// 傳輸中的進度 0~1。
   final double fraction;
@@ -186,6 +206,26 @@ class _SyncRingState extends State<SyncRing>
             ),
           ),
           widget.child,
+          if (widget.dot != SyncRingDot.none && !visible)
+            Positioned(
+              right: 1,
+              bottom: 1,
+              child: Container(
+                key: ValueKey('syncRingDot:${widget.dot.name}'),
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: widget.dot == SyncRingDot.full
+                      ? colors.fullDot
+                      : colors.failedDot,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -199,11 +239,17 @@ class _SyncRingState extends State<SyncRing>
         child: Semantics(
           button: widget.onTap != null,
           // 有狀態時只念狀態（頭像裡的字母沒有意義）。
-          excludeSemantics: widget.mode != SyncRingMode.none,
+          excludeSemantics:
+              widget.mode != SyncRingMode.none ||
+              widget.dot != SyncRingDot.none,
           label: switch (widget.mode) {
             SyncRingMode.checking => l.syncuiRingChecking,
             SyncRingMode.transferring => l.syncuiRingTransferring,
-            SyncRingMode.none => null,
+            SyncRingMode.none => switch (widget.dot) {
+              SyncRingDot.failed => l.syncuiRingFailed,
+              SyncRingDot.full => l.backupFullTitle,
+              SyncRingDot.none => null,
+            },
           },
           child: widget.onTap == null
               ? content

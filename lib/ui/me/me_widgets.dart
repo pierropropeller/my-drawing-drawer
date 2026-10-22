@@ -54,9 +54,19 @@ class MeSubHeader extends StatelessWidget {
 
 /// 我的／主題色／備份頁共用的白色圓角（18）卡片。
 class MePanel extends StatelessWidget {
-  const MePanel({super.key, required this.padding, required this.child});
+  const MePanel({
+    super.key,
+    required this.padding,
+    required this.child,
+    this.borderColor,
+    this.borderWidth = 1,
+  });
   final EdgeInsetsGeometry padding;
   final Widget child;
+
+  /// 換掉外框色／粗細（例如 Drive 已滿的紅框，BackupFull）；null＝一般卡片外框。
+  final Color? borderColor;
+  final double borderWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +76,10 @@ class MePanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: t.surface,
         borderRadius: BorderRadius.circular(Radii.panel),
-        border: Border.all(color: t.borderCard),
+        border: Border.all(
+          color: borderColor ?? t.borderCard,
+          width: borderWidth,
+        ),
       ),
       child: child,
     );

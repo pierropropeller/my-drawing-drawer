@@ -2,8 +2,9 @@
 
 enum TransferDirection { upload, download }
 
-/// waiting＝排隊中；active＝正在傳；done＝已完成（下載失敗也算處理過，下次同步再試）。
-enum TransferState { waiting, active, done }
+/// waiting＝排隊中；active＝正在傳；done＝已成功；failed＝這一張重試後仍失敗（D-109，
+/// 留在佇列，下次同步會再試）。
+enum TransferState { waiting, active, done, failed }
 
 /// 一張圖片的一次傳輸。
 class SyncTransfer {
@@ -25,6 +26,10 @@ class SyncTransfer {
   bool get isWaiting => state == TransferState.waiting;
   bool get isActive => state == TransferState.active;
   bool get isDone => state == TransferState.done;
+  bool get isFailed => state == TransferState.failed;
+
+  /// 已處理完（成功或失敗），不會再動了。
+  bool get isSettled => isDone || isFailed;
   bool get isUpload => direction == TransferDirection.upload;
   bool get isDownload => direction == TransferDirection.download;
 

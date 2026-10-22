@@ -18,9 +18,11 @@ import '../common/svg_icon.dart';
 import '../common/themed_sheet.dart';
 import '../material/material_icons.dart';
 import '../oshi/oshi_icons.dart';
+import '../pits/pit_form.dart' show fieldBorderColor;
 import '../pits/pits_icons.dart';
 import 'sync_colors.dart';
 import 'sync_icons.dart';
+import 'sync_time_text.dart';
 
 /// 打開「同步進度」bottom sheet（SyncSheet，D-052）。
 ///
@@ -41,16 +43,104 @@ const syncSheetMaxRows = 4;
 /// 同時最多顯示幾張「傳輸中」（各自顯示百分比）。
 const syncSheetMaxActive = 3;
 
-/// 剛傳完那一次同步的張數（完成狀態顯示用；新變更進來切回同步中就丟掉）。
+/// 剛傳完那一次同步的結果（完成／部分失敗狀態顯示用；新變更進來切回同步中就丟掉）。
+///
+/// [total]＝這次處理完的張數（成功＋失敗）；[failed] 非空＝部分失敗狀態（D-109，SyncSheetPartial）。
 class SyncDoneSummary {
   const SyncDoneSummary({
     required this.total,
     required this.uploaded,
     required this.downloaded,
+    required this.completedAt,
+    this.failed = const [],
   });
   final int total;
+
+  /// 成功的上傳／下載張數。
   final int uploaded;
   final int downloaded;
+  final DateTime completedAt;
+
+  /// 重試後仍失敗的傳輸（留在佇列，下次同步再試）。
+  final List<SyncTransfer> failed;
+
+  bool get isPartial => failed.isNotEmpty;
+  int get succeeded => total - failed.length;
+}
+
+/// sheet／popover 對同步狀態變化的反應。
+enum SyncSheetAction { keep, show, clear, close }
+
+class SyncSheetTransition {
+  const SyncSheetTransition(this.action, [this.summary]);
+  final SyncSheetAction action;
+  final SyncDoneSummary? summary;
+}
+
+SyncDoneSummary? _summaryOf(SyncState prev, SyncState next) {
+  final at = next.lastSyncAt ?? DateTime.now();
+  final r = next.lastResult;
+  final settled = r == null
+      ? const <SyncTransfer>[]
+      : [
+          for (final t in r.transfers)
+            if (t.isSettled) t,
+        ];
+  if (settled.isNotEmpty) {
+    return SyncDoneSummary(
+      total: settled.length,
+      uploaded: settled.where((t) => t.isUpload && t.isDone).length,
+      downloaded: settled.where((t) => t.isDownload && t.isDone).length,
+      completedAt: at,
+      failed: [
+        for (final t in settled)
+          if (t.isFailed) t,
+      ],
+    );
+  }
+  // 沒有引擎結果（只有進度快照）：把剛才的清單都當成傳完。
+  if (prev.transferTotal == 0) return null;
+  return SyncDoneSummary(
+    total: prev.transferTotal,
+    uploaded: prev.uploadCount,
+    downloaded: prev.downloadCount,
+    completedAt: at,
+  );
+}
+
+/// 同步 sheet（手機）與頭像 popover（iPad）共用的狀態轉換（D-100／D-109）：
+/// - 傳完（phase 回到 idle）→ 原地變成完成（全部成功）或部分失敗狀態，不自動關；
+/// - 完成／部分失敗狀態下又有新的傳輸 → 切回同步中；
+/// - 完成／部分失敗狀態下重試（或新一次同步）結束時沒有傳輸 → 依結果更新；
+/// - 其他情況（失敗、取消連結…）關閉。
+SyncSheetTransition syncSheetTransition(
+  SyncState prev,
+  SyncState next,
+  SyncDoneSummary? current,
+) {
+  if (prev.isTransferring && !next.isTransferring) {
+    if (next.phase == SyncPhase.idle) {
+      final s = _summaryOf(prev, next);
+      if (s != null) return SyncSheetTransition(SyncSheetAction.show, s);
+    }
+    return const SyncSheetTransition(SyncSheetAction.close);
+  }
+  if (!prev.isTransferring && next.isTransferring && current != null) {
+    return const SyncSheetTransition(SyncSheetAction.clear);
+  }
+  if (current != null && prev.isSyncing && next.phase == SyncPhase.idle) {
+    return SyncSheetTransition(
+      SyncSheetAction.show,
+      _summaryOf(prev, next) ??
+          SyncDoneSummary(
+            total: current.total,
+            uploaded: current.uploaded,
+            downloaded: current.downloaded,
+            completedAt: next.lastSyncAt ?? DateTime.now(),
+          ),
+    );
+  }
+  return const SyncSheetTransition(SyncSheetAction.keep);
 }
 
 class SyncSheet extends ConsumerStatefulWidget {
@@ -85,22 +175,16 @@ class _SyncSheetState extends ConsumerState<SyncSheet> {
   Widget build(BuildContext context) {
     ref.listen(syncControllerProvider, (prev, next) {
       if (prev == null) return;
-      if (prev.isTransferring && !next.isTransferring) {
-        // 正常傳完（phase 回到 idle）→ 原地變完成狀態；失敗等其他情況照舊關閉。
-        if (next.phase == SyncPhase.idle && prev.transferTotal > 0) {
-          setState(
-            () => _done = SyncDoneSummary(
-              total: prev.transferTotal,
-              uploaded: prev.uploadCount,
-              downloaded: prev.downloadCount,
-            ),
-          );
-        } else {
+      final tr = syncSheetTransition(prev, next, _done);
+      switch (tr.action) {
+        case SyncSheetAction.show:
+          setState(() => _done = tr.summary);
+        case SyncSheetAction.clear:
+          setState(() => _done = null);
+        case SyncSheetAction.close:
           _close();
-        }
-      } else if (!prev.isTransferring && next.isTransferring && _done != null) {
-        // 完成狀態下又有新的變更要同步：切回同步中。
-        setState(() => _done = null);
+        case SyncSheetAction.keep:
+          break;
       }
     });
     return SyncSheetBody(done: _done, onDone: _close);
@@ -109,8 +193,9 @@ class _SyncSheetState extends ConsumerState<SyncSheet> {
 
 /// bottom sheet 的內容（把手、標頭、清單）；關閉邏輯由外層負責。
 ///
-/// [done] 非 null＝同步完成狀態（D-100）：標題勾＋「同步完成」、全滿綠色進度條、張數與完成時間、
-/// 底部「完成」按鈕（[onDone]），沒有清單。
+/// [done] 非 null＝同步結束狀態：全部成功＝完成（D-100）：標題勾＋「同步完成」、全滿綠色進度條、
+/// 張數與完成時間、底部「完成」按鈕（[onDone]）；有失敗＝部分失敗（D-109）：琥珀「!」＋
+/// 「同步完成，N 張失敗」、失敗清單、底部「重試」「完成」。都沒有清單。
 class SyncSheetBody extends StatelessWidget {
   const SyncSheetBody({super.key, this.done, this.onDone});
 
@@ -126,7 +211,11 @@ class SyncSheetBody extends StatelessWidget {
       scopesRoute: true,
       namesRoute: true,
       explicitChildNodes: true,
-      label: done != null ? l.syncuiDoneTitle : l.syncuiSheetLabel,
+      label: done == null
+          ? l.syncuiSheetLabel
+          : done.isPartial
+          ? l.syncuiPartialTitle(done.failed.length)
+          : l.syncuiDoneTitle,
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 26),
@@ -145,33 +234,9 @@ class SyncSheetBody extends StatelessWidget {
                   ),
                 ),
               ),
-              if (done != null) ...[
-                SyncDoneContent(summary: done),
-                Padding(
-                  padding: const EdgeInsets.only(top: 22),
-                  child: SizedBox(
-                    height: 48,
-                    child: FilledButton(
-                      key: const Key('sync-done-button'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: t.accent,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: onDone,
-                      child: Text(
-                        l.commonDone,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ] else ...[
+              if (done != null)
+                SyncFinalPanel(summary: done, onDone: onDone)
+              else ...[
                 const SyncProgressHeader(),
                 const SyncProgressRows(),
               ],
@@ -183,11 +248,110 @@ class SyncSheetBody extends StatelessWidget {
   }
 }
 
-/// 完成狀態的標頭（SyncSheetDone）：綠勾圈＋「同步完成」、右邊「N / N」綠字、全滿綠色進度條、
-/// 「上傳 N 張　下載 N 張」＋右邊完成時間。
-class SyncDoneContent extends StatelessWidget {
-  const SyncDoneContent({super.key, required this.summary});
+/// 結束狀態的內容與底部按鈕（sheet 與 iPad popover 共用）：全部成功＝[SyncDoneContent]＋「完成」；
+/// 有失敗＝[SyncPartialContent]＋「重試」（外框，只重跑失敗的）＋「完成」（主色）。
+class SyncFinalPanel extends ConsumerWidget {
+  const SyncFinalPanel({
+    super.key,
+    required this.summary,
+    required this.onDone,
+    this.popover = false,
+  });
   final SyncDoneSummary summary;
+  final VoidCallback? onDone;
+  final bool popover;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.tokens;
+    final l = context.l10n;
+    final syncing = ref.watch(
+      syncControllerProvider.select((s) => s.isSyncing),
+    );
+    final done = SizedBox(
+      height: 48,
+      child: FilledButton(
+        key: const Key('sync-done-button'),
+        style: FilledButton.styleFrom(
+          backgroundColor: t.accent,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        onPressed: onDone,
+        child: Text(
+          l.commonDone,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (summary.isPartial)
+          SyncPartialContent(summary: summary, popover: popover)
+        else
+          SyncDoneContent(summary: summary, popover: popover),
+        Padding(
+          padding: EdgeInsets.only(top: summary.isPartial ? 18 : 22),
+          child: summary.isPartial
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: OutlinedButton(
+                          key: const Key('sync-retry-button'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: t.ink,
+                            side: BorderSide(
+                              color: fieldBorderColor(context),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          // 重試＝再同步一次；成功的早就同步完了，剩下要做的就只有失敗的那幾張。
+                          onPressed: syncing
+                              ? null
+                              : () => unawaited(
+                                  ref
+                                      .read(syncControllerProvider.notifier)
+                                      .syncNow(),
+                                ),
+                          child: Text(
+                            l.syncuiRetry,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: done),
+                  ],
+                )
+              : done,
+        ),
+      ],
+    );
+  }
+}
+
+/// 完成狀態的標頭（SyncSheetDone）：綠勾圈＋「同步完成」、右邊「N / N」綠字、全滿綠色進度條、
+/// 「上傳 N 張　下載 N 張」＋右邊完成時間（相對時間，每分鐘更新，D-109 ②）。
+class SyncDoneContent extends StatelessWidget {
+  const SyncDoneContent({
+    super.key,
+    required this.summary,
+    this.popover = false,
+  });
+  final SyncDoneSummary summary;
+  final bool popover;
 
   @override
   Widget build(BuildContext context) {
@@ -222,7 +386,7 @@ class SyncDoneContent extends StatelessWidget {
                 Text(
                   l.syncuiDoneTitle,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontSize: 18,
+                    fontSize: popover ? 19 : 18,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -249,25 +413,194 @@ class SyncDoneContent extends StatelessWidget {
             ),
           ),
         ),
+        _CountsRow(summary: summary, color: t.text2),
+      ],
+    );
+  }
+}
+
+/// 「上傳 N 張　下載 N 張」＋右邊完成時間。
+class _CountsRow extends StatelessWidget {
+  const _CountsRow({required this.summary, required this.color});
+  final SyncDoneSummary summary;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final style = TextStyle(fontSize: 13, color: color);
+    return Row(
+      children: [
+        Text(l.syncuiUploadCount(summary.uploaded), style: style),
+        const SizedBox(width: 16),
+        Text(l.syncuiDownloadCount(summary.downloaded), style: style),
+        const Spacer(),
+        SyncRelativeTimeText(at: summary.completedAt, style: style),
+      ],
+    );
+  }
+}
+
+/// 最多列出幾張失敗的（其餘寫「還有 N 張失敗」）。
+const syncPartialMaxRows = 4;
+
+/// 部分失敗狀態（SyncSheetPartial，D-109）：琥珀「!」圓＋「同步完成，N 張失敗」、右邊「成功 / 總數」
+/// 琥珀字、進度條（綠＝成功，尾端琥珀＝失敗）、張數與時間、失敗的每一張（縮圖、上傳／下載標籤、
+/// 位置、右邊琥珀「失敗」；最多 [syncPartialMaxRows] 張，其餘「還有 N 張失敗」）。
+class SyncPartialContent extends ConsumerWidget {
+  const SyncPartialContent({
+    super.key,
+    required this.summary,
+    this.popover = false,
+  });
+  final SyncDoneSummary summary;
+  final bool popover;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.tokens;
+    final colors = SyncColors.of(context);
+    final l = context.l10n;
+    final shown = summary.failed.take(syncPartialMaxRows).toList();
+    final more = summary.failed.length - shown.length;
+    final files = [for (final x in shown) x.file];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) ref.read(syncRowInfoProvider.notifier).ensure(files);
+    });
+    final ok = summary.total == 0 ? 0.0 : summary.succeeded / summary.total;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              l.syncuiUploadCount(summary.uploaded),
-              style: TextStyle(fontSize: 13, color: t.text2),
+            Flexible(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    key: const Key('sync-partial-mark'),
+                    width: 26,
+                    height: 26,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: colors.failedFill,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Text(
+                      '!',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      l.syncuiPartialTitle(summary.failed.length),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: popover ? 19 : 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 8),
             Text(
-              l.syncuiDownloadCount(summary.downloaded),
-              style: TextStyle(fontSize: 13, color: t.text2),
-            ),
-            const Spacer(),
-            Text(
-              l.syncuiDoneJustNow,
-              style: TextStyle(fontSize: 13, color: t.text2),
+              l.syncuiProgress(summary.succeeded, summary.total),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: colors.failedText,
+              ),
             ),
           ],
         ),
+        Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 8),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: Container(
+              key: const Key('sync-partial-bar'),
+              height: 6,
+              color: colors.failedFill,
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: ok,
+                child: Container(
+                  key: const Key('sync-partial-bar-ok'),
+                  color: colors.doneFill,
+                ),
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: _CountsRow(summary: summary, color: t.text2),
+        ),
+        for (var i = 0; i < shown.length; i++)
+          _FailedRow(x: shown[i], last: i == shown.length - 1 && more == 0),
+        if (more > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Text(
+              l.syncuiMoreFailed(more),
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: t.text3),
+            ),
+          ),
       ],
+    );
+  }
+}
+
+/// 失敗的一行：縮圖、上傳／下載標籤、位置、右邊琥珀「失敗」（沒有進度條）。
+class _FailedRow extends ConsumerWidget {
+  const _FailedRow({required this.x, required this.last});
+  final SyncTransfer x;
+  final bool last;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = SyncColors.of(context);
+    final l = context.l10n;
+    final info = ref.watch(syncRowInfoProvider.select((m) => m[x.file]));
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        border: last ? null : Border(bottom: BorderSide(color: colors.divider)),
+      ),
+      child: Row(
+        children: [
+          SyncRowThumb(file: x.file, info: info),
+          const SizedBox(width: 12),
+          _DirectionTag(upload: x.isUpload),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              syncLocationText(l, info) ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            l.syncuiFailed,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: colors.failedRowText,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -288,8 +621,12 @@ class SyncProgressHeader extends ConsumerWidget {
     // 只取數字，傳輸清單裡逐位元組的變動不會讓標頭重建。
     final (done, total, up, down) = ref.watch(
       syncControllerProvider.select(
-        (s) =>
-            (s.transferDone, s.transferTotal, s.uploadCount, s.downloadCount),
+        (s) => (
+          s.transferSettled,
+          s.transferTotal,
+          s.uploadCount,
+          s.downloadCount,
+        ),
       ),
     );
     return Column(
@@ -377,7 +714,7 @@ List<SyncTransfer> pickSyncRows(List<SyncTransfer> transfers) {
   final active = <SyncTransfer>[];
   final waiting = <SyncTransfer>[];
   for (final x in transfers) {
-    if (x.isDone) continue;
+    if (x.isSettled) continue;
     (x.isActive ? active : waiting).add(x);
   }
   final out = [...active.take(syncSheetMaxActive)];
@@ -456,7 +793,7 @@ class _SyncProgressRowsState extends ConsumerState<SyncProgressRows> {
       syncControllerProvider.select((s) => s.transfers),
     );
     final shown = pickSyncRows(transfers);
-    final pendingCount = transfers.where((x) => !x.isDone).length;
+    final pendingCount = transfers.where((x) => !x.isSettled).length;
     final more = pendingCount - shown.length;
     // 一次批次查可見幾行的位置資料（不逐張查）。
     final files = [for (final x in shown) x.file];
@@ -566,7 +903,12 @@ class _TransferRow extends ConsumerWidget {
     final colors = SyncColors.of(context);
     final l = context.l10n;
     final info = ref.watch(syncRowInfoProvider.select((m) => m[x.file]));
-    final waiting = !x.isActive && !x.isDone;
+    final waiting = !x.isActive && !x.isSettled;
+    // Drive 已滿（D-103）：排隊中的上傳寫「等待空間」（灰字），不是「等待中」。
+    final waitingSpace =
+        waiting &&
+        x.isUpload &&
+        ref.watch(syncControllerProvider.select((s) => s.quotaFull));
     final percent = (x.isActive || x.isDone) && x.progress != null
         ? (x.progress! * 100).round().clamp(0, 100)
         : null;
@@ -602,7 +944,10 @@ class _TransferRow extends ConsumerWidget {
                     ),
                     if (waiting)
                       Text(
-                        l.syncuiWaiting,
+                        waitingSpace ? l.syncuiWaitingSpace : l.syncuiWaiting,
+                        key: waitingSpace
+                            ? const Key('sync-waiting-space')
+                            : null,
                         style: TextStyle(
                           fontSize: 12.5,
                           color: colors.waitText,

@@ -2166,6 +2166,50 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shareMoveTagStateNone => '沒有';
 
   @override
+  String get syncuiRingFailed => '同步完成，有圖片失敗';
+
+  @override
+  String syncuiPartialTitle(int count) {
+    return '同步完成，$count 張失敗';
+  }
+
+  @override
+  String get syncuiFailed => '失敗';
+
+  @override
+  String get syncuiRetry => '重試';
+
+  @override
+  String syncuiMoreFailed(int count) {
+    return '還有 $count 張失敗';
+  }
+
+  @override
+  String get syncuiWaitingSpace => '等待空間';
+
+  @override
+  String syncuiTimeMinutesAgo(int minutes) {
+    return '$minutes 分鐘前';
+  }
+
+  @override
+  String get backupFullTitle => 'Drive 已滿';
+
+  @override
+  String backupFullCount(int count) {
+    return '$count 張';
+  }
+
+  @override
+  String get backupFullUnuploaded => '未上傳';
+
+  @override
+  String get backupFullManage => '管理 Google 儲存空間';
+
+  @override
+  String get meBackupUploadPaused => '上傳暫停　下載正常';
+
+  @override
   String get syncuiSheetLabel => '同步進度';
 
   @override

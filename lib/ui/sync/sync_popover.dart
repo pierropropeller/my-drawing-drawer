@@ -38,7 +38,9 @@ Future<void> showSyncProgress(
 }
 
 /// 頭像 popover（SyncPopover 稿）：寬 400（窄視窗縮到放得下）、圓角 20、頂端一個指向頭像的小箭頭；
-/// 內容與同步進度 sheet 相同，另有連線種類與「同步設定」連結。傳完自動關閉。
+/// 內容與同步進度 sheet 相同，另有連線種類與「同步設定」連結。傳完不自動關：
+/// 原地變成完成狀態（D-109 ①，iPad 沒有另畫稿，沿用手機版 SyncSheetDone／SyncSheetPartial
+/// 的內容放進 popover）。
 class SyncPopover extends ConsumerStatefulWidget {
   const SyncPopover({super.key, this.anchor, this.onOpenSettings});
 
@@ -59,6 +61,7 @@ class SyncPopover extends ConsumerStatefulWidget {
 
 class _SyncPopoverState extends ConsumerState<SyncPopover> {
   bool _closing = false;
+  SyncDoneSummary? _done;
 
   void _close() {
     if (_closing || !mounted) return;
@@ -85,11 +88,19 @@ class _SyncPopoverState extends ConsumerState<SyncPopover> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(syncControllerProvider.select((s) => s.isTransferring), (
-      _,
-      transferring,
-    ) {
-      if (!transferring) _close();
+    ref.listen(syncControllerProvider, (prev, next) {
+      if (prev == null) return;
+      final tr = syncSheetTransition(prev, next, _done);
+      switch (tr.action) {
+        case SyncSheetAction.show:
+          setState(() => _done = tr.summary);
+        case SyncSheetAction.clear:
+          setState(() => _done = null);
+        case SyncSheetAction.close:
+          _close();
+        case SyncSheetAction.keep:
+          break;
+      }
     });
     // 拉窗跨過 600：換成底部 sheet 的樣子（內容不重開）。
     if (WindowClass.of(context).isCompact) {
@@ -100,7 +111,9 @@ class _SyncPopoverState extends ConsumerState<SyncPopover> {
             const Positioned.fill(child: ColoredBox(color: Color(0x6B1E1A17))),
             Align(
               alignment: Alignment.bottomCenter,
-              child: ThemedSheetSurface(child: const SyncSheetBody()),
+              child: ThemedSheetSurface(
+                child: SyncSheetBody(done: _done, onDone: _close),
+              ),
             ),
           ],
         ),
@@ -191,8 +204,16 @@ class _SyncPopoverState extends ConsumerState<SyncPopover> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const SyncProgressHeader(popover: true),
-                            SyncProgressRows(onOpenSettings: _openSettings),
+                            if (_done != null)
+                              SyncFinalPanel(
+                                summary: _done!,
+                                onDone: _close,
+                                popover: true,
+                              )
+                            else ...[
+                              const SyncProgressHeader(popover: true),
+                              SyncProgressRows(onOpenSettings: _openSettings),
+                            ],
                           ],
                         ),
                       ),

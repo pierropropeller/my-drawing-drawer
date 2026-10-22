@@ -177,7 +177,7 @@ void main() {
         await unmount(tester);
       });
 
-      testWidgets('傳輸中點頭像開 popover，傳完自動關閉', (tester) async {
+      testWidgets('傳輸中點頭像開 popover，傳完變完成狀態（D-109 ①），按「完成」才關', (tester) async {
         await tester.runAsync(() async {
           final groups = await db.select(db.officialGroups).get();
           final pit = (await db.select(db.pits).get()).first;
@@ -223,8 +223,36 @@ void main() {
         await tester.pump(const Duration(milliseconds: 300));
         expect(find.text('2 / 7'), findsOneWidget);
 
-        // 傳完：自動關閉。
+        // 傳完：不自動關，原地變成完成狀態（同手機 D-100）。
         fake(c).set(const SyncState());
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.byType(SyncPopover), findsOneWidget);
+        expect(find.text('同步完成'), findsOneWidget);
+        expect(find.text('同步中'), findsNothing);
+        expect(find.text('7 / 7'), findsOneWidget);
+        expect(find.text('上傳 1 張'), findsOneWidget);
+        expect(find.text('下載 6 張'), findsOneWidget);
+        expect(find.text('剛剛'), findsOneWidget);
+        expect(find.text('同步設定'), findsNothing); // 列表和設定連結都消失
+        expect(find.text('坑A · 官方圖冊'), findsNothing);
+        expect(find.text('Wi-Fi'), findsNothing);
+
+        // 又有新的變更：切回同步中。
+        fake(
+          c,
+        ).set(_transferring([_dl('d1.png', s: TransferState.active, p: .5)]));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.text('同步完成'), findsNothing);
+        expect(find.text('同步中'), findsOneWidget);
+        fake(c).set(const SyncState());
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.text('同步完成'), findsOneWidget);
+
+        // 按「完成」才關。
+        await tester.tap(find.byKey(const Key('sync-done-button')));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 500));
         expect(find.byType(SyncPopover), findsNothing);
@@ -367,7 +395,13 @@ void main() {
       expect(find.text('同步設定'), findsNothing);
       expect(find.text('1 / 7'), findsOneWidget);
 
+      // 傳完：同一個彈層變完成狀態（sheet 樣子），按「完成」才關。
       fake(c).set(const SyncState());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(SyncPopover), findsOneWidget);
+      expect(find.text('同步完成'), findsWidgets);
+      await tester.tap(find.byKey(const Key('sync-done-button')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(SyncPopover), findsNothing);
