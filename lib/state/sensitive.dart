@@ -59,3 +59,10 @@ final sensitiveMarkingProvider = Provider.autoDispose.family<bool, String?>((
   final Pit? pit = ref.watch(pitProvider(pitId)).value;
   return pit?.sensitiveEnabled ?? false;
 });
+
+/// 啟動時預熱：總開關開著就先訂閱 [sensitiveFilesProvider]（App 外框 watch 它）。
+final sensitiveWarmupProvider = Provider<void>((ref) {
+  if (ref.watch(settingsProvider.select((s) => s.sensitiveEnabled))) {
+    ref.watch(sensitiveFilesProvider);
+  }
+});

@@ -15,6 +15,7 @@ import '../entity/finished_list_page.dart';
 import '../entity/idea_list_page.dart';
 import '../common/app_icons.dart';
 import '../common/responsive.dart';
+import '../common/sensitive_gate.dart';
 import '../nav/adaptive_nav.dart';
 import '../common/svg_icon.dart';
 import '../common/window_class.dart';
@@ -440,7 +441,12 @@ class _Cell extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: file != null
-                  ? SizedBox.expand(child: StoredImage(file!, cacheWidth: 600))
+                  ? SizedBox.expand(
+                      child: SensitiveGate(
+                        file: file!,
+                        child: StoredImage(file!, cacheWidth: 600),
+                      ),
+                    )
                   : placeholder
                   ? SvgIcon(
                       svg,
