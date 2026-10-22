@@ -3699,6 +3699,132 @@ abstract class AppLocalizations {
   /// **'刪除 {count} 張成圖？'**
   String pieceDeleteSelectedTitle(int count);
 
+  /// No description provided for @personalizeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'個人化'**
+  String get personalizeTitle;
+
+  /// No description provided for @sensitiveTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'敏感內容'**
+  String get sensitiveTitle;
+
+  /// No description provided for @sensitiveValueOff.
+  ///
+  /// In zh, this message translates to:
+  /// **'關閉'**
+  String get sensitiveValueOff;
+
+  /// No description provided for @sensitiveValueOn.
+  ///
+  /// In zh, this message translates to:
+  /// **'開啟'**
+  String get sensitiveValueOn;
+
+  /// No description provided for @sensitiveBadgeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'敏感'**
+  String get sensitiveBadgeLabel;
+
+  /// No description provided for @sensitiveMasterTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'敏感內容標記'**
+  String get sensitiveMasterTitle;
+
+  /// No description provided for @sensitiveSafeModeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'安全模式'**
+  String get sensitiveSafeModeTitle;
+
+  /// No description provided for @sensitiveSafeModeHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'開啟後會模糊顯示已標記的圖片，關閉則正常顯示'**
+  String get sensitiveSafeModeHint;
+
+  /// No description provided for @sensitiveOffTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'關閉敏感內容標記？'**
+  String get sensitiveOffTitle;
+
+  /// No description provided for @sensitiveOffBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'已標記的圖片會照常顯示，不再模糊，所有敏感內容選項也會隱藏。重新開啟後，標記會自動恢復。'**
+  String get sensitiveOffBody;
+
+  /// No description provided for @sensitiveOffConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'關閉'**
+  String get sensitiveOffConfirm;
+
+  /// No description provided for @sensitivePitOffTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'關閉這個坑的敏感內容？'**
+  String get sensitivePitOffTitle;
+
+  /// No description provided for @sensitivePitOffBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'坑內已標記的 {count} 張圖會照常顯示。重新開啟後，標記會自動恢復。'**
+  String sensitivePitOffBody(int count);
+
+  /// No description provided for @sensitiveMarkAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部標為敏感'**
+  String get sensitiveMarkAll;
+
+  /// No description provided for @sensitiveMarkedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{marked} / {total}'**
+  String sensitiveMarkedCount(int marked, int total);
+
+  /// No description provided for @sensitiveMarkImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'標為敏感'**
+  String get sensitiveMarkImage;
+
+  /// No description provided for @sensitiveMarkedImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'已標為敏感'**
+  String get sensitiveMarkedImage;
+
+  /// No description provided for @sensitiveAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'敏感'**
+  String get sensitiveAction;
+
+  /// No description provided for @sensitiveCoverTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'標為敏感內容？'**
+  String get sensitiveCoverTitle;
+
+  /// No description provided for @sensitiveCoverBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'選中的圖片裡有 {count} 張是這個坑的封面，標記後會從封面移除。'**
+  String sensitiveCoverBody(int count);
+
+  /// No description provided for @sensitiveCoverConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'標記並移除封面'**
+  String get sensitiveCoverConfirm;
+
   /// No description provided for @shallowName.
   ///
   /// In zh, this message translates to:

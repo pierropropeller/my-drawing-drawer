@@ -22,6 +22,7 @@ class _Src {
     this.kind = MediaKind.image,
     this.durationMs,
     this.posterFile,
+    this.sensitive = false,
   });
   final String id;
   final String pitId;
@@ -39,6 +40,9 @@ class _Src {
   final MediaKind kind;
   final int? durationMs;
   final String? posterFile;
+
+  /// 敏感內容標記（D-104）：移動時跟著圖走。
+  final bool sensitive;
 }
 
 /// 目標格裡同一張圖（同 imageKey）的既有列。
@@ -80,6 +84,7 @@ extension JunkQueries on AppDatabase {
       kind: Value(im.kind),
       durationMs: Value(im.durationMs),
       posterFile: Value(im.posterFile),
+      sensitive: Value(im.sensitive),
       imageKey: Value(id),
     );
   }
@@ -197,7 +202,9 @@ extension JunkQueries on AppDatabase {
         String targetId;
         if (twin != null) {
           targetId = twin.id;
-          if (twin.hidden) await _unhide(to, twin.id, groupId, now);
+          if (twin.hidden) {
+            await _unhide(to, twin.id, groupId, now, src.sensitive);
+          }
         } else {
           targetId = await _createCopy(to, src, pit, groupId, now);
           // 同一種格（官方→官方、同人圖→同人圖）跨坑：新列帶著按名稱對應的 tag。
@@ -286,6 +293,7 @@ extension JunkQueries on AppDatabase {
               kind: r.kind,
               durationMs: r.durationMs,
               posterFile: r.posterFile,
+              sensitive: r.sensitive,
             ),
           );
         }
@@ -313,6 +321,7 @@ extension JunkQueries on AppDatabase {
               kind: r.kind,
               durationMs: r.durationMs,
               posterFile: r.posterFile,
+              sensitive: r.sensitive,
             ),
           );
         }
@@ -338,6 +347,7 @@ extension JunkQueries on AppDatabase {
               kind: r.kind,
               durationMs: r.durationMs,
               posterFile: r.posterFile,
+              sensitive: r.sensitive,
             ),
           );
         }
@@ -360,6 +370,7 @@ extension JunkQueries on AppDatabase {
     MediaKind kind = MediaKind.image,
     int? durationMs,
     String? posterFile,
+    bool sensitive = false,
   }) => _Src(
     id: id,
     pitId: pitId,
@@ -373,6 +384,7 @@ extension JunkQueries on AppDatabase {
     kind: kind,
     durationMs: durationMs,
     posterFile: posterFile,
+    sensitive: sensitive,
   );
 
   /// 目標坑 [pitId] 的目標格裡同一張圖（同 imageKey）的既有列。
@@ -438,11 +450,13 @@ extension JunkQueries on AppDatabase {
     String id,
     String? groupId,
     DateTime now,
+    bool sensitive,
   ) async {
     switch (cell) {
       case AlbumCell.official:
         await (update(officialImages)..where((i) => i.id.equals(id))).write(
           OfficialImagesCompanion(
+            sensitive: Value(sensitive),
             hidden: const Value(false),
             groupId: groupId == null ? const Value.absent() : Value(groupId),
             updatedAt: Value(now),
@@ -451,6 +465,7 @@ extension JunkQueries on AppDatabase {
       case AlbumCell.fan:
         await (update(fanArts)..where((i) => i.id.equals(id))).write(
           FanArtsCompanion(
+            sensitive: Value(sensitive),
             hidden: const Value(false),
             groupId: groupId == null ? const Value.absent() : Value(groupId),
             updatedAt: Value(now),
@@ -459,6 +474,7 @@ extension JunkQueries on AppDatabase {
       case AlbumCell.junk:
         await (update(junkImages)..where((i) => i.id.equals(id))).write(
           JunkImagesCompanion(
+            sensitive: Value(sensitive),
             hidden: const Value(false),
             updatedAt: Value(now),
           ),
@@ -507,6 +523,7 @@ extension JunkQueries on AppDatabase {
             kind: Value(src.kind),
             durationMs: Value(src.durationMs),
             posterFile: Value(src.posterFile),
+            sensitive: Value(src.sensitive),
             imageKey: Value(src.key),
             createdAt: Value(src.createdAt),
             updatedAt: Value(now),
@@ -523,6 +540,7 @@ extension JunkQueries on AppDatabase {
             kind: Value(src.kind),
             durationMs: Value(src.durationMs),
             posterFile: Value(src.posterFile),
+            sensitive: Value(src.sensitive),
             author: Value(src.author),
             source: Value(src.source),
             groupId: Value(groupId),
@@ -542,6 +560,7 @@ extension JunkQueries on AppDatabase {
             kind: Value(src.kind),
             durationMs: Value(src.durationMs),
             posterFile: Value(src.posterFile),
+            sensitive: Value(src.sensitive),
             imageKey: Value(src.key),
             createdAt: Value(src.createdAt),
             updatedAt: Value(now),

@@ -14,10 +14,12 @@ import '../../l10n/l10n.dart';
 import '../../state/settings.dart' show sharedPrefsProvider;
 import '../../share/share_inbox.dart';
 import '../../state/providers.dart';
+import '../../state/sensitive.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../album/image_picker_field.dart' show ImageItem, ImageItemThumb;
 import '../common/adaptive_modal.dart';
+import '../common/app_switch.dart';
 import '../common/dashed_box.dart';
 import '../common/device_class.dart';
 import '../common/svg_icon.dart';
@@ -103,8 +105,12 @@ class ShareChoice {
     this.author = '',
     this.tagIds = const [],
     this.material,
+    this.sensitive = false,
   });
   final ShareAction action;
+
+  /// 「全部標為敏感」（D-104）：加進去的圖全部標成敏感。只有直接加入（不開表單）時才會是 true。
+  final bool sensitive;
   final String? pitId;
   final ShareSection? section;
 
@@ -199,6 +205,9 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
   final Set<String> _tagIds = {};
   final _author = TextEditingController();
 
+  /// 「全部標為敏感」（D-104）；目標坑有開敏感內容（素材庫：總開關開著）才出現。
+  bool _sensitive = false;
+
   /// 頂部「坑｜素材庫」切換（D-071）；預設停在上次用的那段。
   bool _toMaterial = false;
   late MaterialCategory _material;
@@ -238,8 +247,13 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
 
   void _finishMaterial() {
     ref.read(sharedPrefsProvider)?.setString(_kMaterialKey, _material.name);
-    Navigator.of(context)
-        .pop(ShareChoice(ShareAction.addMaterial, material: _material));
+    Navigator.of(context).pop(
+      ShareChoice(
+        ShareAction.addMaterial,
+        material: _material,
+        sensitive: _sensitive && ref.read(sensitiveMarkingProvider(null)),
+      ),
+    );
   }
 
   void _finish(
@@ -248,6 +262,7 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
     ShareSection section,
     String? group, {
     List<String> tagIds = const [],
+    bool sensitive = false,
   }) {
     ref.read(shareMemoryProvider).save(pitId: pitId, section: section.name);
     Navigator.of(context).pop(
@@ -258,6 +273,7 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
         groupId: group,
         author: section == ShareSection.fan ? _author.text.trim() : '',
         tagIds: tagIds,
+        sensitive: sensitive,
       ),
     );
   }
@@ -317,6 +333,13 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
         pit != null &&
         sections.isNotEmpty &&
         (section != ShareSection.official || group != null);
+    // 「全部標為敏感」（D-104）：目標坑有開敏感內容；素材庫只看總開關。要開表單的位置（摸魚、腦洞、成圖、推活）
+    // 在表單裡標，這裡不放。
+    final showSensitive = _toMaterial
+        ? ref.watch(sensitiveMarkingProvider(null))
+        : pit != null &&
+              !section.needsForm &&
+              ref.watch(sensitiveMarkingProvider(pit.id));
     final groupForResult = switch (section) {
       ShareSection.official => group?.id,
       ShareSection.fan => fanGroup?.id,
@@ -620,6 +643,14 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
                     ),
                   ],
                 ],
+                if (showSensitive)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                    child: _SensitiveRow(
+                      value: _sensitive,
+                      onChanged: (v) => setState(() => _sensitive = v),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -645,6 +676,7 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
                     section,
                     groupForResult,
                     tagIds: tagIds,
+                    sensitive: showSensitive && _sensitive,
                   )
                 : null,
             child: Container(
@@ -1028,6 +1060,46 @@ class _GroupChip extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 「全部標為敏感」一行（D-104）：白底圓角卡＋開關；加進去的圖全部標成敏感。
+class _SensitiveRow extends StatelessWidget {
+  const _SensitiveRow({required this.value, required this.onChanged});
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      key: const ValueKey('shareSensitiveRow'),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: t.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.borderCard),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              context.l10n.sensitiveMarkAll,
+              style: const TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          AppSwitch(
+            key: const ValueKey('shareSensitiveSwitch'),
+            value: value,
+            semanticLabel: context.l10n.sensitiveMarkAll,
+            onChanged: onChanged,
+          ),
+        ],
       ),
     );
   }

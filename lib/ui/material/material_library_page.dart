@@ -5,6 +5,9 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../data/database.dart';
 import '../../data/entity_queries.dart' show ImageRef;
 import '../../data/material_queries.dart';
+import '../../data/sensitive_queries.dart';
+import '../../state/sensitive.dart';
+import '../common/sensitive_actions.dart';
 import '../../l10n/l10n.dart';
 import '../../media/media_import.dart';
 import '../../state/providers.dart';
@@ -216,6 +219,18 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
     _exit();
   }
 
+  /// 「敏感」動作（D-104）：素材庫不屬於任何坑，只看總開關。
+  Future<void> _sensitive(List<MaterialImage> picked) async {
+    if (picked.isEmpty) return;
+    final done = await applySensitiveToSelection(
+      context,
+      ref,
+      SensitiveSource.material,
+      [for (final p in picked) p.id],
+    );
+    if (done && mounted) _exit();
+  }
+
   Future<void> _delete(List<MaterialImage> picked) async {
     if (picked.isEmpty) return;
     final ok = await confirmDelete(
@@ -385,6 +400,17 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
                           onTap: () => _download(picked),
                         ),
                       ),
+                      if (ref.watch(sensitiveMarkingProvider(null)))
+                        Expanded(
+                          child: _BarAction(
+                            l.sensitiveAction,
+                            AppIcons.eyeSlash,
+                            t.ink,
+                            iconSize: 22,
+                            strokeWidth: 1.9,
+                            onTap: () => _sensitive(picked),
+                          ),
+                        ),
                       Expanded(
                         child: _BarAction(
                           l.commonMove,

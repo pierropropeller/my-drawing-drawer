@@ -107,6 +107,7 @@ void main() {
       pieceId: id,
       title: id,
       file: id,
+      autoFile: id,
       width: 0,
       height: 0,
       actualLikes: likes,

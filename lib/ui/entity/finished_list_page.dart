@@ -4,6 +4,9 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../data/database.dart' show TagTarget;
 import '../../data/entity_queries.dart';
+import '../../data/sensitive_queries.dart';
+import '../../state/sensitive.dart';
+import '../common/sensitive_actions.dart';
 import '../../data/media.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
@@ -119,6 +122,17 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
       ids: [for (final v in picked) v.piece.id],
     );
     if (applied == true && mounted) _sel.exit();
+  }
+
+  Future<void> _sensitive(List<PieceView> picked) async {
+    if (picked.isEmpty) return;
+    final done = await applySensitiveToSelection(
+      context,
+      ref,
+      SensitiveSource.piece,
+      [for (final v in picked) v.piece.id],
+    );
+    if (done && mounted) _sel.exit();
   }
 
   Future<void> _delete(List<PieceView> picked) async {
@@ -353,6 +367,9 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
                 onDownload: () => _download(picked),
                 onTag: () => _tag(picked),
                 onDelete: () => _delete(picked),
+                onSensitive: ref.watch(sensitiveMarkingProvider(widget.pitId))
+                    ? () => _sensitive(picked)
+                    : null,
               )
             : null,
         body: SafeArea(

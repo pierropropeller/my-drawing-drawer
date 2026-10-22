@@ -15,6 +15,7 @@ import '../entity/entity_widgets.dart';
 import '../entity/piece_detail_page.dart';
 import 'goals_icons.dart';
 import 'money_format.dart';
+import '../common/sensitive_gate.dart';
 
 /// 商稿收入・年度（IncomeYear）：每幣種一張合計卡、未收齊紅色提示、按月份列出每張商稿。
 /// 不做匯率換算。artboard 沒有畫導覽列，所以隱藏。
@@ -266,7 +267,14 @@ class _EntryRow extends StatelessWidget {
                           ),
                         ),
                       )
-                    : StoredImage(entry.cover!.staticFile!, cacheWidth: 150),
+                    : SensitiveGate(
+                        file: entry.cover!.staticFile!,
+                        badgeInset: 2,
+                        child: StoredImage(
+                          entry.cover!.staticFile!,
+                          cacheWidth: 150,
+                        ),
+                      ),
               ),
             ),
             Expanded(

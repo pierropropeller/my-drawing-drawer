@@ -139,4 +139,17 @@ abstract final class AppIcons {
   /// 外開連結（PieceDetail 社交媒體連結列尾）。
   static const externalLink =
       '<path d="M14 5h5v5M19 5l-8 8M11 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>';
+
+  /// 眼睛斜線（敏感內容：個人化的列、坑的開關、縮圖小標、模糊圓底、預覽頁「已標為敏感」）。
+  /// Personalize／PitEditR18／DraftGridR18／FormImagePreviewR18
+  static const eyeSlash =
+      '<path d="M3 3l18 18"/><path d="M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 9 4.5 9.5 6-.3.8-1.1 2-2.4 3.3M6.3 7.6C4.4 8.9 2.9 10.9 2.5 12c.5 1.5 4.5 6 9.5 6 1.6 0 3-.4 4.3-1.1"/><path d="M9.9 10a3 3 0 0 0 4.2 4.2"/>';
+
+  /// 眼睛（表單預覽頁「標為敏感」未標記）。FormImagePreviewR18Off
+  static const eye =
+      '<path d="M2.5 12C3 10.5 7 6 12 6s9 4.5 9.5 6c-.5 1.5-4.5 6-9.5 6s-9-4.5-9.5-6z"/><circle cx="12" cy="12" r="3"/>';
+
+  /// 個人化（調色盤輪廓＋三點；我的：個人化列）。Profile
+  static const personalize =
+      '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-1.3-1.2-1.6-1.2-2.8 0-.9.7-1.5 1.7-1.5h2.2a4 4 0 0 0 4-4c0-3.9-3.8-7-8.5-7z"/><circle cx="7.8" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7.6" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.8" cy="7.8" r="1.2" fill="currentColor" stroke="none"/>';
 }

@@ -106,6 +106,13 @@ void main() {
     await settle(tester);
   }
 
+  /// 我的 → 個人化 → 某一列（D-106：主題色、App 圖示、語言、敏感內容都收進個人化）。
+  Future<void> openPersonalizeRow(WidgetTester tester, String row) async {
+    await openProfileRow(tester, '個人化');
+    await tester.tap(find.text(row));
+    await settle(tester);
+  }
+
   test('主題色色值表與 ColorSystem 一致（淺／深各 accent／strong／soft）', () {
     const expected = {
       AccentPreset.coral: [
@@ -179,7 +186,7 @@ void main() {
 
   testWidgets('語言：English 停用並顯示「即將推出」，沒有說明小字', (tester) async {
     final c = await pumpApp(tester);
-    await openProfileRow(tester, '語言');
+    await openPersonalizeRow(tester, '語言');
     expect(find.text('跟隨系統'), findsWidgets);
     expect(find.text('English'), findsOneWidget);
     expect(find.text('即將推出'), findsOneWidget);
@@ -204,7 +211,7 @@ void main() {
     await tester.tap(find.text('我的').last);
     await settle(tester);
     expect(navBarHiddenCount.value, 0);
-    for (final row in ['主題色', '備份與同步', '關於 App', '語言']) {
+    for (final row in ['個人化', '備份與同步', '關於 App']) {
       await tester.tap(find.text(row));
       await settle(tester);
       expect(navBarHiddenCount.value, greaterThan(0), reason: row);
@@ -212,6 +219,25 @@ void main() {
       await settle(tester);
       expect(navBarHiddenCount.value, 0, reason: '$row 返回後');
     }
+    // D-106：「我的」只剩 素材庫、個人化、備份與同步、關於 App；其餘收進個人化。
+    for (final gone in ['主題色', 'App 圖示', '語言', '敏感內容']) {
+      expect(find.text(gone), findsNothing, reason: '$gone 不在我的');
+    }
+    // 個人化裡的子頁：返回都回到個人化，不是我的。
+    await tester.tap(find.text('個人化'));
+    await settle(tester);
+    for (final row in ['主題色', 'App 圖示', '語言', '敏感內容']) {
+      await tester.tap(find.text(row));
+      await settle(tester);
+      expect(navBarHiddenCount.value, greaterThan(0), reason: row);
+      await tester.tap(find.byTooltip('返回'));
+      await settle(tester);
+      expect(find.text('個人化'), findsOneWidget, reason: '$row 返回個人化');
+      expect(find.text('素材庫'), findsNothing, reason: '$row 返回的不是我的');
+    }
+    await tester.tap(find.byTooltip('返回'));
+    await settle(tester);
+    expect(navBarHiddenCount.value, 0);
     await tester.tap(find.text('編輯個人資料'));
     await settle(tester);
     expect(navBarHiddenCount.value, greaterThan(0));
@@ -323,9 +349,86 @@ void main() {
       c.read(settingsProvider.notifier).setAccent(p);
       await settle(tester);
     }
-    await openProfileRow(tester, '主題色');
+    await openPersonalizeRow(tester, '主題色');
     expect(find.text('預覽'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await unmount(tester);
+  });
+
+  group('敏感內容設定（D-104／D-106）', () {
+    testWidgets('個人化四列；敏感內容預設關、只有總開關，沒有安全模式', (tester) async {
+      final c = await pumpApp(tester);
+      expect(c.read(settingsProvider).sensitiveEnabled, isFalse);
+      expect(c.read(settingsProvider).safeMode, isTrue);
+      await openProfileRow(tester, '個人化');
+      for (final row in ['主題色', 'App 圖示', '語言', '敏感內容']) {
+        expect(find.text(row), findsOneWidget, reason: row);
+      }
+      expect(find.text('關閉'), findsOneWidget); // 敏感內容那一列右邊的目前值
+      await tester.tap(find.text('敏感內容'));
+      await settle(tester);
+      expect(find.text('敏感內容標記'), findsOneWidget);
+      expect(find.text('安全模式'), findsNothing);
+      await unmount(tester);
+    });
+
+    testWidgets('關→開不用確認，出現安全模式（預設開）；開→關要確認，取消不變', (tester) async {
+      final c = await pumpApp(tester);
+      await openPersonalizeRow(tester, '敏感內容');
+      await tester.tap(find.byKey(const ValueKey('sensitiveMasterSwitch')));
+      await settle(tester);
+      expect(c.read(settingsProvider).sensitiveEnabled, isTrue);
+      expect(
+        (await SharedPreferences.getInstance()).getBool('sensitiveEnabled'),
+        isTrue,
+      );
+      expect(find.text('安全模式'), findsOneWidget);
+      expect(
+        find.text('開啟後會模糊顯示已標記的圖片，關閉則正常顯示'),
+        findsOneWidget,
+      );
+      // 安全模式可以切換，且是本機設定。
+      await tester.tap(find.byKey(const ValueKey('sensitiveSafeModeSwitch')));
+      await settle(tester);
+      expect(c.read(settingsProvider).safeMode, isFalse);
+      // 開→關：確認視窗（文字照 R18SettingsOff）。
+      await tester.tap(find.byKey(const ValueKey('sensitiveMasterSwitch')));
+      await settle(tester);
+      expect(find.text('關閉敏感內容標記？'), findsOneWidget);
+      expect(
+        find.text('已標記的圖片會照常顯示，不再模糊，所有敏感內容選項也會隱藏。重新開啟後，標記會自動恢復。'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('取消'));
+      await settle(tester);
+      expect(c.read(settingsProvider).sensitiveEnabled, isTrue);
+      await tester.tap(find.byKey(const ValueKey('sensitiveMasterSwitch')));
+      await settle(tester);
+      await tester.tap(find.text('關閉'));
+      await settle(tester);
+      expect(c.read(settingsProvider).sensitiveEnabled, isFalse);
+      expect(find.text('安全模式'), findsNothing);
+      // 安全模式的值保留，重新打開後原樣。
+      expect(c.read(settingsProvider).safeMode, isFalse);
+      await tester.tap(find.byKey(const ValueKey('sensitiveMasterSwitch')));
+      await settle(tester);
+      expect(c.read(settingsProvider).sensitiveEnabled, isTrue);
+      expect(find.text('安全模式'), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('設定存在本機並在重開後還原', (tester) async {
+      final c = await pumpApp(
+        tester,
+        prefs: {
+          'onboarded': true,
+          'sensitiveEnabled': true,
+          'safeMode': false,
+        },
+      );
+      expect(c.read(settingsProvider).sensitiveEnabled, isTrue);
+      expect(c.read(settingsProvider).safeMode, isFalse);
+      await unmount(tester);
+    });
   });
 }

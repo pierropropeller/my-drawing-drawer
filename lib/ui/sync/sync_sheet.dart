@@ -21,6 +21,7 @@ import '../oshi/oshi_icons.dart';
 import '../pits/pits_icons.dart';
 import 'sync_colors.dart';
 import 'sync_icons.dart';
+import '../common/sensitive_gate.dart';
 
 /// 打開「同步進度」bottom sheet（SyncSheet，D-052）。
 ///
@@ -710,10 +711,14 @@ class SyncRowThumb extends ConsumerWidget {
     if (store != null && shownFile != null) {
       ref.watch(thumbVersionProvider(shownFile)); // 占位圖到了重建
       if (ref.watch(imageExistsProvider(shownFile)).value ?? false) {
-        child = StoredImage(
-          shownFile,
-          cacheWidth: 150,
-          showDownloadBadge: false,
+        child = SensitiveGate(
+          file: file,
+          badgeInset: 2,
+          child: StoredImage(
+            shownFile,
+            cacheWidth: 150,
+            showDownloadBadge: false,
+          ),
         );
       } else {
         // 原圖還沒到：模糊占位圖（沒有就維持分類底色＋icon）。

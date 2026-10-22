@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/junk_queries.dart';
+import '../../data/sensitive_queries.dart';
+import '../../state/sensitive.dart';
+import '../common/sensitive_actions.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
@@ -217,6 +220,23 @@ class _AlbumViewState extends ConsumerState<AlbumView>
       ids: [for (final p in _picked) p.id],
     );
     if (applied == true && mounted) _exit();
+  }
+
+  /// 「敏感」動作（D-104）：官方圖冊、好看同人圖、雜物。
+  SensitiveSource? get _sensitiveSource => switch (widget.cell) {
+    AlbumCell.official => SensitiveSource.official,
+    AlbumCell.fan => SensitiveSource.fan,
+    AlbumCell.junk => SensitiveSource.junk,
+    null => null,
+  };
+
+  Future<void> _sensitive() async {
+    final source = _sensitiveSource;
+    if (source == null || _selected.isEmpty) return;
+    final done = await applySensitiveToSelection(context, ref, source, [
+      for (final p in _picked) p.id,
+    ]);
+    if (done && mounted) _exit();
   }
 
   Future<void> _delete() async {
@@ -530,6 +550,18 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                           onTap: _download,
                         ),
                       ),
+                      if (_sensitiveSource != null &&
+                          ref.watch(sensitiveMarkingProvider(widget.pitId)))
+                        Expanded(
+                          child: _BarAction(
+                            context.l10n.sensitiveAction,
+                            AppIcons.eyeSlash,
+                            t.ink,
+                            iconSize: 22,
+                            strokeWidth: 1.9,
+                            onTap: _sensitive,
+                          ),
+                        ),
                       if (widget.cell != null)
                         Expanded(
                           child: _BarAction(

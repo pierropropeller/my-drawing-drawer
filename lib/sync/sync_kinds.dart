@@ -76,6 +76,8 @@ Map<String, dynamic> withMediaDefaults(
   if (!MediaKind.values.any((k) => k.name == raw)) {
     out['kind'] = mediaKindFromExtension((out[fileKey] as String?) ?? '').name;
   }
+  // 敏感內容標記（D-104）：舊版 App 的文件沒有 `sensitive`＝未標記。
+  if (out['sensitive'] is! bool) out['sensitive'] = false;
   return out;
 }
 
@@ -125,6 +127,7 @@ Future<List<Map<String, dynamic>>> _imagesOf(
       'kind': r.kind.name,
       'durationMs': r.durationMs,
       'posterFile': r.posterFile,
+      'sensitive': r.sensitive,
     },
 ];
 
@@ -142,6 +145,8 @@ List<NewImage> _newImages(Object? raw) => [
           : mediaKindFromExtension(m['file'] as String),
       durationMs: m['durationMs'] as int?,
       posterFile: m['posterFile'] as String?,
+      // 舊版文件沒有 sensitive（D-104）：未標記。
+      sensitive: m['sensitive'] == true,
     ),
 ];
 
@@ -195,7 +200,12 @@ class PitsKind extends SyncKind {
         doc['status'] = (archived ? PitStatus.archived : PitStatus.active).name;
       }
     }
-    doc = withDefaults(doc, {'junkEnabled': false, 'enabledSections': ''});
+    doc = withDefaults(doc, {
+      'junkEnabled': false,
+      'enabledSections': '',
+      // 敏感內容（D-104）：舊版 App 的文件沒有這個欄位＝關。
+      'sensitiveEnabled': false,
+    });
     await db.into(db.pits).upsertFull(Pit.fromJson(doc));
   }
 

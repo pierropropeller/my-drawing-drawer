@@ -172,6 +172,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
     final rest = [
       FormLabel(context.l10n.ideaFormImages),
       FormImageGrid(
+        pitId: widget.pitId,
         items: _images,
         size: 72,
         // NewIdea：72×72 固定大小、間距 10（其他表單是 3 欄方形）。

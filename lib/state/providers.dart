@@ -27,6 +27,7 @@ import '../media/video_probe.dart';
 import '../ui/common/video_player_view.dart' show playbackFactoryProvider;
 import '../ui/media_source/pick_images_for.dart';
 import '../ui/picker/image_picker_sheet.dart';
+import 'settings.dart' show settingsProvider;
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -279,7 +280,14 @@ final materialCountsProvider = StreamProvider<MaterialCounts>(
 );
 
 final reviewMonthsProvider = StreamProvider.family<Map<int, String?>, int>(
-  (ref, year) => ref.watch(databaseProvider).watchReviewMonths(year),
+  (ref, year) => ref
+      .watch(databaseProvider)
+      .watchReviewMonths(
+        year,
+        excludeSensitive: ref.watch(
+          settingsProvider.select((s) => s.sensitiveEnabled),
+        ),
+      ),
 );
 
 /// 某月所有候選成圖（選擇 N 月的圖片 sheet）。key＝(年, 月)。
@@ -292,8 +300,14 @@ final reviewMonthPiecesProvider =
 /// 每月候選數與目前的圖（`canPick`＝多於一張，長按才有反應）。
 final reviewMonthSummariesProvider =
     StreamProvider.family<Map<int, ReviewMonthSummary>, int>(
-      (ref, year) =>
-          ref.watch(databaseProvider).watchReviewMonthSummaries(year),
+      (ref, year) => ref
+          .watch(databaseProvider)
+          .watchReviewMonthSummaries(
+            year,
+            excludeSensitive: ref.watch(
+              settingsProvider.select((s) => s.sensitiveEnabled),
+            ),
+          ),
     );
 
 final reviewSettingsProvider = StreamProvider.family<ReviewSetting, int>(
@@ -301,8 +315,17 @@ final reviewSettingsProvider = StreamProvider.family<ReviewSetting, int>(
 );
 
 /// 坑內頁五格各自的封面檔名。
+///
+/// 敏感內容（D-104）：總開關開著時，已標記敏感的圖不當封面（該坑要開了敏感內容才算）。
 final cellCoversProvider = StreamProvider.family<CellCovers, String>(
-  (ref, pitId) => ref.watch(databaseProvider).watchCellCovers(pitId),
+  (ref, pitId) => ref
+      .watch(databaseProvider)
+      .watchCellCovers(
+        pitId,
+        excludeSensitive: ref.watch(
+          settingsProvider.select((s) => s.sensitiveEnabled),
+        ),
+      ),
 );
 
 /// 選擇坑封面時，某一格（或整個坑）內可選的圖。key＝(坑 id, 格；null＝全部)。
@@ -310,7 +333,14 @@ final coverCandidatesProvider =
     StreamProvider.family<List<CoverCandidate>, (String, String?)>(
       (ref, key) => ref
           .watch(databaseProvider)
-          .watchCoverCandidates(key.$1, kind: key.$2),
+          .watchCoverCandidates(
+            key.$1,
+            kind: key.$2,
+            // 敏感內容（D-104）：選擇封面不列出已標記的圖。
+            excludeSensitive: ref.watch(
+              settingsProvider.select((s) => s.sensitiveEnabled),
+            ),
+          ),
     );
 
 /// 常用的 tag 在前（坑內搜尋的常用 tag、tag 篩選）。

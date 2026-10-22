@@ -10,6 +10,7 @@ import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
+import '../common/sensitive_gate.dart';
 
 /// 年度回顧：選擇某月份要用哪一張成圖的 bottom sheet（ReviewPick，D-056）。
 ///
@@ -197,7 +198,10 @@ class _PickTile extends StatelessWidget {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(Radii.image),
-                        child: StoredImage(piece.file, cacheWidth: 300),
+                        child: SensitiveGate(
+                          file: piece.file,
+                          child: StoredImage(piece.file, cacheWidth: 300),
+                        ),
                       ),
                       if (on)
                         Positioned(

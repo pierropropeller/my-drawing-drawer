@@ -260,6 +260,7 @@ class _DetailImageStageState extends State<DetailImageStage> {
                           child: MiniMediaThumb(
                             MediaSource.fromImageRef(images[i]),
                             cacheWidth: 200,
+                            protectSensitive: false, // 詳情頁不模糊（D-104）
                           ),
                         ),
                         if (i == _index)

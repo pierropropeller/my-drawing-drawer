@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart' show OfficialGroup;
 import '../../data/oshi_queries.dart';
+import '../../data/sensitive_queries.dart';
+import '../../state/sensitive.dart';
+import '../common/sensitive_actions.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../state/settings.dart';
@@ -155,6 +158,17 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
       ids: [for (final v in picked) v.record.id],
     );
     if (applied == true && mounted) _sel.exit();
+  }
+
+  Future<void> _sensitive(List<OshiRecordView> picked) async {
+    if (picked.isEmpty) return;
+    final done = await applySensitiveToSelection(
+      context,
+      ref,
+      SensitiveSource.oshi,
+      [for (final v in picked) v.record.id],
+    );
+    if (done && mounted) _sel.exit();
   }
 
   Future<void> _delete(List<OshiRecordView> picked) async {
@@ -617,6 +631,9 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
                 onGroup: () => _group(picked),
                 onTag: () => _tag(picked),
                 onDelete: () => _delete(picked),
+                onSensitive: ref.watch(sensitiveMarkingProvider(widget.pitId))
+                    ? () => _sensitive(picked)
+                    : null,
               )
             : null,
         body: SafeArea(

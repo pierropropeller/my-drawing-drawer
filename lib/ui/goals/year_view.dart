@@ -17,6 +17,7 @@ import 'income_year_page.dart';
 import 'money_format.dart';
 import 'review_edit_page.dart';
 import 'review_pick_sheet.dart';
+import '../common/sensitive_gate.dart';
 
 /// 年度（GoalYear／GoalEmpty）：年度回顧 4×3 預覽（已選 N / 12、排版）＋年度目標列表。
 class YearView extends ConsumerStatefulWidget {
@@ -343,7 +344,10 @@ class _MonthCell extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            StoredImage(file!, cacheWidth: 300),
+            SensitiveGate(
+              file: file!,
+              child: StoredImage(file!, cacheWidth: 300),
+            ),
             Positioned(
               left: 5,
               bottom: 5,

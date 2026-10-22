@@ -10,6 +10,7 @@ import 'package:huakeng/data/junk_queries.dart';
 import 'package:huakeng/data/material_queries.dart';
 import 'package:huakeng/data/oshi_queries.dart';
 import 'package:huakeng/data/remote_size_queries.dart';
+import 'package:huakeng/data/sensitive_queries.dart';
 
 /// 舊版（v1）資料庫：官方圖與同人圖沒有寬高，entity_images 沒有寬高，沒有 sync_docs。
 void main() {
@@ -74,6 +75,9 @@ void main() {
     expect(e.single.height, 0);
     expect(await db.select(db.syncDocs).get(), isEmpty); // 表已建立
     expect(await db.select(db.remoteFileSizes).get(), isEmpty); // v13 的用量表也建立
+    // v14：新欄位也建立（預設 false）
+    expect((await db.select(db.officialImages).getSingle()).sensitive, false);
+    expect((await db.select(db.entityImages).getSingle()).sensitive, false);
     await db.close();
   });
 
@@ -630,6 +634,70 @@ void main() {
           RemoteFileSizesCompanion.insert(name: 'thumbs__a.jpg', size: 24),
         );
     expect(await db.drawerRemoteBytes(), 1024);
+    await db.close();
+    await dir.delete(recursive: true);
+  });
+
+  // v14：敏感內容標記（批次 19，D-104）。坑加 sensitive_enabled，所有放圖的表加 sensitive，預設都是 false。
+  test('v13 → v14（用真實的 v13 結構：拆掉新欄位）：資料不動、新欄位預設 false、之後可標記', () async {
+    final dir = await Directory.systemTemp.createTemp('mig_v13');
+    final file = File('${dir.path}/db.sqlite');
+    var db = AppDatabase(NativeDatabase(file));
+    final pitId = await db.createPit(name: '舊坑');
+    final g = (await db.watchGroups(pitId).first).first.id;
+    await db.addOfficial(pitId, g, [const NewImage(file: 'o.png')]);
+    await db.addFanArts(pitId, [const NewImage(file: 'f.png')], author: 'a');
+    await db.addJunk(pitId, [const NewImage(file: 'j.png')]);
+    await db.addMaterials(MaterialCategory.pose, [const NewImage(file: 'm.png')]);
+    await db.saveOshiRecord(
+      pitId: pitId,
+      date: DateTime(2026, 10, 1),
+      images: [const NewImage(file: 'k.png')],
+    );
+    for (final t in [
+      'official_images',
+      'fan_arts',
+      'junk_images',
+      'material_images',
+      'entity_images',
+    ]) {
+      await db.customStatement('ALTER TABLE $t DROP COLUMN sensitive');
+    }
+    await db.customStatement('ALTER TABLE pits DROP COLUMN sensitive_enabled');
+    await db.customStatement('PRAGMA user_version = 13');
+    await db.close();
+
+    db = AppDatabase(NativeDatabase(file));
+    final pit = await db.select(db.pits).getSingle();
+    expect((pit.id, pit.name, pit.sensitiveEnabled), (pitId, '舊坑', false));
+    expect((await db.select(db.officialImages).getSingle()).imageFile, 'o.png');
+    expect((await db.select(db.officialImages).getSingle()).sensitive, false);
+    expect((await db.select(db.fanArts).getSingle()).sensitive, false);
+    expect((await db.select(db.junkImages).getSingle()).sensitive, false);
+    expect((await db.select(db.materialImages).getSingle()).sensitive, false);
+    expect((await db.select(db.entityImages).getSingle()).sensitive, false);
+    // 之後可以正常標記、開關
+    final id = (await db.select(db.officialImages).getSingle()).id;
+    await db.setSensitive(SensitiveSource.official, [id], true);
+    await db.setPitSensitiveEnabled(pitId, true);
+    expect((await db.select(db.officialImages).getSingle()).sensitive, true);
+    expect((await db.select(db.pits).getSingle()).sensitiveEnabled, true);
+    expect(await db.watchSensitiveFiles().first, {'o.png'});
+    await db.close();
+    await dir.delete(recursive: true);
+  });
+
+  test('v14 遷移可以重複執行（欄位已存在）而不出錯', () async {
+    final dir = await Directory.systemTemp.createTemp('mig_v14_twice');
+    final file = File('${dir.path}/db.sqlite');
+    var db = AppDatabase(NativeDatabase(file));
+    final pitId = await db.createPit(name: '坑');
+    await db.setPitSensitiveEnabled(pitId, true);
+    await db.customStatement('PRAGMA user_version = 13');
+    await db.close();
+    db = AppDatabase(NativeDatabase(file));
+    final p = await db.select(db.pits).getSingle();
+    expect((p.id, p.sensitiveEnabled), (pitId, true)); // 已有的值不被洗掉
     await db.close();
     await dir.delete(recursive: true);
   });

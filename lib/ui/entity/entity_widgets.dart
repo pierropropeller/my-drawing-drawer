@@ -5,7 +5,10 @@ import '../../data/database.dart';
 import '../../data/entity_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
+import '../../state/sensitive.dart';
+import '../album/form_image_preview_page.dart';
 import '../album/image_picker_field.dart';
+import '../album/sensitive_form.dart';
 import '../common/add_tile_content.dart';
 import '../common/app_icons.dart';
 import '../common/media_widgets.dart';
@@ -670,8 +673,12 @@ class FormImageGrid extends ConsumerWidget {
     this.size = 72,
     this.dialogColumns = 3,
     this.dialogSpacing = 12,
+    this.pitId,
   });
   final List<ImageItem> items;
+
+  /// 表單所在的坑（D-104）：總開關和這個坑的敏感內容都開了才有標記功能；null＝沒有。
+  final String? pitId;
 
   /// 置中 form sheet 裡的欄數／間距（見 [ReorderableImageGrid.dialogColumns]）；腦洞傳 null＝固定 72。
   final int? dialogColumns;
@@ -685,7 +692,8 @@ class FormImageGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ReorderableImageGrid(
+    final marking = pitId != null && ref.watch(sensitiveMarkingProvider(pitId));
+    final grid = ReorderableImageGrid(
       count: items.length,
       size: size,
       dialogColumns: dialogColumns,
@@ -698,9 +706,38 @@ class FormImageGrid extends ConsumerWidget {
           clipBehavior: Clip.none,
           fit: StackFit.expand,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(Radii.image),
-              child: ImageItemThumb(items[i], cacheWidth: 300),
+            // 點一下開全螢幕預覽（D-102）；長按仍是拖曳排序。
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: hide
+                  ? null
+                  : () => FormImagePreviewPage.open(
+                      context,
+                      items,
+                      i,
+                      canMark: marking,
+                    ),
+              child: Semantics(
+                button: true,
+                label: context.l10n.albumPreviewImage,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(Radii.image),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ImageItemThumb(items[i], cacheWidth: 300),
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: FormSensitiveBadge(
+                            item: items[i],
+                            pitId: pitId,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
             // D-018：22px 深色圓、2px 底色描邊，凸出縮圖右上角 6px。
             if (!hide)
@@ -744,6 +781,14 @@ class FormImageGrid extends ConsumerWidget {
         semanticLabel: context.l10n.entityAddImage,
         iconSize: 24,
       ),
+    );
+    if (!marking) return grid;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        grid,
+        SensitiveMarkAllRow(items: items, pitId: pitId),
+      ],
     );
   }
 }

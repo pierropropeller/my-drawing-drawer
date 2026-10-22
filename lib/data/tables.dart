@@ -30,6 +30,10 @@ mixin MediaColumns on Table {
   /// 影片第一格的截圖檔名（與 imageFile 同一個圖片資料夾，也同步）；
   /// 影片剛匯入、尚未產生截圖時為 null。圖片與 GIF 不使用。
   TextColumn get posterFile => text().nullable()();
+
+  /// 敏感內容標記（D-104，HANDOFF 3.13）：這張圖有沒有被使用者標為敏感。
+  /// 只記錄標記；顯示與否由「總開關＋該坑開關＋安全模式」決定，關掉開關不會清掉標記。
+  BoolColumn get sensitive => boolean().withDefault(const Constant(false))();
 }
 
 enum GoalPeriod { year, month }
@@ -115,6 +119,11 @@ class Pits extends Table with SyncColumns {
   /// 編輯坑的「雜物」開關；開啟後坑內頁最底才出現雜物入口（D-034）。
   /// 淺坑：與 [enabledSections] 是否含 `junk` 保持一致（舊版 App 只看得到這個欄位）。
   BoolColumn get junkEnabled => boolean().withDefault(const Constant(false))();
+
+  /// 這個坑開了敏感內容標記（D-104）；預設關。關閉時坑內完全沒有標記入口、也不模糊
+  /// （就算圖片資料裡有標記），重新開啟後標記自動恢復。還要搭配裝置的總開關才生效。
+  BoolColumn get sensitiveEnabled =>
+      boolean().withDefault(const Constant(false))();
 }
 
 /// 分組：官方圖冊的分組（kind=official）、好看同人圖的分組（kind=fan，預設是各出處）

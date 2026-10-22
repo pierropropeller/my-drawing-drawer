@@ -13,6 +13,7 @@ import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import 'image_picker_field.dart';
 import 'preview_shell.dart';
+import 'sensitive_form.dart';
 
 /// 表單裡點小縮圖開的全螢幕預覽（D-102，`FormImagePreview`）。
 ///
@@ -24,19 +25,28 @@ class FormImagePreviewPage extends ConsumerStatefulWidget {
     super.key,
     required this.items,
     this.initialIndex = 0,
+    this.canMark = false,
   });
 
   final List<ImageItem> items;
   final int initialIndex;
 
+  /// 右上角出現逐張「標為敏感」切換鈕（D-104，總開關＋該坑的敏感內容都開了才傳 true）。
+  final bool canMark;
+
   /// 從表單開預覽。
   static Future<void> open(
     BuildContext context,
     List<ImageItem> items,
-    int index,
-  ) => Navigator.of(context).push(
+    int index, {
+    bool canMark = false,
+  }) => Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => FormImagePreviewPage(items: items, initialIndex: index),
+      builder: (_) => FormImagePreviewPage(
+        items: items,
+        initialIndex: index,
+        canMark: canMark,
+      ),
     ),
   );
 
@@ -102,6 +112,15 @@ class _FormImagePreviewPageState extends ConsumerState<FormImagePreviewPage>
                           ),
                         ),
                       ),
+                      if (widget.canMark && items.isNotEmpty)
+                        ListenableBuilder(
+                          listenable: items[_index],
+                          builder: (context, _) => SensitivePreviewToggle(
+                            marked: items[_index].sensitive,
+                            onTap: () => items[_index].sensitive =
+                                !items[_index].sensitive,
+                          ),
+                        ),
                     ],
                   ),
                 ),

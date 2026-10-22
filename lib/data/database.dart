@@ -54,7 +54,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -113,8 +113,41 @@ class AppDatabase extends _$AppDatabase {
         // 舊的上傳記錄由下一次同步列出遠端內容時一次補齊（見 SyncEngine._reconcileSizes）。
         await m.createTable(remoteFileSizes);
       }
+      if (from < 14) {
+        await _migrateV14(m);
+      }
     },
   );
+
+  /// v14：敏感內容標記（D-104）。坑加 `sensitive_enabled`，所有放圖的表（官方圖、同人圖、雜物、素材庫、
+  /// 腦洞／草稿／成圖／推活圖）加 `sensitive`，預設都是 false。
+  /// 每個欄位先確認存在與否再加（較舊版本的遷移若是整張建表，已經帶有新欄位）。
+  /// 不動 updated_at：每台裝置各自升級結果相同，不需要同步。
+  Future<void> _migrateV14(Migrator m) async {
+    Future<void> ensure(
+      TableInfo<Table, dynamic> table,
+      GeneratedColumn column,
+    ) async {
+      final have = {
+        for (final r in await customSelect(
+          'PRAGMA table_info(${table.actualTableName})',
+        ).get())
+          r.read<String>('name'),
+      };
+      if (have.isEmpty) {
+        await m.createTable(table);
+      } else if (!have.contains(column.$name)) {
+        await m.addColumn(table, column);
+      }
+    }
+
+    await ensure(pits, pits.sensitiveEnabled);
+    await ensure(officialImages, officialImages.sensitive);
+    await ensure(fanArts, fanArts.sensitive);
+    await ensure(junkImages, junkImages.sensitive);
+    await ensure(materialImages, materialImages.sensitive);
+    await ensure(entityImages, entityImages.sensitive);
+  }
 
   /// v11：坑的類型（D-088）。`archived`（bool）換成 `status`（active／shallow／archived），
   /// 新增 `enabled_sections`（淺坑開啟的格子，預設空）與 `cover_file`（淺坑自己的封面）。
@@ -484,6 +517,7 @@ class AppDatabase extends _$AppDatabase {
     PitStatus? status,
     Set<PitSectionKey>? enabledSections,
     bool? junkEnabled, // null＝不變
+    bool? sensitiveEnabled, // null＝不變（D-104）
     bool deleteClosedContent = false,
   }) async {
     var target = status;
@@ -506,6 +540,7 @@ class AppDatabase extends _$AppDatabase {
       status: target,
       enabledSections: enabledSections,
       junkEnabled: junkEnabled,
+      sensitiveEnabled: sensitiveEnabled,
       deleteClosedContent: deleteClosedContent,
     );
   }

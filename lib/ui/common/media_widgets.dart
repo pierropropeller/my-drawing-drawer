@@ -42,6 +42,7 @@ import 'dismissible_preview.dart';
 import 'media_badges.dart';
 import 'media_source.dart';
 import 'poster_requester.dart';
+import 'sensitive_gate.dart';
 import 'svg_icon.dart';
 import 'video_player_view.dart';
 
@@ -131,11 +132,16 @@ class MediaThumb extends StatelessWidget {
     this.animate = true,
     this.showBadge = true,
     this.placeholderColor,
+    this.protectSensitive = true,
   });
 
   final MediaSource media;
   final int? cacheWidth;
   final BoxFit fit;
+
+  /// 敏感內容（D-104）：列表類畫面（預設）依安全模式把已標記的圖模糊，或在左上角加敏感小標，見 [SensitiveGate]。
+  /// 詳情頁、預覽頁裡重用這個元件時傳 false（永遠正常顯示）。
+  final bool protectSensitive;
 
   /// 這一格代表幾張圖；大於 1 才顯示右下角張數。
   final int count;
@@ -152,7 +158,7 @@ class MediaThumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget content;
+    Widget content;
     if (media.isVideo) {
       content = StaticMediaImage(
         media,
@@ -169,6 +175,9 @@ class MediaThumb extends StatelessWidget {
         animate: animate && media.isGif,
         isGif: media.isGif ? true : null,
       );
+    }
+    if (protectSensitive) {
+      content = SensitiveGate(file: media.file, child: content);
     }
     final badge = !showBadge
         ? null

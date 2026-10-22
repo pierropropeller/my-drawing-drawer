@@ -11,19 +11,15 @@ import '../common/user_avatar.dart';
 import '../common/window_class.dart';
 import '../material/material_icons.dart';
 import '../material/material_library_page.dart';
-import '../../state/app_icon.dart';
 import 'about_page.dart';
-import 'app_icon_image.dart';
-import 'app_icon_page.dart';
 import 'backup_page.dart';
 import 'me_widgets.dart';
-import 'language_page.dart';
+import 'personalize_page.dart';
 import 'profile_edit_page.dart';
-import 'theme_page.dart';
 import '../../l10n/l10n.dart';
 
-/// iPad 版「我的」右側內容面板顯示哪一項（Profile 稿的六個設定列）。
-enum ProfileSection { library, theme, appIcon, language, backup, about }
+/// iPad 版「我的」右側內容面板顯示哪一項（Profile 稿的設定列；D-106 起主題色、App 圖示、語言、敏感內容收進「個人化」）。
+enum ProfileSection { library, personalize, backup, about }
 
 /// 其他地方（例如同步進度 popover 的「同步設定」）要「我的」切到某一項時寫入；
 /// ProfilePage 收到後切換並清掉。
@@ -56,8 +52,8 @@ class ProfilePage extends ConsumerStatefulWidget {
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
-  /// 並排版右側目前顯示的項目（稿預設「主題色」）。
-  ProfileSection _section = ProfileSection.theme;
+  /// 並排版右側目前顯示的項目（預設「個人化」）。
+  ProfileSection _section = ProfileSection.personalize;
 
   void _takeRequest(ProfileSection? s) {
     if (s == null) return;
@@ -100,15 +96,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   // ---- 共用：各列的文字與圖示色 ----
 
-  String _themeValue(BuildContext context, AppSettings s) {
-    final modeLabel = switch (s.themeMode) {
-      ThemeMode.light => context.l10n.themeModeLight,
-      ThemeMode.dark => context.l10n.themeModeDark,
-      ThemeMode.system => context.l10n.themeModeSystem,
-    };
-    return context.l10n.meThemeValue(s.accent.labelOf(context.l10n), modeLabel);
-  }
-
   String _backupLabel(BuildContext context, AppSettings s, SyncState sync) =>
       s.accountEmail == null
       ? context.l10n.meBackupNotLinked
@@ -124,69 +111,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final s = ref.watch(settingsProvider);
     final sync = ref.watch(syncControllerProvider);
     final backupLabel = _backupLabel(context, s, sync);
-    final appIcon = ref.watch(currentAppIconProvider);
     final materialTotal = ref.watch(materialCountsProvider).value?.total ?? 0;
-    final chevron = dark ? t.text4 : const Color(0xFFB7ADA0);
-    final divider = dark ? t.border : const Color(0xFFF1EADF);
 
     Widget row({
       String? icon,
-      Widget? leading,
       Color? tileBg,
       Color? tileFg,
       required String title,
       String? value,
       required VoidCallback onTap,
       bool last = false,
-    }) => InkWell(
+    }) => MeListRow(
+      icon: icon,
+      tileBg: tileBg,
+      tileFg: tileFg,
+      title: title,
+      value: value,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        decoration: BoxDecoration(
-          border: last ? null : Border(bottom: BorderSide(color: divider)),
-        ),
-        child: Row(
-          children: [
-            leading ??
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: tileBg,
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Center(
-                    child: SvgIcon(
-                      icon!,
-                      size: 21,
-                      color: tileFg,
-                      strokeWidth: 1.7,
-                    ),
-                  ),
-                ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            if (value != null) ...[
-              Text(value, style: TextStyle(fontSize: 13, color: t.text4)),
-              const SizedBox(width: 12),
-            ],
-            SvgIcon(
-              AppIcons.chevronRight,
-              size: 18,
-              color: chevron,
-              strokeWidth: 2,
-            ),
-          ],
-        ),
-      ),
+      last: last,
     );
 
     return Column(
@@ -253,33 +195,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   type: MaterialType.transparency,
                   child: Column(
                     children: [
+                      // 個人化（D-106）：主題色、App 圖示、語言、敏感內容都在裡面。
                       row(
-                        icon: AppIcons.palette,
+                        icon: AppIcons.personalize,
                         tileBg: t.piece.bg,
                         tileFg: t.piece.fg,
-                        title: context.l10n.meThemeColor,
-                        value: _themeValue(context, s),
-                        onTap: () => _push(const ThemePage()),
-                      ),
-                      // App 圖示（D-086）：左邊是目前那款的小圖（不跟主題色），右邊是名稱。
-                      row(
-                        leading: AppIconImage(
-                          appIcon,
-                          size: 38,
-                          radius: 11,
-                          shadow: false,
-                        ),
-                        title: context.l10n.appiconTitle,
-                        value: appIcon.name(context.l10n),
-                        onTap: () => _push(const AppIconPickPage()),
-                      ),
-                      row(
-                        icon: AppIcons.globe,
-                        tileBg: _langBg(dark),
-                        tileFg: _langFg(dark),
-                        title: context.l10n.meLanguage,
-                        value: s.language.labelOf(context.l10n),
-                        onTap: () => _push(const LanguagePage()),
+                        title: context.l10n.personalizeTitle,
+                        onTap: () => _push(const PersonalizePage()),
                       ),
                       row(
                         icon: AppIcons.cloud,
@@ -308,11 +230,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Color _langBg(bool dark) =>
-      dark ? const Color(0xFF2E3528) : const Color(0xFFE7EFE4);
-  Color _langFg(bool dark) =>
-      dark ? const Color(0xFFA3B88A) : const Color(0xFF6B7F5A);
-
   // ---- iPad／平板：左設定列表＋右內容面板（Profile 稿） ----
 
   Widget _split(BuildContext context, double width) {
@@ -320,7 +237,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final s = ref.watch(settingsProvider);
     final sync = ref.watch(syncControllerProvider);
-    final appIcon = ref.watch(currentAppIconProvider);
     final materialTotal = ref.watch(materialCountsProvider).value?.total ?? 0;
     // 稿：列表欄 360；內容區較窄時縮到 280。
     final listW = (width * 0.34).clamp(280.0, 360.0);
@@ -399,31 +315,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               value: context.l10n.commonCountImages(materialTotal),
             ),
             item(
-              section: ProfileSection.theme,
-              icon: AppIcons.palette,
+              section: ProfileSection.personalize,
+              icon: AppIcons.personalize,
               tileBg: t.piece.bg,
               tileFg: t.piece.fg,
-              title: context.l10n.meThemeColor,
-              value: _themeValue(context, s),
-            ),
-            item(
-              section: ProfileSection.appIcon,
-              leading: AppIconImage(
-                appIcon,
-                size: 38,
-                radius: 11,
-                shadow: false,
-              ),
-              title: context.l10n.appiconTitle,
-              value: appIcon.name(context.l10n),
-            ),
-            item(
-              section: ProfileSection.language,
-              icon: AppIcons.globe,
-              tileBg: _langBg(dark),
-              tileFg: _langFg(dark),
-              title: context.l10n.meLanguage,
-              value: s.language.labelOf(context.l10n),
+              title: context.l10n.personalizeTitle,
             ),
             item(
               section: ProfileSection.backup,
@@ -447,9 +343,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     final Widget panel = switch (_section) {
       ProfileSection.library => const MaterialLibraryPage(embedded: true),
-      ProfileSection.theme => const ThemePage(embedded: true),
-      ProfileSection.appIcon => const AppIconPickPage(embedded: true),
-      ProfileSection.language => const LanguagePage(embedded: true),
+      ProfileSection.personalize => const PersonalizePage(embedded: true),
       ProfileSection.backup => const BackupPage(embedded: true),
       ProfileSection.about => const AboutPage(embedded: true),
     };

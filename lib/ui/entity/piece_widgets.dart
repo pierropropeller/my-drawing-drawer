@@ -3,7 +3,13 @@ import 'package:flutter/material.dart';
 import '../../data/payment.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../state/sensitive.dart';
+import '../album/form_image_preview_page.dart';
 import '../album/image_picker_field.dart';
+import '../album/sensitive_form.dart';
 import '../common/app_icons.dart';
 import '../common/app_switch.dart';
 import '../common/svg_icon.dart';
@@ -305,15 +311,19 @@ class PieceHeartField extends StatelessWidget {
 
 /// 表單圖片區（PieceNew）：84px 縮圖圓角 12，右上角 22px 墨色圓鈕「×」（D-018）
 /// 外凸 6px、2px 底色邊框；尾端虛線「＋」。
-class PieceImageGrid extends StatelessWidget {
+class PieceImageGrid extends ConsumerWidget {
   const PieceImageGrid({
     super.key,
     required this.items,
     required this.onAdd,
     required this.onRemove,
     this.onReorder,
+    this.pitId,
   });
   final List<ImageItem> items;
+
+  /// 表單所在的坑（D-104）：總開關和這個坑的敏感內容都開了才有標記功能；null＝沒有。
+  final String? pitId;
   final VoidCallback onAdd;
   final void Function(int index) onRemove;
 
@@ -323,9 +333,10 @@ class PieceImageGrid extends StatelessWidget {
   static const double size = 84;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = context.tokens;
-    return ReorderableImageGrid(
+    final marking = pitId != null && ref.watch(sensitiveMarkingProvider(pitId));
+    final grid = ReorderableImageGrid(
       count: items.length,
       size: size,
       onReorder: onReorder,
@@ -336,9 +347,38 @@ class PieceImageGrid extends StatelessWidget {
           clipBehavior: Clip.none,
           fit: StackFit.expand,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(Radii.image),
-              child: ImageItemThumb(items[i], cacheWidth: 300),
+            // 點一下開全螢幕預覽（D-102）；長按仍是拖曳排序。
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: hide
+                  ? null
+                  : () => FormImagePreviewPage.open(
+                      context,
+                      items,
+                      i,
+                      canMark: marking,
+                    ),
+              child: Semantics(
+                button: true,
+                label: context.l10n.albumPreviewImage,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(Radii.image),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ImageItemThumb(items[i], cacheWidth: 300),
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: FormSensitiveBadge(
+                            item: items[i],
+                            pitId: pitId,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
             if (!hide)
               Positioned(
@@ -378,6 +418,14 @@ class PieceImageGrid extends StatelessWidget {
         semanticLabel: context.l10n.pieceAddImage,
         iconSize: 26,
       ),
+    );
+    if (!marking) return grid;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        grid,
+        SensitiveMarkAllRow(items: items, pitId: pitId),
+      ],
     );
   }
 }

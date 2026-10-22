@@ -394,6 +394,7 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                               cacheWidth: 1200,
                               fit: BoxFit.contain,
                               badgeInset: 12,
+                              protectSensitive: false, // 詳情不模糊（D-104）
                             ),
                           if (n > 0)
                             Positioned(
@@ -502,6 +503,7 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                               child: MiniMediaThumb(
                                 MediaSource.fromImageRef(imgs[i]),
                                 cacheWidth: 200,
+                                protectSensitive: false, // 詳情不模糊（D-104）
                               ),
                             ),
                           ),
@@ -691,6 +693,7 @@ class PieceDetailPanel extends ConsumerWidget {
                         : MediaThumb(
                             MediaSource.fromImageRef(v.images.first),
                             cacheWidth: 900,
+                            protectSensitive: false, // 詳情不模糊（D-104）
                           ),
                   ),
                 ),

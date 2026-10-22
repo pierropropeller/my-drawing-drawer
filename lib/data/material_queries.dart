@@ -69,6 +69,7 @@ extension MaterialQueries on AppDatabase {
             kind: Value(images[i].kind),
             durationMs: Value(images[i].durationMs),
             posterFile: Value(images[i].posterFile),
+            sensitive: Value(images[i].sensitive),
             category: category,
             createdAt: Value(now),
             updatedAt: Value(now),
