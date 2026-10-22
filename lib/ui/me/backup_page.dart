@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/settings.dart';
+import '../../sync/storage_usage.dart';
 import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
@@ -164,6 +165,8 @@ class BackupPage extends ConsumerWidget {
     final outline = fieldBorderColor(context);
     final green = dark ? const Color(0xFF8DBB8D) : const Color(0xFF5C8A5C);
     final syncing = sync.isSyncing;
+    // Drive 已滿（D-103）：自動同步下面的小字改成紅色「上傳暫停　下載正常」。
+    final driveFull = ref.watch(driveFullProvider);
     final lastBackup = syncing
         ? context.l10n.meBackupSyncing
         : meTimeLabel(sync.lastSyncAt);
@@ -175,11 +178,11 @@ class BackupPage extends ConsumerWidget {
                   : context.l10n.syncFailedShort))
         : null;
 
-    Widget sub(String text) => Padding(
+    Widget sub(String text, {Color? color}) => Padding(
       padding: EdgeInsets.only(top: wide ? 2 : 1),
       child: Text(
         text,
-        style: TextStyle(fontSize: wide ? 12.5 : 11.5, color: t.text3),
+        style: TextStyle(fontSize: wide ? 12.5 : 11.5, color: color ?? t.text3),
       ),
     );
 
@@ -199,12 +202,9 @@ class BackupPage extends ConsumerWidget {
         minimumSize: wide ? const Size.fromHeight(48) : null,
         textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
       ),
-      icon: const SvgIcon(
-        MeIcons.refresh,
-        size: 19,
-        strokeWidth: 1.9,
-        color: Colors.white,
-      ),
+      // 不指定顏色：icon 跟著按鈕的前景色走，可按時白、同步中（停用）時和文字同一個灰
+      // （之前寫死白色，停用時 icon 比文字亮）。
+      icon: const SvgIcon(MeIcons.refresh, size: 19, strokeWidth: 1.9),
       label: Text(context.l10n.meBackupSyncNow),
     );
     final switchButton = InkWell(
@@ -353,7 +353,15 @@ class BackupPage extends ConsumerWidget {
                                 context.l10n.meBackupAutoSync,
                                 style: TextStyle(fontSize: wide ? 15 : 14.5),
                               ),
-                              sub(context.l10n.meBackupLastBackup(lastBackup)),
+                              if (driveFull)
+                                sub(
+                                  context.l10n.meBackupUploadPaused,
+                                  color: t.danger,
+                                )
+                              else
+                                sub(
+                                  context.l10n.meBackupLastBackup(lastBackup),
+                                ),
                             ],
                           ),
                         ),

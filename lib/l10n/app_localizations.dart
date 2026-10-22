@@ -3879,6 +3879,78 @@ abstract class AppLocalizations {
   /// **'沒有'**
   String get shareMoveTagStateNone;
 
+  /// No description provided for @syncuiRingFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步完成，有圖片失敗'**
+  String get syncuiRingFailed;
+
+  /// No description provided for @syncuiPartialTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步完成，{count} 張失敗'**
+  String syncuiPartialTitle(int count);
+
+  /// No description provided for @syncuiFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'失敗'**
+  String get syncuiFailed;
+
+  /// No description provided for @syncuiRetry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重試'**
+  String get syncuiRetry;
+
+  /// No description provided for @syncuiMoreFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'還有 {count} 張失敗'**
+  String syncuiMoreFailed(int count);
+
+  /// No description provided for @syncuiWaitingSpace.
+  ///
+  /// In zh, this message translates to:
+  /// **'等待空間'**
+  String get syncuiWaitingSpace;
+
+  /// No description provided for @syncuiTimeMinutesAgo.
+  ///
+  /// In zh, this message translates to:
+  /// **'{minutes} 分鐘前'**
+  String syncuiTimeMinutesAgo(int minutes);
+
+  /// No description provided for @backupFullTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'Drive 已滿'**
+  String get backupFullTitle;
+
+  /// No description provided for @backupFullCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張'**
+  String backupFullCount(int count);
+
+  /// No description provided for @backupFullUnuploaded.
+  ///
+  /// In zh, this message translates to:
+  /// **'未上傳'**
+  String get backupFullUnuploaded;
+
+  /// No description provided for @backupFullManage.
+  ///
+  /// In zh, this message translates to:
+  /// **'管理 Google 儲存空間'**
+  String get backupFullManage;
+
+  /// No description provided for @meBackupUploadPaused.
+  ///
+  /// In zh, this message translates to:
+  /// **'上傳暫停　下載正常'**
+  String get meBackupUploadPaused;
+
   /// No description provided for @syncuiSheetLabel.
   ///
   /// In zh, this message translates to:

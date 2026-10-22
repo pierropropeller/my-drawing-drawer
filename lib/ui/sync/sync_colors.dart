@@ -14,6 +14,11 @@ class SyncColors {
     required this.doneFill,
     required this.doneCheck,
     required this.doneText,
+    required this.failedFill,
+    required this.failedText,
+    required this.failedRowText,
+    required this.failedDot,
+    required this.fullDot,
   });
 
   /// 進度（深藍 #5B7A99）。
@@ -47,6 +52,16 @@ class SyncColors {
   /// 右上「N / N」綠字 #4E7A4E。
   final Color doneText;
 
+  /// 部分失敗（D-109，SyncSheetPartial）：琥珀圓 #D9A23C、右上「成功 / 總數」字 #8a6a1f、
+  /// 列尾「失敗」#B8860B。
+  final Color failedFill;
+  final Color failedText;
+  final Color failedRowText;
+
+  /// 頭像小點：琥珀（有失敗）／紅（Drive 已滿，BackupFull 的 #C0392B）。
+  final Color failedDot;
+  final Color fullDot;
+
   static const light = SyncColors._(
     progress: Color(0xFF5B7A99),
     track: Color(0xFFD6E0EA),
@@ -59,6 +74,11 @@ class SyncColors {
     doneFill: Color(0xFF5C8A5C),
     doneCheck: Color(0xFFFFFFFF),
     doneText: Color(0xFF4E7A4E),
+    failedFill: Color(0xFFD9A23C),
+    failedText: Color(0xFF8A6A1F),
+    failedRowText: Color(0xFFB8860B),
+    failedDot: Color(0xFFD9A23C),
+    fullDot: Color(0xFFC0392B),
   );
 
   /// 深色（P-022，SyncPopoverDark）：環 #7F9DBB、軌道 #2E3A46、文字 #93AECB。
@@ -75,6 +95,12 @@ class SyncColors {
     doneFill: Color(0xFF8DBB8D),
     doneCheck: Color(0xFF26221F),
     doneText: Color(0xFF8DBB8D),
+    // 設計稿沒有深色部分失敗稿：琥珀圓沿用 #D9A23C（深底上夠亮），文字提亮成 #E3BE6E。
+    failedFill: Color(0xFFD9A23C),
+    failedText: Color(0xFFE3BE6E),
+    failedRowText: Color(0xFFE3BE6E),
+    failedDot: Color(0xFFD9A23C),
+    fullDot: Color(0xFFE0675A),
   );
 
   static SyncColors of(BuildContext context) =>

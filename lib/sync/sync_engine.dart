@@ -81,8 +81,12 @@ class SyncProgress {
     this.docsTotal = 0,
     this.thumbsDone = 0,
     this.thumbsTotal = 0,
+    this.quotaFull = false,
   });
   final SyncStage stage;
+
+  /// 這次同步已確認 Drive 已滿（上傳被拒絕，D-103）。
+  final bool quotaFull;
 
   /// 縮圖階段（[SyncStage.downloadingThumbs]）的進度：要下載（或向雲端要）的縮圖張數與已處理張數。
   final int thumbsDone;
@@ -118,8 +122,35 @@ class SyncResult {
   /// 雲端文件讀不了（損壞、欄位不符）而略過的檔名；其餘照常同步。
   final List<String> skippedDocs = [];
 
-  /// 下載失敗（已略過、下次再試）的圖片張數。
+  /// 單張失敗（已略過、留在佇列下次再試）的圖片張數，上傳與下載合計。
   int imageFailures = 0;
+
+  /// 其中上傳失敗的張數。
+  int uploadFailures = 0;
+
+  /// 上傳被 Drive 拒絕為「已滿」（D-103）：上傳留在佇列，下載與其他部分照常。
+  bool quotaFull = false;
+
+  /// 這次同步實際嘗試過幾次上傳（含被拒絕的）。
+  int uploadAttempts = 0;
+
+  /// 這次同步的逐張傳輸最終狀態（成功、失敗、排隊中）。UI 用它顯示完成／部分失敗狀態。
+  List<SyncTransfer> transfers = const [];
+
+  List<SyncTransfer> get failedTransfers => [
+    for (final t in transfers)
+      if (t.isFailed) t,
+  ];
+
+  /// 成功的上傳／下載張數。
+  int get uploadedCount =>
+      transfers.where((t) => t.isUpload && t.isDone).length;
+  int get downloadedCount =>
+      transfers.where((t) => t.isDownload && t.isDone).length;
+
+  /// 還沒上傳、留在佇列的張數（失敗的＋因 Drive 已滿而排隊的）。
+  int get unuploadedCount =>
+      transfers.where((t) => t.isUpload && !t.isDone).length;
 
   /// 縮圖：下載到本機的、用 `thumbnailLink` 暫用的、補產生並上傳的張數（D-099）。
   int thumbsDown = 0;
@@ -188,6 +219,7 @@ class _Tracker {
   var _docsTotal = 0;
   var _thumbsDone = 0;
   var _thumbsTotal = 0;
+  var _quotaFull = false;
   final _uploadIdx = <String, int>{};
   final _clock = Stopwatch()..start();
   int? _lastMs;
@@ -206,6 +238,24 @@ class _Tracker {
   }
 
   int? uploadIndex(String file) => _uploadIdx[file];
+
+  /// 目前的逐張狀態（引擎結束時存進 [SyncResult.transfers]）。
+  List<SyncTransfer> get items => List.unmodifiable(_items);
+
+  /// 這一張重試後仍失敗：標記失敗（留在佇列，下次同步再試）。
+  void fail(int i) {
+    _items[i] = _items[i].copyWith(state: TransferState.failed);
+  }
+
+  /// Drive 已滿：這一張退回排隊（沒有失敗，只是沒空間）。
+  void requeue(int i) {
+    _items[i] = _items[i].copyWith(state: TransferState.waiting);
+  }
+
+  void markQuotaFull() {
+    _quotaFull = true;
+    _emit(force: true);
+  }
 
   void report(SyncStage s, int done, int total) {
     _stage = s;
@@ -270,6 +320,7 @@ class _Tracker {
         docsTotal: _docsTotal,
         thumbsDone: _thumbsDone,
         thumbsTotal: _thumbsTotal,
+        quotaFull: _quotaFull,
       ),
     );
   }
@@ -368,13 +419,19 @@ class SyncEngine {
     await _pullThumbs(files, referenced, result, tracker, check);
     await _pullMissingImages(files, toDownload, result, report, tracker, check);
     await _push(files, known, plan, result, report, tracker, check);
-    await _writeFormat(remoteFormat);
+    try {
+      await _writeFormat(remoteFormat);
+    } on SyncStorageFullException {
+      result.quotaFull = true; // D-103：Drive 已滿，格式標記下次再寫
+    }
+    result.transfers = tracker.items;
     await _backfillThumbs(files, referenced, result, tracker, check);
     await _ensureListThumbs(referenced, check);
     syncLog(
       'sync: done pulled=${result.pulled} pushed=${result.pushed} '
       'imgDown=${result.imagesDown} imgUp=${result.imagesUp} '
       'skippedDocs=${result.skippedDocs.length} imgFail=${result.imageFailures} '
+      'quotaFull=${result.quotaFull} unuploaded=${result.unuploadedCount} '
       'thumbDown=${result.thumbsDown} thumbFallback=${result.thumbsFallback} '
       'thumbUp=${result.thumbsUp} thumbFail=${result.thumbFailures} '
       'thumbMissingRemote=${result.thumbsStillMissing} '
@@ -616,6 +673,7 @@ class SyncEngine {
           // 單張失敗：記錄、略過（下次同步會再試）；連續失敗太多代表網絡或授權有問題，整次中止。
           result.imageFailures++;
           consecutiveFailures++;
+          tracker.fail(i); // D-109：標成失敗（「同步完成，N 張失敗」會列出來）
           syncLog(
             'images: download ${i + 1}/${todo.length} failed (${e.runtimeType})',
           );
@@ -624,8 +682,8 @@ class SyncEngine {
             rethrow;
           }
         }
-        // 下載失敗的也算處理過，避免進度卡住；下次同步會再試。
-        tracker.finish(i);
+        // 下載失敗的也算處理過（已標 failed），避免進度卡住；下次同步會再試。
+        if (!tracker.items[i].isFailed) tracker.finish(i);
         report(SyncStage.downloadingImages, ++done, todo.length);
         if (done % 20 == 0) {
           syncLog('images: $done/${todo.length}');
@@ -808,6 +866,8 @@ class SyncEngine {
       syncLog('thumbs: uploaded ${bytes.length}B');
     } on SyncAuthException {
       rethrow;
+    } on SyncStorageFullException {
+      result.quotaFull = true; // D-103：Drive 已滿，不算失敗；原圖上傳時會照實處理
     } catch (e) {
       result.thumbFailures++;
       syncLog('thumbs: upload failed (${e.runtimeType})');
@@ -846,6 +906,7 @@ class SyncEngine {
     var budget = thumbBackfillLimit;
     var consecutiveFailures = 0;
     for (final (name, _) in candidates) {
+      if (result.quotaFull) break; // Drive 已滿，補了也傳不上去
       if (budget <= 0 || DateTime.now().isAfter(deadline)) break;
       check();
       budget--;
@@ -920,14 +981,24 @@ class SyncEngine {
   ) async {
     final total = plan.uploads.length;
     var done = 0;
+    var consecutiveFailures = 0;
+    final failedFiles = <String>{};
     report(SyncStage.uploading, done, total);
 
     for (final p in plan.pending) {
       check();
+      // Drive 已滿：不再嘗試任何上傳，其餘的文件與圖片都留在佇列（D-103）。
+      if (result.quotaFull) break;
+      // 這份文件的圖片有沒傳成的：文件留著不上傳，下次同步連同圖片一起再試（D-109）。
+      var blocked = false;
       // 圖片先傳。
       for (final file in p.kind.imageFiles(p.data)) {
         final name = _imageName(file);
         if (files.containsKey(name)) continue;
+        if (failedFiles.contains(file)) {
+          blocked = true; // 同一張圖這次已經失敗過，不重複嘗試
+          continue;
+        }
         final idx = tracker.uploadIndex(file);
         final f = images.fileOf(file);
         if (!f.existsSync()) {
@@ -938,26 +1009,56 @@ class SyncEngine {
           continue;
         }
         if (idx != null) tracker.start(idx);
-        // 先傳占位圖再傳原圖：別的裝置先拿到占位圖（D-099）。占位圖失敗不影響原圖。
-        await _uploadThumb(files, file, result);
-        final imageBytes = await f.readAsBytes();
-        final modified = await remote.upload(
-          name,
-          imageBytes,
-          onProgress: idx == null
-              ? null
-              : (d, t) => tracker.progress(idx, d, t),
-        );
-        files[name] = RemoteFile(
-          name: name,
-          modified: modified,
-          size: imageBytes.length,
-        );
-        await _recordSize(name, imageBytes.length);
-        result.imagesUp++;
+        try {
+          // 先傳占位圖再傳原圖：別的裝置先拿到占位圖（D-099）。占位圖失敗不影響原圖。
+          await _uploadThumb(files, file, result);
+          if (result.quotaFull) throw SyncStorageFullException();
+          final imageBytes = await f.readAsBytes();
+          result.uploadAttempts++;
+          final modified = await remote.upload(
+            name,
+            imageBytes,
+            onProgress: idx == null
+                ? null
+                : (d, t) => tracker.progress(idx, d, t),
+          );
+          files[name] = RemoteFile(
+            name: name,
+            modified: modified,
+            size: imageBytes.length,
+          );
+          await _recordSize(name, imageBytes.length);
+          result.imagesUp++;
+          consecutiveFailures = 0;
+        } on SyncStorageFullException {
+          // Drive 已滿：這張退回排隊，這次同步不再上傳（下載與其他部分照常）。
+          result.quotaFull = true;
+          if (idx != null) tracker.requeue(idx);
+          tracker.markQuotaFull();
+          blocked = true;
+          break;
+        } on SyncAuthException {
+          rethrow;
+        } on SyncStalledException {
+          rethrow;
+        } catch (e) {
+          // 單張失敗（D-109）：記錄、標成失敗、略過這份文件（下次同步再試）；
+          // 連續失敗太多代表網絡或授權有問題，整次中止。
+          result.imageFailures++;
+          result.uploadFailures++;
+          consecutiveFailures++;
+          syncLog('images: upload failed (${e.runtimeType})');
+          failedFiles.add(file);
+          if (idx != null) tracker.fail(idx);
+          blocked = true;
+          if (idx != null) report(SyncStage.uploading, ++done, total);
+          if (consecutiveFailures >= syncImageFailureLimit) rethrow;
+          continue;
+        }
         if (idx != null) tracker.finish(idx);
         report(SyncStage.uploading, ++done, total);
       }
+      if (blocked) continue;
       final doc = {
         'v': 1,
         'formatVersion': syncFormatVersion,
@@ -968,11 +1069,19 @@ class SyncEngine {
       };
       final metaName = _metaName(p.kind.name, p.id);
       final metaBytes = Uint8List.fromList(utf8.encode(jsonEncode(doc)));
-      final modified = await remote.upload(
-        metaName,
-        metaBytes,
-        contentType: 'application/json',
-      );
+      final String modified;
+      try {
+        result.uploadAttempts++;
+        modified = await remote.upload(
+          metaName,
+          metaBytes,
+          contentType: 'application/json',
+        );
+      } on SyncStorageFullException {
+        result.quotaFull = true;
+        tracker.markQuotaFull();
+        break;
+      }
       await _recordSize(metaName, metaBytes.length);
       await _record(p.kind.name, p.id, p.version, modified);
       known[_key(p.kind.name, p.id)] = SyncDoc(

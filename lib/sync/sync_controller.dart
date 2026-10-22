@@ -34,8 +34,13 @@ class SyncState {
     this.thumbsDone = 0,
     this.thumbsTotal = 0,
     this.retryable = false,
+    this.quotaFull = false,
   });
   final SyncPhase phase;
+
+  /// Drive 已滿（D-103）：最近一次上傳被拒絕。上傳留在佇列、下載照常；之後有空間、
+  /// 上傳成功就清掉。同步進行中沿用上一次的值，所以排隊的行可以顯示「等待空間」。
+  final bool quotaFull;
 
   /// 拉取階段的雲端文件進度（「資料 N / M」）；[docsTotal] 為 0＝還在列出雲端內容。
   final int docsDone;
@@ -80,19 +85,37 @@ class SyncState {
   bool get isTransferring =>
       isSyncing && transfersPlanned && transfers.isNotEmpty;
 
+  /// 頭像外圈要不要畫成進度環：傳輸中且還有沒處理完的張數。全部傳完後同步可能還在做
+  /// 收尾（補縮圖等，最多幾十秒），這段時間外圈就收掉，不要一直停在滿圈（修正「同步完外圈不消失」）。
+  bool get isRingTransferring => isTransferring && hasPendingTransfers;
+
   int get uploadCount => transfers.where((t) => t.isUpload).length;
   int get downloadCount => transfers.where((t) => t.isDownload).length;
   int get uploadDone => transfers.where((t) => t.isUpload && t.isDone).length;
   int get downloadDone =>
       transfers.where((t) => t.isDownload && t.isDone).length;
 
-  /// 總張數與已完成張數（上傳＋下載）。
+  /// 總張數與已成功張數（上傳＋下載）。
   int get transferTotal => transfers.length;
   int get transferDone => transfers.where((t) => t.isDone).length;
 
-  /// 進度環：已完成張數／總張數（0~1）；沒有傳輸時為 null。
+  /// 已處理完的張數（成功＋失敗，D-109）；進度條與進度環用它，失敗的也算走完。
+  int get transferSettled => transfers.where((t) => t.isSettled).length;
+  int get transferFailed => transfers.where((t) => t.isFailed).length;
+
+  /// 還有沒處理完的傳輸（頭像外圈只在這段時間轉；全部傳完後收尾的工作不再顯示外圈）。
+  bool get hasPendingTransfers => transfers.any((t) => !t.isSettled);
+
+  /// 進度環：已處理張數／總張數（0~1）；沒有傳輸時為 null。
   double? get transferFraction =>
-      transfers.isEmpty ? null : transferDone / transfers.length;
+      transfers.isEmpty ? null : transferSettled / transfers.length;
+
+  /// 上一次完成的同步裡，仍然失敗（留在佇列）的張數（D-109）；全部成功後為 0。
+  int get failedCount => lastResult?.failedTransfers.length ?? 0;
+  bool get hasFailures => failedCount > 0;
+
+  /// 上一次完成的同步後，還沒上傳的張數（失敗的＋Drive 已滿而排隊的，D-103）。
+  int get unuploadedCount => lastResult?.unuploadedCount ?? 0;
 
   /// 目前正在傳的那一張（沒有則 null）。
   SyncTransfer? get activeTransfer {
@@ -156,6 +179,7 @@ class SyncState {
     int? thumbsDone,
     int? thumbsTotal,
     bool? retryable,
+    bool? quotaFull,
   }) => SyncState(
     phase: phase ?? this.phase,
     lastSyncAt: lastSyncAt ?? this.lastSyncAt,
@@ -173,6 +197,7 @@ class SyncState {
     thumbsDone: thumbsDone ?? this.thumbsDone,
     thumbsTotal: thumbsTotal ?? this.thumbsTotal,
     retryable: retryable ?? this.retryable,
+    quotaFull: quotaFull ?? this.quotaFull,
   );
 }
 
@@ -219,10 +244,15 @@ class SyncController extends Notifier<SyncState> {
     final email = settings.accountEmail;
     final first = email != null && settings.syncedAccount != email;
     syncLog('syncNow start first=$first');
+    // 上一次的結果（失敗張數、Drive 已滿）同步期間沿用，結束時換成這一次的。
+    final prevResult = state.lastResult;
+    final prevQuotaFull = state.quotaFull;
     state = SyncState(
       phase: SyncPhase.syncing,
       lastSyncAt: state.lastSyncAt,
       isFirstSync: first,
+      lastResult: prevResult,
+      quotaFull: prevQuotaFull,
     );
     // 看門狗：太久沒有進展就中止這一次（引擎在步驟之間檢查 cancel；卡在某個 await 的
     // 請求則由 Future.any 放棄它）。
@@ -263,6 +293,8 @@ class SyncController extends Notifier<SyncState> {
       isFirstSync: first,
       needsAppUpdate: needsUpdate,
       retryable: retry,
+      lastResult: prevResult,
+      quotaFull: prevQuotaFull,
     );
     try {
       lastActivity = DateTime.now();
@@ -293,6 +325,8 @@ class SyncController extends Notifier<SyncState> {
               docsTotal: p.docsTotal,
               thumbsDone: p.thumbsDone,
               thumbsTotal: p.thumbsTotal,
+              lastResult: prevResult,
+              quotaFull: p.quotaFull || prevQuotaFull,
             );
           },
         );
@@ -303,12 +337,12 @@ class SyncController extends Notifier<SyncState> {
       if (email != null) {
         ref.read(settingsProvider.notifier).setSyncedAccount(email);
       }
-      // 部分文件／圖片讀不了：不是整體失敗（其餘都已同步、帳號已記下），但要讓使用者看得出來。
+      // 部分文件讀不了：不是整體失敗（其餘都已同步、帳號已記下），但要讓使用者看得出來。
+      // 單張圖片失敗（D-109）不是錯誤：同步完成，失敗的列在 [SyncState.lastResult]
+      // （同步 sheet 的「同步完成，N 張失敗」、頭像琥珀點），留在佇列等下次同步。
       final partial = r.skippedDocs.isNotEmpty
           ? l10nStatic.syncuiSkippedDocs(r.skippedDocs.length)
-          : (r.imageFailures > 0
-                ? l10nStatic.syncuiImagesFailed(r.imageFailures)
-                : null);
+          : null;
       state = partial != null
           ? SyncState(
               phase: SyncPhase.error,
@@ -316,11 +350,13 @@ class SyncController extends Notifier<SyncState> {
               lastResult: r,
               message: partial,
               isFirstSync: first,
+              quotaFull: r.quotaFull,
             )
           : SyncState(
               phase: SyncPhase.idle,
               lastSyncAt: DateTime.now(),
               lastResult: r,
+              quotaFull: r.quotaFull,
             );
       return true;
     } on SyncFormatException catch (e) {

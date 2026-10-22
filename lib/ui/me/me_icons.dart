@@ -8,6 +8,10 @@ abstract final class MeIcons {
   static const cloudDownload =
       '<path d="M7 18h10a3 3 0 0 0 .4-6 5 5 0 0 0-9.7-1.5A3.6 3.6 0 0 0 7 18z"/><path d="M12 10v6M9.5 13.5L12 16l2.5-2.5"/>';
 
+  /// 外開連結（管理 Google 儲存空間 ↗）。BackupFull
+  static const externalLink =
+      '<path d="M14 5h5v5M19 5l-8 8M10 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/>';
+
   /// 相機（編輯個人資料：更換頭像）。ProfileEdit
   static const camera =
       '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/>';
