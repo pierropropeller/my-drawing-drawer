@@ -223,16 +223,17 @@ void main() {
       await db.setPitStatus(archived, PitStatus.archived);
     }
 
-    testWidgets('現坑／淺坑／封存坑三個 pills；田字／瀑布只在現坑', (tester) async {
+    testWidgets('現坑／淺坑／封存坑三個 pills；右上的搜尋鍵三個分頁都有（D-105）', (tester) async {
       await tester.runAsync(seed);
       await pumpApp(tester);
       expect(find.text('現坑'), findsOneWidget);
       expect(find.text('淺坑'), findsOneWidget);
       expect(find.text('封存坑'), findsOneWidget);
-      // 現坑：只有現坑的卡片、有切換
+      // 現坑：只有現坑的卡片、有搜尋鍵（沒有田字／瀑布切換）
       expect(find.text('坑A'), findsOneWidget);
       expect(find.text('星之彼端'), findsNothing);
-      expect(find.bySemanticsLabel('田字檢視'), findsOneWidget);
+      expect(find.bySemanticsLabel('搜尋全部坑'), findsOneWidget);
+      expect(find.bySemanticsLabel('田字檢視'), findsNothing);
 
       await tester.tap(find.text('淺坑'));
       await settle(tester);
@@ -245,7 +246,7 @@ void main() {
       // 沒封面＝坑名第一個字
       expect(find.text('星'), findsOneWidget);
       expect(find.text('開新淺坑'), findsOneWidget);
-      expect(find.bySemanticsLabel('田字檢視'), findsNothing);
+      expect(find.bySemanticsLabel('搜尋全部坑'), findsOneWidget);
       // 導覽列仍在（瀏覽用的頁面）
       expect(find.text('目標'), findsOneWidget);
 
@@ -254,11 +255,11 @@ void main() {
       expect(find.text('舊坑'), findsOneWidget);
       expect(find.text('成圖 1 · 摸魚 1'), findsOneWidget);
       expect(find.text('開新淺坑'), findsNothing);
-      expect(find.bySemanticsLabel('田字檢視'), findsNothing);
+      expect(find.bySemanticsLabel('搜尋全部坑'), findsOneWidget);
 
       await tester.tap(find.text('現坑'));
       await settle(tester);
-      expect(find.bySemanticsLabel('田字檢視'), findsOneWidget);
+      expect(find.bySemanticsLabel('搜尋全部坑'), findsOneWidget);
       await unmount(tester);
     });
 
@@ -774,13 +775,13 @@ void main() {
           expect(find.text('現坑'), findsOneWidget);
           expect(find.text('淺坑'), findsOneWidget);
           expect(find.text('封存坑'), findsOneWidget);
-          expect(find.bySemanticsLabel('田字檢視'), findsOneWidget);
+          expect(find.bySemanticsLabel('搜尋全部坑'), findsOneWidget);
           await tester.tap(find.text('淺坑'));
           await settle(tester);
           expect(find.text('平板淺坑'), findsOneWidget);
           expect(find.text('描述'), findsOneWidget);
           expect(find.text('開新淺坑'), findsOneWidget);
-          expect(find.bySemanticsLabel('田字檢視'), findsNothing);
+          expect(find.bySemanticsLabel('搜尋全部坑'), findsOneWidget);
           await tester.tap(find.text('封存坑'));
           await settle(tester);
           expect(find.text('平板封存'), findsOneWidget);

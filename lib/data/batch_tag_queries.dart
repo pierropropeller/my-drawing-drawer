@@ -93,6 +93,12 @@ extension BatchTagQueries on AppDatabase {
         )..where((i) => i.id.isIn(ids) & i.deletedAt.isNull())).get())
           r.id: r.pitId,
       },
+      TagTarget.idea => {
+        for (final r in await (select(
+          ideas,
+        )..where((i) => i.id.isIn(ids) & i.deletedAt.isNull())).get())
+          r.id: r.pitId,
+      },
       _ => throw ArgumentError.value(target, 'target', '這種項目不支援批量 tag'),
     };
   }
@@ -294,6 +300,10 @@ extension BatchTagQueries on AppDatabase {
             await (update(pieces)..where((i) => i.id.isIn(changed))).write(
               PiecesCompanion(updatedAt: Value(now)),
             );
+          case TagTarget.idea:
+            await (update(ideas)..where((i) => i.id.isIn(changed))).write(
+              IdeasCompanion(updatedAt: Value(now)),
+            );
           default:
             await (update(fanArts)..where((i) => i.id.isIn(changed))).write(
               FanArtsCompanion(updatedAt: Value(now)),
@@ -302,5 +312,127 @@ extension BatchTagQueries on AppDatabase {
       }
       return created;
     });
+  }
+
+  Future<Map<TagTarget, List<String>>> _groupRefs(Iterable<TagRef> refs) async {
+    final out = <TagTarget, List<String>>{};
+    for (final r in refs) {
+      out.putIfAbsent(r.target, () => []).add(r.id);
+    }
+    return out;
+  }
+
+  /// 混合種類的批量 tag（坑內搜尋結果的多選，D-108）：坑內所有 tag 在選取項目上的三種狀態
+  /// （同 [tagCoverageFor]，對象可以是多種項目）。選取的項目必須在同一個坑。
+  Future<List<TagCoverageEntry>> tagCoverageMixed(Iterable<TagRef> refs) async {
+    final groups = await _groupRefs(refs);
+    final pitIds = <String>{};
+    var total = 0;
+    final counts = <String, int>{};
+    for (final e in groups.entries) {
+      final pitOf = await _pitsOf(e.key, e.value.toSet().toList());
+      pitIds.addAll(pitOf.values);
+      total += pitOf.length;
+      if (pitOf.isEmpty) continue;
+      final links =
+          await (select(tagLinks)..where(
+                (l) =>
+                    l.targetType.equalsValue(e.key) &
+                    l.targetId.isIn(pitOf.keys.toList()),
+              ))
+              .get();
+      for (final l in links) {
+        counts[l.tagId] = (counts[l.tagId] ?? 0) + 1;
+      }
+    }
+    if (pitIds.length > 1) throw ArgumentError('選取的項目不在同一個坑');
+    if (pitIds.isEmpty) return const [];
+    final tagList =
+        await (select(tags)
+              ..where(
+                (t) => t.pitId.equals(pitIds.first) & t.deletedAt.isNull(),
+              )
+              ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+            .get();
+    return [
+      for (final t in tagList)
+        TagCoverageEntry(
+          tag: t,
+          count: counts[t.id] ?? 0,
+          total: total,
+          coverage: (counts[t.id] ?? 0) == 0
+              ? TagCoverage.none
+              : (counts[t.id]! >= total ? TagCoverage.all : TagCoverage.some),
+        ),
+    ];
+  }
+
+  Stream<List<TagCoverageEntry>> watchTagCoverageMixed(Iterable<TagRef> refs) {
+    final list = refs.toList();
+    return watchAssembled(this, {
+      tags,
+      tagLinks,
+      officialImages,
+      fanArts,
+      oshiRecords,
+      drafts,
+      pieces,
+      ideas,
+    }, () => tagCoverageMixed(list));
+  }
+
+  /// 套用 sheet 的變更到選取的每個項目（規則同 [applyBatchTagsFor]）；新 tag 只建立一次。
+  Future<void> applyBatchTagsMixed(
+    Iterable<TagRef> refs, {
+    Iterable<String> addTagIds = const [],
+    Iterable<String> removeTagIds = const [],
+    Iterable<String> newTagNames = const [],
+  }) {
+    return transaction(() async {
+      final groups = await _groupRefs(refs);
+      String? pitId;
+      for (final e in groups.entries) {
+        final pitOf = await _pitsOf(e.key, e.value.toSet().toList());
+        for (final p in pitOf.values) {
+          if (pitId != null && pitId != p) {
+            throw ArgumentError('選取的項目不在同一個坑');
+          }
+          pitId = p;
+        }
+      }
+      if (pitId == null) return;
+      final created = <String>[];
+      for (final raw in newTagNames) {
+        final name = raw.trim().replaceFirst(RegExp(r'^#'), '');
+        if (name.isEmpty) continue;
+        created.add(await createTag(pitId, name));
+      }
+      for (final e in groups.entries) {
+        await applyBatchTagsFor(
+          e.key,
+          e.value,
+          addTagIds: [...addTagIds, ...created],
+          removeTagIds: removeTagIds,
+        );
+      }
+    });
+  }
+}
+
+/// 搜尋結果裡混合多選的一個項目（種類＋id）。字串形式 `種類:id` 讓它可以放進 [BatchTagSheet]
+/// 的 `ids`（D-108：結果裡的成圖、官方圖、腦洞…可以一起補 tag）。
+class TagRef {
+  const TagRef(this.target, this.id);
+  final TagTarget target;
+  final String id;
+
+  String get key => '${target.name}:$id';
+
+  static TagRef parse(String key) {
+    final i = key.indexOf(':');
+    return TagRef(
+      TagTarget.values.byName(key.substring(0, i)),
+      key.substring(i + 1),
+    );
   }
 }

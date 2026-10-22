@@ -1,10 +1,45 @@
 import 'package:flutter/material.dart';
 
+import '../../data/search_queries.dart';
 import '../../theme/tokens.dart';
 import '../../l10n/l10n.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import 'search_icons.dart';
+
+/// 結果頁的分段標題（成圖／官方圖冊／好看同人圖／推活／摸魚／腦洞）與對應的相冊 pill。
+extension PitSearchSectionX on PitSearchSection {
+  SearchCategory get category => switch (this) {
+    PitSearchSection.pieces => SearchCategory.piece,
+    PitSearchSection.official => SearchCategory.official,
+    PitSearchSection.fanArts => SearchCategory.fan,
+    PitSearchSection.oshi => SearchCategory.oshi,
+    PitSearchSection.drafts => SearchCategory.draft,
+    PitSearchSection.ideas => SearchCategory.idea,
+  };
+
+  String title(AppLocalizations l) => switch (this) {
+    PitSearchSection.pieces => l.searchCategoryPiece,
+    PitSearchSection.official => l.pitsOfficial,
+    PitSearchSection.fanArts => l.pitsFanArt,
+    PitSearchSection.oshi => l.pitSearchCategoryOshi,
+    PitSearchSection.drafts => l.searchCategoryDraft,
+    PitSearchSection.ideas => l.searchCategoryIdea,
+  };
+}
+
+extension SearchCategoryX on SearchCategory {
+  /// 對應的結果分段；「全部」＝null。
+  PitSearchSection? get section => switch (this) {
+    SearchCategory.all => null,
+    SearchCategory.piece => PitSearchSection.pieces,
+    SearchCategory.official => PitSearchSection.official,
+    SearchCategory.fan => PitSearchSection.fanArts,
+    SearchCategory.oshi => PitSearchSection.oshi,
+    SearchCategory.draft => PitSearchSection.drafts,
+    SearchCategory.idea => PitSearchSection.ideas,
+  };
+}
 
 /// 搜尋分類；順序（D-051、D-065）：全部／成圖／同人圖／推活／草稿／腦洞。
 enum SearchCategory {

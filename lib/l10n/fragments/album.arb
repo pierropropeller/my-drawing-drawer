@@ -47,8 +47,6 @@
       }
     }
   },
-  "pitsViewGrid": "田字檢視",
-  "pitsViewWaterfall": "瀑布檢視",
   "pitsSyncingImages": "同步中・圖片 {done} / {total}",
   "@pitsSyncingImages": {
     "placeholders": {

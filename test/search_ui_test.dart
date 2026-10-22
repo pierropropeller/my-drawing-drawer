@@ -16,20 +16,22 @@ import 'package:huakeng/main.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/ui/album/fan_art_list_page.dart';
+import 'package:huakeng/ui/album/fan_art_preview_page.dart';
 import 'package:huakeng/ui/album/image_preview_page.dart';
 import 'package:huakeng/ui/album/official_list_page.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/entity/draft_list_page.dart';
 import 'package:huakeng/ui/entity/finished_list_page.dart';
+import 'package:huakeng/ui/entity/idea_detail_page.dart';
 import 'package:huakeng/ui/entity/idea_list_page.dart';
 import 'package:huakeng/ui/oshi/oshi_detail_page.dart';
-import 'package:huakeng/ui/oshi/oshi_list_page.dart';
 import 'package:huakeng/ui/search/pit_search_page.dart';
 import 'package:huakeng/ui/search/pit_search_result_page.dart';
+import 'package:huakeng/ui/search/pit_search_tab.dart';
 import 'package:huakeng/ui/search/search_widgets.dart';
-import 'package:huakeng/ui/search/tag_filter_bar.dart';
+import 'package:huakeng/ui/search/filter_pills.dart';
 
-/// tag 篩選列表與坑內搜尋（D-043、D-051、D-061、D-065）。
+/// 坑內搜尋與點 tag 進搜尋結果（D-051、D-061、D-065、D-089、D-107）。
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late AppDatabase db;
@@ -173,7 +175,9 @@ void main() {
     matching: find.text('#$name'),
   );
 
-  testWidgets('同人圖預覽點 tag：進篩選列表（pill、導覽列在），× 回完整列表', (tester) async {
+  testWidgets('D-107 同人圖預覽點 tag：進坑內搜尋結果頁（tag pill、相冊「全部」、沒有導覽列），返回回到預覽', (
+    tester,
+  ) async {
     await tester.runAsync(() async {
       await seedFan(1, tags: [tagA]);
       await seedFan(2, tags: [tagB]);
@@ -183,7 +187,6 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('好看同人圖'));
     await settle(tester);
-    expect(find.byType(TagFilterBar), findsNothing);
     expect(find.byType(Image), findsNWidgets(3));
     expect(find.byTooltip('返回'), findsOneWidget);
 
@@ -196,19 +199,20 @@ void main() {
     await tester.tap(tagChip);
     await settle(tester);
 
-    expect(find.byType(FanArtListPage), findsOneWidget);
+    expect(find.byType(PitSearchResultPage), findsOneWidget);
     expect(pill(tapped), findsOneWidget);
-    expect(find.text('目標'), findsOneWidget); // 篩選列表保有導覽列
-    expect(find.byType(Image), findsWidgets);
+    expect(find.text('目標'), findsNothing); // 搜尋頁沒有導覽列
+    // 相冊預設「全部」：pills 只列有結果的（這裡只有同人圖）。
+    expect(find.textContaining(RegExp(r'^全部 \d+$')), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^同人圖 \d+$')), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^成圖 \d+$')), findsNothing);
 
-    await tester.tap(find.bySemanticsLabel('移除篩選'));
-    await settle(tester);
-    expect(find.byType(TagFilterBar), findsNothing);
-    expect(find.byType(Image), findsNWidgets(3));
+    await back(tester);
+    expect(find.byType(FanArtPreviewPage), findsOneWidget);
     await unmount(tester);
   });
 
-  testWidgets('腦洞卡片點 tag：篩選；已在篩選中再點別的 tag＝取代，返回仍是完整列表', (tester) async {
+  testWidgets('D-107 腦洞卡片、詳情點 tag：都進搜尋結果頁（不再回列表篩選）', (tester) async {
     await tester.runAsync(() async {
       await newIdea('甲腦洞', tags: [tagA]);
       await newIdea('乙腦洞', tags: [tagB]);
@@ -218,70 +222,28 @@ void main() {
     expect(find.text('甲腦洞'), findsOneWidget);
     expect(find.text('乙腦洞'), findsOneWidget);
 
+    // 卡片上的 tag。
     await tester.tap(find.text('#角色1').first);
     await settle(tester);
+    expect(find.byType(PitSearchResultPage), findsOneWidget);
     expect(pill('角色1'), findsOneWidget);
     expect(find.text('甲腦洞'), findsOneWidget);
     expect(find.text('丙腦洞'), findsOneWidget);
     expect(find.text('乙腦洞'), findsNothing);
-
-    // 在篩選列表裡點另一顆 tag：換掉篩選。
-    await tester.tap(find.text('#夏日').first);
-    await settle(tester);
-    expect(pill('夏日'), findsOneWidget);
-    expect(find.text('甲腦洞'), findsNothing);
-    expect(find.text('乙腦洞'), findsOneWidget);
-
-    // 取代而非堆疊：返回直接回到完整列表。
     await back(tester);
-    expect(find.byType(TagFilterBar), findsNothing);
-    expect(find.text('甲腦洞'), findsOneWidget);
-    expect(find.text('乙腦洞'), findsOneWidget);
-    await unmount(tester);
-  });
+    expect(find.byType(IdeaListPage), findsOneWidget);
 
-  testWidgets('腦洞詳情點 tag：關掉詳情進篩選列表', (tester) async {
-    await tester.runAsync(() async {
-      await newIdea('甲腦洞', tags: [tagA]);
-      await newIdea('乙腦洞');
-    });
-    await pumpPage(tester, IdeaListPage(pitId: pitId));
+    // 詳情裡的 tag：搜尋頁疊在詳情上，返回先回詳情再回列表。
     await tester.tap(find.text('甲腦洞'));
     await settle(tester);
-    await tester.tap(find.text('#角色1').first);
+    expect(find.byType(IdeaDetailPage), findsOneWidget);
+    await tester.tap(find.text('#角色1').last);
     await settle(tester);
-    expect(find.byType(IdeaListPage), findsOneWidget);
-    expect(pill('角色1'), findsOneWidget);
-    expect(find.text('乙腦洞'), findsNothing);
+    expect(find.byType(PitSearchResultPage), findsOneWidget);
     await back(tester);
-    expect(find.byType(TagFilterBar), findsNothing);
-    expect(find.text('乙腦洞'), findsOneWidget);
-    await unmount(tester);
-  });
-
-  testWidgets('摸魚與成圖的篩選列表：同一條篩選列，只列有該 tag 的項目', (tester) async {
-    await tester.runAsync(() async {
-      await newDraft('甲摸魚', tags: [tagA]);
-      await newDraft('乙摸魚');
-      await newPiece('甲成圖', tags: [tagA]);
-      await newPiece('乙成圖');
-    });
-    await pumpPage(tester, DraftListPage(pitId: pitId, tagId: tagA));
-    expect(pill('角色1'), findsOneWidget);
-    expect(find.text('甲摸魚'), findsOneWidget);
-    expect(find.text('乙摸魚'), findsNothing);
-    await tester.tap(find.bySemanticsLabel('移除篩選'));
-    await settle(tester);
-    expect(find.text('乙摸魚'), findsOneWidget);
-    await unmount(tester);
-
-    await pumpPage(tester, FinishedListPage(pitId: pitId, tagId: tagA));
-    expect(pill('角色1'), findsOneWidget);
-    expect(find.text('甲成圖'), findsOneWidget);
-    expect(find.text('乙成圖'), findsNothing);
-    await tester.tap(find.bySemanticsLabel('移除篩選'));
-    await settle(tester);
-    expect(find.text('乙成圖'), findsOneWidget);
+    expect(find.byType(IdeaDetailPage), findsOneWidget);
+    await back(tester);
+    expect(find.byType(IdeaListPage), findsOneWidget);
     await unmount(tester);
   });
 
@@ -387,16 +349,24 @@ void main() {
     expect(find.text('+4'), findsOneWidget);
     expect(find.textContaining('+'), findsNWidgets(3));
 
-    // 點 +2 進成圖列表並帶同一個 tag。
+    // 點 +2：留在結果頁，切到「成圖」相冊（PitSearchResultTab）——九宮格列出 5 筆全部，沒有導覽列。
     await tester.tap(find.text('+2'));
     await settle(tester);
-    expect(find.byType(FinishedListPage), findsOneWidget);
+    expect(find.byType(PitSearchResultPage), findsOneWidget);
+    expect(find.byType(PitSearchResultTab), findsOneWidget);
+    expect(find.byKey(const ValueKey('searchTabGrid')), findsOneWidget);
+    expect(find.byType(Image), findsNWidgets(5));
     expect(pill('角色1'), findsOneWidget);
-    expect(find.text('目標'), findsOneWidget);
+    expect(find.text('目標'), findsNothing);
+    // 點「全部」回到分段總覽。
+    await tester.tap(find.text('全部 20'));
+    await settle(tester);
+    expect(find.byType(PitSearchResultTab), findsNothing);
+    expect(find.text('+2'), findsOneWidget);
     await unmount(tester);
   });
 
-  testWidgets('推活段：點「+N」離開搜尋進推活，點其他格開推活詳情', (tester) async {
+  testWidgets('推活段：點「+N」切到推活相冊，點其他格開推活詳情', (tester) async {
     await tester.runAsync(() async {
       for (var i = 1; i <= 5; i++) {
         await newOshi(i, tags: [tagA]);
@@ -423,9 +393,8 @@ void main() {
 
     await tester.tap(find.text('+2'));
     await settle(tester);
-    expect(find.byType(PitSearchResultPage), findsNothing);
-    expect(find.byType(PitSearchPage), findsNothing);
-    expect(find.byType(OshiListPage), findsOneWidget); // 帶著同一個 tag 篩選
+    expect(find.byType(PitSearchResultTab), findsOneWidget);
+    expect(find.byType(Image), findsNWidgets(5)); // 推活 5 筆全部
     await unmount(tester);
   });
 
@@ -532,8 +501,9 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('+1'));
     await settle(tester);
-    expect(find.byType(DraftListPage), findsOneWidget);
-    expect(find.byType(TagFilterBar), findsNothing);
+    // 「+1」＝摸魚相冊（4 筆全部）；沒有 tag 的純文字搜尋也一樣留在結果頁。
+    expect(find.byType(PitSearchResultTab), findsOneWidget);
+    expect(find.byType(Image), findsNWidgets(4));
     await unmount(tester);
   });
 
@@ -600,9 +570,7 @@ void main() {
     ], tagIds: tags);
   }
 
-  testWidgets('D-089 搜尋結果：官方圖冊在成圖之後、同人圖之前；分頁有「官方圖」；+N 進官方圖冊並帶 tag', (
-    tester,
-  ) async {
+  testWidgets('D-089 搜尋結果：官方圖冊在成圖之後、同人圖之前；分頁有「官方圖」；+N 進官方圖相冊', (tester) async {
     await tester.runAsync(() async {
       for (var i = 0; i < 4; i++) {
         await newPiece('成圖$i', tags: [tagA]);
@@ -618,18 +586,24 @@ void main() {
     expect([...ys]..sort(), ys);
     // 官方圖 5 筆＝+2。
     expect(find.text('+2'), findsOneWidget);
+    // 點 pill「官方圖 5」＝單一相冊（九宮格，沒有分段標題與 +N）。
     await tester.tap(find.text('官方圖 5'));
     await settle(tester);
-    expect(find.text('官方圖冊  5'), findsOneWidget);
+    expect(find.byType(PitSearchResultTab), findsOneWidget);
     expect(find.text('成圖  4'), findsNothing);
+    expect(find.text('+2'), findsNothing);
+    await tester.tap(find.text('全部 11'));
+    await settle(tester);
+    // 同一個結果點 +2 也是進同一個相冊。
     await tester.tap(find.text('+2'));
     await settle(tester);
-    expect(find.byType(OfficialListPage), findsOneWidget);
+    expect(find.byType(PitSearchResultTab), findsOneWidget);
+    expect(find.byType(Image), findsNWidgets(5));
     expect(pill('角色1'), findsOneWidget);
     await unmount(tester);
   });
 
-  testWidgets('D-089 官方圖預覽點 tag：進官方圖冊篩選列表，× 回完整列表', (tester) async {
+  testWidgets('D-107 官方圖預覽點 tag：進坑內搜尋結果頁，只列有該 tag 的官方圖', (tester) async {
     await tester.runAsync(() async {
       await seedOfficial(1, tags: [tagA]);
       await seedOfficial(1);
@@ -642,13 +616,14 @@ void main() {
     expect(find.text('#角色1'), findsOneWidget);
     await tester.tap(find.text('#角色1'));
     await settle(tester);
-    expect(find.byType(ImagePreviewPage), findsNothing);
+    expect(find.byType(PitSearchResultPage), findsOneWidget);
     expect(pill('角色1'), findsOneWidget);
+    expect(find.text('官方圖 1'), findsOneWidget);
     expect(find.byType(Image), findsOneWidget);
+    // 按 pill 的 ×：沒有別的條件就離開搜尋頁，回到預覽。
     await tester.tap(find.bySemanticsLabel('移除篩選'));
     await settle(tester);
-    expect(pill('角色1'), findsNothing);
-    expect(find.byType(Image), findsNWidgets(2));
+    expect(find.byType(ImagePreviewPage), findsOneWidget);
     await unmount(tester);
   });
 }

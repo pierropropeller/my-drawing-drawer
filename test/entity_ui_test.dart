@@ -27,6 +27,8 @@ import 'package:huakeng/ui/entity/idea_list_page.dart';
 import 'package:huakeng/ui/entity/image_gallery_page.dart';
 import 'package:huakeng/ui/entity/piece_detail_page.dart';
 import 'package:huakeng/ui/entity/piece_widgets.dart';
+import 'package:huakeng/ui/search/filter_pills.dart';
+import 'package:huakeng/ui/search/pit_search_result_page.dart';
 import 'package:huakeng/ui/tags/tag_manage_page.dart';
 
 /// 腦洞／摸魚／tag 畫面的互動與規則（D-001～D-005、D-015～D-018、D-037、D-043）。
@@ -552,11 +554,7 @@ void main() {
         tagIds: [tagA],
         ideaIds: [ideaId],
       );
-      String? tapped;
-      await show(
-        tester,
-        DraftDetailPage(draftId: id, pitId: pitId, onTagTap: (t) => tapped = t),
-      );
+      await show(tester, DraftDetailPage(draftId: id, pitId: pitId));
       expect(find.text('天台煙花 · 構圖'), findsOneWidget);
       expect(find.text('嘗試兩個側面的角度'), findsOneWidget);
       expect(find.text('1 / 2'), findsOneWidget);
@@ -567,9 +565,11 @@ void main() {
       expect(find.bySemanticsLabel('刪除'), findsOneWidget);
       // 詳情頁不能新增關聯
       expect(find.bySemanticsLabel(RegExp('選擇腦洞')), findsNothing);
-      // tag 可點
+      // tag 可點：進坑內搜尋結果頁（D-107）
       await tester.tap(find.text('#角色1'));
-      expect(tapped, tagA);
+      await settle(tester);
+      expect(find.byType(PitSearchResultPage), findsOneWidget);
+      expect(find.byType(TagFilterPill), findsOneWidget);
       await unmount(tester);
     });
 
@@ -659,17 +659,14 @@ void main() {
     testWidgets('有關聯摸魚才顯示該段，且沒有「＋」格；tag 可點', (tester) async {
       final d = await newDraft(title: '線稿');
       final id = await newIdea('腦洞', tagIds: [tagA], draftIds: [d]);
-      String? tapped;
-      await show(
-        tester,
-        IdeaDetailPage(ideaId: id, pitId: pitId, onTagTap: (t) => tapped = t),
-      );
+      await show(tester, IdeaDetailPage(ideaId: id, pitId: pitId));
       expect(find.text('關聯的摸魚'), findsOneWidget);
       expect(find.text('關聯的成圖'), findsNothing);
       expect(find.bySemanticsLabel(RegExp('選擇摸魚')), findsNothing);
       expect(find.textContaining('連接'), findsNothing);
       await tester.tap(find.text('#角色1'));
-      expect(tapped, tagA);
+      await settle(tester);
+      expect(find.byType(PitSearchResultPage), findsOneWidget);
       await unmount(tester);
     });
   });
@@ -706,30 +703,13 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('列表的 tagId 參數只顯示有該 tag 的項目', (tester) async {
+    testWidgets('腦洞列表點 tag 進坑內搜尋結果頁並帶上該 tag（D-107）', (tester) async {
       await newIdea('甲', tagIds: [tagA]);
-      await newIdea('乙');
-      await newDraft(title: '丙', tagIds: [tagA]);
-      await newDraft(title: '丁');
-      await show(tester, IdeaListPage(pitId: pitId, tagId: tagA));
-      expect(find.text('甲'), findsOneWidget);
-      expect(find.text('乙'), findsNothing);
-      await unmount(tester);
-      await show(tester, DraftListPage(pitId: pitId, tagId: tagA));
-      expect(find.text('丙'), findsOneWidget);
-      expect(find.text('丁'), findsNothing);
-      await unmount(tester);
-    });
-
-    testWidgets('腦洞列表點 tag 會呼叫 onTagTap', (tester) async {
-      await newIdea('甲', tagIds: [tagA]);
-      String? tapped;
-      await show(
-        tester,
-        IdeaListPage(pitId: pitId, onTagTap: (t) => tapped = t),
-      );
+      await show(tester, IdeaListPage(pitId: pitId));
       await tester.tap(find.text('#角色1'));
-      expect(tapped, tagA);
+      await settle(tester);
+      expect(find.byType(PitSearchResultPage), findsOneWidget);
+      expect(find.byType(TagFilterPill), findsOneWidget);
       await unmount(tester);
     });
   });

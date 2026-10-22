@@ -16,11 +16,12 @@ import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/ui/common/app_switch.dart';
 import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/ui/entity/entity_widgets.dart';
-import 'package:huakeng/ui/entity/finished_list_page.dart';
 import 'package:huakeng/ui/entity/piece_detail_page.dart';
 import 'package:huakeng/ui/entity/piece_form_page.dart';
 import 'package:huakeng/ui/entity/piece_platform.dart';
 import 'package:huakeng/ui/entity/piece_widgets.dart';
+import 'package:huakeng/ui/search/filter_pills.dart';
+import 'package:huakeng/ui/search/pit_search_result_page.dart';
 import 'package:image_picker/image_picker.dart';
 
 void main() {
@@ -246,36 +247,6 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('FinishedListPage(tagId) 只列出有該 tag 的成圖', (tester) async {
-    late String tag;
-    await tester.runAsync(() async {
-      tag = await db.createTag(pitId, '角色1');
-      for (final (title, tags) in [
-        ('甲', [tag]),
-        ('乙', <String>[]),
-      ]) {
-        await db.savePiece(
-          pitId: pitId,
-          title: title,
-          body: '',
-          images: const [NewImage(file: 'a.png', width: 10, height: 10)],
-          tagIds: tags,
-          links: const [],
-          targetLikes: 0,
-          finishedAt: DateTime(2026, 9, 12),
-          ideaIds: const [],
-          draftIds: const [],
-          isPublished: true,
-        );
-      }
-    });
-    await pumpPage(tester, FinishedListPage(pitId: pitId, tagId: tag));
-    await settle(tester);
-    expect(find.text('甲'), findsOneWidget);
-    expect(find.text('乙'), findsNothing);
-    await unmount(tester);
-  });
-
   testWidgets('新增：兩個開關都關＝私稿；整組欄位保留', (tester) async {
     await openFinished(tester);
     await tester.tap(find.text('新增'));
@@ -498,7 +469,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('詳情：點 tag 觸發 onTagTap；刪除要確認；私稿不顯示互動量與連結', (tester) async {
+  testWidgets('詳情：點 tag 進坑內搜尋結果頁（D-107）；刪除要確認；私稿不顯示互動量與連結', (tester) async {
     late String tag;
     late String id;
     await tester.runAsync(() async {
@@ -518,16 +489,17 @@ void main() {
         isCommission: false,
       );
     });
-    final tapped = <String>[];
-    await pumpPage(
-      tester,
-      PieceDetailPage(pieceId: id, pitId: pitId, onTagTap: tapped.add),
-    );
+    await pumpPage(tester, PieceDetailPage(pieceId: id, pitId: pitId));
     await settle(tester);
     expect(find.text('社交媒體連結'), findsNothing);
     expect(find.textContaining('實際互動量'), findsNothing);
     await tester.tap(find.text('#角色1'));
-    expect(tapped, [tag]);
+    await settle(tester);
+    expect(find.byType(PitSearchResultPage), findsOneWidget);
+    expect(find.byType(TagFilterPill), findsOneWidget);
+    Navigator.of(tester.element(find.byType(Scaffold).last)).pop();
+    await settle(tester);
+    expect(find.byType(PitSearchResultPage), findsNothing);
     await tester.tap(find.byTooltip('刪除'));
     await settle(tester);
     expect(find.text('刪除這張成圖？'), findsOneWidget);

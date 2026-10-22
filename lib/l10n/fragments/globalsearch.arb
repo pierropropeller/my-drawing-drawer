@@ -1,0 +1,10 @@
+{
+  "globalSearchHint": "搜尋全部坑",
+  "globalSearchTagsHeading": "tag",
+  "globalSearchPitSemantics": "{name}，{count} 筆",
+  "@globalSearchPitSemantics": {"placeholders": {"name": {"type": "String"}, "count": {"type": "int"}}},
+  "globalSearchClear": "清除",
+  "searchUntagged": "未加 tag",
+  "searchSelectedCount": "已選 {count} 筆",
+  "@searchSelectedCount": {"placeholders": {"count": {"type": "int"}}}
+}

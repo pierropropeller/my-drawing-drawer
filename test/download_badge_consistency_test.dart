@@ -118,13 +118,10 @@ void main() {
 
   for (final (w, h) in sizes) {
     group('$w×$h', () {
-      testWidgets('主頁：現坑田字／瀑布、淺坑、封存坑封面都有角標', (tester) async {
+      testWidgets('主頁：現坑田字、淺坑、封存坑封面都有角標', (tester) async {
         setView(tester, w, h, w < 600 ? 3 : 1);
         await pumpHome(tester, const PitsPage(), linked: true);
         // 現坑田字：坑A（檔案缺）＋封面資料還沒到的坑＝兩個角標。
-        expect(find.byType(DownloadBadge), findsNWidgets(2));
-        await tester.tap(find.bySemanticsLabel('瀑布檢視'));
-        await settle(tester);
         expect(find.byType(DownloadBadge), findsNWidgets(2));
         await tapText(tester, '淺坑');
         expect(find.byType(DownloadBadge), findsOneWidget);

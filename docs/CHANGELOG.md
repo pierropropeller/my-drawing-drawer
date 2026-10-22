@@ -48,20 +48,20 @@
   - **往外分享／下載**：一律原圖，不模糊。
   - **不做**：最近使用畫面（多工切換）模糊整個 App。
   - 同步 sheet、選擇摸魚／腦洞／成圖 sheet、年度回顧挑圖等所有出現縮圖的地方，都照安全模式規則模糊或加敏感 icon。
-- **D-107** **點 tag／「+N」／坑名箭頭，一律進「全坑搜尋頁」**（取代 D-043、D-051、D-065 裡「回到該格列表並篩選」的做法；`FanArtFiltered` 作廢，不用做）：
+- **D-107** **點 tag／「+N」／坑名箭頭，一律進「全坑搜尋頁」**（取代 D-043、D-051、D-065 裡「回到該格列表並篩選」的做法；`FanArtFiltered` 作廢，不用做）： ✅ commit d2ffc15
   - 目的地統一是坑內搜尋結果頁（`PitSearchResult`），搜尋列帶著那個 tag（或關鍵字），範圍＝整個坑。
   - 頂部 pills＝**相冊**（全部、成圖、官方圖、同人圖、推活、摸魚、腦洞），**只列有結果的**，每顆帶數字（同 `PitSearchFew`）。這排取代原本列表頁的分組 pills 位置。
   - 從哪裡進來，預設選哪顆：點 tag（任何詳情／預覽頁、全域搜尋的 tag）、點全域搜尋的坑名箭頭 → 「全部」；點某一段的「+N」→ 直接選那一段的相冊。
   - 選了某個相冊（`PitSearchResultTab`）：下面是該相冊所有符合的內容，圖片類用九宮格（貼邊、間距 2px，同其他九宮格），腦洞用文字卡直向列出；點圖照開原本的預覽／詳情。點「全部」回到分段總覽。
   - 要改連結的地方：`PitSearchResult` 每段的「+N」、`FanArtPreview`／`ImagePreview`／`OshiDetail`／`IdeaDetail`／`DraftDetail`／`PieceDetail` 的 tag、`GlobalSearch`／`GlobalSearchResult` 的 tag 和坑名箭頭。
   - Artboard：`PitSearchResult`（+N 改連結）、`PitSearchResultTab`（新）、`FanArtPreview`、`ImagePreview`、`OshiDetail`（tag 改連結）。
-- **D-108** **找出「未加 tag」的東西**：
+- **D-108** **找出「未加 tag」的東西**： ✅ commit d2ffc15
   - 坑內搜尋（`PitSearch`）常用 tag 下面加一張卡：「未加 tag」＋數量＋右箭頭（左邊 tag 加斜線 icon，米色底）。數量＝坑內沒有任何 tag 的官方圖、同人圖、推活、摸魚、成圖、腦洞總數；雜物沒有 tag，不算。
   - 點進去（`PitSearchUntagged`）＝坑內搜尋結果頁，搜尋列裡是灰色 chip「未加 tag ×」（和 tag chip 區分）；下面同 D-107：相冊 pills（只列有結果的）＋分段、「+N」。
   - 在結果裡長按＝多選，底部 tag 可以直接批量補 tag；補完的項目即時從結果消失、數字減少。
   - Artboard：`PitSearch`、`PitSearchUntagged`（新）。
 - **D-106** **「我的」設定整理成「個人化」**：主題色、App 圖示、語言、敏感內容四行收進新的「個人化」頁；「我的」只剩 素材庫、個人化、備份與同步、關於 App。主題色／App 圖示／語言／敏感內容頁的返回都回到「個人化」。Artboard：`Profile`、`Personalize`（新）。
-- **D-105** **主頁拿掉田字／瀑布切換，改成「搜尋全部坑」**（取代主頁的佈局切換；現坑固定田字）：
+- **D-105** **主頁拿掉田字／瀑布切換，改成「搜尋全部坑」**（取代主頁的佈局切換；現坑固定田字）： ✅ commit d2ffc15
   - 主頁右上角換成一顆搜尋按鈕（42px 白底圓角方塊＋放大鏡），現坑／淺坑／封存坑三個分頁都有；深色模式同樣。`MainEmpty` 沒有坑，不放。
   - **搜尋頁**（`GlobalSearch`）：頂部輸入框「搜尋全部坑」。還沒輸入時，按坑分組列出常用 tag：每組一行「小色塊＋坑名」，下面是該坑的 tag chips＋次數。**不同坑的同名 tag 分開顯示**（例如坑A 的 #角色1 和坑B 的 #角色1 各自在自己那組）。點 tag＝進該坑的坑內搜尋並帶上這個 tag（`PitSearchResult`）。封存坑也列（排最後）。
   - **輸入文字後**（`GlobalSearchResult`）：

@@ -9,6 +9,7 @@ import '../album/album_actions.dart';
 import '../common/app_icons.dart';
 import '../common/detail_carousel.dart';
 import '../common/nav_bar_hidden.dart';
+import '../search/tagged_list.dart';
 import '../common/responsive.dart';
 import 'connect_field.dart';
 import 'draft_form_page.dart';
@@ -26,13 +27,9 @@ class DraftDetailPage extends ConsumerStatefulWidget {
     super.key,
     required this.draftId,
     required this.pitId,
-    this.onTagTap,
   });
   final String draftId;
   final String pitId;
-
-  /// 點 tag 的回呼（預設不做事，搜尋接導覽）。
-  final void Function(String tagId)? onTagTap;
 
   @override
   ConsumerState<DraftDetailPage> createState() => _DraftDetailPageState();
@@ -151,7 +148,8 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
                               TagPills(
                                 v.tags,
                                 large: true,
-                                onTagTap: widget.onTagTap,
+                                onTagTap: (id) =>
+                                    openTagSearch(context, pitId, id),
                               ),
                             ],
                             if (mine.isNotEmpty) ...[
@@ -181,7 +179,6 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
                                           builder: (_) => IdeaDetailPage(
                                             ideaId: i.idea.id,
                                             pitId: pitId,
-                                            onTagTap: widget.onTagTap,
                                           ),
                                         ),
                                       ),

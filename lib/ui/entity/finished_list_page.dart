@@ -19,7 +19,6 @@ import '../common/empty_state.dart';
 import '../common/svg_icon.dart';
 import '../common/window_class.dart';
 import '../album/wide_layout.dart';
-import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
 import 'detail_panes.dart';
 import 'entity_select.dart';
@@ -31,21 +30,10 @@ import '../pits/pit_section_tabs.dart';
 enum _Mode { waterfall, grid, nine }
 
 /// 成圖列表（Finished）：瀑布／田字／九宮格切換；顯示互動量；有導覽列。
-/// D-043：頂部不放 tag chips，卡片不顯示 tag；[tagId] 只篩選內容（篩選列另有人接）。
+/// D-043：頂部不放 tag chips，卡片不顯示 tag；詳情頁點 tag 進坑內搜尋結果頁（D-107）。
 class FinishedListPage extends ConsumerStatefulWidget {
-  const FinishedListPage({
-    super.key,
-    required this.pitId,
-    this.tagId,
-    this.onTagTap,
-  });
+  const FinishedListPage({super.key, required this.pitId});
   final String pitId;
-
-  /// 只列出有這個 tag 的成圖；有值時標題列下多一條「#tag ×」篩選列（D-043）。
-  final String? tagId;
-
-  /// 詳情頁點 tag 的處理；省略＝預設導覽（回到本格列表並篩選）。
-  final ValueChanged<String>? onTagTap;
 
   @override
   ConsumerState<FinishedListPage> createState() => _FinishedListPageState();
@@ -311,20 +299,7 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
 
   void _openDetail(PieceView v) => Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => PieceDetailPage(
-        pieceId: v.piece.id,
-        pitId: widget.pitId,
-        onTagTap:
-            widget.onTagTap ??
-            (id) => onListTagTap(
-              context,
-              pitId: widget.pitId,
-              kind: TaggedKind.piece,
-              tagId: id,
-              listFiltered: widget.tagId != null,
-              fromDetail: true,
-            ),
-      ),
+      builder: (_) => PieceDetailPage(pieceId: v.piece.id, pitId: widget.pitId),
     ),
   );
 
@@ -333,8 +308,7 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
     final t = context.tokens;
     final pit = ref.watch(pitProvider(widget.pitId)).value;
     final views =
-        ref.watch(pieceViewsProvider((widget.pitId, widget.tagId))).value ??
-        const [];
+        ref.watch(pieceViewsProvider((widget.pitId, null))).value ?? const [];
     const pad = EdgeInsets.fromLTRB(20, 10, 20, 96);
     final wide = WindowClass.of(context).isWide;
     _sel.updateOrder([for (final v in views) v.piece.id]);
@@ -390,13 +364,6 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
                     PitSectionTabBar(
                       pitId: widget.pitId,
                       selected: PitSection.pieces,
-                    ),
-                  if (widget.tagId != null)
-                    TagFilterBar(
-                      pitId: widget.pitId,
-                      kind: TaggedKind.piece,
-                      tagId: widget.tagId!,
-                      countText: context.l10n.commonCountImages(views.length),
                     ),
                   Expanded(
                     child: views.isEmpty
