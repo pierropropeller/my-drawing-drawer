@@ -56,6 +56,7 @@
 | description | string? | 自訂描述，顯示於坑內頁標題下（取代舊版自動統計小字） |
 | coverImageId | id? | **新坑預設沒有封面**；坑內有圖之後才顯示「更換封面」 |
 | status | enum | `active`（現坑）／`shallow`（淺坑）／`archived`（封存坑），取代舊 `archived: bool`（D-088） |
+| sensitiveEnabled | bool | 這個坑開了敏感內容標記（D-104），預設 false |
 | enabledSections | Set<section>? | 只對淺坑：開了哪些格子（官方圖冊、好看同人圖、腦洞、摸魚、成圖、推活、雜物），可為空 |
 
 主頁卡片副標：`{成圖數} 成圖 · {未孵腦洞數} 腦洞未孵`。
@@ -204,6 +205,7 @@
 | width／height | int | 詳情頁算圖片框比例用（D-073） |
 | durationMs | int? | 只限影片 |
 | poster | file? | 影片第一格截圖（本機產生、也同步），列表縮圖用 |
+| sensitive | bool | 敏感內容標記，預設 false（D-104）。只在總開關＋該坑開關都開時生效 |
 
 - 需要靜態圖的地方（坑封面、年度回顧、月曆格、分享卡縮圖）：GIF 用第一格，影片用 `poster`。
 - 同步：影片檔大，上傳沿用同步佇列；〔待評估〕「影片只在 Wi-Fi 上傳」開關。
@@ -213,6 +215,7 @@
 - 前台自動刷新間隔：每 1／5／15／30 分鐘（預設 5）
 - 自動同步：開／關
 - App 圖示：`sanbi`／`huati`（D-086）
+- 敏感內容標記 `sensitiveEnabled`（預設關）、安全模式 `safeMode`（預設開）（D-104）
 
 使用者資料（同步）：暱稱、頭像。存在資料庫 `user_profiles`（單列，id=`me`，`updatedAt` 較新者勝），同步種類 `profile`；
 頭像檔跟其他圖片一起上傳／下載（排在下載清單最前面）。設定裡另存一份只為啟動時立刻顯示；頭像檔還沒下載到時顯示暱稱第一個字。
@@ -248,9 +251,10 @@ Drive/App 專用資料夾/
 ### Gallery（主頁）
 | Artboard | 畫面 | 說明 |
 |---|---|---|
-| `Main` | 主頁 | 頭像＋暱稱、田字／瀑布切換、現坑／淺坑／封存坑、坑卡片、開新坑 |
+| `Main` | 主頁 | 頭像＋暱稱、右上搜尋鍵（D-105，取代田字／瀑布切換）、現坑／淺坑／封存坑、坑卡片（田字）、開新坑 |
 | `MainShallow` | 主頁 · 淺坑 | 純列表：56px 小封面＋坑名＋副標；最底「開新淺坑」（D-088） |
 | `MainArchived` | 主頁 · 封存坑 | 同淺坑的列表樣式（D-088） |
+| `GlobalSearch` / `GlobalSearchResult` | 搜尋全部坑 | 主頁右上搜尋鍵進入；tag 按坑分組（同名不合併）；文字結果按坑分組，點組標題進坑內搜尋（D-105） |
 | `CoverPick` | 選擇封面 | **長按坑內某格**進入；只列出該格內的圖，點一下即設為封面（沒有選中狀態） |
 | `PitNew` | 開新坑 | 類型（坑｜淺坑）、坑名、描述；坑沒有封面欄位 |
 | `PitNewShallow` | 開新淺坑 | 類型＝淺坑：封面（可選）、坑名、描述、開啟的格子開關（D-088） |
@@ -285,7 +289,9 @@ Drive/App 專用資料夾/
 | `GroupManage` | 管理分組 | 拖曳排序、改名、刪除、新增 |
 | `FanArtList` | 好看同人圖 | 瀑布流；出處 chips 篩選；右上搜尋 |
 | `FanArtPreview` | 同人圖預覽 | 作者、出處、tag（可點）、加入日期 |
-| `FanArtFiltered` | 按 tag 篩選 | 頂部搜尋列顯示「#tag ×」 |
+| ~~`FanArtFiltered`~~ | ~~按 tag 篩選~~ | ⛔ 作廢（D-107）：點 tag 一律進坑內搜尋結果頁 |
+| `PitSearchUntagged` | 坑內搜尋 · 未加 tag | 坑內搜尋頁底的「未加 tag」卡進入；多選可直接補 tag（D-108） |
+| `PitSearchResultTab` | 坑內搜尋 · 單一相冊 | 點 +N 或相冊 pill 進入；九宮格／腦洞文字卡；所有 tag 點擊都導到坑內搜尋（D-107） |
 | `PitSearch` / `PitSearchResult` / `PitSearchFew` | 坑內搜尋 | 分頁＋常用 tag；結果按分類分段（成圖／官方圖冊／同人圖／推活／摸魚／腦洞，D-089）；少於 3 張的樣式見 `PitSearchFew`（D-061） |
 
 ### Oshi（推活，D-057、D-062）
@@ -348,6 +354,9 @@ Drive/App 專用資料夾/
 | `Theme` | 主題 | 四色（見第 7 節主題色表）＋淺／深／跟隨系統 |
 | `LanguagePick` | 語言 | 跟隨系統／繁體中文／English（停用，「即將推出」） |
 | `Backup` | 備份與同步 | 儲存空間（D-101）、立即同步、更換帳號、最底紅字「取消連結」 |
+| `Personalize` | 個人化 | 主題色、App 圖示、語言、敏感內容（D-106） |
+| `R18Settings` / `R18SettingsOn` / `R18SettingsOff` | 個人化 → 敏感內容 | 總開關「敏感內容標記」（預設關）＋「安全模式」（總開關開才出現）；關總開關要確認（D-104） |
+| `BackupFull` | 備份與同步 · Drive 已滿 | 紅色儲存空間卡、N 張未上傳、管理 Google 儲存空間；上傳排隊、下載照常（D-103） |
 | `BackupUnlink` | 取消連結 | 一個確認視窗：說明後果＋「確認取消連結」 |
 | `About` | 關於 App | 圖示、名稱、版本、資料存放說明、開源授權 |
 | `AppIconPick` | App 圖示 | 兩欄大卡（icon＋名稱），選中＝主色框＋勾；撳一下即換，底部 toast「桌面圖示已換成「三筆」」（D-086） |
@@ -369,6 +378,7 @@ Drive/App 專用資料夾/
 | `SyncFirst` | 首次同步中 | 連結後先進這頁；可「先開始使用」，同步在背景繼續 |
 | `MainSyncing` | 主頁 · 同步中 | 不用橫條；頭像外圈進度環，傳輸中可點開同步進度；未下載完的圖右下角進度環角標（D-052） |
 | `SyncSheet` | 同步進度 | 總進度＋逐張上傳／下載進度（D-052、D-099） |
+| `SyncSheetPartial` | 同步完成 · 有失敗 | 琥珀色「!」、列出失敗項目、「重試」＋「完成」（D-109） |
 | `SyncSheetDone` | 同步完成 | sheet 開著時跑完不自動關，變成完成狀態＋「完成」按鈕（D-100） |
 | `ReviewPick` | 年度回顧 · 選擇月份圖片 | 長按多於一張成圖的月份，選代表圖（D-056） |
 | `MainEmpty` / `OfficialEmpty` / `IdeaEmpty` / `GoalEmpty` | 空白狀態 | 同人圖、摸魚、成圖的空白頁沿用 `OfficialEmpty` 模板，只換顏色、icon、文字 |
