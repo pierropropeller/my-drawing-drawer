@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/scheduler.dart' show SchedulerPhase;
 
 import '../../l10n/l10n.dart';
@@ -83,6 +84,68 @@ class _PickerGridState extends State<PickerGrid> {
   int _cols = 4;
 
   PickerController get c => widget.controller;
+
+  /// 剛撳選的格子：底部已選列滑上來會把格子區變矮，位在最後一列的格子會被擋在列下面，
+  /// 所以要等版面穩定後把它捲回可見範圍（見 [_reveal]）。使用者自己捲動就放棄。
+  int? _revealIndex;
+
+  void _requestReveal(int index) {
+    if (index < 0 || index >= c.items.length) return;
+    if (c.numberOf(c.items[index].id) == null) return; // 取消選取不用捲
+    _revealIndex = index;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reveal());
+  }
+
+  bool _onScrollNotification(Notification n) {
+    if (_revealIndex == null) return false;
+    if (n is ScrollMetricsNotification) {
+      // 可視高度變了（底部列滑上來中）：每個 frame 跟著把格子頂回可見處。
+      WidgetsBinding.instance.addPostFrameCallback((_) => _reveal());
+    } else if (n is UserScrollNotification &&
+        n.direction != ScrollDirection.idle) {
+      _revealIndex = null;
+    }
+    return false;
+  }
+
+  /// 把 [_revealIndex] 那一格捲到可視範圍內（上方留出置頂日期標題）。
+  void _reveal() {
+    final index = _revealIndex;
+    if (!mounted || index == null) return;
+    final s = widget.scroll;
+    if (s.positions.isEmpty) return;
+    final pos = s.position;
+    if (!pos.hasPixels || !pos.hasContentDimensions) return;
+    if (index >= c.items.length || c.numberOf(c.items[index].id) == null) {
+      _revealIndex = null;
+      return;
+    }
+    // 這一格所在的天、列。
+    var lo = 0, hi = c.days.length - 1, d = 0;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      if (c.days[mid].firstIndex <= index) {
+        d = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    if (d >= _headerOffsets.length) return;
+    final rowInDay = (index - c.days[d].firstIndex) ~/ _cols;
+    final top = _headerOffsets[d] + _kHeaderHeight + rowInDay * (_cell + _kGap);
+    final bottom = top + _cell;
+    const margin = 8.0;
+    var target = pos.pixels;
+    if (bottom + margin > pos.pixels + pos.viewportDimension) {
+      target = bottom + margin - pos.viewportDimension;
+    }
+    if (top - margin - _kHeaderHeight < target) {
+      target = math.max(0.0, top - margin - _kHeaderHeight);
+    }
+    target = target.clamp(pos.minScrollExtent, pos.maxScrollExtent);
+    if ((target - pos.pixels).abs() > 0.5) pos.jumpTo(target);
+  }
 
   void _layout(double width) {
     if (_version == c.layoutVersion && _width == width) return;
@@ -176,19 +239,22 @@ class _PickerGridState extends State<PickerGrid> {
               child: ClipRect(
                 child: Stack(
                   children: [
-                    CustomScrollView(
-                      controller: widget.scroll,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: [
-                        SliverVariedExtentList.builder(
-                          itemCount: _rows.length,
-                          itemExtentBuilder: (i, _) => _extentOf(i),
-                          itemBuilder: _buildRow,
-                        ),
-                        const SliverToBoxAdapter(
-                          child: SizedBox(height: _kTailPadding),
-                        ),
-                      ],
+                    NotificationListener<Notification>(
+                      onNotification: _onScrollNotification,
+                      child: CustomScrollView(
+                        controller: widget.scroll,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
+                          SliverVariedExtentList.builder(
+                            itemCount: _rows.length,
+                            itemExtentBuilder: (i, _) => _extentOf(i),
+                            itemBuilder: _buildRow,
+                          ),
+                          const SliverToBoxAdapter(
+                            child: SizedBox(height: _kTailPadding),
+                          ),
+                        ],
+                      ),
                     ),
                     Positioned(
                       left: 0,
@@ -244,6 +310,7 @@ class _PickerGridState extends State<PickerGrid> {
                       controller: c,
                       loader: widget.loader,
                       accent: widget.accent,
+                      onTapped: _requestReveal,
                     )
                   : const SizedBox.shrink(),
             ),
@@ -451,6 +518,7 @@ class _Cell extends StatelessWidget {
     required this.controller,
     required this.loader,
     required this.accent,
+    required this.onTapped,
   });
 
   final GalleryItem item;
@@ -458,6 +526,9 @@ class _Cell extends StatelessWidget {
   final PickerController controller;
   final ThumbLoader loader;
   final Color accent;
+
+  /// 撳完（已更新選取狀態）之後通知格子區，必要時把這格捲到底部已選列上面。
+  final ValueChanged<int> onTapped;
 
   @override
   Widget build(BuildContext context) {
@@ -468,7 +539,10 @@ class _Cell extends StatelessWidget {
       child: GestureDetector(
         key: ValueKey('picker-cell-${item.id}'),
         behavior: HitTestBehavior.opaque,
-        onTap: () => controller.toggle(item.id),
+        onTap: () {
+          controller.toggle(item.id);
+          onTapped(index);
+        },
         child: AspectRatio(
           aspectRatio: 1,
           child: Container(

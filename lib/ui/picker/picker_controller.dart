@@ -282,20 +282,55 @@ class PickerController extends ChangeNotifier {
 
   // ───────────── 匯出 ─────────────
 
-  /// 把已選的按編號順序匯出成檔案；匯出失敗（取不到原檔）的略過。
+  /// 同時匯出幾張。每張要向系統要原檔（iOS 可能要先從 iCloud 下載、再複製到暫存；
+  /// Android 10+ 外掛會複製一份到 cache），大部分時間在等原生端／網路，所以並行；
+  /// 但不能全開（幾十張同時下載會互相搶頻寬、爆記憶體）。
+  static const exportConcurrency = 4;
+
+  /// 把已選的按編號順序匯出成檔案；匯出失敗（取不到原檔或丟例外）的略過。
+  ///
+  /// 並行取檔（最多 [exportConcurrency] 張同時），結果仍按撳的次序排好。
+  /// debug 模式下會印每張與整體的耗時，方便在真機上判斷慢在哪一步。
   Future<List<XFile>> exportSelected() async {
     exporting = true;
     notifyListeners();
+    final total = Stopwatch()..start();
     try {
-      final out = <XFile>[];
-      for (final id in List<String>.of(_selected)) {
-        final f = await repo.export(id);
-        if (f != null) out.add(f);
+      final ids = List<String>.of(_selected);
+      final results = List<XFile?>.filled(ids.length, null);
+      var next = 0;
+      Future<void> worker() async {
+        while (true) {
+          final i = next++;
+          if (i >= ids.length) return;
+          final sw = Stopwatch()..start();
+          try {
+            results[i] = await repo.export(ids[i]);
+          } catch (e) {
+            _log('export #${i + 1} ${ids[i]} failed: $e');
+          }
+          _log(
+            'export #${i + 1}/${ids.length} ${ids[i]} '
+            '${results[i] == null ? "null" : "ok"} ${sw.elapsedMilliseconds}ms',
+          );
+        }
       }
-      return out;
+
+      await Future.wait([
+        for (var k = 0; k < exportConcurrency && k < ids.length; k++) worker(),
+      ]);
+      _log(
+        'exportSelected ${ids.length} items, concurrency $exportConcurrency: '
+        '${total.elapsedMilliseconds}ms',
+      );
+      return results.whereType<XFile>().toList();
     } finally {
       exporting = false;
       notifyListeners();
     }
+  }
+
+  static void _log(String msg) {
+    if (kDebugMode) debugPrint('[picker] $msg');
   }
 }

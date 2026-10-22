@@ -690,4 +690,82 @@ void main() {
     ]);
     c.dispose();
   });
+
+  testWidgets('最後一列：撳了之後底部已選列滑上來不會蓋住那一格', (tester) async {
+    final items = [
+      for (var i = 0; i < 60; i++)
+        _item('m$i', DateTime(2026, 10, 16, 11, 59 - i ~/ 2, 59 - i % 2)),
+    ];
+    final g = FakeGallery(
+      albums: [
+        GalleryAlbum(
+          id: 'all',
+          name: 'Recent',
+          count: items.length,
+          kind: GalleryAlbumKind.all,
+        ),
+      ],
+      items: {'all': items},
+    );
+    await open(tester, repo: g);
+    // 捲到最底，最後一列貼著格子區下緣。
+    final scroll = find.byType(CustomScrollView);
+    await tester.fling(scroll, const Offset(0, -6000), 8000);
+    await _settle(tester, 1500);
+    final last = cell('m59');
+    expect(last, findsOneWidget);
+    await tester.tap(last);
+    await _settle(tester, 800);
+    expect(bar, findsOneWidget);
+    final cellRect = tester.getRect(last);
+    final barRect = tester.getRect(bar);
+    expect(
+      cellRect.bottom,
+      lessThanOrEqualTo(barRect.top + 0.5),
+      reason: '最後一列的格子不能被底部已選列蓋住',
+    );
+    // 第二張也一樣（已選列已經在了）。
+    await tester.tap(cell('m58'));
+    await _settle(tester, 400);
+    expect(
+      tester.getRect(cell('m58')).bottom,
+      lessThanOrEqualTo(barRect.top + 0.5),
+    );
+  });
+
+  test('下一步匯出：並行（最多 4 張）、次序照撳的次序、失敗的略過', () async {
+    final g = _SlowGallery();
+    final c = PickerController(g);
+    for (var i = 9; i >= 0; i--) {
+      c.toggle('e$i');
+    }
+    final files = await c.exportSelected();
+    expect(g.maxRunning, greaterThan(1)); // 不再一張一張等
+    expect(g.maxRunning, lessThanOrEqualTo(PickerController.exportConcurrency));
+    expect(files.map((f) => f.path).toList(), [
+      for (final i in [9, 8, 7, 6, 4, 2, 1, 0]) '/fake/e$i.jpg',
+    ]);
+    expect(c.exporting, isFalse);
+    c.dispose();
+  });
+}
+
+/// 匯出很慢（模擬 iCloud 下載）的假相簿，記錄同時進行的最大數量。
+class _SlowGallery extends FakeGallery {
+  _SlowGallery() : super();
+  int running = 0;
+  int maxRunning = 0;
+
+  @override
+  Future<XFile?> export(String itemId) async {
+    running++;
+    if (running > maxRunning) maxRunning = running;
+    final n = int.parse(itemId.substring(1));
+    // 前面的比較慢，驗證結果次序仍照撳的次序。
+    await Future<void>.delayed(Duration(milliseconds: 40 - n * 3));
+    running--;
+    if (itemId == 'e3') throw StateError('iCloud 下載失敗');
+    if (itemId == 'e5') return null;
+    return XFile('/fake/$itemId.jpg');
+  }
 }

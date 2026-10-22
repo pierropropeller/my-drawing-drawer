@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:image_picker/image_picker.dart' show XFile;
 import 'package:photo_manager/photo_manager.dart';
 
@@ -133,7 +134,28 @@ class PhotoManagerGallery extends GalleryRepository {
   Future<XFile?> export(String itemId) async {
     final e = _entities[itemId];
     if (e == null) return null;
-    final f = await e.originFile ?? await e.file;
+    final sw = Stopwatch()..start();
+    // 原檔（HEIC、影片都原樣）。iOS 上相片在 iCloud 時這一步會等下載（沒有進度回報），
+    // 是「下一步」最可能慢的地方；只有原檔真的取不到才退而求其次用 `file`。
+    var f = await e.originFile;
+    final originMs = sw.elapsedMilliseconds;
+    var fellBack = false;
+    if (f == null) {
+      fellBack = true;
+      f = await e.file;
+    }
+    if (kDebugMode) {
+      int? bytes;
+      try {
+        bytes = f?.lengthSync();
+      } catch (_) {}
+      debugPrint(
+        '[picker] PhotoManager export ${e.id} type=${e.type.name} '
+        'size=${e.width}x${e.height} origin=${originMs}ms '
+        '${fellBack ? "fallback(file) total=${sw.elapsedMilliseconds}ms " : ""}'
+        'bytes=$bytes',
+      );
+    }
     return f == null ? null : XFile(f.path);
   }
 
