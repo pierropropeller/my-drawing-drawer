@@ -13,25 +13,13 @@ import 'album_view.dart';
 import 'fan_art_new_page.dart';
 import 'fan_art_preview_page.dart';
 import 'group_manage_page.dart';
-import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
 import '../pits/pit_section_tabs.dart';
 
 /// 好看同人圖：出處 chips 篩選；卡片開啟同人圖預覽（D-045）。
 class FanArtListPage extends ConsumerStatefulWidget {
-  const FanArtListPage({
-    super.key,
-    required this.pitId,
-    this.tagId,
-    this.onTagTap,
-  });
+  const FanArtListPage({super.key, required this.pitId});
   final String pitId;
-
-  /// 只列出有這個 tag 的同人圖（D-043）；有值時頂部多一條「#tag ×」篩選列。
-  final String? tagId;
-
-  /// 在預覽頁點 tag 時的處理；省略＝預設導覽（回到本格列表並篩選）。
-  final ValueChanged<String>? onTagTap;
 
   @override
   ConsumerState<FanArtListPage> createState() => _FanArtListPageState();
@@ -68,14 +56,11 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
         ? _groupId
         : null;
     final names = {for (final g in groups) g.id: g.name};
-    final filtered = widget.tagId != null;
-    // 標題列一律顯示全部張數；篩選時「N 張」在篩選列（FanArtFiltered）。
+    // 標題列一律顯示全部張數。
     final total = ref.watch(pitStatsProvider(widget.pitId)).value?.fanArts;
     final rows =
         ref
-            .watch(
-              fanArtsFilteredProvider((widget.pitId, groupId, widget.tagId)),
-            )
+            .watch(fanArtsFilteredProvider((widget.pitId, groupId, null)))
             .value ??
         const [];
     final images = [
@@ -114,17 +99,6 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
         pitId: widget.pitId,
         images: items,
         initialIndex: i,
-        // 預覽頁點 tag：關掉預覽，回到該格列表套用篩選（已在篩選裡就取代）。
-        onTagTap:
-            widget.onTagTap ??
-            (id) => onListTagTap(
-              context,
-              pitId: widget.pitId,
-              kind: TaggedKind.fan,
-              tagId: id,
-              listFiltered: filtered,
-              fromDetail: true,
-            ),
       ),
       panelBuilder: (context, image, openReference, dismiss) =>
           FanArtPreviewPanel(
@@ -138,13 +112,6 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
       filter: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (filtered)
-            TagFilterBar(
-              pitId: widget.pitId,
-              kind: TaggedKind.fan,
-              tagId: widget.tagId!,
-              countText: context.l10n.commonCountImages(images.length),
-            ),
           ChipRow(
             options: [
               for (final g in groups) (g.id, g.name),

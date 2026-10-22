@@ -97,12 +97,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get pitsViewGrid => '田字檢視';
-
-  @override
-  String get pitsViewWaterfall => '瀑布檢視';
-
-  @override
   String pitsSyncingImages(int done, int total) {
     return '同步中・圖片 $done / $total';
   }
@@ -960,6 +954,28 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get entityPlatformMarkInstagram => 'IG';
+
+  @override
+  String get globalSearchHint => '搜尋全部坑';
+
+  @override
+  String get globalSearchTagsHeading => 'tag';
+
+  @override
+  String globalSearchPitSemantics(String name, int count) {
+    return '$name，$count 筆';
+  }
+
+  @override
+  String get globalSearchClear => '清除';
+
+  @override
+  String get searchUntagged => '未加 tag';
+
+  @override
+  String searchSelectedCount(int count) {
+    return '已選 $count 筆';
+  }
 
   @override
   String get goalsTitle => '目標';

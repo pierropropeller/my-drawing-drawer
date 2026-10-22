@@ -18,20 +18,16 @@ import 'oshi_form_page.dart';
 import 'oshi_icons.dart';
 
 /// 推活詳情（OshiDetail）：正方形圖片輪播（右下「1 / N」＋圓點，點圖進全屏看圖）、
-/// 日期（含星期）＋分組 chip、標題、描述、tag（可點，回推活列表並篩選）。
+/// 日期（含星期）＋分組 chip、標題、描述、tag（可點，進坑內搜尋結果頁）。
 /// 右上編輯、刪除。沒有導覽列。
 class OshiDetailPage extends ConsumerStatefulWidget {
   const OshiDetailPage({
     super.key,
     required this.pitId,
     required this.recordId,
-    this.listFiltered = false,
   });
   final String pitId;
   final String recordId;
-
-  /// 下面的列表是否已在 tag 篩選狀態（點 tag 時取代它，返回鍵才不會退過每個篩選）。
-  final bool listFiltered;
 
   @override
   ConsumerState<OshiDetailPage> createState() => _OshiDetailPageState();
@@ -214,13 +210,10 @@ class _OshiDetailPageState extends ConsumerState<OshiDetailPage>
                               children: [
                                 for (final tag in v.tags)
                                   GestureDetector(
-                                    onTap: () => onListTagTap(
+                                    onTap: () => openTagSearch(
                                       context,
-                                      pitId: widget.pitId,
-                                      kind: TaggedKind.oshi,
-                                      tagId: tag.id,
-                                      listFiltered: widget.listFiltered,
-                                      fromDetail: true,
+                                      widget.pitId,
+                                      tag.id,
                                     ),
                                     behavior: HitTestBehavior.opaque,
                                     child: Container(

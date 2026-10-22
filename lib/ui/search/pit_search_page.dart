@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/providers.dart';
+import '../../state/search_providers.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
+import '../common/app_icons.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
+import '../common/svg_icon.dart';
 import 'pit_search_result_page.dart';
+import 'search_icons.dart';
 import 'search_widgets.dart';
 import 'tagged_list.dart';
 
@@ -32,7 +36,7 @@ class _PitSearchPageState extends ConsumerState<PitSearchPage>
     super.dispose();
   }
 
-  void _openResult({String text = '', String? tagId}) {
+  void _openResult({String text = '', String? tagId, bool untagged = false}) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         settings: const RouteSettings(name: kSearchFlowRoute),
@@ -40,6 +44,7 @@ class _PitSearchPageState extends ConsumerState<PitSearchPage>
           pitId: widget.pitId,
           text: text,
           tagId: tagId,
+          untagged: untagged,
           category: _category,
         ),
       ),
@@ -52,6 +57,8 @@ class _PitSearchPageState extends ConsumerState<PitSearchPage>
     final pitName = ref.watch(pitProvider(widget.pitId)).value?.name ?? '';
     final usage =
         ref.watch(tagUsageByUsageProvider(widget.pitId)).value ?? const [];
+    final untaggedCount =
+        ref.watch(untaggedCountProvider(widget.pitId)).value ?? 0;
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -125,11 +132,86 @@ class _PitSearchPageState extends ConsumerState<PitSearchPage>
                         ],
                       ),
                     ],
+                    // 未加 tag（D-108）：坑內沒有任何 tag 的項目數；雜物沒有 tag，不算。
+                    Padding(
+                      padding: const EdgeInsets.only(top: 22),
+                      child: _UntaggedCard(
+                        count: untaggedCount,
+                        onTap: () => _openResult(untagged: true),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 「未加 tag」卡片（PitSearch）：左邊 tag 加斜線 icon（米色底），名稱、數量、右箭頭。
+class _UntaggedCard extends StatelessWidget {
+  const _UntaggedCard({required this.count, required this.onTap});
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return GestureDetector(
+      key: const ValueKey('searchUntaggedCard'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: t.surface,
+          border: Border.all(color: t.borderCard),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: t.chipBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: SvgIcon(
+                  SearchIcons.untagged,
+                  size: 20,
+                  strokeWidth: 1.7,
+                  color: t.text3,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                context.l10n.searchUntagged,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Text(
+              '$count',
+              key: const ValueKey('searchUntaggedCount'),
+              style: TextStyle(fontSize: 13, color: t.text3),
+            ),
+            const SizedBox(width: 8),
+            SvgIcon(
+              AppIcons.chevronRight,
+              size: 18,
+              color: t.text4,
+              strokeWidth: 2,
+            ),
+          ],
         ),
       ),
     );

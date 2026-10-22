@@ -1,41 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/entity_queries.dart';
+import '../../data/batch_tag_queries.dart';
 import '../../data/search_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
+import '../../state/search_providers.dart';
 import '../../theme/tokens.dart';
-import '../album/album_image.dart';
-import '../album/fan_art_preview_page.dart';
-import '../album/image_preview_page.dart';
-import '../common/media_widgets.dart';
+import '../album/tag_batch_sheet.dart';
+import '../common/app_icons.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
-import '../entity/draft_detail_page.dart';
-import '../entity/entity_widgets.dart';
-import '../entity/idea_detail_page.dart';
-import '../entity/piece_detail_page.dart';
-import '../pits/pit_oshi_entry.dart';
+import '../common/svg_icon.dart';
+import '../entity/entity_select.dart' show showEntityTagSheet;
+import '../album/album_icons.dart';
+import 'filter_pills.dart';
+import 'pit_search_tab.dart';
+import 'search_hits.dart';
 import 'search_widgets.dart';
-import 'tag_filter_bar.dart';
-import 'tagged_list.dart';
 
-/// 坑內搜尋結果（PitSearchResult，D-051）：
-/// 分段順序 成圖 → 官方圖冊 → 好看同人圖 → 推活 → 草稿 → 腦洞（D-065）；圖片類一排 3 格、第 3 格 +N，
-/// 少於 3 筆就照實際張數放、各自圓角（D-061）；筆數 0 的分段與分頁不顯示。
-/// 腦洞直向全列、往下捲動分批載入。設計稿沒有畫 `<nav>`，隱藏底部導覽列。
+/// 坑內搜尋結果（PitSearchResult，D-051、D-107）：
+/// 頂部相冊 pills（只列有結果的，每顆帶數字）＋分段總覽——分段順序 成圖 → 官方圖冊 → 好看同人圖 → 推活 →
+/// 摸魚 → 腦洞（D-065）；圖片類一排 3 格、第 3 格 +N（點它切到那一段的相冊），少於 3 筆就照實際張數放、
+/// 各自圓角（D-061）；腦洞直向全列、往下捲動分批載入。選了某個相冊＝[PitSearchResultTab]。
+///
+/// 搜尋列可帶 tag（`#tag ×`）、關鍵字，或灰色的「未加 tag ×」（[untagged]，D-108，這時長按結果可多選批量補 tag）。
+/// 設計稿沒有畫 `<nav>`，隱藏底部導覽列。
 class PitSearchResultPage extends ConsumerStatefulWidget {
   const PitSearchResultPage({
     super.key,
     required this.pitId,
     this.text = '',
     this.tagId,
+    this.untagged = false,
+    this.includePitName = false,
     this.category = SearchCategory.all,
   });
   final String pitId;
   final String text;
   final String? tagId;
+
+  /// 「未加 tag」篩選（PitSearchUntagged）。
+  final bool untagged;
+
+  /// 從全坑搜尋點坑名進來：坑名也算搜尋範圍。
+  final bool includePitName;
   final SearchCategory category;
 
   /// 腦洞每批載入的數量。
@@ -53,8 +62,13 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
   );
   late String _text = widget.text;
   late String? _tagId = widget.tagId;
+  late bool _untagged = widget.untagged;
   late SearchCategory _category = widget.category;
   int _ideaShown = PitSearchResultPage.ideaBatch;
+
+  /// 多選（只有「未加 tag」結果支援，D-108）。
+  bool _selecting = false;
+  final Set<String> _selected = {};
 
   /// 一次捲動期間只載入一批：等新一批排版完、捲動範圍更新後才會再載入。
   bool _batchPending = false;
@@ -65,316 +79,422 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
     super.dispose();
   }
 
-  void _setQuery({String? text, Object? tagId = _keep}) {
+  void _setText(String v) {
     setState(() {
-      if (text != null) _text = text;
-      if (!identical(tagId, _keep)) _tagId = tagId as String?;
+      _text = v;
       _ideaShown = PitSearchResultPage.ideaBatch;
     });
   }
 
-  static const _keep = Object();
-
-  void _clearTag() {
+  /// 按搜尋列裡 chip 的「×」：沒有別的條件就離開；還有文字就只拿掉 chip。
+  void _clearFilter() {
     if (_text.trim().isEmpty) {
       Navigator.of(context).maybePop();
       return;
     }
-    _setQuery(tagId: null);
+    setState(() {
+      _tagId = null;
+      _untagged = false;
+      _ideaShown = PitSearchResultPage.ideaBatch;
+    });
   }
 
-  /// 詳情頁點 tag：離開搜尋，進該格的篩選列表（列表有導覽列，搜尋頁沒有）。
-  void _tagTap(TaggedKind kind, String tagId) =>
-      openTaggedList(context, widget.pitId, kind, tagId, leaveSearch: true);
+  void _select(SearchCategory c) => setState(() {
+    _category = c;
+    _ideaShown = PitSearchResultPage.ideaBatch;
+  });
 
-  /// 點「+N」：離開搜尋，進該格列表並帶同一個 tag；
-  /// 純文字搜尋沒有 tag 可帶，開完整列表。
-  void _more(TaggedKind kind) =>
-      openTaggedList(context, widget.pitId, kind, _tagId, leaveSearch: true);
+  void _exitSelecting() => setState(() {
+    _selecting = false;
+    _selected.clear();
+  });
 
-  /// 推活的「+N」：離開搜尋，進推活列表並帶同一個 tag（純文字搜尋＝完整列表）。
-  void _moreOshi() {
-    final nav = Navigator.of(context);
-    nav.popUntil((r) => r.settings.name != kSearchFlowRoute);
-    // 這個頁面關掉後 context 就失效，改用 Navigator 自己的 context。
-    openOshiList(nav.context, widget.pitId, tagId: _tagId);
+  void _toggle(SearchTile tile) => setState(() {
+    if (!_selected.remove(tile.key)) _selected.add(tile.key);
+    if (_selected.isEmpty) _selecting = false;
+  });
+
+  void _startSelecting(SearchTile tile) => setState(() {
+    _selecting = true;
+    _selected
+      ..clear()
+      ..add(tile.key);
+  });
+
+  Future<void> _tagSelected() async {
+    final ids = _selected.toList()..sort();
+    if (ids.isEmpty) return;
+    final applied = await showEntityTagSheet(
+      context,
+      pitId: widget.pitId,
+      ids: ids,
+      backend: BatchTagBackend(
+        watch: (db, ids) =>
+            db.watchTagCoverageMixed([for (final k in ids) TagRef.parse(k)]),
+        apply: (db, ids, {required add, required remove, required newNames}) =>
+            db.applyBatchTagsMixed(
+              [for (final k in ids) TagRef.parse(k)],
+              addTagIds: add,
+              removeTagIds: remove,
+              newTagNames: newNames,
+            ),
+        countText: (l, count) => l.searchSelectedCount(count),
+      ),
+    );
+    if (applied == true && mounted) _exitSelecting();
   }
-
-  void _push(Widget page) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      settings: const RouteSettings(name: kSearchFlowRoute),
-      builder: (_) => page,
-    ),
-  );
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final l = context.l10n;
     final pitName = ref.watch(pitProvider(widget.pitId)).value?.name ?? '';
     final tags = ref.watch(tagsProvider(widget.pitId)).value ?? const [];
     final tagName = tags.where((e) => e.id == _tagId).firstOrNull?.name ?? '';
-    final groups =
-        ref.watch(groupsProvider((widget.pitId, 'fan'))).value ?? const [];
-    final officialGroups =
-        ref.watch(groupsProvider((widget.pitId, 'official'))).value ?? const [];
+    final names = watchGroupNames(ref, widget.pitId);
     final res =
         ref
-            .watch(pitSearchProvider((widget.pitId, _text.trim(), _tagId)))
+            .watch(
+              pitSearchProvider(
+                PitSearchQuery(
+                  widget.pitId,
+                  text: _text.trim(),
+                  tagId: _tagId,
+                  untagged: _untagged,
+                  includePitName: widget.includePitName,
+                  unlimited: true,
+                ),
+              ),
+            )
             .value ??
         PitSearchResult.empty;
-    // 目前分頁的結果變成 0 筆（分頁被隱藏）時退回「全部」。
+    // 目前相冊的結果變成 0 筆（pill 被隱藏，例如補完 tag 後）時退回「全部」。
     final counts = {
       SearchCategory.all: res.total,
-      SearchCategory.piece: res.pieces.total,
-      SearchCategory.official: res.official.total,
-      SearchCategory.fan: res.fanArts.total,
-      SearchCategory.oshi: res.oshi.total,
-      SearchCategory.draft: res.drafts.total,
-      SearchCategory.idea: res.ideas.total,
+      for (final s in PitSearchSection.values) s.category: res.counts[s] ?? 0,
     };
     final category = (counts[_category] ?? 0) == 0
         ? SearchCategory.all
         : _category;
-    bool show(SearchCategory c) =>
-        category == SearchCategory.all || category == c;
+    final section = category.section;
+    final opener = SearchOpener(
+      context,
+      pitId: widget.pitId,
+      res: res,
+      fanGroupNames: names.fan,
+      officialGroupNames: names.official,
+    );
+    // 「未加 tag」結果才有多選。
+    final selection = _untagged
+        ? SearchSelection(
+            selecting: _selecting,
+            selected: _selected,
+            onToggle: _toggle,
+            onStart: _startSelecting,
+          )
+        : SearchSelection.none;
 
+    final Widget body;
+    if (res.isEmpty) {
+      body = Center(
+        child: Text(
+          l.searchNoResults,
+          style: TextStyle(color: t.text3, fontSize: 14),
+        ),
+      );
+    } else if (section != null) {
+      body = PitSearchResultTab(
+        section: section,
+        res: res,
+        opener: opener,
+        selection: selection,
+      );
+    } else {
+      body = _overview(res, opener, selection);
+    }
+
+    final allSelectedInTab =
+        section != null &&
+        searchTilesOf(res, section).every((x) => _selected.contains(x.key));
+
+    return PopScope(
+      canPop: !_selecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _exitSelecting();
+      },
+      child: Scaffold(
+        bottomNavigationBar: _selecting
+            ? SearchSelectBar(onTag: _tagSelected)
+            : null,
+        body: SafeArea(
+          bottom: false,
+          child: ContentWidth(
+            child: Column(
+              children: [
+                if (_selecting)
+                  SearchSelectHeader(
+                    count: _selected.length,
+                    // 「全選」只在單一相冊頁（那裡才有該相冊的全部結果）。
+                    onToggleAll: section == null
+                        ? null
+                        : () => setState(() {
+                            final all = searchTilesOf(res, section);
+                            if (allSelectedInTab) {
+                              _selected.clear();
+                              _selecting = false;
+                            } else {
+                              _selected.addAll(all.map((x) => x.key));
+                            }
+                          }),
+                    allSelected: allSelectedInTab,
+                    onExit: _exitSelecting,
+                  )
+                else ...[
+                  SearchBarRow(
+                    child: Row(
+                      children: [
+                        if (_tagId != null) ...[
+                          TagFilterPill(name: tagName, onClear: _clearFilter),
+                          const SizedBox(width: 6),
+                        ],
+                        if (_untagged) ...[
+                          UntaggedFilterPill(onClear: _clearFilter),
+                          const SizedBox(width: 6),
+                        ],
+                        Expanded(
+                          child: SearchField(
+                            controller: _controller,
+                            hint: _tagId == null && !_untagged
+                                ? l.searchHint(pitName)
+                                : '',
+                            onChanged: _setText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SearchCategoryChips(
+                    selected: category,
+                    onSelected: _select,
+                    counts: counts,
+                  ),
+                ],
+                Expanded(child: body),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 分段總覽（「全部」）。
+  Widget _overview(
+    PitSearchResult res,
+    SearchOpener opener,
+    SearchSelection selection,
+  ) {
+    final l = context.l10n;
     final slivers = <Widget>[];
     void section(Widget w) => slivers.add(SliverToBoxAdapter(child: w));
 
-    if (show(SearchCategory.piece) && !res.pieces.isEmpty) {
-      section(
-        _ImageSection(
-          title: context.l10n.searchCategoryPiece,
-          total: res.pieces.total,
-          media: [for (final v in res.pieces.items) _firstMedia(v.images)],
-          more: res.pieces.more,
-          onTap: (i) => _push(
-            PieceDetailPage(
-              pieceId: res.pieces.items[i].piece.id,
-              pitId: widget.pitId,
-              onTagTap: (id) => _tagTap(TaggedKind.piece, id),
-            ),
-          ),
-          onMore: () => _more(TaggedKind.piece),
-        ),
-      );
-    }
-    if (show(SearchCategory.official) && !res.official.isEmpty) {
-      final names = {for (final g in officialGroups) g.id: g.name};
-      final items = [
-        for (final o in res.official.items)
-          AlbumImage(
-            id: o.id,
-            file: o.imageFile,
-            width: o.width,
-            height: o.height,
-            kind: AlbumKind.official,
-            groupName: names[o.groupId],
-            groupId: o.groupId,
-            createdAt: o.createdAt,
-            mediaKind: o.kind,
-            durationMs: o.durationMs,
-            posterFile: o.posterFile,
-          ),
-      ];
-      section(
-        _ImageSection(
-          title: context.l10n.pitsOfficial,
-          total: res.official.total,
-          media: [for (final a in items) a.media],
-          more: res.official.more,
-          onTap: (i) => _push(
-            ImagePreviewPage(
-              pitId: widget.pitId,
-              images: items,
-              initialIndex: i,
-              onTagTap: (id) => _tagTap(TaggedKind.official, id),
-            ),
-          ),
-          onMore: () => _more(TaggedKind.official),
-        ),
-      );
-    }
-    if (show(SearchCategory.fan) && !res.fanArts.isEmpty) {
-      final names = {for (final g in groups) g.id: g.name};
-      final items = [
-        for (final f in res.fanArts.items)
-          AlbumImage(
-            id: f.id,
-            file: f.imageFile,
-            width: f.width,
-            height: f.height,
-            kind: AlbumKind.fanArt,
-            author: f.author,
-            groupName: names[f.groupId],
-            groupId: f.groupId,
-            createdAt: f.createdAt,
-            mediaKind: f.kind,
-            durationMs: f.durationMs,
-            posterFile: f.posterFile,
-          ),
-      ];
-      section(
-        _ImageSection(
-          title: context.l10n.pitsFanArt,
-          total: res.fanArts.total,
-          media: [for (final a in items) a.media],
-          more: res.fanArts.more,
-          onTap: (i) => _push(
-            FanArtPreviewPage(
-              pitId: widget.pitId,
-              images: items,
-              initialIndex: i,
-              onTagTap: (id) => _tagTap(TaggedKind.fan, id),
-            ),
-          ),
-          onMore: () => _more(TaggedKind.fan),
-        ),
-      );
-    }
-    if (show(SearchCategory.oshi) && !res.oshi.isEmpty) {
-      section(
-        _ImageSection(
-          title: context.l10n.pitSearchCategoryOshi,
-          total: res.oshi.total,
-          media: [
-            for (final v in res.oshi.items) MediaSource.fromImageRef(v.cover),
-          ],
-          more: res.oshi.more,
-          onTap: (i) => openOshiDetail(
-            context,
-            widget.pitId,
-            res.oshi.items[i].record.id,
-            inSearchFlow: true,
-          ),
-          onMore: _moreOshi,
-        ),
-      );
-    }
-    if (show(SearchCategory.draft) && !res.drafts.isEmpty) {
-      section(
-        _ImageSection(
-          title: context.l10n.searchCategoryDraft,
-          total: res.drafts.total,
-          media: [for (final v in res.drafts.items) _firstMedia(v.images)],
-          more: res.drafts.more,
-          onTap: (i) => _push(
-            DraftDetailPage(
-              draftId: res.drafts.items[i].draft.id,
-              pitId: widget.pitId,
-              onTagTap: (id) => _tagTap(TaggedKind.draft, id),
-            ),
-          ),
-          onMore: () => _more(TaggedKind.draft),
-        ),
-      );
-    }
-    if (show(SearchCategory.idea) && !res.ideas.isEmpty) {
-      final shown = res.ideas.items.length < _ideaShown
-          ? res.ideas.items.length
-          : _ideaShown;
-      section(_SectionHeader(context.l10n.searchCategoryIdea, res.ideas.total));
-      slivers.add(
-        SliverList.separated(
-          itemCount: shown,
-          separatorBuilder: (_, _) => const SizedBox(height: 8),
-          itemBuilder: (_, i) {
-            final v = res.ideas.items[i];
-            return _IdeaResultCard(
-              view: v,
-              onTap: () => _push(
-                IdeaDetailPage(
-                  ideaId: v.idea.id,
-                  pitId: widget.pitId,
-                  onTagTap: (id) => _tagTap(TaggedKind.idea, id),
-                ),
-              ),
-            );
-          },
-        ),
-      );
-      if (shown < res.ideas.items.length) {
-        section(
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: SizedBox(
-                key: Key('ideas-loading'),
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+    for (final s in res.visibleSections) {
+      final total = res.counts[s]!;
+      final all = searchTilesOf(res, s);
+      if (s == PitSearchSection.ideas) {
+        final shown = all.length < _ideaShown ? all.length : _ideaShown;
+        section(SearchSectionHeader(s.title(l), total));
+        slivers.add(
+          SliverList.separated(
+            itemCount: shown,
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            itemBuilder: (_, i) => IdeaResultCard(
+              tile: all[i],
+              selection: selection,
+              onTap: () => opener.open(s, all[i].index),
             ),
           ),
         );
-      }
-    }
-
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: ContentWidth(
-          child: Column(
-            children: [
-              SearchBarRow(
-                child: Row(
-                  children: [
-                    if (_tagId != null) ...[
-                      TagFilterPill(name: tagName, onClear: _clearTag),
-                      const SizedBox(width: 6),
-                    ],
-                    Expanded(
-                      child: SearchField(
-                        controller: _controller,
-                        hint: _tagId == null
-                            ? context.l10n.searchHint(pitName)
-                            : '',
-                        onChanged: (v) => _setQuery(text: v),
-                      ),
-                    ),
-                  ],
+        if (shown < all.length) {
+          section(
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  key: Key('ideas-loading'),
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               ),
-              SearchCategoryChips(
-                selected: category,
-                onSelected: (c) => setState(() => _category = c),
-                counts: counts,
+            ),
+          );
+        }
+        continue;
+      }
+      final shownTiles = all.take(3).toList();
+      section(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SearchSectionHeader(s.title(l), total),
+            SearchThumbRow(
+              tiles: shownTiles,
+              more: total - shownTiles.length,
+              selection: selection,
+              onTap: (tile) => opener.open(s, tile.index),
+              // 「+N」：切到那一段的相冊（D-107）。
+              onMore: () => _select(s.category),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return NotificationListener<ScrollNotification>(
+      onNotification: (n) {
+        // 接近底部時多載入一批腦洞。
+        if (!_batchPending &&
+            n.metrics.extentAfter < 400 &&
+            _ideaShown < res.ideas.items.length) {
+          _batchPending = true;
+          setState(() => _ideaShown += PitSearchResultPage.ideaBatch);
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _batchPending = false,
+          );
+        }
+        return false;
+      },
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            sliver: SliverMainAxisGroup(slivers: slivers),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 多選的標題列：左「×」取消、「已選 N 筆」、右「全選」（只在單一相冊頁）。
+/// 版型同推活／摸魚多選（OshiSelect）。
+class SearchSelectHeader extends StatelessWidget {
+  const SearchSelectHeader({
+    super.key,
+    required this.count,
+    required this.allSelected,
+    required this.onExit,
+    this.onToggleAll,
+  });
+  final int count;
+  final bool allSelected;
+  final VoidCallback onExit;
+  final VoidCallback? onToggleAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final l = context.l10n;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+      child: Row(
+        children: [
+          Tooltip(
+            message: l.albumCancelSelect,
+            child: InkResponse(
+              key: const ValueKey('searchSelectExit'),
+              radius: 24,
+              onTap: onExit,
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: Center(
+                  child: SvgIcon(
+                    AppIcons.closeX,
+                    size: 22,
+                    strokeWidth: 2,
+                    color: t.ink,
+                  ),
+                ),
               ),
-              Expanded(
-                child: slivers.isEmpty
-                    ? Center(
-                        child: Text(
-                          context.l10n.searchNoResults,
-                          style: TextStyle(color: t.text3, fontSize: 14),
-                        ),
-                      )
-                    : NotificationListener<ScrollNotification>(
-                        onNotification: (n) {
-                          // 接近底部時多載入一批腦洞。
-                          if (!_batchPending &&
-                              n.metrics.extentAfter < 400 &&
-                              _ideaShown < res.ideas.items.length) {
-                            _batchPending = true;
-                            setState(
-                              () => _ideaShown += PitSearchResultPage.ideaBatch,
-                            );
-                            WidgetsBinding.instance.addPostFrameCallback(
-                              (_) => _batchPending = false,
-                            );
-                          }
-                          return false;
-                        },
-                        child: CustomScrollView(
-                          slivers: [
-                            SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                              sliver: SliverMainAxisGroup(slivers: slivers),
-                            ),
-                          ],
-                        ),
-                      ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              l.searchSelectedCount(count),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontSize: 19,
+                fontWeight: FontWeight.w700,
+                color: t.ink,
               ),
-            ],
+            ),
+          ),
+          if (onToggleAll != null)
+            TextButton(
+              key: const ValueKey('searchSelectAll'),
+              onPressed: onToggleAll,
+              style: TextButton.styleFrom(
+                foregroundColor: t.piece.fg,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              child: Text(
+                allSelected ? l.commonDeselectAll : l.commonSelectAll,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 多選的底部動作列：只有「tag」（沒有導覽列）。
+class SearchSelectBar extends StatelessWidget {
+  const SearchSelectBar({super.key, required this.onTag});
+  final VoidCallback onTag;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final l = context.l10n;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      decoration: BoxDecoration(
+        color: t.nav,
+        border: Border(top: BorderSide(color: t.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: 14),
+        child: InkWell(
+          key: const ValueKey('searchSelectTag'),
+          onTap: onTag,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 52),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SvgIcon(
+                  AlbumIcons.tag,
+                  size: 22,
+                  color: t.ink,
+                  strokeWidth: 1.7,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l.shareMoveTag,
+                  style: TextStyle(color: t.ink, fontSize: 11.5),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -383,8 +503,8 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
 }
 
 /// 段頭：粗體名稱＋淡色數字（沒有「全部」）。
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title, this.total);
+class SearchSectionHeader extends StatelessWidget {
+  const SearchSectionHeader(this.title, this.total, {super.key});
   final String title;
   final int total;
 
@@ -407,142 +527,6 @@ class _SectionHeader extends StatelessWidget {
           fontSize: 14,
           fontWeight: FontWeight.w700,
           color: t.ink,
-        ),
-      ),
-    );
-  }
-}
-
-MediaSource? _firstMedia(List<ImageRef> images) =>
-    images.isEmpty ? null : MediaSource.fromImageRef(images.first);
-
-/// 圖片類的一段：草稿多圖卡樣式，一排 3 格正方形、間距 4、外框圓角 10；
-/// 超過 3 筆時第 3 格蓋深色層寫「+N」，點它進該格列表。
-/// 少於 3 筆（D-061，PitSearchFew）：照實際張數放、不補空格、不顯示「+N」，每張各自圓角 10。
-class _ImageSection extends StatelessWidget {
-  const _ImageSection({
-    required this.title,
-    required this.total,
-    required this.media,
-    required this.more,
-    required this.onTap,
-    required this.onMore,
-  });
-  final String title;
-  final int total;
-
-  /// 前 3 筆的第一張媒體（null＝沒有圖，顯示佔位；GIF 循環、影片 poster＋標記，D-080）。
-  final List<MediaSource?> media;
-  final int more;
-  final ValueChanged<int> onTap;
-  final VoidCallback onMore;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget cell(int i) {
-      final m = media[i];
-      final isMore = more > 0 && i == 2;
-      return AspectRatio(
-        aspectRatio: 1,
-        child: GestureDetector(
-          onTap: isMore ? onMore : () => onTap(i),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              m == null
-                  ? const ImagePlaceholder()
-                  : MediaThumb(m, cacheWidth: 300),
-              if (isMore)
-                Container(
-                  color: const Color(0x802B2622),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '+$more',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // 不滿 3 張：每張自己切圓角，空位留白（格寬仍是 1/3）。
-    final few = media.length < 3;
-    final row = Row(
-      spacing: 4,
-      children: [
-        for (var i = 0; i < 3; i++)
-          Expanded(
-            child: i < media.length
-                ? (few
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: cell(i),
-                        )
-                      : cell(i))
-                : const SizedBox.shrink(),
-          ),
-      ],
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(title, total),
-        few
-            ? row
-            : ClipRRect(borderRadius: BorderRadius.circular(10), child: row),
-      ],
-    );
-  }
-}
-
-/// 腦洞結果卡：標題＋內文一行（artboard 的白底圓角 16 卡）。
-class _IdeaResultCard extends StatelessWidget {
-  const _IdeaResultCard({required this.view, required this.onTap});
-  final IdeaView view;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    final body = view.idea.body.replaceAll('\n', ' ');
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: t.surface,
-          border: Border.all(color: t.borderCard),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              view.idea.title,
-              style: TextStyle(
-                fontSize: 14.5,
-                fontWeight: FontWeight.w700,
-                color: t.ink,
-              ),
-            ),
-            if (body.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 3),
-                child: Text(
-                  body,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 13, color: t.text2),
-                ),
-              ),
-          ],
         ),
       ),
     );

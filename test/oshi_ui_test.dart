@@ -22,7 +22,8 @@ import 'package:huakeng/ui/oshi/oshi_detail_page.dart';
 import 'package:huakeng/ui/album/group_manage_page.dart';
 import 'package:huakeng/ui/oshi/oshi_form_page.dart';
 import 'package:huakeng/ui/oshi/oshi_list_page.dart';
-import 'package:huakeng/ui/search/tag_filter_bar.dart';
+import 'package:huakeng/ui/search/filter_pills.dart';
+import 'package:huakeng/ui/search/pit_search_result_page.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -407,31 +408,6 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('tag 篩選：頂部「#tag ×」篩選列＋符合筆數，按 × 回完整列表', (tester) async {
-      final tag = await tester.runAsync(() => db.createTag(pitId, '角色1'));
-      await tester.runAsync(() async {
-        await rec(date: DateTime(2026, 10, 5), title: '有 tag', tagIds: [tag!]);
-        await rec(date: DateTime(2026, 10, 4), title: '沒 tag');
-      });
-      await show(
-        tester,
-        Navigator(
-          onGenerateRoute: (_) => MaterialPageRoute<void>(
-            builder: (_) => OshiListPage(pitId: pitId, tagId: tag),
-          ),
-        ),
-      );
-      expect(find.byType(TagFilterBar), findsOneWidget);
-      expect(find.text('有 tag'), findsOneWidget);
-      expect(find.text('沒 tag'), findsNothing);
-      expect(find.text('2 筆'), findsWidgets); // 標題列＝全部 2 筆
-      await tester.tap(find.bySemanticsLabel('移除篩選'));
-      await settle(tester);
-      expect(find.byType(TagFilterBar), findsNothing);
-      expect(find.text('沒 tag'), findsOneWidget);
-      await unmount(tester);
-    });
-
     testWidgets('管理分組：開推活分組管理頁（沒有導覽列），顯示各組筆數', (tester) async {
       await tester.runAsync(
         () => rec(date: DateTime(2026, 10, 5), groupId: groups[0].id),
@@ -636,7 +612,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('點 tag 回推活列表並套用 tag 篩選', (tester) async {
+    testWidgets('D-107 點 tag 進坑內搜尋結果頁並帶上這個 tag', (tester) async {
       final tag = await tester.runAsync(() => db.createTag(pitId, '角色1'));
       final id = (await tester.runAsync(
         () => rec(date: DateTime(2026, 10, 5), title: '有 tag', tagIds: [tag!]),
@@ -650,9 +626,8 @@ void main() {
       expect(find.byType(OshiDetailPage), findsOneWidget);
       await tester.tap(find.text('#角色1'));
       await settle(tester);
-      expect(find.byType(OshiDetailPage), findsNothing);
-      expect(find.byType(TagFilterBar), findsOneWidget);
-      expect(find.text('沒 tag'), findsNothing);
+      expect(find.byType(PitSearchResultPage), findsOneWidget);
+      expect(find.byType(TagFilterPill), findsOneWidget);
       expect(id, isNotEmpty);
       await unmount(tester);
     });

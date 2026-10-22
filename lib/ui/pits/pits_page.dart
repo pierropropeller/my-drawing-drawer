@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../data/database.dart';
 import '../../l10n/l10n.dart';
@@ -13,13 +12,15 @@ import '../common/dashed_box.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import '../common/window_class.dart';
+import '../search/search_icons.dart';
+import '../search/tagged_list.dart';
 import '../sync/pit_sync.dart';
 import '../sync/sync_avatar.dart';
 import 'pit_new_page.dart';
 import 'pit_page.dart';
 import 'pit_rows.dart';
 
-/// 主頁：現坑／淺坑／封存坑三個分頁。現坑＝田字／瀑布切換、坑卡片、開新坑（最後一格的虛線格）；
+/// 主頁：現坑／淺坑／封存坑三個分頁，右上是「搜尋全部坑」鍵（D-105）。現坑＝固定田字的坑卡片、開新坑（最後一格的虛線格）；
 /// 淺坑、封存坑＝純列表（小封面、坑名、一行副標、右箭頭），淺坑列表最底有「開新淺坑」（D-088）。
 class PitsPage extends ConsumerStatefulWidget {
   const PitsPage({super.key});
@@ -33,7 +34,6 @@ void _openNewPit(BuildContext context, {PitStatus status = PitStatus.active}) =>
 
 class _PitsPageState extends ConsumerState<PitsPage> {
   PitStatus _tab = PitStatus.active;
-  bool _grid = true; // true＝田字，false＝瀑布
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +51,7 @@ class _PitsPageState extends ConsumerState<PitsPage> {
     final wc = WindowClass.of(context);
     // ≥600 用 iPad 版面（頭像在 rail／sidebar，頁面標題是「我的坑」）；＜600 與手機版完全一樣。
     final tablet = !wc.isCompact;
-    final wide = wc.isWide; // ≥840：現坑／封存坑與檢視切換同一列（Main）；否則獨立一行（MainPortrait）
+    final wide = wc.isWide; // ≥840：標題、分頁與搜尋鍵同一列（Main）；否則獨立一行（MainPortrait）
     final padH = tablet ? (wide ? 40.0 : 32.0) : 20.0;
     final pills = Row(
       mainAxisSize: MainAxisSize.min,
@@ -75,11 +75,8 @@ class _PitsPageState extends ConsumerState<PitsPage> {
         ],
       ],
     );
-    final toggle = _ViewToggle(
-      grid: _grid,
-      big: tablet,
-      onChanged: (g) => setState(() => _grid = g),
-    );
+    // 主頁右上的「搜尋全部坑」鍵（D-105，取代田字／瀑布切換）；三個分頁都有。
+    final searchButton = _SearchAllButton(big: tablet);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -104,8 +101,7 @@ class _PitsPageState extends ConsumerState<PitsPage> {
                     ),
                     if (!nothingAtAll) ...[
                       if (wide) ...[pills, const SizedBox(width: 16)],
-                      // 田字／瀑布只在「現坑」分頁。
-                      if (_tab == PitStatus.active) toggle,
+                      searchButton,
                     ],
                   ],
                 ),
@@ -127,7 +123,7 @@ class _PitsPageState extends ConsumerState<PitsPage> {
                             ?.copyWith(fontSize: 24, letterSpacing: 0.5),
                       ),
                     ),
-                    if (!nothingAtAll && _tab == PitStatus.active) toggle,
+                    if (!nothingAtAll) searchButton,
                   ],
                 ),
               ),
@@ -158,12 +154,7 @@ class _PitsPageState extends ConsumerState<PitsPage> {
                   PitStatus.active =>
                     list.isEmpty
                         ? _Empty(tab: _tab)
-                        : _PitList(
-                            pits: list,
-                            grid: _grid,
-                            tablet: tablet,
-                            wide: wide,
-                          ),
+                        : _PitList(pits: list, tablet: tablet, wide: wide),
                   PitStatus.shallow || PitStatus.archived =>
                     list.isEmpty
                         ? _Empty(tab: _tab)
@@ -183,63 +174,40 @@ class _PitsPageState extends ConsumerState<PitsPage> {
   }
 }
 
-/// 田字／瀑布切換（白底小膠囊，選中＝主色底白圖示）。
-class _ViewToggle extends StatelessWidget {
-  const _ViewToggle({
-    required this.grid,
-    required this.onChanged,
-    this.big = false,
-  });
-  final bool grid;
-
-  /// iPad：按鈕 44×38（觸控目標 ≥44）；手機 38×34。
+/// 主頁右上的搜尋鍵（Main）：42px 白底圓角方塊＋放大鏡，點了進全坑搜尋（GlobalSearch）。
+/// iPad 沿用同一顆（觸控目標 44）。
+class _SearchAllButton extends StatelessWidget {
+  const _SearchAllButton({this.big = false});
   final bool big;
-  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    Widget button(bool isGrid, String label, String icon) {
-      final on = grid == isGrid;
-      return Semantics(
-        button: true,
-        label: label,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => onChanged(isGrid),
-          child: Container(
-            width: big ? 44 : 38,
-            height: big ? 38 : 34,
-            decoration: BoxDecoration(
-              color: on ? t.accent : Colors.transparent,
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Center(
-              child: SvgIcon(
-                icon,
-                size: 20,
-                color: on ? Colors.white : t.text4,
-              ),
+    final size = big ? 44.0 : 42.0;
+    return Semantics(
+      button: true,
+      label: context.l10n.globalSearchHint,
+      child: GestureDetector(
+        key: const ValueKey('mainSearchButton'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => openGlobalSearch(context),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: t.surface,
+            border: Border.all(color: t.border),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: SvgIcon(
+              SearchIcons.search,
+              size: 21,
+              strokeWidth: 1.9,
+              color: t.ink,
             ),
           ),
         ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: t.surface,
-        border: Border.all(color: t.border),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          button(true, context.l10n.pitsViewGrid, AppIcons.gridView),
-          const SizedBox(width: 3),
-          button(false, context.l10n.pitsViewWaterfall, AppIcons.waterfallView),
-        ],
       ),
     );
   }
@@ -414,14 +382,8 @@ class _Empty extends StatelessWidget {
 }
 
 class _PitList extends StatelessWidget {
-  const _PitList({
-    required this.pits,
-    required this.grid,
-    this.tablet = false,
-    this.wide = false,
-  });
+  const _PitList({required this.pits, this.tablet = false, this.wide = false});
   final List<Pit> pits;
-  final bool grid;
 
   /// ≥600：iPad 版面（欄數按闊度計、間距與字級照 Main／MainPortrait 稿）。
   final bool tablet;
@@ -435,7 +397,7 @@ class _PitList extends StatelessWidget {
         ? EdgeInsets.fromLTRB(wide ? 40 : 32, 22, wide ? 40 : 32, 24)
         : const EdgeInsets.fromLTRB(20, 12, 20, 24);
     final gapX = tablet ? (wide ? 20.0 : 18.0) : 14.0;
-    final gapY = tablet ? (grid ? 22.0 : 20.0) : 14.0;
+    final gapY = tablet ? 22.0 : 14.0;
     final itemCount = pits.length + 1;
     return LayoutBuilder(
       builder: (context, c) {
@@ -443,39 +405,27 @@ class _PitList extends StatelessWidget {
         final cols = tablet
             ? gridColumnsFor(c.maxWidth - pad.horizontal)
             : columnsForWidth(MediaQuery.sizeOf(context).width);
-        if (grid) {
-          final colW = (c.maxWidth - pad.horizontal - gapX * (cols - 1)) / cols;
-          final textScale = MediaQuery.textScalerOf(context).scale(1);
-          return GridView.builder(
-            padding: pad,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: cols,
-              mainAxisSpacing: gapY,
-              crossAxisSpacing: gapX,
-              // 正方形封面 ＋ 名稱與統計兩行。
-              mainAxisExtent: colW + (tablet ? 62 : 56) * textScale,
-            ),
-            itemCount: itemCount,
-            itemBuilder: (_, i) => i == pits.length
-                ? Align(
-                    alignment: Alignment.topCenter,
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: _NewPitTile(tablet: tablet),
-                    ),
-                  )
-                : PitCard(pit: pits[i], index: i, wide: false, tablet: tablet),
-          );
-        }
-        return MasonryGridView.count(
+        final colW = (c.maxWidth - pad.horizontal - gapX * (cols - 1)) / cols;
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        return GridView.builder(
           padding: pad,
-          crossAxisCount: cols,
-          mainAxisSpacing: gapY,
-          crossAxisSpacing: gapX,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            mainAxisSpacing: gapY,
+            crossAxisSpacing: gapX,
+            // 正方形封面 ＋ 名稱與統計兩行。
+            mainAxisExtent: colW + (tablet ? 62 : 56) * textScale,
+          ),
           itemCount: itemCount,
           itemBuilder: (_, i) => i == pits.length
-              ? SizedBox(height: 120, child: _NewPitTile(tablet: tablet))
-              : PitCard(pit: pits[i], index: i, wide: true, tablet: tablet),
+              ? Align(
+                  alignment: Alignment.topCenter,
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: _NewPitTile(tablet: tablet),
+                  ),
+                )
+              : PitCard(pit: pits[i], index: i, tablet: tablet),
         );
       },
     );
@@ -521,31 +471,19 @@ class _NewPitTile extends StatelessWidget {
 }
 
 /// 坑卡片：封面（沒有圖就用分類色底＋圖片佔位符）＋坑名＋「N 成圖 · N 腦洞未孵」。
-/// [wide]＝瀑布檢視：封面高度依序在 132～188 之間錯落（設計稿）；否則為正方形。
+/// 封面固定正方形（D-105：主頁現坑固定田字，沒有瀑布檢視）。
 class PitCard extends ConsumerWidget {
   const PitCard({
     super.key,
     required this.pit,
-    required this.wide,
     this.index = 0,
     this.tablet = false,
   });
   final Pit pit;
-  final bool wide;
   final int index;
 
-  /// iPad（Main 稿）：封面圓角 18、名稱 16、統計 12.5、瀑布封面高 180～260。
+  /// iPad（Main 稿）：封面圓角 18、名稱 16、統計 12.5。
   final bool tablet;
-
-  static const _waterfallHeights = [150.0, 188.0, 132.0, 166.0];
-  static const _tabletWaterfallHeights = [
-    210.0,
-    260.0,
-    180.0,
-    236.0,
-    196.0,
-    248.0,
-  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -593,22 +531,7 @@ class PitCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (wide)
-            LayoutBuilder(
-              builder: (_, c) => SizedBox(
-                height: tablet
-                    // 稿的欄寬約 198，高度隨欄寬等比，限制在 0.8～1.4 倍。
-                    ? _tabletWaterfallHeights[index %
-                              _tabletWaterfallHeights.length] *
-                          (c.maxWidth / 198).clamp(0.8, 1.4)
-                    : _waterfallHeights[index % _waterfallHeights.length] *
-                          (c.maxWidth / 168).clamp(1.0, 1.6),
-                width: double.infinity,
-                child: cover,
-              ),
-            )
-          else
-            Expanded(child: SizedBox.expand(child: cover)),
+          Expanded(child: SizedBox.expand(child: cover)),
           Padding(
             padding: EdgeInsets.fromLTRB(2, tablet ? 10 : 8, 2, 0),
             child: Column(

@@ -17,7 +17,6 @@ import '../data/income_queries.dart';
 import '../data/junk_queries.dart';
 import '../data/material_queries.dart';
 import '../data/oshi_queries.dart';
-import '../data/search_queries.dart';
 import '../data/timeline_queries.dart';
 import '../media/gallery_repository.dart';
 import '../media/media_import.dart';
@@ -343,14 +342,6 @@ final junkProvider = StreamProvider.family<List<JunkImage>, String>(
 final incomeProvider = StreamProvider.family<IncomeYear, int>(
   (ref, year) => ref.watch(databaseProvider).watchIncome(year),
 );
-
-/// 坑內搜尋。key＝(坑 id, 文字, tag id)。
-final pitSearchProvider =
-    StreamProvider.family<PitSearchResult, (String, String, String?)>(
-      (ref, key) => ref
-          .watch(databaseProvider)
-          .watchPitSearch(key.$1, text: key.$2, tagId: key.$3),
-    );
 
 /// 圖片檔案是否已在本機（同步還沒下載完的封面蓋淡色＋下載 icon，D-028）。
 /// 檔案下載完成時會自動更新成 true。

@@ -13,6 +13,7 @@ import '../reference/reference_viewer.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
 import 'official_new_page.dart';
+import '../search/tagged_list.dart';
 import 'preview_shell.dart';
 
 /// 官方圖冊的圖片預覽（ImagePreview）：深色全屏、圖片滿版；分享、下載、設為封面、編輯、刪除。
@@ -30,7 +31,7 @@ class ImagePreviewPage extends ConsumerStatefulWidget {
   final List<AlbumImage> images;
   final int initialIndex;
 
-  /// 點 tag 時呼叫（參數是 tag id）。預設不動作，由列表／搜尋接上「回到官方圖冊並篩選」。
+  /// 點 tag 時呼叫（參數是 tag id）。預設進該坑的搜尋結果頁並帶上這個 tag（D-107）。
   final void Function(String tagId)? onTagTap;
 
   @override
@@ -39,6 +40,11 @@ class ImagePreviewPage extends ConsumerStatefulWidget {
 
 class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
     with HidesNavBar<ImagePreviewPage> {
+  /// 點 tag：預設進該坑的搜尋結果頁並帶上這個 tag（D-107）。
+  void _tagTap(String id) => widget.onTagTap != null
+      ? widget.onTagTap!(id)
+      : openTagSearch(context, widget.pitId, id);
+
   late final _items = [...widget.images];
   late final _controller = PageController(initialPage: widget.initialIndex);
   late int _index = widget.initialIndex;
@@ -196,9 +202,7 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
                     for (final id in tagIds)
                       if (tagNames[id] != null)
                         GestureDetector(
-                          onTap: widget.onTagTap == null
-                              ? null
-                              : () => widget.onTagTap!(id),
+                          onTap: () => _tagTap(id),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,

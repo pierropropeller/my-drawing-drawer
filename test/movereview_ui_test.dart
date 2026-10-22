@@ -146,11 +146,10 @@ void main() {
     expect(find.text('已選 1 張'), findsNothing);
     expect(find.textContaining('「坑乙」'), findsOneWidget);
 
-    // 坑乙的好看同人圖列表（套用 #夏日 篩選）：看得到這張圖與 tag。
+    // 坑乙的好看同人圖列表：看得到這張圖（tag 已在上面查過資料庫）。
     await unmount(tester);
-    await pumpPage(tester, FanArtListPage(pitId: b, tagId: summer.id));
+    await pumpPage(tester, FanArtListPage(pitId: b));
     expect(find.byType(Image), findsWidgets);
-    expect(find.textContaining('夏日'), findsWidgets);
     await unmount(tester);
   });
 

@@ -13,6 +13,7 @@ import '../reference/reference_viewer.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
 import 'fan_art_edit_page.dart';
+import '../search/tagged_list.dart';
 import 'preview_shell.dart';
 
 /// 同人圖預覽（FanArtPreview，D-045）：與官方圖冊預覽分開。
@@ -23,17 +24,15 @@ class FanArtPreviewPage extends ConsumerStatefulWidget {
     required this.pitId,
     required this.images,
     required this.initialIndex,
-    this.onTagTap = _noTagTap,
+    this.onTagTap,
   });
 
   final String pitId;
   final List<AlbumImage> images;
   final int initialIndex;
 
-  /// 點 tag 時呼叫（參數是 tag id）。預設不動作，由搜尋區塊接上「回到列表並篩選」。
-  final void Function(String tagId) onTagTap;
-
-  static void _noTagTap(String tagId) {}
+  /// 點 tag 時呼叫（參數是 tag id）。預設進該坑的搜尋結果頁並帶上這個 tag（D-107）。
+  final void Function(String tagId)? onTagTap;
 
   @override
   ConsumerState<FanArtPreviewPage> createState() => _FanArtPreviewPageState();
@@ -41,6 +40,11 @@ class FanArtPreviewPage extends ConsumerStatefulWidget {
 
 class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
     with HidesNavBar<FanArtPreviewPage> {
+  /// 點 tag：預設進該坑的搜尋結果頁並帶上這個 tag（D-107）。
+  void _tagTap(String id) => widget.onTagTap != null
+      ? widget.onTagTap!(id)
+      : openTagSearch(context, widget.pitId, id);
+
   late final _items = [...widget.images];
   late final _controller = PageController(initialPage: widget.initialIndex);
   late int _index = widget.initialIndex;
@@ -221,7 +225,7 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
                     for (final id in tagIds)
                       if (tagNames[id] != null)
                         GestureDetector(
-                          onTap: () => widget.onTagTap(id),
+                          onTap: () => _tagTap(id),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,

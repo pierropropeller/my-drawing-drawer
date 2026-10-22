@@ -17,7 +17,6 @@ import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import '../common/window_class.dart';
 import '../album/wide_layout.dart';
-import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
 import 'entity_widgets.dart';
 import 'idea_detail_page.dart';
@@ -30,19 +29,8 @@ import '../pits/pit_section_tabs.dart';
 /// 我的腦洞：卡片顯示標題、狀態、內文兩行、配圖、tag、日期；長按多選（只有刪除）。
 /// 瀏覽狀態有底部導覽列；多選時隱藏（IdeaSelect）。
 class IdeaListPage extends ConsumerStatefulWidget {
-  const IdeaListPage({
-    super.key,
-    required this.pitId,
-    this.tagId,
-    this.onTagTap,
-  });
+  const IdeaListPage({super.key, required this.pitId});
   final String pitId;
-
-  /// 只顯示有這個 tag 的腦洞；有值時標題列下多一條「#tag ×」篩選列（D-043）。
-  final String? tagId;
-
-  /// 點 tag 的回呼；省略＝預設導覽（回到本格列表並篩選）。
-  final void Function(String tagId)? onTagTap;
 
   @override
   ConsumerState<IdeaListPage> createState() => _IdeaListPageState();
@@ -98,11 +86,7 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
   void _pushDetail(String id) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => PopWhenWide(
-        child: IdeaDetailPage(
-          ideaId: id,
-          pitId: widget.pitId,
-          onTagTap: widget.onTagTap ?? (tid) => _tagTap(tid, fromDetail: true),
-        ),
+        child: IdeaDetailPage(ideaId: id, pitId: widget.pitId),
       ),
     ),
   );
@@ -158,8 +142,6 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                   pitId: widget.pitId,
                   ideaId: sel,
                   onDeleted: () => setState(() => selectedId = null),
-                  onTagTap:
-                      widget.onTagTap ?? (id) => _tagTap(id, fromDetail: true),
                 )
               : WideEmptyHint(context.l10n.ipadListsIdeaEmpty),
         ),
@@ -167,15 +149,8 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
     );
   }
 
-  /// 卡片或詳情頁點 tag 的預設處理（D-043）。
-  void _tagTap(String id, {bool fromDetail = false}) => onListTagTap(
-    context,
-    pitId: widget.pitId,
-    kind: TaggedKind.idea,
-    tagId: id,
-    listFiltered: widget.tagId != null,
-    fromDetail: fromDetail,
-  );
+  /// 卡片點 tag：進該坑的搜尋結果頁並帶上這個 tag（D-107）。
+  void _tagTap(String id) => openTagSearch(context, widget.pitId, id);
 
   @override
   Widget build(BuildContext context) {
@@ -184,16 +159,11 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
     final wide = WindowClass.of(context).isWide;
     syncMasterDetail(wide, _pushDetail);
     final allViews =
-        ref.watch(ideaViewsProvider((widget.pitId, widget.tagId))).value ??
-        const [];
+        ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? const [];
     final views = wide && _status != null
         ? allViews.where((v) => v.status == _status).toList()
         : allViews;
-    // 標題列一律顯示全部數量；篩選時符合的數量在篩選列。
-    final all = widget.tagId == null
-        ? allViews
-        : (ref.watch(ideaViewsProvider((widget.pitId, null))).value ??
-              allViews);
+    final all = allViews;
     final unhatched = all.where((v) => v.status != IdeaStatus.hatched).length;
     final title = pitName == null
         ? context.l10n.pitsIdeas
@@ -220,7 +190,7 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                       ? isSel
                       : (wide && selectedId == v.idea.id),
                   selecting: _selecting,
-                  onTagTap: _selecting ? null : (widget.onTagTap ?? _tagTap),
+                  onTagTap: _selecting ? null : _tagTap,
                 );
                 if (!_selecting) {
                   return GestureDetector(
@@ -331,13 +301,6 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                 PitSectionTabBar(
                   pitId: widget.pitId,
                   selected: PitSection.ideas,
-                ),
-              if (!_selecting && widget.tagId != null)
-                TagFilterBar(
-                  pitId: widget.pitId,
-                  kind: TaggedKind.idea,
-                  tagId: widget.tagId!,
-                  countText: context.l10n.pitsCountIdeas(views.length),
                 ),
               Expanded(child: wide ? _splitBody(views, listArea) : listArea),
             ],

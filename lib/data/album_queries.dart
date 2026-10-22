@@ -399,36 +399,38 @@ extension AlbumQueries on AppDatabase {
   /// 含官方圖（D-060）與推活紀錄（D-057）。
   /// [byUsage]：true＝常用的在前（次數相同按名稱）；false＝按名稱。
   Stream<List<TagUsage>> watchTagUsage(String pitId, {bool byUsage = false}) {
-    return watchAssembled(
-      this,
-      {
-        tags,
-        tagLinks,
-        fanArts,
-        officialImages,
-        oshiRecords,
-        ideas,
-        drafts,
-        pieces,
-        goals,
-      },
-      () async {
-        final list =
-            await (select(tags)
-                  ..where((t) => t.pitId.equals(pitId) & t.deletedAt.isNull())
-                  ..orderBy([(t) => OrderingTerm.asc(t.name)]))
-                .get();
-        final counts = await _tagCounts(list.map((t) => t.id).toList());
-        final out = [for (final t in list) TagUsage(t, counts[t.id] ?? 0)];
-        if (byUsage) {
-          out.sort((a, b) {
-            final c = b.count.compareTo(a.count);
-            return c != 0 ? c : a.tag.name.compareTo(b.tag.name);
-          });
-        }
-        return out;
-      },
-    );
+    return watchAssembled(this, {
+      tags,
+      tagLinks,
+      fanArts,
+      officialImages,
+      oshiRecords,
+      ideas,
+      drafts,
+      pieces,
+      goals,
+    }, () => loadTagUsage(pitId, byUsage: byUsage));
+  }
+
+  /// [watchTagUsage] 的一次性版本（全坑搜尋逐坑載入用）。
+  Future<List<TagUsage>> loadTagUsage(
+    String pitId, {
+    bool byUsage = false,
+  }) async {
+    final list =
+        await (select(tags)
+              ..where((t) => t.pitId.equals(pitId) & t.deletedAt.isNull())
+              ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+            .get();
+    final counts = await _tagCounts(list.map((t) => t.id).toList());
+    final out = [for (final t in list) TagUsage(t, counts[t.id] ?? 0)];
+    if (byUsage) {
+      out.sort((a, b) {
+        final c = b.count.compareTo(a.count);
+        return c != 0 ? c : a.tag.name.compareTo(b.tag.name);
+      });
+    }
+    return out;
   }
 
   Future<Map<String, int>> _tagCounts(List<String> tagIds) async {

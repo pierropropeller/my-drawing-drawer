@@ -9,6 +9,7 @@ import '../album/album_actions.dart';
 import '../common/app_icons.dart';
 import '../common/detail_carousel.dart';
 import '../common/nav_bar_hidden.dart';
+import '../search/tagged_list.dart';
 import '../common/responsive.dart';
 import 'draft_detail_page.dart';
 import 'entity_widgets.dart';
@@ -18,17 +19,9 @@ import 'piece_detail_page.dart';
 /// 腦洞詳情：關聯的草稿／成圖以正方形縮圖呈現，多圖右下角顯示張數。
 /// 詳情頁不能新增關聯（D-037）：沒有關聯時整段不顯示，要改關聯請進編輯頁。
 class IdeaDetailPage extends ConsumerStatefulWidget {
-  const IdeaDetailPage({
-    super.key,
-    required this.ideaId,
-    required this.pitId,
-    this.onTagTap,
-  });
+  const IdeaDetailPage({super.key, required this.ideaId, required this.pitId});
   final String ideaId;
   final String pitId;
-
-  /// 點 tag 的回呼（預設不做事，搜尋接導覽）。
-  final void Function(String tagId)? onTagTap;
 
   @override
   ConsumerState<IdeaDetailPage> createState() => _IdeaDetailPageState();
@@ -145,7 +138,8 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
                             TagPills(
                               v.tags,
                               large: true,
-                              onTagTap: widget.onTagTap,
+                              onTagTap: (id) =>
+                                  openTagSearch(context, pitId, id),
                             ),
                           ],
                           if (myDrafts.isNotEmpty)
@@ -169,7 +163,6 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
                                           builder: (_) => DraftDetailPage(
                                             draftId: d.draft.id,
                                             pitId: pitId,
-                                            onTagTap: widget.onTagTap,
                                           ),
                                         ),
                                       ),

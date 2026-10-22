@@ -26,7 +26,6 @@ import 'detail_panes.dart';
 import 'draft_form_page.dart';
 import 'image_gallery_page.dart';
 import 'master_detail.dart';
-import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
 import 'entity_select.dart';
 import 'entity_widgets.dart';
@@ -35,19 +34,8 @@ import '../pits/pit_section_tabs.dart';
 /// 我的草稿：列表（D-087 推特式）與九宮格切換。
 /// 瀏覽用頁面，有底部導覽列。
 class DraftListPage extends ConsumerStatefulWidget {
-  const DraftListPage({
-    super.key,
-    required this.pitId,
-    this.tagId,
-    this.onTagTap,
-  });
+  const DraftListPage({super.key, required this.pitId});
   final String pitId;
-
-  /// 只顯示有這個 tag 的草稿；有值時標題列下多一條「#tag ×」篩選列（D-043）。
-  final String? tagId;
-
-  /// 傳給詳情頁的 tag 點擊回呼；省略＝預設導覽（回到本格列表並篩選）。
-  final void Function(String tagId)? onTagTap;
 
   @override
   ConsumerState<DraftListPage> createState() => _DraftListPageState();
@@ -215,26 +203,11 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
     await openDraftForm(context, pitId: widget.pitId, initialImages: picked);
   }
 
-  void _onTagTap(String id) =>
-      (widget.onTagTap ??
-      (tid) => onListTagTap(
-        context,
-        pitId: widget.pitId,
-        kind: TaggedKind.draft,
-        tagId: tid,
-        listFiltered: widget.tagId != null,
-        fromDetail: true,
-      ))(id);
-
   /// 開詳情頁（手機／600–839，或由寬變窄時停在詳情）。
   void _pushDetail(String id) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => PopWhenWide(
-        child: DraftDetailPage(
-          draftId: id,
-          pitId: widget.pitId,
-          onTagTap: _onTagTap,
-        ),
+        child: DraftDetailPage(draftId: id, pitId: widget.pitId),
       ),
     ),
   );
@@ -286,7 +259,6 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
                   pitId: widget.pitId,
                   draftId: sel,
                   onDeleted: () => setState(() => selectedId = null),
-                  onTagTap: _onTagTap,
                 )
               : WideEmptyHint(context.l10n.ipadListsDraftEmpty),
         ),
@@ -299,16 +271,9 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
     final t = context.tokens;
     final pitName = ref.watch(pitProvider(widget.pitId)).value?.name;
     final views =
-        ref
-            .watch(draftViewsFilteredProvider((widget.pitId, widget.tagId)))
-            .value ??
+        ref.watch(draftViewsFilteredProvider((widget.pitId, null))).value ??
         const [];
-    // 標題列一律顯示全部份數；篩選時符合的份數在篩選列。
-    final total = widget.tagId == null
-        ? views.length
-        : (ref.watch(draftViewsFilteredProvider((widget.pitId, null))).value ??
-                  views)
-              .length;
+    final total = views.length;
     final ideas =
         ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? const [];
     final ideaTitle = {for (final i in ideas) i.idea.id: i.idea.title};
@@ -396,13 +361,6 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
                 PitSectionTabBar(
                   pitId: widget.pitId,
                   selected: PitSection.drafts,
-                ),
-              if (widget.tagId != null)
-                TagFilterBar(
-                  pitId: widget.pitId,
-                  kind: TaggedKind.draft,
-                  tagId: widget.tagId!,
-                  countText: context.l10n.pitsCountDrafts(views.length),
                 ),
               Expanded(
                 child: views.isEmpty

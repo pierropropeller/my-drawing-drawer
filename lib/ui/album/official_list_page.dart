@@ -16,24 +16,11 @@ import 'group_manage_page.dart';
 import 'image_preview_page.dart';
 import 'official_new_page.dart';
 import '../pits/pit_section_tabs.dart';
-import '../search/tag_filter_bar.dart';
-import '../search/tagged_list.dart';
 
 /// 官方圖冊：分組 chips，最右固定「管理分組」icon。
 class OfficialListPage extends ConsumerStatefulWidget {
-  const OfficialListPage({
-    super.key,
-    required this.pitId,
-    this.tagId,
-    this.onTagTap,
-  });
+  const OfficialListPage({super.key, required this.pitId});
   final String pitId;
-
-  /// 只列出有這個 tag 的官方圖（D-089，同 FanArtFiltered）；有值時頂部多一條「#tag ×」篩選列。
-  final String? tagId;
-
-  /// 在預覽頁點 tag 時的處理；省略＝預設導覽（回到本格列表並篩選）。
-  final ValueChanged<String>? onTagTap;
 
   @override
   ConsumerState<OfficialListPage> createState() => _OfficialListPageState();
@@ -70,12 +57,9 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
     final groupId = groups.any((g) => g.id == _groupId) ? _groupId : null;
     final names = {for (final g in groups) g.id: g.name};
     final total = ref.watch(pitStatsProvider(widget.pitId)).value?.official;
-    final filtered = widget.tagId != null;
     final rows =
         ref
-            .watch(
-              officialFilteredProvider((widget.pitId, groupId, widget.tagId)),
-            )
+            .watch(officialFilteredProvider((widget.pitId, groupId, null)))
             .value ??
         const [];
     final images = [
@@ -109,22 +93,8 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
       emptyColor: t.official,
       onAdd: () => _add(groupId),
       onDelete: (picked) => db.deleteOfficial(picked.map((e) => e.id)),
-      previewBuilder: (items, i) => ImagePreviewPage(
-        pitId: widget.pitId,
-        images: items,
-        initialIndex: i,
-        // 預覽頁點 tag：關掉預覽，回到該格列表套用篩選（已在篩選裡就取代）。
-        onTagTap:
-            widget.onTagTap ??
-            (id) => onListTagTap(
-              context,
-              pitId: widget.pitId,
-              kind: TaggedKind.official,
-              tagId: id,
-              listFiltered: filtered,
-              fromDetail: true,
-            ),
-      ),
+      previewBuilder: (items, i) =>
+          ImagePreviewPage(pitId: widget.pitId, images: items, initialIndex: i),
       panelBuilder: (context, image, openReference, dismiss) =>
           OfficialPreviewPanel(
             key: ValueKey(image.id),
@@ -136,13 +106,6 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
       filter: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (filtered)
-            TagFilterBar(
-              pitId: widget.pitId,
-              kind: TaggedKind.official,
-              tagId: widget.tagId!,
-              countText: context.l10n.commonCountImages(images.length),
-            ),
           ChipRow(
             options: [for (final g in groups) (g.id, g.name)],
             selected: groupId,

@@ -24,7 +24,6 @@ import '../common/window_class.dart';
 import '../album/ipadlists_icons.dart';
 import '../album/wide_layout.dart';
 import '../entity/entity_widgets.dart';
-import '../search/tag_filter_bar.dart';
 import '../search/tagged_list.dart';
 import 'oshi_detail_page.dart';
 import 'oshi_form_page.dart';
@@ -42,11 +41,10 @@ enum OshiLayout { timeline, grid }
 const _kLayoutKey = 'oshiLayout';
 
 /// 推活列表（OshiTimeline／OshiGrid）：時間軸（預設）或網格，分組 pills，右上搜尋。
-/// 有導覽列（瀏覽用的頁面）。[tagId] 不為 null 時是 tag 篩選狀態（D-065）。
+/// 有導覽列（瀏覽用的頁面）。點 tag 一律進坑內搜尋結果頁（D-107），這裡沒有 tag 篩選狀態。
 class OshiListPage extends ConsumerStatefulWidget {
-  const OshiListPage({super.key, required this.pitId, this.tagId});
+  const OshiListPage({super.key, required this.pitId});
   final String pitId;
-  final String? tagId;
 
   @override
   ConsumerState<OshiListPage> createState() => _OshiListPageState();
@@ -171,11 +169,8 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
 
   void _open(OshiRecordView v) => Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => OshiDetailPage(
-        pitId: widget.pitId,
-        recordId: v.record.id,
-        listFiltered: widget.tagId != null,
-      ),
+      builder: (_) =>
+          OshiDetailPage(pitId: widget.pitId, recordId: v.record.id),
     ),
   );
 
@@ -376,7 +371,7 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
                 l.oshiPillUngrouped,
                 counts[null] ?? 0,
               ),
-            if (widget.tagId == null && tagIds.isNotEmpty) ...[
+            if (tagIds.isNotEmpty) ...[
               label(l.ipadListsOshiCharacterTags),
               Wrap(
                 spacing: 6,
@@ -503,8 +498,7 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
             (showUngrouped && _groupId == oshiUngroupedFilter)
         ? _groupId
         : null;
-    final filtered = widget.tagId != null;
-    // 標題列一律顯示全部筆數；篩選時符合的筆數在篩選列。
+    // 標題列一律顯示全部筆數。
     final total = ref.watch(pitStatsProvider(widget.pitId)).value?.oshi ?? 0;
     final wide = WindowClass.of(context).isWide;
     final spec = WideSpec.of(
@@ -518,7 +512,7 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
               oshiRecordsProvider((
                 widget.pitId,
                 groupId,
-                widget.tagId ?? (wide ? _panelTagId : null),
+                wide ? _panelTagId : null,
               )),
             )
             .value ??
@@ -653,13 +647,6 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
                   selected: PitSection.oshi,
                 ),
               if (!fullyEmpty) ...[
-                if (filtered)
-                  TagFilterBar(
-                    pitId: widget.pitId,
-                    kind: TaggedKind.oshi,
-                    tagId: widget.tagId!,
-                    countText: context.l10n.oshiCountRecords(views.length),
-                  ),
                 // 多選時分組 pills 隱藏（OshiSelect）。
                 if (!selecting && !wide)
                   ChipRow(

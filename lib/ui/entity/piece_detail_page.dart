@@ -10,6 +10,7 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import 'draft_detail_page.dart';
+import '../search/tagged_list.dart';
 import '../common/app_icons.dart';
 import '../common/detail_carousel.dart';
 import '../common/nav_bar_hidden.dart';
@@ -27,13 +28,9 @@ class PieceDetailPage extends ConsumerWidget {
     super.key,
     required this.pieceId,
     required this.pitId,
-    this.onTagTap,
   });
   final String pieceId;
   final String pitId;
-
-  /// 點 tag 時呼叫（D-043，由搜尋接上；預設不做事）。
-  final ValueChanged<String>? onTagTap;
 
   Future<void> _editLikes(
     BuildContext context,
@@ -172,9 +169,8 @@ class PieceDetailPage extends ConsumerWidget {
                         children: [
                           for (final tag in v.tags)
                             GestureDetector(
-                              onTap: onTagTap == null
-                                  ? null
-                                  : () => onTagTap!(tag.id),
+                              onTap: () =>
+                                  openTagSearch(context, pitId, tag.id),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,

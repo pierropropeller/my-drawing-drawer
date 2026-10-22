@@ -148,9 +148,9 @@ void main() {
       expect((pill.dy - title.dy).abs() < 8, isTrue);
       expect(firstRowColumns(tester), 4); // (934 - 80) ÷ 180
       // 觸控目標 ≥44。
-      final toggle = tester.getSize(find.bySemanticsLabel('田字檢視'));
-      expect(toggle.height >= 38, isTrue);
-      expect(toggle.width >= 44, isTrue);
+      final search = tester.getSize(find.bySemanticsLabel('搜尋全部坑'));
+      expect(search.height >= 44, isTrue);
+      expect(search.width >= 44, isTrue);
       await unmount(tester);
     });
 
@@ -162,14 +162,12 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('離線橫條與瀑布檢視；拉窗後篩選與檢視不丟', (tester) async {
+    testWidgets('離線橫條；拉窗後分頁選擇不丟（田字固定，D-105）', (tester) async {
       setView(tester, 1194, 834);
       await tester.runAsync(() => seedPits(3));
       await pumpHome(tester, const PitsPage(), online: false);
       expect(find.text('離線中・恢復網絡後將自動上傳'), findsOneWidget);
-      await tester.tap(find.bySemanticsLabel('瀑布檢視'));
-      await settle(tester);
-      expect(find.byType(MasonryGridView), findsOneWidget);
+      expect(find.byType(MasonryGridView), findsNothing);
       // 切到封存坑（空）。
       await tester.tap(find.text('封存坑'));
       await settle(tester);
@@ -180,7 +178,8 @@ void main() {
       expect(find.text('沒有封存的坑'), findsOneWidget);
       await tester.tap(find.text('現坑'));
       await settle(tester);
-      expect(find.byType(MasonryGridView), findsOneWidget);
+      expect(find.byType(MasonryGridView), findsNothing);
+      expect(find.byType(GridView), findsOneWidget);
       await unmount(tester);
     });
 

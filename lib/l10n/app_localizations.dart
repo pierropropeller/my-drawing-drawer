@@ -256,18 +256,6 @@ abstract class AppLocalizations {
   /// **'載入失敗：{error}'**
   String pitsLoadFailed(String error);
 
-  /// No description provided for @pitsViewGrid.
-  ///
-  /// In zh, this message translates to:
-  /// **'田字檢視'**
-  String get pitsViewGrid;
-
-  /// No description provided for @pitsViewWaterfall.
-  ///
-  /// In zh, this message translates to:
-  /// **'瀑布檢視'**
-  String get pitsViewWaterfall;
-
   /// No description provided for @pitsSyncingImages.
   ///
   /// In zh, this message translates to:
@@ -1808,6 +1796,42 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'IG'**
   String get entityPlatformMarkInstagram;
+
+  /// No description provided for @globalSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜尋全部坑'**
+  String get globalSearchHint;
+
+  /// No description provided for @globalSearchTagsHeading.
+  ///
+  /// In zh, this message translates to:
+  /// **'tag'**
+  String get globalSearchTagsHeading;
+
+  /// No description provided for @globalSearchPitSemantics.
+  ///
+  /// In zh, this message translates to:
+  /// **'{name}，{count} 筆'**
+  String globalSearchPitSemantics(String name, int count);
+
+  /// No description provided for @globalSearchClear.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除'**
+  String get globalSearchClear;
+
+  /// No description provided for @searchUntagged.
+  ///
+  /// In zh, this message translates to:
+  /// **'未加 tag'**
+  String get searchUntagged;
+
+  /// No description provided for @searchSelectedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選 {count} 筆'**
+  String searchSelectedCount(int count);
 
   /// No description provided for @goalsTitle.
   ///

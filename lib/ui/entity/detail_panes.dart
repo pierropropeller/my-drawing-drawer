@@ -19,6 +19,7 @@ import 'connect_field.dart';
 import 'draft_detail_page.dart';
 import 'draft_form_page.dart';
 import 'entity_widgets.dart';
+import '../search/tagged_list.dart';
 import 'idea_detail_page.dart';
 import 'idea_form_page.dart';
 import '../reference/reference_viewer.dart';
@@ -65,14 +66,12 @@ class IdeaDetailPane extends ConsumerWidget {
     required this.pitId,
     required this.ideaId,
     required this.onDeleted,
-    this.onTagTap,
   });
   final String pitId;
   final String ideaId;
 
   /// 刪除後（清掉選取）。
   final VoidCallback onDeleted;
-  final void Function(String tagId)? onTagTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -159,7 +158,11 @@ class IdeaDetailPane extends ConsumerWidget {
         ],
         if (v.tags.isNotEmpty) ...[
           const SizedBox(height: 18),
-          TagPills(v.tags, large: true, onTagTap: onTagTap),
+          TagPills(
+            v.tags,
+            large: true,
+            onTagTap: (id) => openTagSearch(context, pitId, id),
+          ),
         ],
         const SizedBox(height: 28),
         Text(
@@ -267,11 +270,8 @@ class IdeaDetailPane extends ConsumerWidget {
                     placeholder: t.draft.bg,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) => DraftDetailPage(
-                          draftId: d.draft.id,
-                          pitId: pitId,
-                          onTagTap: onTagTap,
-                        ),
+                        builder: (_) =>
+                            DraftDetailPage(draftId: d.draft.id, pitId: pitId),
                       ),
                     ),
                   ),
@@ -331,12 +331,10 @@ class DraftDetailPane extends ConsumerStatefulWidget {
     required this.pitId,
     required this.draftId,
     required this.onDeleted,
-    this.onTagTap,
   });
   final String pitId;
   final String draftId;
   final VoidCallback onDeleted;
-  final void Function(String tagId)? onTagTap;
 
   @override
   ConsumerState<DraftDetailPane> createState() => _DraftDetailPaneState();
@@ -571,9 +569,7 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                 children: [
                   for (final tag in v.tags)
                     GestureDetector(
-                      onTap: widget.onTagTap == null
-                          ? null
-                          : () => widget.onTagTap!(tag.id),
+                      onTap: () => openTagSearch(context, widget.pitId, tag.id),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 11,
@@ -598,7 +594,6 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                           builder: (_) => IdeaDetailPage(
                             ideaId: i.idea.id,
                             pitId: widget.pitId,
-                            onTagTap: widget.onTagTap,
                           ),
                         ),
                       ),

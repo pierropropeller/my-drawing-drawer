@@ -11,6 +11,7 @@ import '../common/media_widgets.dart';
 import '../common/svg_icon.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
+import '../search/tagged_list.dart';
 import 'fan_art_edit_page.dart';
 import 'ipadlists_icons.dart';
 import 'official_new_page.dart';
@@ -227,7 +228,7 @@ class AlbumTagPills extends ConsumerWidget {
     };
     final shown = [
       for (final i in ids)
-        if (names[i] != null) names[i]!,
+        if (names[i] != null) (i, names[i]!),
     ];
     if (shown.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -236,16 +237,24 @@ class AlbumTagPills extends ConsumerWidget {
         spacing: 6,
         runSpacing: 6,
         children: [
-          for (final n in shown)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: t.chipBg,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                '#$n',
-                style: TextStyle(fontSize: 12, color: t.text2),
+          for (final (tagId, n) in shown)
+            // 點 tag：進該坑的搜尋結果頁並帶上這個 tag（D-107）。
+            GestureDetector(
+              onTap: () => openTagSearch(context, pitId, tagId),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: t.chipBg,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '#$n',
+                  style: TextStyle(fontSize: 12, color: t.text2),
+                ),
               ),
             ),
         ],
