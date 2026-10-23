@@ -2799,6 +2799,36 @@ abstract class AppLocalizations {
   /// **'坑內分區'**
   String get ipadpitSectionsLabel;
 
+  /// No description provided for @ipadsearchAlbums.
+  ///
+  /// In zh, this message translates to:
+  /// **'相冊'**
+  String get ipadsearchAlbums;
+
+  /// No description provided for @ipadsearchArchivedBadge.
+  ///
+  /// In zh, this message translates to:
+  /// **'封存'**
+  String get ipadsearchArchivedBadge;
+
+  /// No description provided for @ipadsearchAddTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'加 tag'**
+  String get ipadsearchAddTag;
+
+  /// No description provided for @ipadsearchSelectedItems.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選 {count} 項'**
+  String ipadsearchSelectedItems(int count);
+
+  /// No description provided for @ipadsearchMoreSemantics.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看全部'**
+  String get ipadsearchMoreSemantics;
+
   /// No description provided for @ipadsyncNetWifi.
   ///
   /// In zh, this message translates to:

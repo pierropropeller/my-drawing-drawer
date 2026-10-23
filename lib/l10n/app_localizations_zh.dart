@@ -1544,6 +1544,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ipadpitSectionsLabel => '坑內分區';
 
   @override
+  String get ipadsearchAlbums => '相冊';
+
+  @override
+  String get ipadsearchArchivedBadge => '封存';
+
+  @override
+  String get ipadsearchAddTag => '加 tag';
+
+  @override
+  String ipadsearchSelectedItems(int count) {
+    return '已選 $count 項';
+  }
+
+  @override
+  String get ipadsearchMoreSemantics => '查看全部';
+
+  @override
   String get ipadsyncNetWifi => 'Wi-Fi';
 
   @override

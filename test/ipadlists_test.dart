@@ -492,7 +492,7 @@ void main() {
   });
 
   group('推活', () {
-    testWidgets('寬版：右側篩選面板（搜尋、分組、跳到月份）', (tester) async {
+    testWidgets('寬版：右側面板（分組、跳到月份）', (tester) async {
       await show(tester, OshiListPage(pitId: pitId), land);
       final l = AppLocalizations.of(tester.element(find.byType(Scaffold)));
       expect(find.text(l.ipadListsOshiJumpToMonth), findsOneWidget);
@@ -505,25 +505,12 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('寬版搜尋篩掉不符合的紀錄；窄視窗保留輸入', (tester) async {
+    testWidgets('寬版右側面板沒有搜尋框與角色 tag 篩選（P-030）', (tester) async {
       await show(tester, OshiListPage(pitId: pitId), land);
       final l = AppLocalizations.of(tester.element(find.byType(Scaffold)));
-      expect(find.text('紀錄11'), findsOneWidget);
-      await tester.enterText(
-        find.bySemanticsLabel(l.ipadListsOshiSearchLabel).hitTestable(),
-        '紀錄0',
-      );
-      await settle(tester);
-      Finder rec(String t) =>
-          find.byWidgetPredicate((w) => w is Text && w.data == t);
-      expect(find.text('紀錄11'), findsNothing);
-      expect(rec('紀錄0'), findsOneWidget);
-      // 窄視窗：篩選暫停（面板不在），拉回寬版仍套用。
-      await resize(tester, phone);
-      expect(rec('紀錄11'), findsOneWidget);
-      await resize(tester, land);
-      expect(find.text('紀錄11'), findsNothing);
-      expect(rec('紀錄0'), findsOneWidget);
+      expect(find.bySemanticsLabel(l.ipadListsOshiSearchLabel), findsNothing);
+      expect(find.text(l.ipadListsOshiCharacterTags), findsNothing);
+      expect(find.byType(TextField), findsNothing);
       await unmount(tester);
     });
 

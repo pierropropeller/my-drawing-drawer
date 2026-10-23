@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/search_queries.dart';
 import 'search_hits.dart';
+import 'search_wide.dart';
 
 /// 坑內搜尋結果的單一相冊（PitSearchResultTab，D-107）：該相冊所有符合的內容。
 /// 圖片類＝九宮格（貼邊、間距 2px，同其他九宮格）；腦洞＝文字卡直向列出。
@@ -13,11 +14,19 @@ class PitSearchResultTab extends StatelessWidget {
     required this.res,
     required this.opener,
     required this.selection,
+    this.wide = false,
+    this.bottomInset = 24,
   });
   final PitSearchSection section;
   final PitSearchResult res;
   final SearchOpener opener;
   final SearchSelection selection;
+
+  /// iPad（PitSearchResultTab 稿）：6 欄九宮格（間距 2px、貼邊、無圓角）；腦洞文字卡兩欄。
+  final bool wide;
+
+  /// 底部留白（iPad 多選工具列蓋在底部時加大）。
+  final double bottomInset;
 
   /// 這個相冊目前所有的格子（單一相冊頁拿全部結果）。
   List<SearchTile> get tiles => searchTilesOf(res, section);
@@ -25,6 +34,17 @@ class PitSearchResultTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final list = tiles;
+    if (section == PitSearchSection.ideas && wide) {
+      return SingleChildScrollView(
+        key: const ValueKey('searchTabIdeas'),
+        padding: EdgeInsets.only(top: 4, bottom: bottomInset),
+        child: IdeaCardsGrid(
+          tiles: list,
+          selection: selection,
+          onTap: (tile) => opener.open(section, tile.index),
+        ),
+      );
+    }
     if (section == PitSearchSection.ideas) {
       return ListView.separated(
         key: const ValueKey('searchTabIdeas'),
@@ -40,9 +60,9 @@ class PitSearchResultTab extends StatelessWidget {
     }
     return GridView.builder(
       key: const ValueKey('searchTabGrid'),
-      padding: const EdgeInsets.only(top: 4, bottom: 24),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
+      padding: EdgeInsets.only(top: 4, bottom: wide ? bottomInset : 24),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: wide ? 6 : 3,
         mainAxisSpacing: 2,
         crossAxisSpacing: 2,
       ),

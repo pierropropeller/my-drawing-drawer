@@ -124,9 +124,13 @@ class SearchField extends StatelessWidget {
     this.autofocus = false,
     this.onChanged,
     this.onSubmitted,
+    this.fontSize = 15,
   });
   final TextEditingController controller;
   final String hint;
+
+  /// iPad 搜尋框字級 16（稿），手機 15。
+  final double fontSize;
   final bool autofocus;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
@@ -141,7 +145,7 @@ class SearchField extends StatelessWidget {
       onSubmitted: onSubmitted,
       textInputAction: TextInputAction.search,
       cursorColor: t.accent,
-      style: TextStyle(fontSize: 15, color: t.ink),
+      style: TextStyle(fontSize: fontSize, color: t.ink),
       decoration: InputDecoration(
         isDense: true,
         border: InputBorder.none,
@@ -150,7 +154,7 @@ class SearchField extends StatelessWidget {
         filled: false,
         contentPadding: const EdgeInsets.symmetric(vertical: 8),
         hintText: hint,
-        hintStyle: TextStyle(fontSize: 15, color: t.text4),
+        hintStyle: TextStyle(fontSize: fontSize, color: t.text4),
       ),
     );
   }
@@ -165,10 +169,14 @@ class SearchCategoryChips extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     this.counts,
+    this.wide = false,
   });
   final SearchCategory selected;
   final ValueChanged<SearchCategory> onSelected;
   final Map<SearchCategory, int>? counts;
+
+  /// iPad（PitSearch 稿）：高 38、字 14、左右內距 16、間距 8，沒有外圍邊距（由頁面給）。
+  final bool wide;
 
   String _label(AppLocalizations l, SearchCategory c) =>
       counts == null ? c.label(l) : '${c.label(l)} ${counts![c] ?? 0}';
@@ -178,9 +186,11 @@ class SearchCategoryChips extends StatelessWidget {
     final t = context.tokens;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+      padding: wide
+          ? EdgeInsets.zero
+          : const EdgeInsets.fromLTRB(20, 4, 20, 10),
       child: Row(
-        spacing: 6,
+        spacing: wide ? 8 : 6,
         children: [
           for (final c in SearchCategory.values)
             if (counts == null ||
@@ -189,9 +199,12 @@ class SearchCategoryChips extends StatelessWidget {
               GestureDetector(
                 onTap: () => onSelected(c),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 6,
+                  key: ValueKey('searchCategory-${c.name}'),
+                  height: wide ? 38 : null,
+                  alignment: wide ? Alignment.center : null,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: wide ? 16 : 13,
+                    vertical: wide ? 0 : 6,
                   ),
                   decoration: BoxDecoration(
                     color: c == selected ? t.ink : t.surface,
@@ -202,7 +215,7 @@ class SearchCategoryChips extends StatelessWidget {
                     _label(context.l10n, c),
                     style: TextStyle(
                       color: c == selected ? t.surface : t.text2,
-                      fontSize: 13,
+                      fontSize: wide ? 14 : 13,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

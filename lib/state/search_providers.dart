@@ -35,3 +35,10 @@ final globalSearchProvider = StreamProvider.autoDispose
     .family<GlobalSearchHits, String>(
       (ref, text) => ref.watch(databaseProvider).watchGlobalSearch(text),
     );
+
+/// iPad 版全坑搜尋結果（P-028）：每坑圖片一排 6 格，所以每段要多載入一些縮圖。key＝輸入的文字。
+final globalSearchWideProvider = StreamProvider.autoDispose
+    .family<GlobalSearchHits, String>(
+      (ref, text) =>
+          ref.watch(databaseProvider).watchGlobalSearch(text, thumbLimit: 6),
+    );
