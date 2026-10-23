@@ -15,6 +15,9 @@ import 'pit_new_page.dart';
 import 'pit_page.dart';
 import 'pit_type_widgets.dart';
 
+/// iPad 淺坑／封存坑卡片的欄數（P-040）：內容區闊度（扣掉 sidebar／icon rail）≥ 640 兩欄，否則一欄。
+int pitCardColumns(double contentWidth) => contentWidth >= 640 ? 2 : 1;
+
 /// 主頁「淺坑」「封存坑」分頁的純列表（MainShallow／MainArchived，D-088）：
 /// 左邊 56px 小正方形封面（圓角 12；沒封面＝坑名第一個字＋淡色底）、坑名（粗）＋一行副標、右箭頭。
 /// [PitStatus.shallow] 的最底多一列「＋ 開新淺坑」。
@@ -36,22 +39,25 @@ class PitRows extends StatelessWidget {
     final padH = tablet ? (wide ? 40.0 : 32.0) : 20.0;
     final withNew = status == PitStatus.shallow;
     if (tablet) {
-      // iPad（MainShallow／MainArchived，P-027）：兩欄卡片列表，淺坑最後一格虛線「開新淺坑」。
+      // iPad（MainShallow／MainArchived，P-027／P-040）：卡片列表，淺坑最後一格虛線「開新淺坑」。
+      // 欄數看內容區（扣掉 sidebar／icon rail 之後）的闊度：≥ 640 兩欄，否則一欄。
       final count = pits.length + (withNew ? 1 : 0);
-      return GridView.builder(
-        key: const ValueKey('pitCardGrid'),
-        padding: EdgeInsets.fromLTRB(padH, 22, padH, 24),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 16,
-          mainAxisExtent:
-              90 * math.max(1.0, MediaQuery.textScalerOf(context).scale(1)),
+      return LayoutBuilder(
+        builder: (context, box) => GridView.builder(
+          key: const ValueKey('pitCardGrid'),
+          padding: EdgeInsets.fromLTRB(padH, 22, padH, 24),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: pitCardColumns(box.maxWidth),
+            mainAxisSpacing: 14,
+            crossAxisSpacing: 16,
+            mainAxisExtent:
+                90 * math.max(1.0, MediaQuery.textScalerOf(context).scale(1)),
+          ),
+          itemCount: count,
+          itemBuilder: (_, i) => i == pits.length
+              ? const _NewShallowCard()
+              : PitRow(pit: pits[i], index: i, status: status, card: true),
         ),
-        itemCount: count,
-        itemBuilder: (_, i) => i == pits.length
-            ? const _NewShallowCard()
-            : PitRow(pit: pits[i], index: i, status: status, card: true),
       );
     }
     final list = ListView(
