@@ -9,6 +9,7 @@ import '../common/app_icons.dart';
 import '../common/app_switch.dart';
 import '../common/sensitive_gate.dart';
 import '../common/svg_icon.dart';
+import '../common/window_class.dart';
 import 'image_picker_field.dart';
 
 /// 表單的敏感內容標記（D-104）共用元件：新增／編輯頁的圖片欄（官方圖、同人圖、腦洞、摸魚、成圖、推活）
@@ -38,7 +39,10 @@ class SensitiveMarkAllRow extends ConsumerWidget {
         final all = marked == items.length;
         return Container(
           key: const ValueKey('sensitiveMarkAll'),
-          margin: const EdgeInsets.only(top: 12),
+          // iPad（NewOfficialSensitive）離圖片格 16，手機 12。
+          margin: EdgeInsets.only(
+            top: WindowClass.of(context).isCompact ? 12 : 16,
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: t.surface,

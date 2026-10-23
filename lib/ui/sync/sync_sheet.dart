@@ -270,7 +270,7 @@ class SyncFinalPanel extends ConsumerWidget {
       syncControllerProvider.select((s) => s.isSyncing),
     );
     final done = SizedBox(
-      height: 48,
+      height: popover ? 46 : 48,
       child: FilledButton(
         key: const Key('sync-done-button'),
         style: FilledButton.styleFrom(
@@ -295,13 +295,18 @@ class SyncFinalPanel extends ConsumerWidget {
         else
           SyncDoneContent(summary: summary, popover: popover),
         Padding(
-          padding: EdgeInsets.only(top: summary.isPartial ? 18 : 22),
+          // iPad popover（SyncPopoverDone／Partial）：按鈕高 46，上方留 18／16。
+          padding: EdgeInsets.only(
+            top: popover
+                ? (summary.isPartial ? 16 : 18)
+                : (summary.isPartial ? 18 : 22),
+          ),
           child: summary.isPartial
               ? Row(
                   children: [
                     Expanded(
                       child: SizedBox(
-                        height: 48,
+                        height: popover ? 46 : 48,
                         child: OutlinedButton(
                           key: const Key('sync-retry-button'),
                           style: OutlinedButton.styleFrom(
@@ -546,7 +551,11 @@ class SyncPartialContent extends ConsumerWidget {
           child: _CountsRow(summary: summary, color: t.text2),
         ),
         for (var i = 0; i < shown.length; i++)
-          _FailedRow(x: shown[i], last: i == shown.length - 1 && more == 0),
+          _FailedRow(
+            x: shown[i],
+            last: i == shown.length - 1 && more == 0,
+            popover: popover,
+          ),
         if (more > 0)
           Padding(
             padding: const EdgeInsets.only(top: 10),
@@ -563,9 +572,12 @@ class SyncPartialContent extends ConsumerWidget {
 
 /// 失敗的一行：縮圖、上傳／下載標籤、位置、右邊琥珀「失敗」（沒有進度條）。
 class _FailedRow extends ConsumerWidget {
-  const _FailedRow({required this.x, required this.last});
+  const _FailedRow({required this.x, required this.last, this.popover = false});
   final SyncTransfer x;
   final bool last;
+
+  /// iPad popover：標籤沒有箭頭 icon（SyncPopoverPartial）。
+  final bool popover;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -581,7 +593,7 @@ class _FailedRow extends ConsumerWidget {
         children: [
           SyncRowThumb(file: x.file, info: info),
           const SizedBox(width: 12),
-          _DirectionTag(upload: x.isUpload),
+          SyncDirectionTag(upload: x.isUpload, showIcon: !popover),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
@@ -611,8 +623,15 @@ class _FailedRow extends ConsumerWidget {
 /// [popover]＝iPad 頭像 popover（SyncPopover 稿）：標題 19、進度條上下留白較多，
 /// 張數列右側多一個連線種類（Wi-Fi）。
 class SyncProgressHeader extends ConsumerWidget {
-  const SyncProgressHeader({super.key, this.popover = false});
+  const SyncProgressHeader({
+    super.key,
+    this.popover = false,
+    this.showCounts = true,
+  });
   final bool popover;
+
+  /// false＝不畫「上傳／下載張數」那一列（SyncPopoverFull：Drive 已滿時的標頭只有標題、進度、進度條）。
+  final bool showCounts;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -657,30 +676,31 @@ class SyncProgressHeader extends ConsumerWidget {
         ),
         Padding(
           padding: EdgeInsets.only(top: 12, bottom: popover ? 8 : 6),
-          child: _Bar(
+          child: SyncBar(
             height: 6,
             fraction: total == 0 ? 0 : done / total,
             track: colors.track,
             color: colors.progress,
           ),
         ),
-        Padding(
-          padding: EdgeInsets.only(bottom: popover ? 4 : 6),
-          child: Row(
-            children: [
-              Text(
-                l.syncuiUploadCount(up),
-                style: TextStyle(fontSize: 13, color: t.text2),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                l.syncuiDownloadCount(down),
-                style: TextStyle(fontSize: 13, color: t.text2),
-              ),
-              if (popover) ...[const Spacer(), const _NetworkLabel()],
-            ],
+        if (showCounts)
+          Padding(
+            padding: EdgeInsets.only(bottom: popover ? 4 : 6),
+            child: Row(
+              children: [
+                Text(
+                  l.syncuiUploadCount(up),
+                  style: TextStyle(fontSize: 13, color: t.text2),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  l.syncuiDownloadCount(down),
+                  style: TextStyle(fontSize: 13, color: t.text2),
+                ),
+                if (popover) ...[const Spacer(), const _NetworkLabel()],
+              ],
+            ),
           ),
-        ),
       ],
     );
   }
@@ -930,7 +950,7 @@ class _TransferRow extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    _DirectionTag(upload: x.isUpload),
+                    SyncDirectionTag(upload: x.isUpload),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -968,13 +988,13 @@ class _TransferRow extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 7),
                   child: waiting
-                      ? _Bar(
+                      ? SyncBar(
                           height: 5,
                           fraction: 0,
                           track: colors.waitTrack,
                           color: colors.progress,
                         )
-                      : _Bar(
+                      : SyncBar(
                           height: 5,
                           // 進行中但不知道大小：不確定進度條。
                           fraction: x.isDone ? 1 : x.progress,
@@ -1112,16 +1132,23 @@ class _CategoryPlaceholder extends StatelessWidget {
   }
 }
 
-class _DirectionTag extends StatelessWidget {
-  const _DirectionTag({required this.upload});
+class SyncDirectionTag extends StatelessWidget {
+  const SyncDirectionTag({
+    super.key,
+    required this.upload,
+    this.showIcon = true,
+  });
   final bool upload;
+
+  /// iPad popover 的失敗／等待空間行（SyncPopoverPartial／Full）標籤只有字，沒有箭頭。
+  final bool showIcon;
 
   @override
   Widget build(BuildContext context) {
     final colors = SyncColors.of(context);
     final l = context.l10n;
     return Container(
-      padding: const EdgeInsets.fromLTRB(5, 2, 7, 2),
+      padding: EdgeInsets.fromLTRB(showIcon ? 5 : 7, 2, 7, 2),
       decoration: BoxDecoration(
         color: colors.tagBg,
         borderRadius: BorderRadius.circular(6),
@@ -1129,13 +1156,15 @@ class _DirectionTag extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SvgIcon(
-            upload ? SyncIcons.upload : SyncIcons.download,
-            size: 14,
-            strokeWidth: 2.2,
-            color: colors.progress,
-          ),
-          const SizedBox(width: 3),
+          if (showIcon) ...[
+            SvgIcon(
+              upload ? SyncIcons.upload : SyncIcons.download,
+              size: 14,
+              strokeWidth: 2.2,
+              color: colors.progress,
+            ),
+            const SizedBox(width: 3),
+          ],
           Text(
             upload ? l.syncuiUpload : l.syncuiDownload,
             style: TextStyle(
@@ -1151,8 +1180,9 @@ class _DirectionTag extends StatelessWidget {
 }
 
 /// 圓角進度條；[fraction] 為 null＝不確定進度。
-class _Bar extends StatelessWidget {
-  const _Bar({
+class SyncBar extends StatelessWidget {
+  const SyncBar({
+    super.key,
     required this.height,
     required this.fraction,
     required this.track,
@@ -1186,6 +1216,109 @@ class _Bar extends StatelessWidget {
                 ),
               ),
       ),
+    );
+  }
+}
+
+/// 最多列出幾張（SyncPopoverFull 稿畫 3 張，其餘寫「還有 N 張等待空間」）。
+const syncFullMaxRows = 3;
+
+/// Drive 已滿、剩下的全是排隊等空間的上傳（沒有任何傳輸中）：iPad popover 用 SyncPopoverFull 的
+/// 版面（[SyncProgressHeader] 不畫張數列＋[SyncFullRows]）。還有下載或傳輸中的就維持一般版面。
+bool syncIsWaitingForSpace(SyncState s) {
+  if (!s.quotaFull) return false;
+  final pending = [
+    for (final x in s.transfers)
+      if (!x.isSettled) x,
+  ];
+  return pending.isNotEmpty && pending.every((x) => x.isUpload && !x.isActive);
+}
+
+/// SyncPopoverFull 的列：縮圖、只有字的「上傳」標籤、位置、灰字「等待空間」（沒有進度條）；
+/// 超過 [syncFullMaxRows] 張，底下置中寫「還有 N 張等待空間」。
+class SyncFullRows extends ConsumerWidget {
+  const SyncFullRows({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.tokens;
+    final colors = SyncColors.of(context);
+    final l = context.l10n;
+    final transfers = ref.watch(
+      syncControllerProvider.select((s) => s.transfers),
+    );
+    final pending = [
+      for (final x in transfers)
+        if (!x.isSettled) x,
+    ];
+    final shown = pending.take(syncFullMaxRows).toList();
+    final more = pending.length - shown.length;
+    final files = [for (final x in shown) x.file];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) ref.read(syncRowInfoProvider.notifier).ensure(files);
+    });
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < shown.length; i++)
+          Consumer(
+            builder: (context, ref, _) {
+              final info = ref.watch(
+                syncRowInfoProvider.select((m) => m[shown[i].file]),
+              );
+              final last = i == shown.length - 1;
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  border: last
+                      ? null
+                      : Border(bottom: BorderSide(color: colors.divider)),
+                ),
+                child: Row(
+                  children: [
+                    SyncRowThumb(file: shown[i].file, info: info),
+                    const SizedBox(width: 12),
+                    SyncDirectionTag(
+                      upload: shown[i].isUpload,
+                      showIcon: false,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        syncLocationText(l, info) ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      l.syncuiWaitingSpace,
+                      key: const Key('sync-waiting-space'),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: colors.waitText,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        if (more > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(
+              l.ipadsyncMoreWaitingSpace(more),
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: t.text3),
+            ),
+          ),
+      ],
     );
   }
 }

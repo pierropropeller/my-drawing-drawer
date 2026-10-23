@@ -1567,6 +1567,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get ipadsyncFullLabel => '同步中，Drive 已滿';
+
+  @override
+  String ipadsyncMoreWaitingSpace(int count) {
+    return '還有 $count 張等待空間';
+  }
+
+  @override
   String get materialTitle => '素材庫';
 
   @override

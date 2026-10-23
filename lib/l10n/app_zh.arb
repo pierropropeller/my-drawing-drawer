@@ -1074,6 +1074,15 @@
       }
     }
   },
+  "ipadsyncFullLabel": "同步中，Drive 已滿",
+  "ipadsyncMoreWaitingSpace": "還有 {count} 張等待空間",
+  "@ipadsyncMoreWaitingSpace": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "materialTitle": "素材庫",
   "materialLayoutWaterfall": "瀑布",
   "materialLayoutGrid": "九宮格",

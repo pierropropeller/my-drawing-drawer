@@ -11,6 +11,7 @@ import '../album/cover_pick_page.dart';
 import '../album/fan_art_list_page.dart';
 import '../album/official_list_page.dart';
 import '../common/app_icons.dart';
+import '../common/sensitive_gate.dart';
 import '../common/svg_icon.dart';
 import '../entity/draft_list_page.dart';
 import '../entity/finished_list_page.dart';
@@ -465,7 +466,11 @@ class _Tile {
                 ),
                 child: file != null
                     ? SizedBox.expand(
-                        child: StoredImage(file!, cacheWidth: 800),
+                        // 列表類縮圖：已標記的圖照安全模式處理（D-104，手機 pit_page 也是）。
+                        child: SensitiveGate(
+                          file: file!,
+                          child: StoredImage(file!, cacheWidth: 800),
+                        ),
                       )
                     : SvgIcon(
                         svg,

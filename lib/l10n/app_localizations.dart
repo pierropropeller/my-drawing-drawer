@@ -2841,6 +2841,18 @@ abstract class AppLocalizations {
   /// **'{minutes} 分鐘'**
   String ipadsyncMinutes(int minutes);
 
+  /// No description provided for @ipadsyncFullLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步中，Drive 已滿'**
+  String get ipadsyncFullLabel;
+
+  /// No description provided for @ipadsyncMoreWaitingSpace.
+  ///
+  /// In zh, this message translates to:
+  /// **'還有 {count} 張等待空間'**
+  String ipadsyncMoreWaitingSpace(int count);
+
   /// No description provided for @materialTitle.
   ///
   /// In zh, this message translates to:

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 import '../../sync/sync_controller.dart';
+import '../../theme/tokens.dart';
 import '../common/user_avatar.dart';
 import 'ring_painter.dart';
 import 'sync_colors.dart';
@@ -66,6 +67,8 @@ class SyncAvatar extends ConsumerWidget {
     return SyncRing(
       mode: mode,
       dot: dot,
+      // rail／sidebar 的頭像（SyncPopoverPartial／Full）：小點 13px，貼頭像右下角。
+      navStyleDot: serif,
       fraction: fraction,
       size: size,
       onTap: mode == SyncRingMode.transferring
@@ -91,12 +94,16 @@ class SyncRing extends StatefulWidget {
     this.size = 40,
     this.onTap,
     this.dot = SyncRingDot.none,
+    this.navStyleDot = false,
   });
 
   final SyncRingMode mode;
 
   /// 外圈收掉之後的狀態小點（見 [SyncRingDot]）。
   final SyncRingDot dot;
+
+  /// iPad rail／sidebar 的小點：13px、描邊 2.5（用導覽列底色）、對齊頭像右下（right 0、bottom 1）。
+  final bool navStyleDot;
 
   /// 傳輸中的進度 0~1。
   final double fraction;
@@ -208,20 +215,23 @@ class _SyncRingState extends State<SyncRing>
           widget.child,
           if (widget.dot != SyncRingDot.none && !visible)
             Positioned(
-              right: 1,
-              bottom: 1,
+              // 外圈比頭像大 4px：navStyleDot 把小點貼回頭像本身的右下角。
+              right: widget.navStyleDot ? 4 : 1,
+              bottom: widget.navStyleDot ? 5 : 1,
               child: Container(
                 key: ValueKey('syncRingDot:${widget.dot.name}'),
-                width: 12,
-                height: 12,
+                width: widget.navStyleDot ? 13 : 12,
+                height: widget.navStyleDot ? 13 : 12,
                 decoration: BoxDecoration(
                   color: widget.dot == SyncRingDot.full
                       ? colors.fullDot
                       : colors.failedDot,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    width: 2,
+                    color: widget.navStyleDot
+                        ? context.tokens.nav
+                        : Theme.of(context).scaffoldBackgroundColor,
+                    width: widget.navStyleDot ? 2.5 : 2,
                   ),
                 ),
               ),

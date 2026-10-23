@@ -39,8 +39,8 @@ Future<void> showSyncProgress(
 
 /// 頭像 popover（SyncPopover 稿）：寬 400（窄視窗縮到放得下）、圓角 20、頂端一個指向頭像的小箭頭；
 /// 內容與同步進度 sheet 相同，另有連線種類與「同步設定」連結。傳完不自動關：
-/// 原地變成完成狀態（D-109 ①，iPad 沒有另畫稿，沿用手機版 SyncSheetDone／SyncSheetPartial
-/// 的內容放進 popover）。
+/// 原地變成完成（SyncPopoverDone）或部分失敗（SyncPopoverPartial）狀態，按鈕高 46；
+/// Drive 已滿且只剩等空間的上傳時換成 SyncPopoverFull 版面（[SyncFullRows]）。
 class SyncPopover extends ConsumerStatefulWidget {
   const SyncPopover({super.key, this.anchor, this.onOpenSettings});
 
@@ -134,6 +134,18 @@ class _SyncPopoverState extends ConsumerState<SyncPopover> {
     final top = anchor.bottom + 14;
     final arrowCenter = (anchor.center.dx - left).clamp(24.0, width - 24);
     final maxHeight = (screen.height - top - 14).clamp(160.0, 900.0);
+    // Drive 已滿、剩下的全是等空間的上傳：SyncPopoverFull 版面。
+    final waitingSpace = ref.watch(
+      syncControllerProvider.select(syncIsWaitingForSpace),
+    );
+    final done = _done;
+    final label = done == null
+        ? (waitingSpace
+              ? context.l10n.ipadsyncFullLabel
+              : context.l10n.syncuiSheetLabel)
+        : done.isPartial
+        ? context.l10n.syncuiPartialTitle(done.failed.length)
+        : context.l10n.syncuiDoneTitle;
     return Material(
       type: MaterialType.transparency,
       child: Stack(
@@ -146,7 +158,7 @@ class _SyncPopoverState extends ConsumerState<SyncPopover> {
               scopesRoute: true,
               namesRoute: true,
               explicitChildNodes: true,
-              label: context.l10n.syncuiSheetLabel,
+              label: label,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -210,7 +222,13 @@ class _SyncPopoverState extends ConsumerState<SyncPopover> {
                                 onDone: _close,
                                 popover: true,
                               )
-                            else ...[
+                            else if (waitingSpace) ...[
+                              const SyncProgressHeader(
+                                popover: true,
+                                showCounts: false,
+                              ),
+                              const SyncFullRows(),
+                            ] else ...[
                               const SyncProgressHeader(popover: true),
                               SyncProgressRows(onOpenSettings: _openSettings),
                             ],

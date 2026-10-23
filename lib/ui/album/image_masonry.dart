@@ -23,8 +23,12 @@ class ImageMasonry extends StatelessWidget {
     this.selecting = false,
     this.selected = const {},
     this.highlightId,
+    this.columns,
     this.padding = const EdgeInsets.fromLTRB(20, 2, 20, 96),
   });
+
+  /// 指定欄數（iPad 多選、預覽面板收起時固定 4 欄，FanArtSelect）；null＝依可用闊度。
+  final int? columns;
 
   final List<AlbumImage> images;
   final void Function(AlbumImage image, int index) onTap;
@@ -46,9 +50,11 @@ class ImageMasonry extends StatelessWidget {
     final compact = WindowClass.of(context).isCompact;
     return LayoutBuilder(
       builder: (context, c) {
-        final cols = compact
-            ? columnsForWidth(MediaQuery.sizeOf(context).width)
-            : gridColumnsFor(c.maxWidth - padding.horizontal);
+        final cols =
+            columns ??
+            (compact
+                ? columnsForWidth(MediaQuery.sizeOf(context).width)
+                : gridColumnsFor(c.maxWidth - padding.horizontal));
         final gap = compact ? 12.0 : 16.0;
         final grid = MasonryGridView.count(
           padding: padding,

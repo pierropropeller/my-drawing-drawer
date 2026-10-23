@@ -355,6 +355,8 @@ class _AlbumViewState extends ConsumerState<AlbumView>
           selecting: _selecting,
           selected: _selected,
           highlightId: showPanel ? _panelId : null,
+          // iPad 多選：預覽面板收起，列表固定 4 欄（FanArtSelect）。
+          columns: wide && _selecting ? 4 : null,
           padding: wide
               ? EdgeInsets.fromLTRB(
                   spec!.hpad,
@@ -514,10 +516,11 @@ class _AlbumViewState extends ConsumerState<AlbumView>
               ),
         bottomNavigationBar: _selecting
             ? Container(
+                // iPad 寬版（FanArtSelect）：動作列兩側各留 120，五個動作靠近中間。
                 padding: EdgeInsets.fromLTRB(
-                  widget.shareInSelect ? 12 : 20,
+                  wide ? 120 : (widget.shareInSelect ? 12 : 20),
                   4,
-                  widget.shareInSelect ? 12 : 20,
+                  wide ? 120 : (widget.shareInSelect ? 12 : 20),
                   0,
                 ),
                 decoration: BoxDecoration(

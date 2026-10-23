@@ -33,6 +33,7 @@ import 'package:huakeng/ui/me/backup_storage_card.dart';
 import 'package:huakeng/ui/sync/sync_avatar.dart';
 import 'package:huakeng/ui/sync/sync_popover.dart';
 import 'package:huakeng/ui/sync/sync_sheet.dart';
+import 'package:huakeng/ui/common/user_avatar.dart';
 import 'package:huakeng/ui/sync/sync_time_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -914,6 +915,147 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(SyncPopover), findsNothing);
+      await unmount(tester);
+    });
+
+    // P-034：SyncPopoverDone／Partial／Full 的尺寸。
+    Future<ProviderContainer> openPopover(WidgetTester tester) async {
+      await addImages(tester, ['u0.png']);
+      final c = await pumpApp(tester, 1194, 834);
+      fake(c)
+          .set(_syncing([_ul('u0.png', TransferState.active), _dl('d.png')]));
+      await tester.pump();
+      await tester.tap(find.byType(SyncRing));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(SyncPopover), findsOneWidget);
+      return c;
+    }
+
+    testWidgets(
+      'iPad SyncPopoverDone：綠勾、全滿綠條、張數與時間、46 高「完成」，沒有設定連結；頭像沒有外圈與小點',
+      (tester) async {
+        final c = await openPopover(tester);
+        fake(c).set(
+          _finished([
+            _ul('u0.png', TransferState.done),
+            _dl('d.png', TransferState.done),
+          ]),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.byType(SyncPopover), findsOneWidget); // 不自動關
+        expect(find.text('同步完成'), findsOneWidget);
+        expect(find.text('2 / 2'), findsOneWidget);
+        expect(find.text('上傳 1 張'), findsOneWidget);
+        expect(find.text('下載 1 張'), findsOneWidget);
+        expect(find.text('剛剛'), findsOneWidget);
+        expect(find.text('同步設定'), findsNothing);
+        expect(find.text('Wi-Fi'), findsNothing);
+        final bar = tester.getRect(find.byKey(const Key('sync-done-bar')));
+        expect(bar.height, 6);
+        expect(bar.width, 400 - 40); // 卡片 400、左右 padding 20：滿版
+        final btn = tester.getRect(find.byKey(const Key('sync-done-button')));
+        expect(btn.height, 46);
+        // 完成鈕與卡片底相距 16（padding bottom）；與上方計數列相距 18。
+        final card = tester.getRect(find.byKey(SyncPopover.cardKey));
+        expect(card.bottom - btn.bottom, 16);
+        expect(ring(tester).mode, SyncRingMode.none);
+        expect(ring(tester).dot, SyncRingDot.none);
+        await tester.tap(find.byKey(const Key('sync-done-button')));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.byType(SyncPopover), findsNothing);
+        await unmount(tester);
+      },
+    );
+
+    testWidgets(
+      'iPad SyncPopoverPartial：失敗列的標籤沒有箭頭 icon、按鈕 46 高；關掉後頭像右下是 13px 琥珀點',
+      (tester) async {
+        final c = await openPopover(tester);
+        fake(c).set(
+          _finished([
+            _ul('u0.png', TransferState.failed),
+            _dl('d.png', TransferState.done),
+          ]),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.text('同步完成，1 張失敗'), findsOneWidget);
+        expect(find.text('1 / 2'), findsOneWidget);
+        // 標籤（上傳）只有字。
+        final tag = find.byType(SyncDirectionTag);
+        expect(tag, findsOneWidget);
+        expect(
+          find.descendant(of: tag, matching: find.byType(SvgPicture)),
+          findsNothing,
+        );
+        expect(
+          tester.getSize(find.byKey(const Key('sync-retry-button'))).height,
+          46,
+        );
+        expect(
+          tester.getSize(find.byKey(const Key('sync-done-button'))).height,
+          46,
+        );
+        await tester.tap(find.byKey(const Key('sync-done-button')));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        // 頭像小點：13px、貼著頭像（40px）的右下角。
+        final dot = tester.getRect(
+          find.byKey(const ValueKey('syncRingDot:failed')),
+        );
+        expect(dot.size, const Size(13, 13));
+        final avatar = tester.getRect(find.byType(UserAvatar));
+        expect(avatar.right - dot.right, closeTo(0, 0.5));
+        expect(avatar.bottom - dot.bottom, closeTo(1, 0.5));
+        await unmount(tester);
+      },
+    );
+
+    testWidgets(
+      'iPad SyncPopoverFull：只剩等空間的上傳＝沒有張數列／設定連結、列沒有進度條、灰字「等待空間」、底下「還有 N 張等待空間」；紅點',
+      (tester) async {
+        final c = await openPopover(tester);
+        fake(c).set(
+          _syncing([
+            for (var i = 0; i < 5; i++) _ul('u$i.png'),
+          ], quotaFull: true),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.text('同步中'), findsOneWidget);
+        expect(find.text('上傳 5 張'), findsNothing);
+        expect(find.text('同步設定'), findsNothing);
+        expect(find.byKey(const Key('sync-waiting-space')), findsNWidgets(3));
+        expect(
+          find.byType(LinearProgressIndicator),
+          findsOneWidget,
+        ); // 只有頂端總進度條
+        expect(find.text('還有 2 張等待空間'), findsOneWidget);
+        expect(find.bySemanticsLabel('同步中，Drive 已滿'), findsWidgets);
+        final label = tester.widget<Text>(
+          find.byKey(const Key('sync-waiting-space')).first,
+        );
+        expect(label.style!.color, const Color(0xFFA49A8C));
+        expect(label.style!.fontWeight, FontWeight.w600);
+        await unmount(tester);
+      },
+    );
+
+    testWidgets('iPad Drive 已滿但還有下載在跑：維持一般版面（張數列、同步設定）', (tester) async {
+      final c = await openPopover(tester);
+      fake(c).set(
+        _syncing([
+          _ul('u0.png'),
+          _dl('d.png', TransferState.active),
+        ], quotaFull: true),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('同步設定'), findsOneWidget);
+      expect(find.text('上傳 1 張'), findsOneWidget);
+      expect(find.text('等待空間'), findsOneWidget);
       await unmount(tester);
     });
   });
