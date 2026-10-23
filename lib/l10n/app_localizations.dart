@@ -2403,6 +2403,18 @@ abstract class AppLocalizations {
   /// **'{label} · {n} 張'**
   String ipadauditImagesCount(String label, int n);
 
+  /// No description provided for @sensitiveRevealThis.
+  ///
+  /// In zh, this message translates to:
+  /// **'顯示這張'**
+  String get sensitiveRevealThis;
+
+  /// No description provided for @sensitiveReblur.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新模糊'**
+  String get sensitiveReblur;
+
   /// No description provided for @ipadformsFanNewTitle.
   ///
   /// In zh, this message translates to:

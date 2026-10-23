@@ -198,9 +198,13 @@ class DetailImageStage extends StatefulWidget {
     this.borderRadius = 0,
     this.sidePadding = 20,
     this.maxHeightFactor = 0.62,
+    this.onIndexChanged,
   });
   final List<ImageRef> images;
   final double borderRadius;
+
+  /// 換到哪一張（P-038：iPad 詳情面板的眼睛鈕要知道現在是哪一張）。
+  final ValueChanged<int>? onIndexChanged;
 
   /// 縮圖列左右留白。
   final double sidePadding;
@@ -231,7 +235,10 @@ class _DetailImageStageState extends State<DetailImageStage> {
         DetailCarousel(
           images: images,
           controller: _controller,
-          onPageChanged: (i) => setState(() => _index = i),
+          onPageChanged: (i) {
+            setState(() => _index = i);
+            widget.onIndexChanged?.call(i);
+          },
           emptyAspect: 3 / 4,
           borderRadius: widget.borderRadius,
           maxHeightFactor: widget.maxHeightFactor,

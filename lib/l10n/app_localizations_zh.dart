@@ -1326,6 +1326,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get sensitiveRevealThis => '顯示這張';
+
+  @override
+  String get sensitiveReblur => '重新模糊';
+
+  @override
   String get ipadformsFanNewTitle => '加收藏';
 
   @override
