@@ -8,6 +8,7 @@ import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../nav/adaptive_nav.dart';
+import '../common/swipe_to_switch.dart';
 import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/responsive.dart';
@@ -97,6 +98,11 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
                     ),
                   ]
                 : const <Widget>[];
+            void setMode(int i) {
+              setState(() => _mode = i);
+              ref.read(settingsProvider.notifier).setLastGoalsMode(i);
+            }
+
             final segmented = _Segmented(
               labels: [
                 context.l10n.goalsModeYear,
@@ -104,10 +110,7 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
                 context.l10n.goalsModeDay,
               ],
               selected: _mode,
-              onChanged: (i) {
-                setState(() => _mode = i);
-                ref.read(settingsProvider.notifier).setLastGoalsMode(i);
-              },
+              onChanged: setMode,
             );
             final titleStyle = Theme.of(context).textTheme.headlineMedium
                 ?.copyWith(
@@ -151,44 +154,50 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
                     ),
                   ),
                   Expanded(
-                    child: IndexedStack(
-                      index: _mode,
-                      children: [
-                        YearView(
-                          year: _year,
-                          wide: wide,
-                          side: side,
-                          onMonthTap: _openMonth,
-                        ),
-                        MonthView(
-                          key: _monthKey,
-                          wide: wide,
-                          side: side,
-                          onYearChanged: (y) => setState(() => _years[0] = y),
-                          // 月頁點日曆：切到「日」並捲到該日（D-072）。
-                          onDayTap: (d) {
-                            setState(() => _mode = 2);
-                            ref
-                                .read(settingsProvider.notifier)
-                                .setLastGoalsMode(2);
-                            _dayKey.currentState?.jumpToDay(d);
-                          },
-                        ),
-                        // 日：時間軸在寬版置中限寬（稿沒畫，沿用手機時間軸）。
-                        Align(
-                          alignment: Alignment.topCenter,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: wide ? 760 : double.infinity,
-                            ),
-                            child: DayView(
-                              timelineKey: _dayKey,
-                              onYearChanged: (y) =>
-                                  setState(() => _years[1] = y),
+                    // 左右滑動切換 年／月／日（不循環）。
+                    child: SwipeToSwitch.among<int>(
+                      order: const [0, 1, 2],
+                      current: _mode,
+                      onChanged: setMode,
+                      child: IndexedStack(
+                        index: _mode,
+                        children: [
+                          YearView(
+                            year: _year,
+                            wide: wide,
+                            side: side,
+                            onMonthTap: _openMonth,
+                          ),
+                          MonthView(
+                            key: _monthKey,
+                            wide: wide,
+                            side: side,
+                            onYearChanged: (y) => setState(() => _years[0] = y),
+                            // 月頁點日曆：切到「日」並捲到該日（D-072）。
+                            onDayTap: (d) {
+                              setState(() => _mode = 2);
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .setLastGoalsMode(2);
+                              _dayKey.currentState?.jumpToDay(d);
+                            },
+                          ),
+                          // 日：時間軸在寬版置中限寬（稿沒畫，沿用手機時間軸）。
+                          Align(
+                            alignment: Alignment.topCenter,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: wide ? 760 : double.infinity,
+                              ),
+                              child: DayView(
+                                timelineKey: _dayKey,
+                                onYearChanged: (y) =>
+                                    setState(() => _years[1] = y),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],

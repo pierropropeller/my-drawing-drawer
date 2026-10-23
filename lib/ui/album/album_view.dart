@@ -12,6 +12,7 @@ import '../common/app_icons.dart';
 import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
+import '../common/swipe_to_switch.dart';
 import '../common/window_class.dart';
 import '../reference/reference_viewer.dart';
 import 'album_actions.dart';
@@ -58,6 +59,8 @@ class AlbumView extends ConsumerStatefulWidget {
     this.previewBuilder,
     this.panelBuilder,
     this.sectionTabs,
+    this.onSwipePrev,
+    this.onSwipeNext,
   });
 
   /// 這個列表是哪一格；多選的「移動」要用。省略就沒有「移動」。
@@ -99,6 +102,10 @@ class AlbumView extends ConsumerStatefulWidget {
 
   /// 顯示在清單上方的篩選 chips。
   final Widget? filter;
+
+  /// 列表區左右滑動切換上一個／下一個篩選 chip（null＝已在端點；多選中不作用）。
+  final VoidCallback? onSwipePrev;
+  final VoidCallback? onSwipeNext;
   final List<Widget> appBarActions;
 
   /// 標題列最右（張數之後）的搜尋 icon（D-043）；省略＝沒有。
@@ -621,26 +628,31 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                             child: widget.filter,
                           ),
                         Expanded(
-                          child: widget.images.isEmpty
-                              ? EmptyState(
-                                  icon: widget.emptyIcon,
-                                  svg:
-                                      widget.emptySvg ??
-                                      (widget.emptyIcon == null
-                                          ? AppIcons.image
-                                          : null),
-                                  text: widget.emptyLabel,
-                                  color: widget.emptyColor,
-                                  actionLabel:
-                                      widget.emptyAction ??
-                                      context.l10n.albumAddImage,
-                                  onAction: widget.onAdd,
-                                )
-                              : _grid(
-                                  wide: wide,
-                                  showPanel: showPanel,
-                                  spec: spec,
-                                ),
+                          child: SwipeToSwitch(
+                            enabled: !_selecting,
+                            onPrev: widget.onSwipePrev,
+                            onNext: widget.onSwipeNext,
+                            child: widget.images.isEmpty
+                                ? EmptyState(
+                                    icon: widget.emptyIcon,
+                                    svg:
+                                        widget.emptySvg ??
+                                        (widget.emptyIcon == null
+                                            ? AppIcons.image
+                                            : null),
+                                    text: widget.emptyLabel,
+                                    color: widget.emptyColor,
+                                    actionLabel:
+                                        widget.emptyAction ??
+                                        context.l10n.albumAddImage,
+                                    onAction: widget.onAdd,
+                                  )
+                                : _grid(
+                                    wide: wide,
+                                    showPanel: showPanel,
+                                    spec: spec,
+                                  ),
+                          ),
                         ),
                       ],
                     ),
@@ -753,14 +765,25 @@ class ChipRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final chips = [
       if (showAll)
-        _Chip(
-          context.l10n.commonAll,
-          selected == null,
-          () => onSelected(null),
-          accentSelected,
+        EnsureVisibleWhenSelected(
+          selected: selected == null,
+          child: _Chip(
+            context.l10n.commonAll,
+            selected == null,
+            () => onSelected(null),
+            accentSelected,
+          ),
         ),
       for (final o in options)
-        _Chip(o.$2, selected == o.$1, () => onSelected(o.$1), accentSelected),
+        EnsureVisibleWhenSelected(
+          selected: selected == o.$1,
+          child: _Chip(
+            o.$2,
+            selected == o.$1,
+            () => onSelected(o.$1),
+            accentSelected,
+          ),
+        ),
     ];
     if (wrap) {
       return Padding(

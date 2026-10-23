@@ -16,6 +16,7 @@ import '../search/search_icons.dart';
 import '../search/tagged_list.dart';
 import '../sync/pit_sync.dart';
 import '../sync/sync_avatar.dart';
+import '../common/swipe_to_switch.dart';
 import 'pit_new_page.dart';
 import 'pit_page.dart';
 import 'pit_rows.dart';
@@ -54,6 +55,11 @@ class _PitsPageState extends ConsumerState<PitsPage> {
     final tablet = !wc.isCompact;
     final wide = wc.isWide; // ≥840：標題、分頁與搜尋鍵同一列（Main）；否則獨立一行（MainPortrait）
     final padH = tablet ? (wide ? 40.0 : 32.0) : 20.0;
+    void setTab(PitStatus st) {
+      setState(() => _tab = st);
+      ref.read(settingsProvider.notifier).setLastPitsTab(st);
+    }
+
     final pills = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -71,10 +77,7 @@ class _PitsPageState extends ConsumerState<PitsPage> {
             },
             selected: _tab == st,
             big: tablet,
-            onTap: () {
-              setState(() => _tab = st);
-              ref.read(settingsProvider.notifier).setLastPitsTab(st);
-            },
+            onTap: () => setTab(st),
           ),
         ],
       ],
@@ -150,25 +153,37 @@ class _PitsPageState extends ConsumerState<PitsPage> {
                 fontSize: tablet ? 13 : 12,
               ),
             Expanded(
-              child: pits.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) =>
-                    Center(child: Text(context.l10n.pitsLoadFailed('$e'))),
-                data: (list) => switch (_tab) {
-                  PitStatus.active =>
-                    list.isEmpty
-                        ? _Empty(tab: _tab)
-                        : _PitList(pits: list, tablet: tablet, wide: wide),
-                  PitStatus.shallow || PitStatus.archived =>
-                    list.isEmpty
-                        ? _Empty(tab: _tab)
-                        : PitRows(
-                            pits: list,
-                            status: _tab,
-                            tablet: tablet,
-                            wide: wide,
-                          ),
-                },
+              // 左右滑動切換 現坑／淺坑／封存坑（不循環）。
+              child: SwipeToSwitch.among<PitStatus>(
+                enabled: !nothingAtAll,
+                order: const [
+                  PitStatus.active,
+                  PitStatus.shallow,
+                  PitStatus.archived,
+                ],
+                current: _tab,
+                onChanged: setTab,
+                child: pits.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) =>
+                      Center(child: Text(context.l10n.pitsLoadFailed('$e'))),
+                  data: (list) => switch (_tab) {
+                    PitStatus.active =>
+                      list.isEmpty
+                          ? _Empty(tab: _tab)
+                          : _PitList(pits: list, tablet: tablet, wide: wide),
+                    PitStatus.shallow || PitStatus.archived =>
+                      list.isEmpty
+                          ? _Empty(tab: _tab)
+                          : PitRows(
+                              pits: list,
+                              status: _tab,
+                              tablet: tablet,
+                              wide: wide,
+                            ),
+                  },
+                ),
               ),
             ),
           ],

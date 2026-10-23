@@ -8,6 +8,7 @@ import '../../data/material_queries.dart';
 import '../../data/sensitive_queries.dart';
 import '../../state/sensitive.dart';
 import '../common/sensitive_actions.dart';
+import '../common/swipe_to_switch.dart';
 import '../../l10n/l10n.dart';
 import '../../media/media_import.dart';
 import '../../state/providers.dart';
@@ -464,35 +465,41 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
                       padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
                     ),
                   Expanded(
-                    child: rows.isEmpty
-                        ? EmptyState(
-                            svg: AppIcons.image,
-                            text: l.materialEmpty,
-                            color: t.official,
-                            actionLabel: l.albumAddImage,
-                            onAction: _add,
-                          )
-                        : _layout == MaterialLayout.grid
-                        ? SquareGrid(
-                            images: _asAlbum(rows),
-                            columns: columns,
-                            selecting: _selecting,
-                            selected: _selected,
-                            padding: const EdgeInsets.fromLTRB(0, 2, 0, 96),
-                            onLongPress: (im) => _longPress(im.id),
-                            onDragSelect: (idx, done) =>
-                                _dragSelect(rows, idx, done),
-                            onTap: (im, i) => _open(rows, i),
-                          )
-                        : _Masonry(
-                            rows: rows,
-                            columns: columns,
-                            selecting: _selecting,
-                            selected: _selected,
-                            onDragSelect: (idx, done) =>
-                                _dragSelect(rows, idx, done),
-                            onTap: (i) => _open(rows, i),
-                          ),
+                    child: SwipeToSwitch.among<MaterialCategory?>(
+                      enabled: !_selecting && !fullyEmpty,
+                      order: [null, ...MaterialCategory.values],
+                      current: _category,
+                      onChanged: (c) => setState(() => _category = c),
+                      child: rows.isEmpty
+                          ? EmptyState(
+                              svg: AppIcons.image,
+                              text: l.materialEmpty,
+                              color: t.official,
+                              actionLabel: l.albumAddImage,
+                              onAction: _add,
+                            )
+                          : _layout == MaterialLayout.grid
+                          ? SquareGrid(
+                              images: _asAlbum(rows),
+                              columns: columns,
+                              selecting: _selecting,
+                              selected: _selected,
+                              padding: const EdgeInsets.fromLTRB(0, 2, 0, 96),
+                              onLongPress: (im) => _longPress(im.id),
+                              onDragSelect: (idx, done) =>
+                                  _dragSelect(rows, idx, done),
+                              onTap: (im, i) => _open(rows, i),
+                            )
+                          : _Masonry(
+                              rows: rows,
+                              columns: columns,
+                              selecting: _selecting,
+                              selected: _selected,
+                              onDragSelect: (idx, done) =>
+                                  _dragSelect(rows, idx, done),
+                              onTap: (i) => _open(rows, i),
+                            ),
+                    ),
                   ),
                 ],
               );

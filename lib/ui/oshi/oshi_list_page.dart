@@ -20,6 +20,7 @@ import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
+import '../common/swipe_to_switch.dart';
 import '../common/timeline.dart';
 import '../common/window_class.dart';
 import '../album/wide_layout.dart';
@@ -455,6 +456,17 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
         : context.l10n.albumTitleWithPit(pitName, context.l10n.oshiTitle);
     _sel.updateOrder([for (final v in views) v.record.id]);
     final selecting = _sel.active;
+    Widget swipe(Widget child) => SwipeToSwitch.among<String?>(
+      enabled: !selecting && !fullyEmpty,
+      order: [
+        null,
+        for (final g in groups) g.id,
+        if (showUngrouped) oshiUngroupedFilter,
+      ],
+      current: groupId,
+      onChanged: (v) => setState(() => _groupId = v),
+      child: child,
+    );
     setNavBarHidden(selecting);
     final picked = _picked(views);
     // 每個月份標題都要有 key，「跳到月份」才找得到。
@@ -596,7 +608,10 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
                   ),
               ],
               Expanded(
-                child: wide ? _wideBody(content, panel, showPanel) : content,
+                // 左右滑動切換分組 pill／側欄分組（全部 → 各分組 →（無分組），不循環）。
+                child: wide
+                    ? _wideBody(swipe(content), panel, showPanel)
+                    : swipe(content),
               ),
             ],
           ),

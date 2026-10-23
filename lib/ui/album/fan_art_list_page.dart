@@ -80,6 +80,18 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
           posterFile: r.posterFile,
         ),
     ];
+    // 列表區左右滑動切換出處 chip（全部 → 各出處 →（無出處），不循環）。
+    final order = <String?>[
+      null,
+      for (final g in groups) g.id,
+      if (showNoSource) fanArtNoSourceFilter,
+    ];
+    VoidCallback? swipeTo(int delta) {
+      final i = order.indexOf(groupId) + delta;
+      if (i < 0 || i >= order.length) return null;
+      return () => setState(() => _groupId = order[i]);
+    }
+
     return AlbumView(
       pitId: widget.pitId,
       cell: AlbumCell.fan,
@@ -93,6 +105,8 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
       emptySvg: AppIcons.pitFanArt,
       total: total,
       emptyColor: context.tokens.fanArt,
+      onSwipePrev: swipeTo(-1),
+      onSwipeNext: swipeTo(1),
       onAdd: () => _add(groupId),
       onDelete: (picked) => db.deleteFanArts(picked.map((e) => e.id)),
       previewBuilder: (items, i) => FanArtPreviewPage(

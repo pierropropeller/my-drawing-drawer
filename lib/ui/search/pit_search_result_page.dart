@@ -12,6 +12,7 @@ import '../common/app_icons.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
+import '../common/swipe_to_switch.dart';
 import '../entity/entity_select.dart' show showEntityTagSheet;
 import '../album/album_icons.dart';
 import 'filter_pills.dart';
@@ -296,7 +297,15 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
                     counts: counts,
                   ),
                 ],
-                Expanded(child: body),
+                Expanded(
+                  child: SwipeToSwitch.among<SearchCategory>(
+                    enabled: !_selecting,
+                    order: visibleSearchCategories(counts),
+                    current: category,
+                    onChanged: _select,
+                    child: body,
+                  ),
+                ),
               ],
             ),
           ),
@@ -399,7 +408,15 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
                       Expanded(
                         child: Stack(
                           children: [
-                            Positioned.fill(child: body),
+                            Positioned.fill(
+                              child: SwipeToSwitch.among<SearchCategory>(
+                                enabled: !_selecting,
+                                order: visibleSearchCategories(counts),
+                                current: category,
+                                onChanged: _select,
+                                child: body,
+                              ),
+                            ),
                             if (_selecting)
                               Positioned(
                                 left: 0,

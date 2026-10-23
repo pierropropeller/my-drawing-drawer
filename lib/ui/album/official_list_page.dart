@@ -78,6 +78,14 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
           posterFile: r.posterFile,
         ),
     ];
+    // 列表區左右滑動切換分組 chip（全部 → 各分組，不循環）。
+    final order = <String?>[null, for (final g in groups) g.id];
+    VoidCallback? swipeTo(int delta) {
+      final i = order.indexOf(groupId) + delta;
+      if (i < 0 || i >= order.length) return null;
+      return () => setState(() => _groupId = order[i]);
+    }
+
     final view = AlbumView(
       pitId: widget.pitId,
       cell: AlbumCell.official,
@@ -91,6 +99,8 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
       emptySvg: AppIcons.pitOfficial,
       total: total,
       emptyColor: t.official,
+      onSwipePrev: swipeTo(-1),
+      onSwipeNext: swipeTo(1),
       onAdd: () => _add(groupId),
       onDelete: (picked) => db.deleteOfficial(picked.map((e) => e.id)),
       previewBuilder: (items, i) =>

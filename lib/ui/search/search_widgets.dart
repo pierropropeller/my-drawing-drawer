@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../common/swipe_to_switch.dart';
+
 import '../../data/search_queries.dart';
 import '../../theme/tokens.dart';
 import '../../l10n/l10n.dart';
@@ -160,6 +162,14 @@ class SearchField extends StatelessWidget {
   }
 }
 
+/// 分類 chips 實際顯示的順序：[counts] 為 null 全部都有；給了就略過筆數 0 的（「全部」一律保留）。
+List<SearchCategory> visibleSearchCategories(
+  Map<SearchCategory, int>? counts,
+) => [
+  for (final c in SearchCategory.values)
+    if (counts == null || c == SearchCategory.all || (counts[c] ?? 0) > 0) c,
+];
+
 /// 分類分頁 chips（全部／成圖／同人圖／推活／草稿／腦洞）。[counts] 給了就在名稱後面加數字，
 /// 並略過筆數 0 的分頁（D-061；「全部」一律保留）。
 /// 樣式照 PitSearch：間距 6、左右內距 13（比列表 chips 窄，放得進一排）。
@@ -196,11 +206,10 @@ class SearchCategoryChips extends StatelessWidget {
         child: Row(
           spacing: wide ? 8 : 6,
           children: [
-            for (final c in SearchCategory.values)
-              if (counts == null ||
-                  c == SearchCategory.all ||
-                  (counts![c] ?? 0) > 0)
-                GestureDetector(
+            for (final c in visibleSearchCategories(counts))
+              EnsureVisibleWhenSelected(
+                selected: c == selected,
+                child: GestureDetector(
                   onTap: () => onSelected(c),
                   child: Container(
                     key: ValueKey('searchCategory-${c.name}'),
@@ -227,6 +236,7 @@ class SearchCategoryChips extends StatelessWidget {
                     ),
                   ),
                 ),
+              ),
           ],
         ),
       ),

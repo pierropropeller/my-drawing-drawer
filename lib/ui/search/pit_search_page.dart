@@ -10,6 +10,7 @@ import '../common/app_icons.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
+import '../common/swipe_to_switch.dart';
 import 'pit_search_result_page.dart';
 import 'search_icons.dart';
 import 'search_wide.dart';
@@ -86,66 +87,74 @@ class _PitSearchPageState extends ConsumerState<PitSearchPage>
                 onSelected: (c) => setState(() => _category = c),
               ),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                  children: [
-                    if (usage.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(2, 4, 2, 10),
-                        child: Text(
-                          context.l10n.searchFrequentTags,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                child: SwipeToSwitch.among<SearchCategory>(
+                  order: visibleSearchCategories(null),
+                  current: _category,
+                  onChanged: (c) => setState(() => _category = c),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    children: [
+                      if (usage.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(2, 4, 2, 10),
+                          child: Text(
+                            context.l10n.searchFrequentTags,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                      ),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final u in usage)
-                            GestureDetector(
-                              onTap: () => _openResult(tagId: u.tag.id),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: t.surface,
-                                  border: Border.all(color: t.border),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text.rich(
-                                  TextSpan(
-                                    text: '#${u.tag.name}',
-                                    children: [
-                                      TextSpan(
-                                        text: '  ${u.count}',
-                                        style: TextStyle(
-                                          color: t.text4,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final u in usage)
+                              GestureDetector(
+                                onTap: () => _openResult(tagId: u.tag.id),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
                                   ),
-                                  style: TextStyle(fontSize: 14, color: t.ink),
+                                  decoration: BoxDecoration(
+                                    color: t.surface,
+                                    border: Border.all(color: t.border),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text.rich(
+                                    TextSpan(
+                                      text: '#${u.tag.name}',
+                                      children: [
+                                        TextSpan(
+                                          text: '  ${u.count}',
+                                          style: TextStyle(
+                                            color: t.text4,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: t.ink,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
+                      ],
+                      // 未加 tag（D-108）：坑內沒有任何 tag 的項目數；雜物沒有 tag，不算。
+                      Padding(
+                        padding: const EdgeInsets.only(top: 22),
+                        child: _UntaggedCard(
+                          count: untaggedCount,
+                          onTap: () => _openResult(untagged: true),
+                        ),
                       ),
                     ],
-                    // 未加 tag（D-108）：坑內沒有任何 tag 的項目數；雜物沒有 tag，不算。
-                    Padding(
-                      padding: const EdgeInsets.only(top: 22),
-                      child: _UntaggedCard(
-                        count: untaggedCount,
-                        onTap: () => _openResult(untagged: true),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -183,61 +192,66 @@ class _PitSearchPageState extends ConsumerState<PitSearchPage>
               ),
             ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(32, 18, 32, 24),
-                children: [
-                  SearchCategoryChips(
-                    wide: true,
-                    selected: _category,
-                    onSelected: (c) => setState(() => _category = c),
-                  ),
-                  if (usage.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(2, 28, 2, 12),
-                      child: Text(
-                        context.l10n.searchFrequentTags,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: t.text3,
-                          letterSpacing: 1,
+              child: SwipeToSwitch.among<SearchCategory>(
+                order: visibleSearchCategories(null),
+                current: _category,
+                onChanged: (c) => setState(() => _category = c),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(32, 18, 32, 24),
+                  children: [
+                    SearchCategoryChips(
+                      wide: true,
+                      selected: _category,
+                      onSelected: (c) => setState(() => _category = c),
+                    ),
+                    if (usage.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(2, 28, 2, 12),
+                        child: Text(
+                          context.l10n.searchFrequentTags,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: t.text3,
+                            letterSpacing: 1,
+                          ),
                         ),
                       ),
-                    ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 820),
+                          child: Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              for (final u in usage)
+                                WideTagChip(
+                                  name: u.tag.name,
+                                  count: u.count,
+                                  onTap: () => _openResult(tagId: u.tag.id),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     Align(
                       alignment: Alignment.centerLeft,
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 820),
-                        child: Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
-                            for (final u in usage)
-                              WideTagChip(
-                                name: u.tag.name,
-                                count: u.count,
-                                onTap: () => _openResult(tagId: u.tag.id),
-                              ),
-                          ],
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 26),
+                          child: _UntaggedCard(
+                            wide: true,
+                            count: untaggedCount,
+                            onTap: () => _openResult(untagged: true),
+                          ),
                         ),
                       ),
                     ),
                   ],
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 420),
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 26),
-                        child: _UntaggedCard(
-                          wide: true,
-                          count: untaggedCount,
-                          onTap: () => _openResult(untagged: true),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],

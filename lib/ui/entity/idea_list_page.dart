@@ -15,6 +15,7 @@ import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
+import '../common/swipe_to_switch.dart';
 import '../common/window_class.dart';
 import '../album/wide_layout.dart';
 import '../search/tagged_list.dart';
@@ -130,7 +131,21 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                     ),
                     padding: const EdgeInsets.fromLTRB(20, 14, 12, 8),
                   ),
-                Expanded(child: listArea),
+                Expanded(
+                  // 左右滑動切換狀態 chip（全部 → 各狀態，不循環）；多選中不作用。
+                  child: SwipeToSwitch.among<IdeaStatus?>(
+                    enabled: !_selecting,
+                    order: const [
+                      null,
+                      IdeaStatus.open,
+                      IdeaStatus.hatching,
+                      IdeaStatus.hatched,
+                    ],
+                    current: _status,
+                    onChanged: (v) => setState(() => _status = v),
+                    child: listArea,
+                  ),
+                ),
               ],
             ),
           ),
