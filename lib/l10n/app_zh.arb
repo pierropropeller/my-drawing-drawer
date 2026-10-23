@@ -1553,6 +1553,8 @@
     }
   },
   "sensitiveCoverConfirm": "標記並移除封面",
+  "sensitiveSafeTurnOff": "關閉安全模式",
+  "sensitiveSafeTurnOn": "開啟安全模式",
   "shallowName": "淺坑",
   "shallowTypeLabel": "類型",
   "shallowTypePit": "坑",

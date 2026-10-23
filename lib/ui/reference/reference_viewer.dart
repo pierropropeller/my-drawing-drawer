@@ -38,6 +38,7 @@ import '../album/album_image.dart';
 import '../album/preview_shell.dart' show PreviewPalette;
 import '../common/dismissible_preview.dart';
 import '../common/nav_bar_hidden.dart';
+import '../common/sensitive_safe_button.dart';
 import '../common/svg_icon.dart';
 import '../common/window_class.dart';
 import 'ref_actions.dart';
@@ -527,6 +528,14 @@ class _ReferenceViewerState extends ConsumerState<ReferenceViewer>
                 maxLines: 1,
                 style: TextStyle(color: palette.sub, fontSize: wide ? 13 : 12),
               ),
+            ),
+            // D-110：這一組圖裡有標記的圖才出現（iPad 的圖片預覽頁；ImagePreviewSafe）。
+            SensitiveSafeButton(
+              files: [
+                for (final i in _items)
+                  if (!i.isVideo) i.file,
+              ],
+              color: palette.fg,
             ),
             if (wide)
               Semantics(

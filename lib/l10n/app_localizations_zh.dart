@@ -2165,6 +2165,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sensitiveCoverConfirm => '標記並移除封面';
 
   @override
+  String get sensitiveSafeTurnOff => '關閉安全模式';
+
+  @override
+  String get sensitiveSafeTurnOn => '開啟安全模式';
+
+  @override
   String get shallowName => '淺坑';
 
   @override

@@ -139,10 +139,11 @@ class _DetailCarouselState extends State<DetailCarousel> {
                         }
                         return GestureDetector(
                           onTap: () => _open(i),
-                          // 詳情頁的主圖照安全模式模糊／加小標；點開的全螢幕預覽才正常顯示。
+                          // 詳情頁的主圖照安全模式模糊（52px 圓，D-110）／加小標；全螢幕預覽也一樣。
                           child: SensitiveGate(
                             file: media.file,
                             badgeInset: 12,
+                            circleSize: 52,
                             child: MediaViewer(
                               media,
                               active: i == _index,
@@ -266,6 +267,7 @@ class _DetailImageStageState extends State<DetailImageStage> {
                           child: MiniMediaThumb(
                             MediaSource.fromImageRef(images[i]),
                             cacheWidth: 200,
+                            sensitiveCircle: 24,
                           ),
                         ),
                         if (i == _index)

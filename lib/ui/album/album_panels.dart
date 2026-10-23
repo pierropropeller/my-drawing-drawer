@@ -9,6 +9,7 @@ import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/media_widgets.dart';
 import '../common/sensitive_gate.dart';
+import '../common/sensitive_safe_button.dart';
 import '../common/svg_icon.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
@@ -85,6 +86,7 @@ class AlbumPreviewPanel extends StatelessWidget {
                         SensitiveGate(
                           file: media.file,
                           badgeInset: 10,
+                          circleSize: 52,
                           child: MediaViewer(media, cacheWidth: 900),
                         )
                       else
@@ -93,6 +95,7 @@ class AlbumPreviewPanel extends StatelessWidget {
                           cacheWidth: 900,
                           fit: BoxFit.contain,
                           badgeInset: 10,
+                          sensitiveCircle: 52,
                         ),
                       if (media.isGif)
                         Positioned(
@@ -128,6 +131,9 @@ class AlbumPreviewPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // D-110：這張圖有標記才多一顆「安全模式」鈕（面板沒有標題列，放封面上方右側）。
+                    if (!media.isVideo)
+                      SensitiveSafePanelBar(files: [media.file]),
                     cover,
                     const SizedBox(height: 14),
                     ...info.take(1),

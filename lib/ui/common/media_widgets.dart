@@ -133,14 +133,18 @@ class MediaThumb extends StatelessWidget {
     this.showBadge = true,
     this.placeholderColor,
     this.protectSensitive = true,
+    this.sensitiveCircle,
   });
 
   final MediaSource media;
   final int? cacheWidth;
   final BoxFit fit;
 
+  /// 模糊時中間圓圈的直徑（詳情頁主圖 52、縮圖列 24）；null＝列表預設，見 [SensitiveGate.circleSize]。
+  final double? sensitiveCircle;
+
   /// 敏感內容（D-104）：列表類畫面（預設）依安全模式把已標記的圖模糊，或在左上角加敏感小標，見 [SensitiveGate]。
-  /// 詳情頁、預覽頁裡重用這個元件時傳 false（永遠正常顯示）。
+  /// 詳情頁（D-110 起也模糊，圓圈用 [sensitiveCircle]）；傳 false＝永遠正常顯示。
   final bool protectSensitive;
 
   /// 這一格代表幾張圖；大於 1 才顯示右下角張數。
@@ -177,7 +181,11 @@ class MediaThumb extends StatelessWidget {
       );
     }
     if (protectSensitive) {
-      content = SensitiveGate(file: media.file, child: content);
+      content = SensitiveGate(
+        file: media.file,
+        circleSize: sensitiveCircle,
+        child: content,
+      );
     }
     final badge = !showBadge
         ? null

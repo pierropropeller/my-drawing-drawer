@@ -14,6 +14,7 @@ import '../common/dashed_box.dart';
 import '../common/detail_carousel.dart';
 import '../common/media_mini.dart';
 import '../common/media_widgets.dart';
+import '../common/sensitive_safe_button.dart';
 import '../common/svg_icon.dart';
 import 'connect_field.dart';
 import 'draft_detail_page.dart';
@@ -31,7 +32,14 @@ import 'piece_platform.dart';
 
 /// 標題列右側的「編輯」「刪除」44×44 方形鈕。
 class _PaneActions extends StatelessWidget {
-  const _PaneActions({required this.onEdit, required this.onDelete});
+  const _PaneActions({
+    required this.onEdit,
+    required this.onDelete,
+    this.files = const [],
+  });
+
+  /// 這一頁的圖檔名；有標記的圖才多一顆「安全模式」鈕（D-110）。
+  final Iterable<String> files;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -40,13 +48,14 @@ class _PaneActions extends StatelessWidget {
     final t = context.tokens;
     return Row(
       mainAxisSize: MainAxisSize.min,
-      spacing: 8,
       children: [
+        SensitiveSafeWideButton(files: files, gap: 8),
         WideIconButton(
           svg: AppIcons.edit,
           label: context.l10n.commonEdit,
           onTap: onEdit,
         ),
+        const SizedBox(width: 8),
         WideIconButton(
           svg: AppIcons.trash,
           label: context.l10n.commonDelete,
@@ -124,6 +133,7 @@ class IdeaDetailPane extends ConsumerWidget {
             IdeaStatusChip(v, short: true, fontSize: 12),
             const SizedBox(width: 12),
             _PaneActions(
+              files: flaggableFiles(v.images),
               onEdit: () => openIdeaForm(context, pitId: pitId, ideaId: ideaId),
               onDelete: () async {
                 final ok = await confirmDelete(
@@ -392,6 +402,7 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                               cacheWidth: 1200,
                               fit: BoxFit.contain,
                               badgeInset: 12,
+                              sensitiveCircle: 52,
                             ),
                           if (n > 0)
                             Positioned(
@@ -500,6 +511,7 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                               child: MiniMediaThumb(
                                 MediaSource.fromImageRef(imgs[i]),
                                 cacheWidth: 200,
+                                sensitiveCircle: 24,
                               ),
                             ),
                           ),
@@ -530,6 +542,7 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                 ),
                 const SizedBox(width: 10),
                 _PaneActions(
+                  files: flaggableFiles(imgs),
                   onEdit: () => openDraftForm(
                     context,
                     pitId: widget.pitId,
@@ -667,6 +680,7 @@ class PieceDetailPanel extends ConsumerWidget {
         return ListView(
           padding: const EdgeInsets.only(bottom: 24),
           children: [
+            SensitiveSafePanelBar(files: flaggableFiles(v.images.take(1))),
             Semantics(
               button: true,
               label: p.title,
@@ -686,6 +700,7 @@ class PieceDetailPanel extends ConsumerWidget {
                         : MediaThumb(
                             MediaSource.fromImageRef(v.images.first),
                             cacheWidth: 900,
+                            sensitiveCircle: 52,
                           ),
                   ),
                 ),

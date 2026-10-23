@@ -9,6 +9,7 @@ import '../../data/ref_view_queries.dart';
 import '../../state/providers.dart';
 import '../album/album_image.dart';
 import '../common/dismissible_preview.dart';
+import '../common/sensitive_gate.dart';
 import 'ref_geometry.dart';
 import 'ref_image.dart';
 
@@ -247,41 +248,50 @@ class RefStageState extends ConsumerState<RefStage> {
         return Stack(
           fit: StackFit.expand,
           children: [
-            PreviewRawTap(
-              child: ClipRect(
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: _preview?.dragging ?? _neverDragging,
-                  builder: (context, dragging, child) => InteractiveViewer(
-                    transformationController: _tc,
-                    minScale: 0.2,
-                    maxScale: 12,
-                    // 鎖定縮放：雙指只能平移，不能縮放。拖曳退出進行中也不平移。
-                    scaleEnabled: !snap.locked && !dragging,
-                    panEnabled: !dragging,
-                    boundaryMargin: EdgeInsets.all(margin),
-                    onInteractionStart: (_) {
-                      _gestureStart = _tc?.value.clone();
-                      _dragEngaged = false;
-                    },
-                    onInteractionEnd: (_) {
-                      // 拖曳退出造成的平移不算數：還原，不存檔。
-                      // （指標事件先到拖曳退出的 Listener，所以這時 dragging 可能已經放掉。）
-                      if (_dragEngaged) {
+            // D-110：安全模式開時已標記的圖模糊＋52px 圓（圓在視窗正中，不跟著縮放）；關閉就是正常的圖。
+            SensitiveGate(
+              file: widget.image.file,
+              circleSize: 52,
+              showBadge: false,
+              child: PreviewRawTap(
+                child: ClipRect(
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: _preview?.dragging ?? _neverDragging,
+                    builder: (context, dragging, child) => InteractiveViewer(
+                      transformationController: _tc,
+                      minScale: 0.2,
+                      maxScale: 12,
+                      // 鎖定縮放：雙指只能平移，不能縮放。拖曳退出進行中也不平移。
+                      scaleEnabled: !snap.locked && !dragging,
+                      panEnabled: !dragging,
+                      boundaryMargin: EdgeInsets.all(margin),
+                      onInteractionStart: (_) {
+                        _gestureStart = _tc?.value.clone();
                         _dragEngaged = false;
-                        if (_gestureStart != null) {
-                          _tc?.value = _gestureStart!.clone();
+                      },
+                      onInteractionEnd: (_) {
+                        // 拖曳退出造成的平移不算數：還原，不存檔。
+                        // （指標事件先到拖曳退出的 Listener，所以這時 dragging 可能已經放掉。）
+                        if (_dragEngaged) {
+                          _dragEngaged = false;
+                          if (_gestureStart != null) {
+                            _tc?.value = _gestureStart!.clone();
+                          }
+                          return;
                         }
-                        return;
-                      }
-                      commit();
-                    },
-                    child: child!,
-                  ),
-                  child: SizedBox(
-                    width: viewport.width,
-                    height: viewport.height,
-                    child: Center(
-                      child: SizedBox.fromSize(size: geom.fitted, child: image),
+                        commit();
+                      },
+                      child: child!,
+                    ),
+                    child: SizedBox(
+                      width: viewport.width,
+                      height: viewport.height,
+                      child: Center(
+                        child: SizedBox.fromSize(
+                          size: geom.fitted,
+                          child: image,
+                        ),
+                      ),
                     ),
                   ),
                 ),
