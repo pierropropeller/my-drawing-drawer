@@ -19,7 +19,7 @@ import 'pits/pits_page.dart';
 import 'share/share_host.dart';
 
 /// 導覽外框：手機＝底部列，平板＝左側 icon rail／sidebar（見 `nav/adaptive_nav.dart`）。
-/// 坑／目標／我的各有自己的 Navigator，分頁 index 與頁面堆疊都放在這個 State，
+/// 坑／時間軸／我的各有自己的 Navigator，分頁 index 與頁面堆疊都放在這個 State，
 /// 視窗拉闊收窄（導覽型態切換）時不會丟。
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});

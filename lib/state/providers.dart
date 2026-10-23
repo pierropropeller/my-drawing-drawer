@@ -252,6 +252,12 @@ final goalViewsProvider =
           ref.watch(databaseProvider).watchGoalViews(k.$1, k.$2, month: k.$3),
     );
 
+/// 某年每個月的月度小目標進度（D-112，年度回顧月份格的小進度圈）。
+final monthGoalProgressProvider =
+    StreamProvider.family<Map<int, MonthGoalProgress>, int>(
+      (ref, year) => ref.watch(databaseProvider).watchMonthGoalProgress(year),
+    );
+
 final monthCoversProvider = StreamProvider.family<Map<int, String>, (int, int)>(
   (ref, k) => ref.watch(databaseProvider).watchMonthCovers(k.$1, k.$2),
 );

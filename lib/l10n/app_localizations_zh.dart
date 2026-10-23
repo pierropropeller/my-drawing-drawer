@@ -313,7 +313,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shellTabPits => '坑';
 
   @override
-  String get shellTabGoals => '目標';
+  String get shellTabGoals => '時間軸';
 
   @override
   String get shellTabMe => '我的';
@@ -978,7 +978,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get goalsTitle => '目標';
+  String get goalsTitle => '時間軸';
 
   @override
   String get goalsPrevYear => '上一年';

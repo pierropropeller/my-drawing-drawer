@@ -248,7 +248,7 @@ void main() {
       expect(find.text('開新淺坑'), findsOneWidget);
       expect(find.bySemanticsLabel('搜尋全部坑'), findsOneWidget);
       // 導覽列仍在（瀏覽用的頁面）
-      expect(find.text('目標'), findsOneWidget);
+      expect(find.text('時間軸'), findsOneWidget);
 
       await tester.tap(find.text('封存坑'));
       await settle(tester);

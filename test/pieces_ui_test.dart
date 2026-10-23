@@ -226,24 +226,24 @@ void main() {
       );
     });
     await openFinished(tester);
-    expect(find.text('目標'), findsOneWidget);
+    expect(find.text('時間軸'), findsOneWidget);
     expect(find.text('#角色1'), findsNothing);
     expect(find.text('全部'), findsNothing);
 
     await tester.tap(find.text('有 tag'));
     await settle(tester);
-    expect(find.text('目標'), findsNothing); // 詳情沒有導覽列
+    expect(find.text('時間軸'), findsNothing); // 詳情沒有導覽列
     expect(find.text('#角色1'), findsOneWidget); // 詳情列出全部 tag
 
     await tester.tap(find.byTooltip('編輯'));
     await settle(tester);
     expect(find.text('編輯成圖'), findsOneWidget);
-    expect(find.text('目標'), findsNothing);
+    expect(find.text('時間軸'), findsNothing);
     await back(tester);
     await settle(tester);
     await back(tester);
     await settle(tester);
-    expect(find.text('目標'), findsOneWidget);
+    expect(find.text('時間軸'), findsOneWidget);
     await unmount(tester);
   });
 
@@ -252,7 +252,7 @@ void main() {
     await tester.tap(find.text('新增'));
     await settle(tester);
     expect(find.text('新增成圖'), findsWidgets);
-    expect(find.text('目標'), findsNothing);
+    expect(find.text('時間軸'), findsNothing);
     expect(find.text('發佈日期'), findsNothing);
     expect(find.text('委託人'), findsNothing);
     await enter(tester, 'piece-title', '私稿');

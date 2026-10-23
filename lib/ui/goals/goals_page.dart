@@ -20,7 +20,7 @@ import 'goal_widgets.dart';
 import 'month_view.dart';
 import 'year_view.dart';
 
-/// 目標分頁（GoalYear／Month／Day）：襯線「目標」＋年份、年／月／日分段控制。
+/// 時間軸分頁（GoalYear／Month／Day）：襯線「時間軸」＋年份、年／月／日分段控制。
 /// 三個視圖用 IndexedStack 保留各自的狀態。
 class GoalsPage extends ConsumerStatefulWidget {
   const GoalsPage({super.key});
@@ -36,6 +36,7 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
   // 上次停留的年／月／日（設定，啟動即還原）。
   late int _mode = ref.read(settingsProvider).lastGoalsMode;
   final _dayKey = GlobalKey<DayTimelineState>();
+  final _monthKey = GlobalKey<MonthViewState>();
   int _year = DateTime.now().year; // 年度視圖的年份
   final _years = [DateTime.now().year, DateTime.now().year]; // 月、日視圖目前顯示的年份
 
@@ -50,6 +51,16 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
   void _setYear(int y) {
     setState(() => _year = y);
     ref.read(goalSidebarYearProvider.notifier).select(y);
+  }
+
+  /// 年度頁點月份格（D-112）：切到「月」（同時記住分頁）並把月頁切到該年該月。
+  void _openMonth(int month) {
+    setState(() {
+      _mode = 1;
+      _years[0] = _year;
+    });
+    ref.read(settingsProvider.notifier).setLastGoalsMode(1);
+    _monthKey.currentState?.jumpToMonth(_year, month);
   }
 
   @override
@@ -143,8 +154,14 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
                     child: IndexedStack(
                       index: _mode,
                       children: [
-                        YearView(year: _year, wide: wide, side: side),
+                        YearView(
+                          year: _year,
+                          wide: wide,
+                          side: side,
+                          onMonthTap: _openMonth,
+                        ),
                         MonthView(
+                          key: _monthKey,
                           wide: wide,
                           side: side,
                           onYearChanged: (y) => setState(() => _years[0] = y),

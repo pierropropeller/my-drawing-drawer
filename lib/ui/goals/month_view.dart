@@ -34,12 +34,21 @@ class MonthView extends ConsumerStatefulWidget {
   final ValueChanged<int>? onYearChanged;
 
   @override
-  ConsumerState<MonthView> createState() => _MonthViewState();
+  ConsumerState<MonthView> createState() => MonthViewState();
 }
 
-class _MonthViewState extends ConsumerState<MonthView> {
+class MonthViewState extends ConsumerState<MonthView> {
   late int _year = DateTime.now().year;
   late int _month = DateTime.now().month;
+
+  /// 直接切到某年某月（年度頁點月份格，D-112）。
+  void jumpToMonth(int year, int month) {
+    setState(() {
+      _year = year;
+      _month = month;
+    });
+    widget.onYearChanged?.call(_year);
+  }
 
   void _shift(int d) {
     final m = DateTime(_year, _month + d);

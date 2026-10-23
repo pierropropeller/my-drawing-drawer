@@ -1,8 +1,8 @@
 import '../../l10n/l10n.dart';
 
-/// 導覽的三個分頁：坑／目標／我的。底部列、icon rail、sidebar 共用同一份 icon。
+/// 導覽的三個分頁：坑／時間軸／我的。底部列、icon rail、sidebar 共用同一份 icon。
 ///
-/// icon 直接取自設計稿（Main／Goal／Profile 的 nav）：資料夾、雙圓靶心、人像；
+/// icon 直接取自設計稿（GoalYear／Main／Profile 的 nav）：資料夾、時間軸（直線＋兩點＋橫線）、人像；
 /// 未選中線寬 1.8，選中線寬 2。
 class NavTab {
   const NavTab(this.id, this._shapes);
@@ -28,7 +28,13 @@ const navTabs = [
     0,
     '<path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   ),
-  NavTab(1, '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/>'),
+  NavTab(
+    1,
+    '<path d="M6 4v16"/>'
+    '<circle cx="6" cy="7" r="1.9" fill="currentColor" stroke="none"/>'
+    '<circle cx="6" cy="17" r="1.9" fill="currentColor" stroke="none"/>'
+    '<path d="M10.5 7h8M10.5 12h6M10.5 17h8"/>',
+  ),
   NavTab(
     2,
     '<circle cx="12" cy="8" r="4"/><path d="M4.5 20c0-4.2 3.8-6 7.5-6s7.5 1.8 7.5 6"/>',

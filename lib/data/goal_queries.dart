@@ -25,6 +25,23 @@ class GoalView {
   String? get customName => goalCustomName(goal);
 }
 
+/// 某個月的月度小目標進度摘要（D-112，年度回顧月份格右上的小進度圈）。
+class MonthGoalProgress {
+  const MonthGoalProgress({required this.done, required this.total});
+
+  /// 已達成的小目標數。
+  final int done;
+
+  /// 小目標總數（至少 1；沒有小目標的月份不會出現在結果裡）。
+  final int total;
+
+  /// 完成比例（達成數／總數）。
+  double get ratio => total == 0 ? 0 : done / total;
+
+  /// 全部達成。
+  bool get allDone => total > 0 && done >= total;
+}
+
 /// 目標依進度百分比由高到低排列，已達成（100% 以上）的沉到最底；
 /// 同百分比保持原本順序（建立時間，D-022）。年度、月度共用。
 List<GoalView> sortGoalsByProgress(Iterable<GoalView> goals) {
@@ -235,6 +252,35 @@ extension GoalQueries on AppDatabase {
                 ..orderBy([(g) => OrderingTerm.asc(g.createdAt)]))
               .get();
       return sortGoalsByProgress([for (final r in rows) await _goalView(r)]);
+    });
+  }
+
+  /// 某年每個月的月度小目標進度（D-112）。key＝月（1~12），**沒有小目標的月份不在結果裡**。
+  /// 一次查整年（不是逐月各查一次）；進度沿用 [_goalView]／[_progress]，與月頁一致。
+  Stream<Map<int, MonthGoalProgress>> watchMonthGoalProgress(int year) {
+    return watchAssembled(this, _goalTables, () async {
+      final rows =
+          await (select(goals)..where(
+                (g) =>
+                    g.deletedAt.isNull() &
+                    g.period.equalsValue(GoalPeriod.month) &
+                    g.year.equals(year) &
+                    g.month.isNotNull(),
+              ))
+              .get();
+      final done = <int, int>{};
+      final total = <int, int>{};
+      for (final r in rows) {
+        final m = r.month!;
+        if (m < 1 || m > 12) continue;
+        final v = await _goalView(r);
+        total[m] = (total[m] ?? 0) + 1;
+        if (v.done) done[m] = (done[m] ?? 0) + 1;
+      }
+      return {
+        for (final m in total.keys)
+          m: MonthGoalProgress(done: done[m] ?? 0, total: total[m]!),
+      };
     });
   }
 

@@ -219,27 +219,27 @@ void main() {
   testWidgets('導覽列：坑內頁有，編輯坑／開新坑沒有', (tester) async {
     await pumpApp(tester);
     await settle(tester);
-    expect(find.text('目標'), findsOneWidget);
+    expect(find.text('時間軸'), findsOneWidget);
 
     await tester.tap(find.text('開新坑').last);
     await settle(tester);
-    expect(find.text('目標'), findsNothing);
+    expect(find.text('時間軸'), findsNothing);
     await tester.tap(find.bySemanticsLabel('返回'));
     await settle(tester);
-    expect(find.text('目標'), findsOneWidget);
+    expect(find.text('時間軸'), findsOneWidget);
 
     await tester.tap(find.text('坑A'));
     await settle(tester);
     expect(find.text('官方圖冊'), findsOneWidget);
-    expect(find.text('目標'), findsOneWidget);
+    expect(find.text('時間軸'), findsOneWidget);
 
     await tester.tap(find.byTooltip('編輯'));
     await settle(tester);
     expect(find.text('編輯坑'), findsOneWidget);
-    expect(find.text('目標'), findsNothing);
+    expect(find.text('時間軸'), findsNothing);
     await tester.tap(find.bySemanticsLabel('返回'));
     await settle(tester);
-    expect(find.text('目標'), findsOneWidget);
+    expect(find.text('時間軸'), findsOneWidget);
     await unmount(tester);
   });
 

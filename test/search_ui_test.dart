@@ -192,7 +192,7 @@ void main() {
 
     await tester.tap(find.byType(Image).first);
     await settle(tester);
-    expect(find.text('目標'), findsNothing); // 預覽沒有導覽列
+    expect(find.text('時間軸'), findsNothing); // 預覽沒有導覽列
     // 預覽可能是 tagA 或 tagB 的圖；點它顯示的那顆 tag。
     final tagChip = find.textContaining('#').first;
     final tapped = (tester.widget<Text>(tagChip).data ?? '').substring(1);
@@ -201,7 +201,7 @@ void main() {
 
     expect(find.byType(PitSearchResultPage), findsOneWidget);
     expect(pill(tapped), findsOneWidget);
-    expect(find.text('目標'), findsNothing); // 搜尋頁沒有導覽列
+    expect(find.text('時間軸'), findsNothing); // 搜尋頁沒有導覽列
     // 相冊預設「全部」：pills 只列有結果的（這裡只有同人圖）。
     expect(find.textContaining(RegExp(r'^全部 \d+$')), findsOneWidget);
     expect(find.textContaining(RegExp(r'^同人圖 \d+$')), findsOneWidget);
@@ -284,7 +284,7 @@ void main() {
     await settle(tester);
 
     expect(find.byType(PitSearchPage), findsOneWidget);
-    expect(find.text('目標'), findsNothing);
+    expect(find.text('時間軸'), findsNothing);
     final labels = ['全部', '成圖', '官方圖', '同人圖', '推活', '摸魚', '腦洞'];
     final xs = [
       for (final l in labels)
@@ -299,7 +299,7 @@ void main() {
       isTrue,
     );
     await back(tester);
-    expect(find.text('目標'), findsOneWidget);
+    expect(find.text('時間軸'), findsOneWidget);
     await unmount(tester);
   });
 
@@ -328,7 +328,7 @@ void main() {
     await settle(tester);
 
     expect(find.byType(PitSearchResultPage), findsOneWidget);
-    expect(find.text('目標'), findsNothing);
+    expect(find.text('時間軸'), findsNothing);
     expect(pill('角色1'), findsOneWidget);
     // 分頁帶數字。
     expect(find.text('全部 20'), findsOneWidget);
@@ -362,7 +362,7 @@ void main() {
     expect(find.byKey(const ValueKey('searchTabGrid')), findsOneWidget);
     expect(find.byType(Image), findsNWidgets(5));
     expect(pill('角色1'), findsOneWidget);
-    expect(find.text('目標'), findsNothing);
+    expect(find.text('時間軸'), findsNothing);
     // 點「全部」回到分段總覽。
     await tester.tap(find.text('全部 20'));
     await settle(tester);
@@ -528,7 +528,7 @@ void main() {
     expect(find.text('+1'), findsOneWidget);
     await tester.tap(imgs.at(0));
     await settle(tester);
-    expect(find.text('目標'), findsNothing);
+    expect(find.text('時間軸'), findsNothing);
     await unmount(tester);
   });
 

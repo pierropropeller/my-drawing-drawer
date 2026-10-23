@@ -233,7 +233,7 @@
     }
   },
   "shellTabPits": "坑",
-  "shellTabGoals": "目標",
+  "shellTabGoals": "時間軸",
   "shellTabMe": "我的",
   "themeModeLight": "淺色",
   "themeModeDark": "深色",
@@ -682,7 +682,7 @@
       }
     }
   },
-  "goalsTitle": "目標",
+  "goalsTitle": "時間軸",
   "goalsPrevYear": "上一年",
   "goalsNextYear": "下一年",
   "goalsModeYear": "年",

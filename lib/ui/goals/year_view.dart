@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
+import '../../data/goal_queries.dart';
 import '../../data/income_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
@@ -26,8 +29,12 @@ class YearView extends ConsumerStatefulWidget {
     required this.year,
     this.wide = false,
     this.side = 20,
+    this.onMonthTap,
   });
   final int year;
+
+  /// 點月份格＝進入那個月（D-112）：上層切到「月」並把月頁切到該月。
+  final ValueChanged<int>? onMonthTap;
 
   /// iPad 並排版面（Goal 稿）：左「年度回顧」卡＋右「年度目標」列表，各自捲動。
   final bool wide;
@@ -57,6 +64,8 @@ class _YearViewState extends ConsumerState<YearView> {
     final files = <int, String?>{for (var m = 1; m <= 12; m++) m: chosen[m]};
     final summaries =
         ref.watch(reviewMonthSummariesProvider(widget.year)).value ?? const {};
+    final monthGoals =
+        ref.watch(monthGoalProgressProvider(widget.year)).value ?? const {};
     final income = ref.watch(incomeProvider(widget.year)).value;
     final selected = files.values.where((f) => f != null).length;
     final monthGrid = GridView.count(
@@ -71,7 +80,8 @@ class _YearViewState extends ConsumerState<YearView> {
             month: m,
             file: files[m],
             allEmpty: selected == 0,
-            onTap: _editLayout,
+            goals: monthGoals[m],
+            onTap: () => widget.onMonthTap?.call(m),
             // 多於一張成圖才能長按換圖（D-056）；只有一張或沒有＝長按沒反應
             // （仍要註冊空的長按，否則長按放開會被當成點擊而打開排版）。
             onLongPress: summaries[m]?.canPick == true
@@ -324,11 +334,15 @@ class _MonthCell extends StatelessWidget {
     required this.file,
     required this.allEmpty,
     required this.onTap,
+    this.goals,
     this.onLongPress,
   });
   final int month;
   final String? file;
   final bool allEmpty;
+
+  /// 該月的月度小目標進度；沒有小目標＝null（不畫進度圈）。
+  final MonthGoalProgress? goals;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
@@ -420,10 +434,95 @@ class _MonthCell extends StatelessWidget {
         ),
       );
     }
+    final g = goals;
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
-      child: inner,
+      child: g == null
+          ? inner
+          : Stack(
+              fit: StackFit.expand,
+              children: [
+                inner,
+                Positioned(right: 5, top: 5, child: MonthGoalRing(progress: g)),
+              ],
+            ),
     );
   }
+}
+
+/// 月份格右上的月度小目標進度圈（D-112，GoalYear 稿）：20px 圓、白底 .92，
+/// 內圈半徑 7、線寬 2.4、圓頭；底圈 #EFE7DC，進度從 12 點鐘順時針；
+/// 全部達成＝綠 #5c8a5c，否則主色。深色：底＝surface .92、底圈＝chipBg、綠＝#8DBB8D（稿沒畫，推導）。
+class MonthGoalRing extends StatelessWidget {
+  const MonthGoalRing({super.key, required this.progress});
+  final MonthGoalProgress progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final color = progress.allDone
+        ? (dark ? const Color(0xFF8DBB8D) : const Color(0xFF5C8A5C))
+        : t.accent;
+    return Semantics(
+      label: context.l10n.goalsSectionMonth,
+      value: '${progress.done} / ${progress.total}',
+      child: Container(
+        width: 20,
+        height: 20,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: (dark ? t.surface : Colors.white).withValues(alpha: .92),
+        ),
+        child: CustomPaint(
+          painter: _RingPainter(
+            ratio: progress.ratio,
+            track: dark ? t.chipBg : const Color(0xFFEFE7DC),
+            color: color,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  const _RingPainter({
+    required this.ratio,
+    required this.track,
+    required this.color,
+  });
+  final double ratio;
+  final Color track;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    const r = 7.0;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.round
+      ..isAntiAlias = true;
+    canvas.drawCircle(c, r, paint..color = track);
+    paint.color = color;
+    if (ratio <= 0) {
+      // 稿：dasharray 0 + 圓頭＝12 點鐘一個小圓點。
+      canvas.drawCircle(c.translate(0, -r), 1.2, Paint()..color = color);
+    } else {
+      canvas.drawArc(
+        Rect.fromCircle(center: c, radius: r),
+        -math.pi / 2,
+        2 * math.pi * ratio.clamp(0.0, 1.0),
+        false,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.ratio != ratio || old.track != track || old.color != color;
 }

@@ -117,11 +117,11 @@ void main() {
     // 官方圖冊 → 預覽
     await tester.tap(find.text('官方圖冊'));
     await settle(tester);
-    expect(find.text('目標'), findsOneWidget); // 列表頁底部導覽還在
+    expect(find.text('時間軸'), findsOneWidget); // 列表頁底部導覽還在
     await tester.tap(find.byType(Image).first);
     await settle(tester);
     expect(find.text('設為封面'), findsOneWidget);
-    expect(find.text('目標'), findsNothing); // 預覽頁蓋住底部導覽
+    expect(find.text('時間軸'), findsNothing); // 預覽頁蓋住底部導覽
     await tester.tap(find.text('設為封面'));
     await settle(tester);
     var pit = (await tester.runAsync(() => db.watchPit(pitId).first))!;
@@ -130,7 +130,7 @@ void main() {
     expect(find.text('已設為官方圖冊封面'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await settle(tester);
-    expect(find.text('目標'), findsOneWidget); // 回來後導覽列又出現
+    expect(find.text('時間軸'), findsOneWidget); // 回來後導覽列又出現
 
     // 好看同人圖：有作者／分組才顯示那一行
     await tester.tap(find.byTooltip('返回'));
@@ -185,7 +185,7 @@ void main() {
     await tester.binding.handlePopRoute();
     await settle(tester);
     expect(find.text('測試坑 · 官方圖冊'), findsOneWidget);
-    expect(find.text('目標'), findsOneWidget);
+    expect(find.text('時間軸'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));

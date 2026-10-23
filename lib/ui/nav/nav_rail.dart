@@ -6,7 +6,7 @@ import '../../theme/tokens.dart';
 import '../sync/sync_avatar.dart';
 import 'nav_tabs.dart';
 
-/// 平板 icon rail（84）：頭像在上，下面是 64×60 的 坑／目標／我的（Profile／MainPortrait）。
+/// 平板 icon rail（84）：頭像在上，下面是 64×60 的 坑／時間軸／我的（Profile／MainPortrait）。
 class NavRail extends StatelessWidget {
   const NavRail({
     super.key,

@@ -455,10 +455,10 @@ void main() {
       await tester.tap(mainSearch);
       await settle(tester);
       expect(find.byType(GlobalSearchPage), findsOneWidget);
-      expect(find.text('目標'), findsNothing);
+      expect(find.text('時間軸'), findsNothing);
       expect(find.text('搜尋全部坑'), findsOneWidget); // 輸入框的 hint
       await back(tester);
-      expect(find.text('目標'), findsOneWidget);
+      expect(find.text('時間軸'), findsOneWidget);
       await unmount(tester);
     });
 

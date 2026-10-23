@@ -4,8 +4,8 @@
 /// - compact（＜600）：底部導覽列（手機版面，不變）。
 /// - medium（600–839）：左側 icon rail 84，一律如此。
 /// - expanded／large（≥840）：由「目前最上層頁面」宣告的 [SideNavStyle] 決定：
-///   [SideNavStyle.sidebar]＝完整 sidebar 260（頭像、坑／目標／我的、現坑清單、開新坑；
-///   目標頁另有年份），[SideNavStyle.rail]＝icon rail 84。**沒有宣告就是 rail**。
+///   [SideNavStyle.sidebar]＝完整 sidebar 260（頭像、坑／時間軸／我的、現坑清單、開新坑；
+///   時間軸頁另有年份），[SideNavStyle.rail]＝icon rail 84。**沒有宣告就是 rail**。
 ///
 /// 導覽的顯示規則不變：任何頁面只要掛了 `HidesNavBar`／`HideNavBar`（`navBarHiddenCount` > 0），
 /// 底部列、rail、sidebar 一起藏起來。
@@ -28,7 +28,7 @@
 /// - 一個頁面可以自帶 sidebar 的下半部（取代預設的現坑清單／年份）：`sidebarSection` 在 sidebar
 ///   build 時呼叫；內容隨頁面狀態變時請用 setState 重建這個 hint（舊／新 builder 不同就會刷新），
 ///   或自己監聽 Listenable。
-/// - 目標頁的預設年份清單由 [goalSidebarYearProvider] 驅動：頁面切年份時寫入它，
+/// - 時間軸頁的預設年份清單由 [goalSidebarYearProvider] 驅動：頁面切年份時寫入它，
 ///   sidebar 點年份時它會改變，頁面監聽它即可。
 /// - 狀態（分頁 index、每個分頁的頁面堆疊）都在 Shell 的 State，不受 rail／sidebar／底部列
 ///   切換影響，拉窗不會重建頁面。
@@ -42,7 +42,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// sidebar（完整 260）或 rail（icon 84）。
 enum SideNavStyle { rail, sidebar }
 
-/// 目標頁 sidebar 的年份選擇（null＝今年）。頁面與 sidebar 共用。
+/// 時間軸頁 sidebar 的年份選擇（null＝今年）。頁面與 sidebar 共用。
 class GoalSidebarYear extends Notifier<int> {
   @override
   int build() => DateTime.now().year;
@@ -64,7 +64,7 @@ class SideNavSpec {
 
   final SideNavStyle style;
 
-  /// 取代 sidebar 預設下半部的內容（null＝用所屬分頁的預設：坑＝現坑清單、目標＝年份）。
+  /// 取代 sidebar 預設下半部的內容（null＝用所屬分頁的預設：坑＝現坑清單、時間軸＝年份）。
   final WidgetBuilder? sidebarSection;
 
   /// sidebar 現坑清單中標成目前所在的坑。

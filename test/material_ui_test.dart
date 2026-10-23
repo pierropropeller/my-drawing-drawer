@@ -421,7 +421,7 @@ void main() {
       await settle(tester);
       expect(find.byType(MaterialLibraryPage), findsOneWidget);
       expect(navBarHiddenCount.value, 0);
-      expect(find.text('目標'), findsOneWidget); // 導覽列還在
+      expect(find.text('時間軸'), findsOneWidget); // 導覽列還在
 
       // 返回「我的」。
       await tester.tap(find.byTooltip('返回'));

@@ -50,9 +50,9 @@ void main() {
     }
   }
 
-  testWidgets('底部導覽可切換 坑／目標／我的', (tester) async {
+  testWidgets('底部導覽可切換 坑／時間軸／我的', (tester) async {
     await pumpApp(tester);
-    await tester.tap(find.text('目標'));
+    await tester.tap(find.text('時間軸'));
     await tester.pump();
     await tester.tap(find.text('我的'));
     await tester.pump();

@@ -151,8 +151,8 @@ void main() {
       final m5 = tester.getTopLeft(find.text('5月'));
       expect((m1.dy - m4.dy).abs(), lessThan(2));
       expect(m5.dy, greaterThan(m1.dy + 20));
-      // 「目標」標題和「年」切換在同一列。
-      final title = tester.getCenter(find.text('目標'));
+      // 「時間軸」標題和「年」切換在同一列。
+      final title = tester.getCenter(find.text('時間軸'));
       final seg = tester.getCenter(find.text('年'));
       expect((title.dy - seg.dy).abs(), lessThan(24));
       // 「新增」是實心按鈕，觸控高度 ≥44。
@@ -170,7 +170,7 @@ void main() {
       final review = tester.getTopLeft(find.text('年度回顧'));
       final goals = tester.getTopLeft(find.text('年度目標'));
       expect(goals.dy, greaterThan(review.dy));
-      final title = tester.getCenter(find.text('目標'));
+      final title = tester.getCenter(find.text('時間軸'));
       final seg = tester.getCenter(find.text('年'));
       expect(seg.dy, greaterThan(title.dy + 20));
       await unmount(tester);

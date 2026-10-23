@@ -5,7 +5,7 @@ import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import 'nav_tabs.dart';
 
-/// 手機（compact）底部導覽列：坑／目標／我的。設計稿導覽列高 74（64＋底部 10）。
+/// 手機（compact）底部導覽列：坑／時間軸／我的。設計稿導覽列高 74（64＋底部 10）。
 class NavBottomBar extends StatelessWidget {
   const NavBottomBar({super.key, required this.index, required this.onSelect});
 

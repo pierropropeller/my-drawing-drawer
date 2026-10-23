@@ -22,7 +22,7 @@ void main() {
     }
   }
 
-  testWidgets('目標分頁：年／月／日分段控制，新增目標後顯示進度', (tester) async {
+  testWidgets('時間軸分頁：年／月／日分段控制，新增目標後顯示進度', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -33,7 +33,7 @@ void main() {
       ),
     );
     await settle(tester);
-    await tester.tap(find.text('目標').last);
+    await tester.tap(find.text('時間軸').last);
     await settle(tester);
     expect(find.text('年度回顧'), findsOneWidget);
     expect(find.text('還沒有年度目標'), findsOneWidget);

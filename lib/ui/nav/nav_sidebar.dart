@@ -13,8 +13,8 @@ import '../sync/sync_avatar.dart';
 import 'adaptive_nav.dart';
 import 'nav_tabs.dart';
 
-/// 完整 sidebar（Main／Pit／Goal，設計稿 260）：頭像＋名字、坑／目標／我的、
-/// 下半部依分頁：坑＝「現坑」清單（含成圖數）＋「開新坑」，目標＝「年份」。
+/// 完整 sidebar（Main／Pit／Goal，設計稿 260）：頭像＋名字、坑／時間軸／我的、
+/// 下半部依分頁：坑＝「現坑」清單（含成圖數）＋「開新坑」，時間軸＝「年份」。
 class NavSidebar extends ConsumerWidget {
   const NavSidebar({
     super.key,
@@ -340,7 +340,7 @@ class _PitSection extends ConsumerWidget {
   }
 }
 
-/// 目標頁 sidebar 的「年份」清單；選取狀態在 [goalSidebarYearProvider]。
+/// 時間軸頁 sidebar 的「年份」清單；選取狀態在 [goalSidebarYearProvider]。
 /// 年份＝今年與去年（設計稿 2026／2025），目前選的年份若更早也會列出。
 class SidebarYearSection extends ConsumerWidget {
   const SidebarYearSection({super.key});

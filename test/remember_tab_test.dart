@@ -152,10 +152,10 @@ void main() {
     await restart(tester);
   });
 
-  testWidgets('目標頁：切到日 → 存起來；重開直接停在目標頁的日；壞值回年', (tester) async {
+  testWidgets('時間軸頁：切到日 → 存起來；重開直接停在時間軸頁的日；壞值回年', (tester) async {
     final p = await prefsWith({});
     await pumpApp(tester, p);
-    await tester.tap(find.text('目標'));
+    await tester.tap(find.text('時間軸'));
     await settle(tester);
     expect(goalsIndex(tester), 0);
     await tester.tap(find.text('日'));
@@ -165,7 +165,7 @@ void main() {
 
     await restart(tester);
     await pumpApp(tester, p);
-    // 底部導覽還原：直接停在目標頁（不是坑），且是「日」。
+    // 底部導覽還原：直接停在時間軸頁（不是坑），且是「日」。
     expect(find.byType(GoalsPage).hitTestable(), findsOneWidget);
     expect(find.byType(PitsPage).hitTestable(), findsNothing);
     expect(goalsIndex(tester), 2);

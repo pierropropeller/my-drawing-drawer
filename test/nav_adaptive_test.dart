@@ -101,7 +101,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('1194×834：坑／目標用 sidebar 260，我的用 rail', (tester) async {
+  testWidgets('1194×834：坑／時間軸用 sidebar 260，我的用 rail', (tester) async {
     await pumpApp(tester, 1194, 834, withPit: true);
     expect(find.byType(NavSidebar), findsOneWidget);
     expect(tester.getSize(find.byType(NavSidebar)).width, 260);
@@ -120,9 +120,9 @@ void main() {
       findsOneWidget,
     );
 
-    // 目標分頁：sidebar 顯示年份。
+    // 時間軸分頁：sidebar 顯示年份。
     await tester.tap(
-      find.descendant(of: find.byType(NavSidebar), matching: find.text('目標')),
+      find.descendant(of: find.byType(NavSidebar), matching: find.text('時間軸')),
     );
     await settle(tester);
     expect(find.byType(GoalsPage), findsOneWidget);

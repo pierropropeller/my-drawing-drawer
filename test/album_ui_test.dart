@@ -139,12 +139,12 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('官方圖冊'));
     await settle(tester);
-    expect(find.text('目標'), findsOneWidget); // 瀏覽時有導覽列
+    expect(find.text('時間軸'), findsOneWidget); // 瀏覽時有導覽列
 
     await tester.longPress(find.byType(Image).first);
     await settle(tester);
     expect(find.text('已選 1 張'), findsOneWidget);
-    expect(find.text('目標'), findsNothing); // 多選沒有導覽列
+    expect(find.text('時間軸'), findsNothing); // 多選沒有導覽列
     expect(find.text('下載'), findsOneWidget);
     expect(find.text('移動'), findsOneWidget);
     expect(find.text('tag'), findsOneWidget);
@@ -172,7 +172,7 @@ void main() {
     final fan = await tester.runAsync(() => db.watchFanArts(pitId).first);
     expect(official!.length, 1);
     expect(fan!.length, 1);
-    expect(find.text('目標'), findsOneWidget); // 結束多選後導覽列回來
+    expect(find.text('時間軸'), findsOneWidget); // 結束多選後導覽列回來
     await unmount(tester);
   });
 

@@ -631,7 +631,7 @@ abstract class AppLocalizations {
   /// No description provided for @shellTabGoals.
   ///
   /// In zh, this message translates to:
-  /// **'目標'**
+  /// **'時間軸'**
   String get shellTabGoals;
 
   /// No description provided for @shellTabMe.
@@ -1836,7 +1836,7 @@ abstract class AppLocalizations {
   /// No description provided for @goalsTitle.
   ///
   /// In zh, this message translates to:
-  /// **'目標'**
+  /// **'時間軸'**
   String get goalsTitle;
 
   /// No description provided for @goalsPrevYear.
