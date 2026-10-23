@@ -241,6 +241,74 @@ void main() {
       await unmount(tester);
     });
 
+    testWidgets('P-040：欄數看內容區（扣掉 icon rail）：750＝兩欄、640＝兩欄、616＝一欄', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await db.createPit(name: '星之彼端', status: PitStatus.shallow);
+        await db.createPit(name: '夏日偵探社', status: PitStatus.shallow);
+        await db.createPit(name: '舊坑・學園篇', status: PitStatus.archived);
+      });
+      Future<int> columnsAt(double w, String tab) async {
+        await pump(
+          tester,
+          Row(
+            children: [
+              const SizedBox(width: 84), // icon rail
+              const Expanded(child: PitsPage()),
+            ],
+          ),
+          w: w,
+          h: 1194,
+        );
+        final l = AppLocalizations.of(tester.element(find.byType(PitsPage)));
+        await tester.tap(
+          find.text(tab == 'shallow' ? l.shallowName : l.pitsArchived),
+        );
+        await settle(tester);
+        final grid = tester.widget<GridView>(
+          find.byKey(const ValueKey('pitCardGrid')),
+        );
+        final n =
+            (grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
+                .crossAxisCount;
+        await unmount(tester);
+        return n;
+      }
+
+      expect(await columnsAt(834, 'shallow'), 2); // 內容區 750
+      expect(await columnsAt(834, 'archived'), 2);
+      expect(await columnsAt(724, 'shallow'), 2); // 剛好 640
+      expect(await columnsAt(700, 'shallow'), 1); // 616
+      expect(await columnsAt(700, 'archived'), 1);
+    });
+
+    testWidgets('P-040：一欄時卡片上下排、各佔滿內容寬', (tester) async {
+      await tester.runAsync(() async {
+        await db.createPit(name: '星之彼端', status: PitStatus.shallow);
+        await db.createPit(name: '夏日偵探社', status: PitStatus.shallow);
+      });
+      await pump(
+        tester,
+        Row(
+          children: [
+            const SizedBox(width: 84),
+            const Expanded(child: PitsPage()),
+          ],
+        ),
+        w: 700,
+        h: 1194,
+      );
+      final l = AppLocalizations.of(tester.element(find.byType(PitsPage)));
+      await tester.tap(find.text(l.shallowName));
+      await settle(tester);
+      final a = tester.getTopLeft(find.text('星之彼端'));
+      final b = tester.getTopLeft(find.text('夏日偵探社'));
+      expect(b.dx, a.dx);
+      expect(b.dy, greaterThan(a.dy));
+      await unmount(tester);
+    });
+
     testWidgets('手機：淺坑維持單欄列表（沒有卡片格）', (tester) async {
       await tester.runAsync(() async {
         await db.createPit(name: '星之彼端', status: PitStatus.shallow);

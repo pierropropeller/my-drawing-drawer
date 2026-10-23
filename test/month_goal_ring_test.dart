@@ -123,9 +123,15 @@ void main() {
     }
   }
 
-  Future<void> show(WidgetTester tester, Widget page) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 3;
+  Future<void> show(
+    WidgetTester tester,
+    Widget page, {
+    bool ipad = false,
+  }) async {
+    tester.view.physicalSize = ipad
+        ? const Size(1194, 834)
+        : const Size(1080, 2400);
+    tester.view.devicePixelRatio = ipad ? 1 : 3;
     addTearDown(tester.view.reset);
     SharedPreferences.setMockInitialValues({'onboarded': true});
     prefs = await SharedPreferences.getInstance();
@@ -191,6 +197,29 @@ void main() {
       find.descendant(of: cell4, matching: find.byType(MonthGoalRing)),
       findsNothing,
     );
+    await unmount(tester);
+  });
+
+  testWidgets('P-039：iPad 版面（wide）進度圈 24px、離右上角 6', (tester) async {
+    await tester.runAsync(() async {
+      await monthGoal(3, 1);
+    });
+    await show(
+      tester,
+      const Scaffold(body: YearView(year: year, wide: true, side: 40)),
+      ipad: true,
+    );
+    final ring = find.byType(MonthGoalRing);
+    expect(ring, findsOneWidget);
+    expect(tester.getSize(ring), const Size(24, 24));
+    final cell3 = tester.getRect(
+      find
+          .ancestor(of: find.text('3月'), matching: find.byType(GestureDetector))
+          .first,
+    );
+    final r = tester.getRect(ring);
+    expect(cell3.top + 6, closeTo(r.top, .5));
+    expect(cell3.right - 6, closeTo(r.right, .5));
     await unmount(tester);
   });
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/entity_queries.dart';
+import '../../data/media.dart' show MediaKind;
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
@@ -14,7 +15,7 @@ import '../common/dashed_box.dart';
 import '../common/detail_carousel.dart';
 import '../common/media_mini.dart';
 import '../common/media_widgets.dart';
-import '../common/sensitive_safe_button.dart';
+import '../common/sensitive_reveal.dart';
 import '../common/svg_icon.dart';
 import 'connect_field.dart';
 import 'draft_detail_page.dart';
@@ -32,14 +33,8 @@ import 'piece_platform.dart';
 
 /// 標題列右側的「編輯」「刪除」44×44 方形鈕。
 class _PaneActions extends StatelessWidget {
-  const _PaneActions({
-    required this.onEdit,
-    required this.onDelete,
-    this.files = const [],
-  });
+  const _PaneActions({required this.onEdit, required this.onDelete});
 
-  /// 這一頁的圖檔名；有標記的圖才多一顆「安全模式」鈕（D-110）。
-  final Iterable<String> files;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -49,7 +44,8 @@ class _PaneActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SensitiveSafeWideButton(files: files, gap: 8),
+        // P-038：這張圖有模糊時才多一顆眼睛鈕（只顯示這一張），次序＝眼睛、編輯、刪除。
+        const SensitiveRevealTitleButton(gap: 8),
         WideIconButton(
           svg: AppIcons.edit,
           label: context.l10n.commonEdit,
@@ -107,216 +103,251 @@ class IdeaDetailPane extends ConsumerWidget {
       l.ipadListsStageDraft,
       l.ipadListsStagePiece,
     ];
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(36, 26, 36, 32),
-      children: [
-        // 有圖時圖片放最上面（D-092，同摸魚詳情版型）。
-        if (v.images.isNotEmpty) ...[
-          DetailImageStage(
-            images: v.images,
-            borderRadius: 14,
-            sidePadding: 0,
-            maxHeightFactor: 0.5,
-          ),
-          const SizedBox(height: 20),
-        ],
-        Row(
+    return _IndexHolder(
+      key: ValueKey(ideaId),
+      builder: (context, index, onIndex) => SensitiveReveal(
+        current: _revealFile(v.images, index),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(36, 26, 36, 32),
           children: [
-            Expanded(
-              child: Text(
-                v.idea.title,
-                style: Theme.of(context).textTheme.headlineSmall
-                    ?.copyWith(fontSize: 28, fontWeight: FontWeight.w700),
+            // 有圖時圖片放最上面（D-092，同摸魚詳情版型）。
+            if (v.images.isNotEmpty) ...[
+              DetailImageStage(
+                images: v.images,
+                borderRadius: 14,
+                sidePadding: 0,
+                maxHeightFactor: 0.5,
+                onIndexChanged: onIndex,
               ),
-            ),
-            const SizedBox(width: 12),
-            IdeaStatusChip(v, short: true, fontSize: 12),
-            const SizedBox(width: 12),
-            _PaneActions(
-              files: flaggableFiles(v.images),
-              onEdit: () => openIdeaForm(context, pitId: pitId, ideaId: ideaId),
-              onDelete: () async {
-                final ok = await confirmDelete(
-                  context,
-                  title: l.ideaDetailDeleteTitle,
-                );
-                if (!ok || !context.mounted) return;
-                await ref.read(databaseProvider).deleteIdeas([ideaId]);
-                onDeleted();
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          l.ideaDetailCreatedAt(fmtSlash(v.idea.date)),
-          style: TextStyle(color: t.text3, fontSize: 12.5),
-        ),
-        if (v.idea.body.isNotEmpty) ...[
-          const SizedBox(height: 18),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: Text(
-              v.idea.body,
-              style: TextStyle(
-                color: t.ink.withValues(alpha: 0.82),
-                fontSize: 16,
-                height: 1.85,
-              ),
-            ),
-          ),
-        ],
-        if (v.tags.isNotEmpty) ...[
-          const SizedBox(height: 18),
-          TagPills(
-            v.tags,
-            large: true,
-            onTagTap: (id) => openTagSearch(context, pitId, id),
-          ),
-        ],
-        const SizedBox(height: 28),
-        Text(
-          l.ipadListsIdeaFlow,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            for (var k = 0; k < stages.length; k++)
-              Container(
-                height: 40,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: k <= stage ? t.accentSoft : t.chipBg,
-                  borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 20),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    v.idea.title,
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontSize: 28, fontWeight: FontWeight.w700),
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  spacing: 8,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: k <= stage ? t.accent : t.dashed,
-                      ),
-                    ),
-                    Text(
-                      stages[k],
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: k <= stage ? t.accentStrong : t.text3,
-                      ),
-                    ),
-                  ],
+                const SizedBox(width: 12),
+                IdeaStatusChip(v, short: true, fontSize: 12),
+                const SizedBox(width: 12),
+                _PaneActions(
+                  onEdit: () =>
+                      openIdeaForm(context, pitId: pitId, ideaId: ideaId),
+                  onDelete: () async {
+                    final ok = await confirmDelete(
+                      context,
+                      title: l.ideaDetailDeleteTitle,
+                    );
+                    if (!ok || !context.mounted) return;
+                    await ref.read(databaseProvider).deleteIdeas([ideaId]);
+                    onDeleted();
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              l.ideaDetailCreatedAt(fmtSlash(v.idea.date)),
+              style: TextStyle(color: t.text3, fontSize: 12.5),
+            ),
+            if (v.idea.body.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: Text(
+                  v.idea.body,
+                  style: TextStyle(
+                    color: t.ink.withValues(alpha: 0.82),
+                    fontSize: 16,
+                    height: 1.85,
+                  ),
                 ),
               ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Semantics(
-            button: true,
-            label: l.ipadListsStartDraftFromIdea,
-            excludeSemantics: true,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => openDraftForm(
-                context,
-                pitId: pitId,
-                initialIdeaIds: [ideaId],
+            ],
+            if (v.tags.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              TagPills(
+                v.tags,
+                large: true,
+                onTagTap: (id) => openTagSearch(context, pitId, id),
               ),
-              child: DashedBox(
-                color: t.dashed,
-                radius: 12,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  spacing: 6,
-                  children: [
-                    SvgIcon(
-                      AppIcons.plus,
-                      size: 18,
-                      strokeWidth: 2,
-                      color: t.text2,
-                    ),
-                    Text(
-                      l.ipadListsStartDraftFromIdea,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: t.text2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            ],
+            const SizedBox(height: 28),
+            Text(
+              l.ipadListsIdeaFlow,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
             ),
-          ),
-        ),
-        if (myDrafts.isNotEmpty) ...[
-          _Heading(l.draftLinkedHeading),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final d in myDrafts)
-                Semantics(
-                  button: true,
-                  label: (d.draft.title ?? '').isEmpty
-                      ? l.ideaDetailDraftLabel(d.images.length)
-                      : d.draft.title,
-                  child: ThumbSquare(
-                    images: d.images,
-                    size: 80,
-                    placeholder: t.draft.bg,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            DraftDetailPage(draftId: d.draft.id, pitId: pitId),
-                      ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (var k = 0; k < stages.length; k++)
+                  Container(
+                    height: 40,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: k <= stage ? t.accentSoft : t.chipBg,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      spacing: 8,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: k <= stage ? t.accent : t.dashed,
+                          ),
+                        ),
+                        Text(
+                          stages[k],
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: k <= stage ? t.accentStrong : t.text3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Semantics(
+                button: true,
+                label: l.ipadListsStartDraftFromIdea,
+                excludeSemantics: true,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => openDraftForm(
+                    context,
+                    pitId: pitId,
+                    initialIdeaIds: [ideaId],
+                  ),
+                  child: DashedBox(
+                    color: t.dashed,
+                    radius: 12,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      spacing: 6,
+                      children: [
+                        SvgIcon(
+                          AppIcons.plus,
+                          size: 18,
+                          strokeWidth: 2,
+                          color: t.text2,
+                        ),
+                        Text(
+                          l.ipadListsStartDraftFromIdea,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: t.text2,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-            ],
-          ),
-        ],
-        if (myPieces.isNotEmpty) ...[
-          _Heading(l.pieceLinkedHeading),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final p in myPieces)
-                Semantics(
-                  button: true,
-                  label: p.piece.title,
-                  child: ThumbSquare(
-                    images: p.images,
-                    size: 80,
-                    placeholder: t.piece.bg,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            PieceDetailPage(pieceId: p.piece.id, pitId: pitId),
+              ),
+            ),
+            if (myDrafts.isNotEmpty) ...[
+              _Heading(l.draftLinkedHeading),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final d in myDrafts)
+                    Semantics(
+                      button: true,
+                      label: (d.draft.title ?? '').isEmpty
+                          ? l.ideaDetailDraftLabel(d.images.length)
+                          : d.draft.title,
+                      child: ThumbSquare(
+                        images: d.images,
+                        size: 80,
+                        placeholder: t.draft.bg,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => DraftDetailPage(
+                              draftId: d.draft.id,
+                              pitId: pitId,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                ],
+              ),
             ],
-          ),
-        ],
-      ],
+            if (myPieces.isNotEmpty) ...[
+              _Heading(l.pieceLinkedHeading),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final p in myPieces)
+                    Semantics(
+                      button: true,
+                      label: p.piece.title,
+                      child: ThumbSquare(
+                        images: p.images,
+                        size: 80,
+                        placeholder: t.piece.bg,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => PieceDetailPage(
+                              pieceId: p.piece.id,
+                              pitId: pitId,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
+}
+
+/// 面板現在顯示的那張圖的檔名（影片、沒圖＝null：沒有可模糊的圖）。
+String? _revealFile(List<ImageRef> images, int index) {
+  if (images.isEmpty) return null;
+  final im = images[index.clamp(0, images.length - 1)];
+  return im.kind == MediaKind.video ? null : im.file;
+}
+
+/// 腦洞面板記住輪播現在翻到第幾張（換腦洞時用 key 重置）。
+class _IndexHolder extends StatefulWidget {
+  const _IndexHolder({super.key, required this.builder});
+  final Widget Function(BuildContext, int, ValueChanged<int>) builder;
+
+  @override
+  State<_IndexHolder> createState() => _IndexHolderState();
+}
+
+class _IndexHolderState extends State<_IndexHolder> {
+  int _index = 0;
+
+  @override
+  Widget build(BuildContext context) =>
+      widget.builder(context, _index, (i) => setState(() => _index = i));
 }
 
 class _Heading extends StatelessWidget {
@@ -376,274 +407,278 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
     final refTitle = pitName == null
         ? l.pitsDrafts
         : l.albumTitleWithPit(pitName, l.pitsDrafts);
-    return LayoutBuilder(
-      builder: (context, c) {
-        final stageH = (c.maxHeight * 0.52).clamp(240.0, 420.0);
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(32, 20, 32, 32),
-          children: [
-            SizedBox(
-              height: stageH,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          ColoredBox(color: t.chipBg),
-                          if (n == 0)
-                            const ImagePlaceholder(iconSize: 40)
-                          else
-                            MediaThumb(
-                              MediaSource.fromImageRef(imgs[index]),
-                              cacheWidth: 1200,
-                              fit: BoxFit.contain,
-                              badgeInset: 12,
-                              sensitiveCircle: 52,
-                            ),
-                          if (n > 0)
-                            Positioned(
-                              right: 12,
-                              top: 12,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0x9E2B2622),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  '${index + 1} / $n',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
+    return SensitiveReveal(
+      current: _revealFile(imgs, index),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final stageH = (c.maxHeight * 0.52).clamp(240.0, 420.0);
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(32, 20, 32, 32),
+            children: [
+              SizedBox(
+                height: stageH,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            ColoredBox(color: t.chipBg),
+                            if (n == 0)
+                              const ImagePlaceholder(iconSize: 40)
+                            else
+                              MediaThumb(
+                                MediaSource.fromImageRef(imgs[index]),
+                                cacheWidth: 1200,
+                                fit: BoxFit.contain,
+                                badgeInset: 12,
+                                sensitiveCircle: 52,
                               ),
-                            ),
-                          if (n > 0)
-                            Positioned(
-                              right: 12,
-                              bottom: 12,
-                              child: GestureDetector(
-                                // 參考檢視（RefFull／RefSplit／RespRef400…）；影片會開影片參考檢視。
-                                onTap: () => openReferenceViewer(
-                                  context,
-                                  images: [
-                                    for (var i = 0; i < imgs.length; i++)
-                                      RefImage(
-                                        id: '${d.id}#$i',
-                                        file: imgs[i].file,
-                                        width: imgs[i].width,
-                                        height: imgs[i].height,
-                                        kind: imgs[i].kind,
-                                        durationMs: imgs[i].durationMs,
-                                        posterFile: imgs[i].poster,
-                                        title: refTitle,
-                                        addedAt: d.createdAt,
-                                      ),
-                                  ],
-                                  index: index,
-                                ),
+                            if (n > 0)
+                              Positioned(
+                                right: 12,
+                                top: 12,
                                 child: Container(
-                                  height: 44,
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
+                                    horizontal: 10,
+                                    vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xB81E1B18),
+                                    color: const Color(0x9E2B2622),
                                     borderRadius: BorderRadius.circular(999),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    spacing: 5,
-                                    children: [
-                                      const SvgIcon(
-                                        IpadListsIcons.reference,
-                                        size: 14,
-                                        strokeWidth: 2,
-                                        color: Color(0xFFF5F0E8),
-                                      ),
-                                      Text(
-                                        l.ipadListsReferenceView,
-                                        style: const TextStyle(
-                                          color: Color(0xFFF5F0E8),
-                                          fontSize: 12.5,
-                                        ),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    '${index + 1} / $n',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
+                            if (n > 0)
+                              Positioned(
+                                right: 12,
+                                bottom: 12,
+                                child: GestureDetector(
+                                  // 參考檢視（RefFull／RefSplit／RespRef400…）；影片會開影片參考檢視。
+                                  onTap: () => openReferenceViewer(
+                                    context,
+                                    images: [
+                                      for (var i = 0; i < imgs.length; i++)
+                                        RefImage(
+                                          id: '${d.id}#$i',
+                                          file: imgs[i].file,
+                                          width: imgs[i].width,
+                                          height: imgs[i].height,
+                                          kind: imgs[i].kind,
+                                          durationMs: imgs[i].durationMs,
+                                          posterFile: imgs[i].poster,
+                                          title: refTitle,
+                                          addedAt: d.createdAt,
+                                        ),
+                                    ],
+                                    index: index,
+                                  ),
+                                  child: Container(
+                                    height: 44,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xB81E1B18),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      spacing: 5,
+                                      children: [
+                                        const SvgIcon(
+                                          IpadListsIcons.reference,
+                                          size: 14,
+                                          strokeWidth: 2,
+                                          color: Color(0xFFF5F0E8),
+                                        ),
+                                        Text(
+                                          l.ipadListsReferenceView,
+                                          style: const TextStyle(
+                                            color: Color(0xFFF5F0E8),
+                                            fontSize: 12.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  if (n > 1) ...[
-                    const SizedBox(width: 16),
-                    SizedBox(
-                      width: 64,
-                      child: ListView.separated(
-                        itemCount: n,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (_, i) => Semantics(
-                          button: true,
-                          label: l.ipadListsDraftImageN(i + 1),
-                          child: GestureDetector(
-                            onTap: () => setState(() => _index = i),
-                            child: Container(
-                              width: 64,
-                              height: 64,
-                              clipBehavior: Clip.antiAlias,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                border: i == index
-                                    ? Border.all(color: t.accent, width: 2.5)
-                                    : null,
-                              ),
-                              child: MiniMediaThumb(
-                                MediaSource.fromImageRef(imgs[i]),
-                                cacheWidth: 200,
-                                sensitiveCircle: 24,
+                    if (n > 1) ...[
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        width: 64,
+                        child: ListView.separated(
+                          itemCount: n,
+                          separatorBuilder: (_, _) => const SizedBox(height: 8),
+                          itemBuilder: (_, i) => Semantics(
+                            button: true,
+                            label: l.ipadListsDraftImageN(i + 1),
+                            child: GestureDetector(
+                              onTap: () => setState(() => _index = i),
+                              child: Container(
+                                width: 64,
+                                height: 64,
+                                clipBehavior: Clip.antiAlias,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: i == index
+                                      ? Border.all(color: t.accent, width: 2.5)
+                                      : null,
+                                ),
+                                child: MiniMediaThumb(
+                                  MediaSource.fromImageRef(imgs[i]),
+                                  cacheWidth: 200,
+                                  sensitiveCircle: 24,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title.isEmpty ? l.ipadListsDraftUntitled : title,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: title.isEmpty ? t.text3 : t.ink,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    fmtSlash(d.date),
+                    style: TextStyle(color: t.text3, fontSize: 12.5),
+                  ),
+                  const SizedBox(width: 10),
+                  _PaneActions(
+                    onEdit: () => openDraftForm(
+                      context,
+                      pitId: widget.pitId,
+                      draftId: widget.draftId,
+                    ),
+                    onDelete: () async {
+                      final ok = await confirmDelete(
+                        context,
+                        title: l.draftDetailDeleteTitle,
+                      );
+                      if (!ok || !context.mounted) return;
+                      await ref.read(databaseProvider).deleteDrafts([
+                        widget.draftId,
+                      ]);
+                      widget.onDeleted();
+                    },
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title.isEmpty ? l.ipadListsDraftUntitled : title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: title.isEmpty ? t.text3 : t.ink,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
+              if ((d.body ?? '').isNotEmpty) ...[
+                const SizedBox(height: 8),
                 Text(
-                  fmtSlash(d.date),
-                  style: TextStyle(color: t.text3, fontSize: 12.5),
-                ),
-                const SizedBox(width: 10),
-                _PaneActions(
-                  files: flaggableFiles(imgs),
-                  onEdit: () => openDraftForm(
-                    context,
-                    pitId: widget.pitId,
-                    draftId: widget.draftId,
+                  d.body!,
+                  style: TextStyle(
+                    color: t.ink.withValues(alpha: 0.82),
+                    fontSize: 15,
+                    height: 1.75,
                   ),
-                  onDelete: () async {
-                    final ok = await confirmDelete(
-                      context,
-                      title: l.draftDetailDeleteTitle,
-                    );
-                    if (!ok || !context.mounted) return;
-                    await ref.read(databaseProvider).deleteDrafts([
-                      widget.draftId,
-                    ]);
-                    widget.onDeleted();
-                  },
                 ),
               ],
-            ),
-            if ((d.body ?? '').isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                d.body!,
-                style: TextStyle(
-                  color: t.ink.withValues(alpha: 0.82),
-                  fontSize: 15,
-                  height: 1.75,
-                ),
-              ),
-            ],
-            if (v.tags.isNotEmpty || mine.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  for (final tag in v.tags)
-                    GestureDetector(
-                      onTap: () => openTagSearch(context, widget.pitId, tag.id),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 11,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: t.chipBg,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          '#${tag.name}',
-                          style: TextStyle(color: t.text2, fontSize: 12),
-                        ),
-                      ),
-                    ),
-                  for (final i in mine)
-                    RelationChip(
-                      kind: ConnectKind.idea,
-                      title: l.ipadListsDraftIdeaLink(i.idea.title),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => IdeaDetailPage(
-                            ideaId: i.idea.id,
-                            pitId: widget.pitId,
+              if (v.tags.isNotEmpty || mine.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    for (final tag in v.tags)
+                      GestureDetector(
+                        onTap: () =>
+                            openTagSearch(context, widget.pitId, tag.id),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 11,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: t.chipBg,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '#${tag.name}',
+                            style: TextStyle(color: t.text2, fontSize: 12),
                           ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ],
-            if (myPieces.isNotEmpty) ...[
-              _Heading(l.pieceLinkedHeading),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final p in myPieces)
-                    Semantics(
-                      button: true,
-                      label: p.piece.title,
-                      child: ThumbSquare(
-                        images: p.images,
-                        size: 80,
-                        placeholder: t.piece.bg,
+                    for (final i in mine)
+                      RelationChip(
+                        kind: ConnectKind.idea,
+                        title: l.ipadListsDraftIdeaLink(i.idea.title),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
-                            builder: (_) => PieceDetailPage(
-                              pieceId: p.piece.id,
+                            builder: (_) => IdeaDetailPage(
+                              ideaId: i.idea.id,
                               pitId: widget.pitId,
                             ),
                           ),
                         ),
                       ),
-                    ),
-                ],
-              ),
+                  ],
+                ),
+              ],
+              if (myPieces.isNotEmpty) ...[
+                _Heading(l.pieceLinkedHeading),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final p in myPieces)
+                      Semantics(
+                        button: true,
+                        label: p.piece.title,
+                        child: ThumbSquare(
+                          images: p.images,
+                          size: 80,
+                          placeholder: t.piece.bg,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => PieceDetailPage(
+                                pieceId: p.piece.id,
+                                pitId: widget.pitId,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ],
-          ],
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -674,196 +709,205 @@ class PieceDetailPanel extends ConsumerWidget {
     final pct = p.targetLikes > 0
         ? (p.actualLikes / p.targetLikes).clamp(0.0, 1.0)
         : 0.0;
-    return LayoutBuilder(
-      builder: (context, c) {
-        final coverH = (c.maxHeight * 0.34).clamp(160.0, 230.0);
-        return ListView(
-          padding: const EdgeInsets.only(bottom: 24),
-          children: [
-            SensitiveSafePanelBar(files: flaggableFiles(v.images.take(1))),
-            Semantics(
-              button: true,
-              label: p.title,
-              child: GestureDetector(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) =>
-                        PieceDetailPage(pieceId: pieceId, pitId: pitId),
-                  ),
-                ),
-                child: SizedBox(
-                  height: coverH,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: v.images.isEmpty
-                        ? ImagePlaceholder(color: t.piece.bg, iconSize: 26)
-                        : MediaThumb(
-                            MediaSource.fromImageRef(v.images.first),
-                            cacheWidth: 900,
-                            sensitiveCircle: 52,
-                          ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Expanded(
-                  child: Text(
-                    p.title,
-                    style: Theme.of(context).textTheme.headlineSmall
-                        ?.copyWith(fontSize: 21, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  fmtSlash(p.finishedAt),
-                  style: TextStyle(fontSize: 12, color: t.text3),
-                ),
-              ],
-            ),
-            if (p.isPublished) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                decoration: BoxDecoration(
-                  color: t.ground,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        SvgIcon(
-                          AppIcons.heart,
-                          size: 22,
-                          strokeWidth: reached ? 0 : 1.8,
-                          color: t.accent,
-                          fill: reached ? _hex(t.accent) : 'none',
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${p.actualLikes}',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        if (p.targetLikes > 0)
-                          Text(
-                            ' / ${p.targetLikes}',
-                            style: TextStyle(fontSize: 13, color: t.text3),
-                          ),
-                        const Spacer(),
-                        if (p.targetLikes > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: reached ? t.piece.bg : t.chipBg,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              reached
-                                  ? l.ipadListsReached
-                                  : l.ipadListsNotReached,
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                                color: reached ? t.piece.fg : t.text2,
-                              ),
-                            ),
-                          ),
-                      ],
+    return SensitiveReveal(
+      current: _revealFile(v.images, 0),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final coverH = (c.maxHeight * 0.34).clamp(160.0, 230.0);
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              Semantics(
+                button: true,
+                label: p.title,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          PieceDetailPage(pieceId: pieceId, pitId: pitId),
                     ),
-                    if (p.targetLikes > 0) ...[
-                      const SizedBox(height: 10),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: pct,
-                          minHeight: 8,
-                          backgroundColor: t.accentSoft,
-                          valueColor: AlwaysStoppedAnimation(t.accent),
-                        ),
-                      ),
-                    ],
-                  ],
+                  ),
+                  child: SizedBox(
+                    height: coverH,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: v.images.isEmpty
+                          ? ImagePlaceholder(color: t.piece.bg, iconSize: 26)
+                          : Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                MediaThumb(
+                                  MediaSource.fromImageRef(v.images.first),
+                                  cacheWidth: 900,
+                                  sensitiveCircle: 52,
+                                ),
+                                // P-038：成圖面板沒有標題列，眼睛鈕在封面左上角。
+                                const SensitiveRevealOverlayButton(),
+                              ],
+                            ),
+                    ),
+                  ),
                 ),
               ),
-            ],
-            if (p.isPublished && v.links.isNotEmpty) ...[
-              _Heading(l.pieceFormSocialLinks),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [for (final link in v.links) _LinkButton(link)],
-              ),
-            ],
-            if (myIdeas.isNotEmpty) ...[
-              _Heading(l.ideaLinkedHeading),
-              for (final i in myIdeas)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            IdeaDetailPage(ideaId: i.idea.id, pitId: pitId),
-                      ),
+              const SizedBox(height: 14),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Expanded(
+                    child: Text(
+                      p.title,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontSize: 21, fontWeight: FontWeight.w700),
                     ),
-                    child: Container(
-                      constraints: const BoxConstraints(minHeight: 44),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: t.idea.bg,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        spacing: 10,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    fmtSlash(p.finishedAt),
+                    style: TextStyle(fontSize: 12, color: t.text3),
+                  ),
+                ],
+              ),
+              if (p.isPublished) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                  decoration: BoxDecoration(
+                    color: t.ground,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
                           SvgIcon(
-                            AppIcons.bulb,
-                            size: 18,
-                            strokeWidth: 1.7,
-                            color: t.idea.fg,
+                            AppIcons.heart,
+                            size: 22,
+                            strokeWidth: reached ? 0 : 1.8,
+                            color: t.accent,
+                            fill: reached ? _hex(t.accent) : 'none',
                           ),
-                          Expanded(
-                            child: Text(
-                              i.idea.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${p.actualLikes}',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          SvgIcon(
-                            AppIcons.chevronRight,
-                            size: 16,
-                            strokeWidth: 2,
-                            color: t.idea.fg,
-                          ),
+                          if (p.targetLikes > 0)
+                            Text(
+                              ' / ${p.targetLikes}',
+                              style: TextStyle(fontSize: 13, color: t.text3),
+                            ),
+                          const Spacer(),
+                          if (p.targetLikes > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: reached ? t.piece.bg : t.chipBg,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                reached
+                                    ? l.ipadListsReached
+                                    : l.ipadListsNotReached,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: reached ? t.piece.fg : t.text2,
+                                ),
+                              ),
+                            ),
                         ],
+                      ),
+                      if (p.targetLikes > 0) ...[
+                        const SizedBox(height: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: pct,
+                            minHeight: 8,
+                            backgroundColor: t.accentSoft,
+                            valueColor: AlwaysStoppedAnimation(t.accent),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+              if (p.isPublished && v.links.isNotEmpty) ...[
+                _Heading(l.pieceFormSocialLinks),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [for (final link in v.links) _LinkButton(link)],
+                ),
+              ],
+              if (myIdeas.isNotEmpty) ...[
+                _Heading(l.ideaLinkedHeading),
+                for (final i in myIdeas)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              IdeaDetailPage(ideaId: i.idea.id, pitId: pitId),
+                        ),
+                      ),
+                      child: Container(
+                        constraints: const BoxConstraints(minHeight: 44),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: t.idea.bg,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          spacing: 10,
+                          children: [
+                            SvgIcon(
+                              AppIcons.bulb,
+                              size: 18,
+                              strokeWidth: 1.7,
+                              color: t.idea.fg,
+                            ),
+                            Expanded(
+                              child: Text(
+                                i.idea.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            SvgIcon(
+                              AppIcons.chevronRight,
+                              size: 16,
+                              strokeWidth: 2,
+                              color: t.idea.fg,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
+              ],
             ],
-          ],
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

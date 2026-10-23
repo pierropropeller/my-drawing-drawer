@@ -9,7 +9,7 @@ import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/media_widgets.dart';
 import '../common/sensitive_gate.dart';
-import '../common/sensitive_safe_button.dart';
+import '../common/sensitive_reveal.dart';
 import '../common/svg_icon.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
@@ -110,6 +110,8 @@ class AlbumPreviewPanel extends StatelessWidget {
                           context.l10n.ipadListsReferenceView,
                         ),
                       ),
+                      // P-038：面板沒有標題列，眼睛鈕在圖片左上角（只顯示這一張）。
+                      const SensitiveRevealOverlayButton(),
                     ],
                   ),
                 ),
@@ -124,35 +126,35 @@ class AlbumPreviewPanel extends StatelessWidget {
             : media.isGif
             ? context.l10n.ipadauditGifMeta
             : null;
-        return Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // D-110：這張圖有標記才多一顆「安全模式」鈕（面板沒有標題列，放封面上方右側）。
-                    if (!media.isVideo)
-                      SensitiveSafePanelBar(files: [media.file]),
-                    cover,
-                    const SizedBox(height: 14),
-                    ...info.take(1),
-                    if (meta != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          meta,
-                          style: TextStyle(fontSize: 12.5, color: t.text3),
+        return SensitiveReveal(
+          current: media.isVideo ? null : media.file,
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      cover,
+                      const SizedBox(height: 14),
+                      ...info.take(1),
+                      if (meta != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            meta,
+                            style: TextStyle(fontSize: 12.5, color: t.text3),
+                          ),
                         ),
-                      ),
-                    ...info.skip(1),
-                    const SizedBox(height: 12),
-                  ],
+                      ...info.skip(1),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            PanelActionBar(actions: actions),
-          ],
+              PanelActionBar(actions: actions),
+            ],
+          ),
         );
       },
     );

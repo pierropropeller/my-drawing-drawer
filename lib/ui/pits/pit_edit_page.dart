@@ -203,7 +203,8 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
       sensitiveEnabled: _sensitive == pit.sensitiveEnabled ? null : _sensitive,
       deleteClosedContent: _shallow,
     );
-    if (_shallow && _galleryCover != null) {
+    // P-041：封面「最後選的贏」——從相簿選的（任何類型）換掉原本的封面；從坑內選圖則清掉相簿封面。
+    if (_galleryCover != null) {
       await db.setPitCoverFile(pit.id, _galleryCover);
     } else if (_coverDirty || _coverId != pit.coverImageId) {
       await db.setCover(pit.id, _coverId);
@@ -473,32 +474,30 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                           ),
                         ),
                       ),
-                      // 淺坑通常還沒有坑內的圖可挑：多一顆從相簿選圖的虛線膠囊（PitEditShallow）。
-                      if (_shallow)
-                        Semantics(
-                          button: true,
-                          child: GestureDetector(
-                            key: const ValueKey('pitCoverFromAlbum'),
-                            behavior: HitTestBehavior.opaque,
-                            onTap: _pickGalleryCover,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(minHeight: 44),
-                              child: Center(
-                                widthFactor: 1,
-                                child: DashedBox(
-                                  color: t.dashed,
-                                  radius: 18,
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    child: Text(
-                                      l.ipadpitPickFromAlbum,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: t.dashedText,
-                                      ),
+                      // P-041：三種類型（坑、淺坑、封存）都可以從相簿選圖（PitEdit／PitEditShallow）。
+                      Semantics(
+                        button: true,
+                        child: GestureDetector(
+                          key: const ValueKey('pitCoverFromAlbum'),
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _pickGalleryCover,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 44),
+                            child: Center(
+                              widthFactor: 1,
+                              child: DashedBox(
+                                color: t.dashed,
+                                radius: 18,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  child: Text(
+                                    l.ipadpitPickFromAlbum,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: t.dashedText,
                                     ),
                                   ),
                                 ),
@@ -506,6 +505,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                             ),
                           ),
                         ),
+                      ),
                     ],
                   ),
                 ),

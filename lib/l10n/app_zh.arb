@@ -918,6 +918,8 @@
       }
     }
   },
+  "sensitiveRevealThis": "顯示這張",
+  "sensitiveReblur": "重新模糊",
   "ipadformsFanNewTitle": "加收藏",
   "ipadformsFanAdd": "加入同人圖",
   "ipadformsOfficialGroupNote": "{n} 張圖片將一併加入「{group}」，之後可逐張修改分組。",

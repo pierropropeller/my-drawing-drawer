@@ -79,7 +79,7 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
       ? {PitSectionKey.official, PitSectionKey.fan}
       : {};
 
-  /// 淺坑封面（可選，從相簿選，只有兩欄的 iPad form sheet 有）。
+  /// 淺坑封面（可選，從相簿選）。
   String? _cover;
 
   bool get _shallow => _status == PitStatus.shallow;
@@ -159,6 +159,8 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
     final t = context.tokens;
     return [
       _typeSegment(),
+      // 開新淺坑的封面（選填，PitNewShallow／NewPitShallow）；開新坑（類型＝坑）沒有。
+      if (_shallow) PitCoverPickTile(file: _cover, onTap: _pickCover),
       PitFieldLabel(context.l10n.pitsFieldName),
       _nameField(),
       SizedBox(height: modal ? 18 : 16),

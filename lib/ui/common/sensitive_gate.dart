@@ -7,6 +7,7 @@ import '../../l10n/l10n.dart';
 import '../../state/sensitive.dart';
 import 'app_icons.dart';
 import 'media_badges.dart' show mediaBadgeColor;
+import 'sensitive_reveal.dart';
 import 'svg_icon.dart';
 
 export '../../state/sensitive.dart' show SensitiveDisplay;
@@ -53,6 +54,14 @@ class SensitiveGate extends ConsumerWidget {
     var mode = ref.watch(sensitiveDisplayProvider(file));
     if (!showBadge && mode == SensitiveDisplay.badge) {
       mode = SensitiveDisplay.none;
+    }
+    // iPad 預覽／詳情面板（P-038）：安全模式關時不加小標；安全模式開時，撳了眼睛鈕的那一張清晰。
+    final reveal = SensitiveReveal.maybeOf(context);
+    if (reveal != null) {
+      if (mode == SensitiveDisplay.badge) mode = SensitiveDisplay.none;
+      if (mode == SensitiveDisplay.blur && reveal.isRevealed(file)) {
+        mode = SensitiveDisplay.none;
+      }
     }
     return SensitiveFrame(
       mode: mode,
