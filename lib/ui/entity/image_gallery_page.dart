@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/entity_queries.dart';
-import '../../data/tables.dart' show MediaKind;
 import '../../l10n/l10n.dart';
 import '../album/album_actions.dart';
 import '../album/album_image.dart';
@@ -10,8 +9,6 @@ import '../common/app_icons.dart';
 import '../common/dismissible_preview.dart';
 import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
-import '../common/sensitive_gate.dart';
-import '../common/sensitive_safe_button.dart';
 import '../common/svg_icon.dart';
 
 /// 簡易全屏看圖（腦洞、草稿、成圖的圖片）：可左右滑、縮放、分享、下載。
@@ -120,10 +117,6 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage>
                           ),
                         ),
                       ),
-                      SensitiveSafeButton(
-                        files: flaggableFiles(widget.images),
-                        color: fg,
-                      ),
                     ],
                   ),
                 ),
@@ -136,26 +129,15 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage>
                     itemCount: widget.images.length,
                     onPageChanged: (i) => setState(() => _index = i),
                     // 圖片與 GIF 可縮放；影片用自己的控制列（D-080），換頁自動暫停。
-                    itemBuilder: (_, i) {
-                      final viewer = MediaViewer(
-                        MediaSource.fromImageRef(widget.images[i]),
-                        active: i == _index,
-                        zoomable: true,
-                        start: i == widget.initialIndex
-                            ? widget.videoStart
-                            : null,
-                      );
-                      if (widget.images[i].kind == MediaKind.video) {
-                        return viewer;
-                      }
-                      // D-110：全螢幕預覽也照安全模式模糊（52px 圓）；關閉就是正常的圖。
-                      return SensitiveGate(
-                        file: widget.images[i].file,
-                        circleSize: 52,
-                        showBadge: false,
-                        child: viewer,
-                      );
-                    },
+                    // 預覽頁沒有安全模式：一律正常顯示。
+                    itemBuilder: (_, i) => MediaViewer(
+                      MediaSource.fromImageRef(widget.images[i]),
+                      active: i == _index,
+                      zoomable: true,
+                      start: i == widget.initialIndex
+                          ? widget.videoStart
+                          : null,
+                    ),
                   ),
                 ),
               ),

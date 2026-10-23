@@ -21,10 +21,14 @@ class MiniMediaThumb extends StatelessWidget {
     this.placeholderColor,
     this.protectSensitive = true,
     this.sensitiveCircle,
+    this.sensitiveBadge = true,
   });
 
   /// 見 [MediaThumb.sensitiveCircle]。
   final double? sensitiveCircle;
+
+  /// 見 [MediaThumb.sensitiveBadge]。
+  final bool sensitiveBadge;
 
   /// 見 [MediaThumb.protectSensitive]（詳情頁縮圖列同列表，依安全模式處理）。
   final bool protectSensitive;
@@ -48,6 +52,7 @@ class MiniMediaThumb extends StatelessWidget {
       placeholderColor: placeholderColor,
       protectSensitive: protectSensitive,
       sensitiveCircle: sensitiveCircle,
+      sensitiveBadge: sensitiveBadge,
     );
     final Widget? badge = media.isGif
         ? _pill(

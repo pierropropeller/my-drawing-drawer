@@ -24,9 +24,10 @@ import 'package:huakeng/ui/entity/draft_detail_page.dart';
 import 'package:huakeng/ui/entity/image_gallery_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// D-110（`ImagePreviewSafe`／`DraftDetailSafe`）：詳情頁、圖片預覽頁照安全模式模糊（52px 圓），
+/// D-110（`DraftDetailSafe`）：詳情頁照安全模式模糊（52px 圓），
 /// 這一頁有標記的圖時標題列多一顆「安全模式」鈕：點一下直接關閉（全 App 設定），變成眼睛；再點重新開啟。
-/// 列表頁沒有這顆鈕；總開關關＝什麼都沒有。
+/// 安全模式關時詳情頁不加左上角小標（小標只在列表類）。列表頁沒有這顆鈕；總開關關＝什麼都沒有。
+/// 全螢幕圖片預覽頁沒有安全模式（Molly 10/23）：一律正常顯示。
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -137,10 +138,10 @@ void main() {
           .read(settingsProvider)
           .safeMode;
 
-  /// 開→關→開的共同斷言。
+  /// 開→關→開的共同斷言（詳情頁）。
   Future<void> toggleFlow(WidgetTester tester, Type page) async {
-    expect(find.byKey(blur), findsOneWidget);
-    expect(tester.getSize(find.byKey(circle)).width, 52);
+    expect(find.byKey(blur), findsWidgets);
+    expect(tester.getSize(find.byKey(circle).first).width, 52);
     expect(find.byKey(button), findsOneWidget);
     expect(find.byTooltip('關閉安全模式'), findsOneWidget);
     expect(safeMode(tester, page), isTrue);
@@ -158,106 +159,63 @@ void main() {
     await tester.tap(find.byKey(button));
     await settle(tester);
     expect(safeMode(tester, page), isTrue);
-    expect(find.byKey(blur), findsOneWidget);
+    expect(find.byKey(blur), findsWidgets);
     expect(find.byTooltip('關閉安全模式'), findsOneWidget);
   }
 
-  group('圖片預覽頁', () {
-    testWidgets('官圖 ImagePreview：模糊＋52px 圓＋標題列鈕；點鈕關閉／再點開啟', (tester) async {
-      await pump(
-        tester,
-        ImagePreviewPage(
-          pitId: pitId,
-          images: [
-            album(AlbumKind.official, 'flag.png'),
-            album(AlbumKind.official, 'plain.png'),
-          ],
-          initialIndex: 0,
-        ),
-      );
-      await toggleFlow(tester, ImagePreviewPage);
-      await unmount(tester);
-    });
+  /// 預覽頁沒有安全模式（Molly：預覽頁就不要安全模式了）：不論總開關／安全模式，
+  /// 已標記的圖一律正常顯示——沒有模糊、沒有圓、沒有小標、標題列沒有鈕。
+  void expectNoSafeMode() {
+    expect(find.byKey(blur), findsNothing);
+    expect(find.byKey(circle), findsNothing);
+    expect(find.byKey(badge), findsNothing);
+    expect(find.byKey(button), findsNothing);
+  }
 
-    testWidgets('同人圖 FanArtPreview：同樣', (tester) async {
-      await pump(
-        tester,
-        FanArtPreviewPage(
-          pitId: pitId,
-          images: [
-            album(AlbumKind.fanArt, 'fflag.png'),
-            album(AlbumKind.fanArt, 'fplain.png'),
-          ],
-          initialIndex: 0,
-        ),
-      );
-      await toggleFlow(tester, FanArtPreviewPage);
-      await unmount(tester);
-    });
+  group('圖片預覽頁沒有安全模式', () {
+    Widget official() => ImagePreviewPage(
+      pitId: pitId,
+      images: [
+        album(AlbumKind.official, 'flag.png'),
+        album(AlbumKind.official, 'plain.png'),
+      ],
+      initialIndex: 0,
+    );
+    Widget fan() => FanArtPreviewPage(
+      pitId: pitId,
+      images: [
+        album(AlbumKind.fanArt, 'fflag.png'),
+        album(AlbumKind.fanArt, 'fplain.png'),
+      ],
+      initialIndex: 0,
+    );
+    Widget gallery() => const ImageGalleryPage(
+      images: [
+        ImageRef('flag.png', 1, 1, sensitive: true),
+        ImageRef('plain.png', 1, 1),
+      ],
+    );
 
-    testWidgets('全螢幕看圖 ImageGalleryPage（詳情頁點開）：同樣', (tester) async {
-      await pump(
-        tester,
-        const ImageGalleryPage(
-          images: [
-            ImageRef('flag.png', 1, 1, sensitive: true),
-            ImageRef('plain.png', 1, 1),
-          ],
-        ),
-      );
-      await toggleFlow(tester, ImageGalleryPage);
-      await unmount(tester);
-    });
-
-    testWidgets('這一頁沒有標記的圖：沒有鈕、沒有模糊', (tester) async {
-      await pump(
-        tester,
-        ImagePreviewPage(
-          pitId: pitId,
-          images: [album(AlbumKind.official, 'plain.png')],
-          initialIndex: 0,
-        ),
-      );
-      expect(find.byKey(button), findsNothing);
-      expect(find.byKey(blur), findsNothing);
-      await unmount(tester);
-    });
-
-    testWidgets('安全模式本來就關著：圖正常、沒有小標，鈕是「眼睛」可重新開啟', (tester) async {
-      await pump(
-        tester,
-        ImagePreviewPage(
-          pitId: pitId,
-          images: [album(AlbumKind.official, 'flag.png')],
-          initialIndex: 0,
-        ),
-        safe: false,
-      );
-      expect(find.byKey(blur), findsNothing);
-      expect(find.byKey(badge), findsNothing);
-      expect(find.byTooltip('開啟安全模式'), findsOneWidget);
-      await tester.tap(find.byKey(button));
-      await settle(tester);
-      expect(safeMode(tester, ImagePreviewPage), isTrue);
-      expect(find.byKey(blur), findsOneWidget);
-      await unmount(tester);
-    });
-
-    testWidgets('總開關關：已標記的圖照常顯示，沒有鈕', (tester) async {
-      await pump(
-        tester,
-        ImagePreviewPage(
-          pitId: pitId,
-          images: [album(AlbumKind.official, 'flag.png')],
-          initialIndex: 0,
-        ),
-        master: false,
-      );
-      expect(find.byKey(button), findsNothing);
-      expect(find.byKey(blur), findsNothing);
-      expect(find.byKey(badge), findsNothing);
-      await unmount(tester);
-    });
+    for (final c in <(String, Widget Function())>[
+      ('官圖 ImagePreview', official),
+      ('同人圖 FanArtPreview', fan),
+      ('全螢幕看圖 ImageGalleryPage（詳情頁點開）', gallery),
+    ]) {
+      for (final safe in [true, false]) {
+        testWidgets('${c.$1}：總開關開、安全模式${safe ? '開' : '關'} → 一律正常', (
+          tester,
+        ) async {
+          await pump(tester, c.$2(), safe: safe);
+          expectNoSafeMode();
+          await unmount(tester);
+        });
+      }
+      testWidgets('${c.$1}：總開關關 → 一律正常', (tester) async {
+        await pump(tester, c.$2(), master: false);
+        expectNoSafeMode();
+        await unmount(tester);
+      });
+    }
   });
 
   group('詳情頁', () {
@@ -289,6 +247,23 @@ void main() {
       await settle(tester);
       expect(safeMode(tester, DraftDetailPage), isFalse);
       expect(find.byKey(blur), findsNothing);
+      expect(find.byKey(badge), findsNothing);
+      expect(find.byTooltip('開啟安全模式'), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('摸魚詳情：安全模式關 → 主圖與縮圖列都沒有左上角小標，標題列鈕是眼睛', (tester) async {
+      final id = await draft(tester, const [
+        NewImage(file: 'flag.png', sensitive: true),
+        NewImage(file: 'plain.png'),
+      ]);
+      await pump(
+        tester,
+        DraftDetailPage(draftId: id!, pitId: pitId),
+        safe: false,
+      );
+      expect(find.byKey(blur), findsNothing);
+      expect(find.byKey(badge), findsNothing);
       expect(find.byTooltip('開啟安全模式'), findsOneWidget);
       await unmount(tester);
     });

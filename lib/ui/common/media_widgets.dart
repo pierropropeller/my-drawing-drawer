@@ -134,6 +134,7 @@ class MediaThumb extends StatelessWidget {
     this.placeholderColor,
     this.protectSensitive = true,
     this.sensitiveCircle,
+    this.sensitiveBadge = true,
   });
 
   final MediaSource media;
@@ -142,6 +143,9 @@ class MediaThumb extends StatelessWidget {
 
   /// 模糊時中間圓圈的直徑（詳情頁主圖 52、縮圖列 24）；null＝列表預設，見 [SensitiveGate.circleSize]。
   final double? sensitiveCircle;
+
+  /// false＝安全模式關時不加左上角敏感小標（詳情頁：小標只在列表類畫面出現）；安全模式開時照樣模糊。
+  final bool sensitiveBadge;
 
   /// 敏感內容（D-104）：列表類畫面（預設）依安全模式把已標記的圖模糊，或在左上角加敏感小標，見 [SensitiveGate]。
   /// 詳情頁（D-110 起也模糊，圓圈用 [sensitiveCircle]）；傳 false＝永遠正常顯示。
@@ -184,6 +188,7 @@ class MediaThumb extends StatelessWidget {
       content = SensitiveGate(
         file: media.file,
         circleSize: sensitiveCircle,
+        showBadge: sensitiveBadge,
         child: content,
       );
     }

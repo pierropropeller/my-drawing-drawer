@@ -29,19 +29,10 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  late int _index = _restoreIndex();
+  /// 底部導覽分頁不記住：每次開 App 都從「坑」開始（只記住坑主頁分頁與時間軸年／月／日）。
+  int _index = 0;
 
-  /// 上次停留的分頁（設定裡的值不合法就回坑）。
-  int _restoreIndex() {
-    final i = ref.read(settingsProvider).lastNavTab;
-    return i >= 0 && i < navTabs.length ? i : 0;
-  }
-
-  /// 切換分頁並記住（下次開 App 回到這裡）。
-  void _setIndex(int i) {
-    setState(() => _index = i);
-    ref.read(settingsProvider.notifier).setLastNavTab(i);
-  }
+  void _setIndex(int i) => setState(() => _index = i);
 
   final _navKeys = List.generate(
     navTabs.length,

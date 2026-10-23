@@ -28,6 +28,8 @@ import 'package:huakeng/ui/common/sensitive_gate.dart';
 import 'package:huakeng/ui/entity/entity_widgets.dart';
 import 'package:huakeng/ui/entity/image_gallery_page.dart';
 import 'package:huakeng/ui/entity/piece_widgets.dart';
+import 'package:huakeng/ui/goals/review_canvas.dart';
+import 'package:huakeng/ui/goals/year_view.dart';
 import 'package:huakeng/ui/pits/pit_edit_page.dart';
 import 'package:huakeng/ui/share/share_sheet.dart';
 import 'package:huakeng/ui/sync/sync_sheet.dart';
@@ -300,6 +302,81 @@ void main() {
     });
   });
 
+  // P-042：時間軸第一頁（年度回顧 12 格）照安全模式；排版頁的匯出預覽畫布（與匯出的 PNG）永遠是原圖。
+  group('年度回顧（P-042）', () {
+    Future<void> seed(WidgetTester tester) async {
+      final g = ((await tester.runAsync(() => db.watchGroups(pitId).first))!)
+          .first
+          .id;
+      await tester.runAsync(() => db.setPitSensitiveEnabled(pitId, true));
+      await tester.runAsync(
+        () => db.addOfficial(pitId, g, [
+          const NewImage(file: 'flag.png', sensitive: true),
+          const NewImage(file: 'plain.png'),
+        ]),
+      );
+    }
+
+    final months = <int, String?>{1: 'flag.png', 2: 'plain.png'};
+
+    Widget year() => ProviderScope(
+      overrides: [
+        reviewMonthsProvider(2026).overrideWith((ref) => Stream.value(months)),
+      ],
+      child: const Scaffold(body: YearView(year: 2026)),
+    );
+
+    Widget canvas() => Scaffold(
+      body: ReviewCanvas(
+        files: months,
+        columns: 3,
+        ratio: '1:1',
+        monthFormat: 'num',
+        monthOnImage: false,
+      ),
+    );
+
+    testWidgets('安全模式開：已標記那格模糊＋縮小的圓（34px 以內），沒標記的正常', (tester) async {
+      await seed(tester);
+      await pump(tester, year());
+      expect(find.byKey(blur), findsOneWidget);
+      expect(find.byKey(badge), findsNothing);
+      final side = tester.getSize(find.byKey(circle)).width;
+      expect(side, lessThanOrEqualTo(34));
+      expect(side, greaterThanOrEqualTo(14));
+      await unmount(tester);
+    });
+
+    testWidgets('安全模式關：已標記那格左上角 22px 小標、不模糊', (tester) async {
+      await seed(tester);
+      await pump(tester, year(), safe: false);
+      expect(find.byKey(blur), findsNothing);
+      expect(tester.getSize(find.byKey(badge)), const Size(22, 22));
+      await unmount(tester);
+    });
+
+    testWidgets('總開關關：兩格都正常', (tester) async {
+      await seed(tester);
+      await pump(tester, year(), master: false);
+      expect(find.byKey(blur), findsNothing);
+      expect(find.byKey(badge), findsNothing);
+      await unmount(tester);
+    });
+
+    for (final safe in [true, false]) {
+      testWidgets('排版頁匯出預覽畫布（安全模式${safe ? '開' : '關'}）：永遠原圖，沒有模糊／小標', (
+        tester,
+      ) async {
+        await seed(tester);
+        await pump(tester, canvas(), safe: safe);
+        expect(find.byKey(blur), findsNothing);
+        expect(find.byKey(circle), findsNothing);
+        expect(find.byKey(badge), findsNothing);
+        await unmount(tester);
+      });
+    }
+  });
+
   group('MediaThumb（列表縮圖共用元件）', () {
     Future<void> seed(WidgetTester tester, {bool pitOn = true}) async {
       final g = ((await tester.runAsync(() => db.watchGroups(pitId).first))!)
@@ -439,7 +516,9 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('MiniMediaThumb 同樣處理；詳情的縮圖列傳 false 就不處理', (tester) async {
+    testWidgets('MiniMediaThumb 同樣處理；protectSensitive:false 就不處理', (
+      tester,
+    ) async {
       await seed(tester);
       await pump(
         tester,
@@ -475,7 +554,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('詳情頁主圖（52px 圓）與縮圖列（24px 圓）照安全模式模糊；點開的全螢幕預覽也模糊（D-110）', (
+    testWidgets('詳情頁主圖（52px 圓）與縮圖列（24px 圓）照安全模式模糊；點開的全螢幕預覽沒有安全模式（一律正常）', (
       tester,
     ) async {
       await seed(tester);
@@ -501,28 +580,20 @@ void main() {
       await tester.tap(find.byType(PageView).first);
       await settle(tester);
       expect(find.byType(ImageGalleryPage), findsOneWidget);
-      // D-110：全螢幕預覽也模糊（52px 圓），不再「點進來就正常」。
-      final inGallery = find.descendant(
-        of: find.byType(ImageGalleryPage),
-        matching: find.byKey(blur),
-      );
-      expect(inGallery, findsOneWidget);
-      expect(
-        tester
-            .getSize(
-              find.descendant(
-                of: find.byType(ImageGalleryPage),
-                matching: find.byKey(circle),
-              ),
-            )
-            .width,
-        52,
-      );
-      expect(find.byKey(badge), findsNothing);
+      // 全螢幕預覽沒有安全模式：點進來就是正常的圖（沒有模糊、圓、小標）。
+      for (final key in [blur, circle, badge]) {
+        expect(
+          find.descendant(
+            of: find.byType(ImageGalleryPage),
+            matching: find.byKey(key),
+          ),
+          findsNothing,
+        );
+      }
       await unmount(tester);
     });
 
-    testWidgets('詳情頁安全模式關：主圖與縮圖列只有小標、不模糊', (tester) async {
+    testWidgets('詳情頁安全模式關：主圖與縮圖列不模糊、也沒有小標（小標只在列表類）', (tester) async {
       await seed(tester);
       await pump(
         tester,
@@ -537,7 +608,7 @@ void main() {
         safe: false,
       );
       expect(find.byKey(blur), findsNothing);
-      expect(find.byKey(badge), findsNWidgets(2));
+      expect(find.byKey(badge), findsNothing);
       await unmount(tester);
     });
 

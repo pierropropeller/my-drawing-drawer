@@ -15,8 +15,9 @@ export '../../state/sensitive.dart' show SensitiveDisplay;
 /// 模糊（安全模式開）、加左上角小標（安全模式關），或原樣顯示。
 ///
 /// - 所有「列表類」畫面的縮圖（列表、九宮格、瀑布、搜尋結果、時間軸、各種選擇 sheet、同步 sheet…）
-///   都經過它（目前集中在 `MediaThumb`）。D-110 起詳情頁與圖片預覽頁也模糊（取代 D-104「一律正常顯示」），
-///   但圓圈固定 52px（[circleSize]；`DraftDetailSafe`），預覽頁安全模式關時不加小標（[showBadge] false）。
+///   都經過它（目前集中在 `MediaThumb`）。D-110 起詳情頁也模糊（取代 D-104「一律正常顯示」），
+///   圓圈固定 52px（[circleSize]；`DraftDetailSafe`），安全模式關時不加小標（[showBadge] false）。
+///   圖片預覽頁（全螢幕）沒有安全模式，不經過它。
 /// - [file] 是這張圖的檔名（原檔檔名；影片的截圖檔名也可以）。
 /// - 模糊的是 [child]（圖片本身）；GIF／影片小標、張數、選取框等請畫在它外面，不會被模糊。
 /// - 不攔截點擊（蓋層包 [IgnorePointer]）。
@@ -43,7 +44,7 @@ class SensitiveGate extends ConsumerWidget {
   /// 模糊時中間圓圈的直徑；null＝列表預設（34px，小格子縮小）。詳情頁主圖 52、縮圖列 24。
   final double? circleSize;
 
-  /// false＝安全模式關時不加左上角小標（圖片預覽頁：關閉後就是正常的圖）。
+  /// false＝安全模式關時不加左上角小標（詳情頁：小標只在列表類畫面出現）。
   final bool showBadge;
 
   @override

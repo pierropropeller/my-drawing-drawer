@@ -32,7 +32,6 @@ class AppSettings {
     this.videoLoop = false,
     this.sensitiveEnabled = false,
     this.safeMode = true,
-    this.lastNavTab = 0,
     this.lastPitsTab = PitStatus.active,
     this.lastGoalsMode = 0,
   });
@@ -42,9 +41,8 @@ class AppSettings {
   /// 標記保留，重新開啟後自動恢復。
   final bool sensitiveEnabled;
 
-  /// 記住上次停留的位置（本機設定，不同步）：底部導覽分頁（0 坑／1 目標／2 我的）、
-  /// 主頁分頁（現坑／淺坑／封存坑）、目標分頁的年／月／日（0／1／2）。下次開 App 直接回到那裡。
-  final int lastNavTab;
+  /// 記住上次停留的位置（本機設定，不同步）：坑主頁分頁（現坑／淺坑／封存坑）、
+  /// 時間軸的年／月／日（0／1／2）。下次開 App 直接回到那裡。底部導覽分頁不記住（永遠從坑開始）。
   final PitStatus lastPitsTab;
   final int lastGoalsMode;
 
@@ -99,11 +97,9 @@ class AppSettings {
     bool? videoLoop,
     bool? sensitiveEnabled,
     bool? safeMode,
-    int? lastNavTab,
     PitStatus? lastPitsTab,
     int? lastGoalsMode,
   }) => AppSettings(
-    lastNavTab: lastNavTab ?? this.lastNavTab,
     lastPitsTab: lastPitsTab ?? this.lastPitsTab,
     lastGoalsMode: lastGoalsMode ?? this.lastGoalsMode,
     sensitiveEnabled: sensitiveEnabled ?? this.sensitiveEnabled,
@@ -181,7 +177,6 @@ class SettingsNotifier extends Notifier<AppSettings> {
       videoLoop: p.getBool('videoLoop') ?? false,
       sensitiveEnabled: p.getBool('sensitiveEnabled') ?? false,
       safeMode: p.getBool('safeMode') ?? true,
-      lastNavTab: _inRange(p.getInt('lastNavTab'), 3),
       lastPitsTab: PitStatus.values.firstWhere(
         (s) => s.name == p.getString('lastPitsTab'),
         orElse: () => PitStatus.active,
@@ -193,12 +188,6 @@ class SettingsNotifier extends Notifier<AppSettings> {
   /// 讀回的 index 不在 0..<count（舊版、損毀、未知值）就用預設 0。
   static int _inRange(int? v, int count) =>
       v != null && v >= 0 && v < count ? v : 0;
-
-  void setLastNavTab(int v) {
-    if (v == state.lastNavTab) return;
-    state = state.copyWith(lastNavTab: v);
-    _p?.setInt('lastNavTab', v);
-  }
 
   void setLastPitsTab(PitStatus v) {
     if (v == state.lastPitsTab) return;

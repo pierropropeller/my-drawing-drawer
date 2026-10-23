@@ -15,7 +15,7 @@ import 'package:huakeng/ui/goals/goals_page.dart';
 import 'package:huakeng/ui/pits/pits_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 記住上次停留的分頁：主頁現坑／淺坑／封存坑、目標年／月／日、底部導覽（存在本機設定，不同步）。
+/// 記住上次停留的分頁：主頁現坑／淺坑／封存坑、時間軸年／月／日（存在本機設定，不同步）；底部導覽不記住，永遠從坑開始。
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late AppDatabase db;
@@ -89,31 +89,26 @@ void main() {
       return c;
     }
 
-    test('預設：導覽 0、現坑、年；設定後寫進 SharedPreferences，重開讀得回', () async {
+    test('預設：現坑、年；設定後寫進 SharedPreferences，重開讀得回', () async {
       final p = await prefsWith({});
       final c = open(p);
       final s = c.read(settingsProvider);
-      expect(s.lastNavTab, 0);
       expect(s.lastPitsTab, PitStatus.active);
       expect(s.lastGoalsMode, 0);
-      c.read(settingsProvider.notifier).setLastNavTab(2);
       c.read(settingsProvider.notifier).setLastPitsTab(PitStatus.archived);
       c.read(settingsProvider.notifier).setLastGoalsMode(2);
 
       final s2 = open(p).read(settingsProvider);
-      expect(s2.lastNavTab, 2);
       expect(s2.lastPitsTab, PitStatus.archived);
       expect(s2.lastGoalsMode, 2);
     });
 
     test('不合法的值（未知名稱、超出範圍、負數）一律回預設', () async {
       final p = await prefsWith({
-        'lastNavTab': 9,
         'lastPitsTab': 'whatever',
         'lastGoalsMode': -1,
       });
       final s = open(p).read(settingsProvider);
-      expect(s.lastNavTab, 0);
       expect(s.lastPitsTab, PitStatus.active);
       expect(s.lastGoalsMode, 0);
     });
@@ -152,7 +147,7 @@ void main() {
     await restart(tester);
   });
 
-  testWidgets('時間軸頁：切到日 → 存起來；重開直接停在時間軸頁的日；壞值回年', (tester) async {
+  testWidgets('時間軸頁：切到日 → 存起來；重開仍從坑開始，切回時間軸頁停在日；壞值回年', (tester) async {
     final p = await prefsWith({});
     await pumpApp(tester, p);
     await tester.tap(find.text('時間軸'));
@@ -161,37 +156,38 @@ void main() {
     await tester.tap(find.text('日'));
     await settle(tester);
     expect(p.getInt('lastGoalsMode'), 2);
-    expect(p.getInt('lastNavTab'), 1);
+    // 底部導覽不記住。
+    expect(p.getInt('lastNavTab'), isNull);
 
     await restart(tester);
     await pumpApp(tester, p);
-    // 底部導覽還原：直接停在時間軸頁（不是坑），且是「日」。
-    expect(find.byType(GoalsPage).hitTestable(), findsOneWidget);
-    expect(find.byType(PitsPage).hitTestable(), findsNothing);
+    expect(find.byType(PitsPage).hitTestable(), findsOneWidget);
+    expect(find.byType(GoalsPage).hitTestable(), findsNothing);
+    await tester.tap(find.text('時間軸'));
+    await settle(tester);
     expect(goalsIndex(tester), 2);
     await restart(tester);
 
-    await pumpApp(
-      tester,
-      await prefsWith({'lastNavTab': 1, 'lastGoalsMode': 7}),
-    );
+    await pumpApp(tester, await prefsWith({'lastGoalsMode': 7}));
+    await tester.tap(find.text('時間軸'));
+    await settle(tester);
     expect(goalsIndex(tester), 0);
     await restart(tester);
   });
 
-  testWidgets('底部導覽：切到「我的」→ 重開仍在我的；壞值回坑', (tester) async {
+  testWidgets('底部導覽不記住：切到「我的」→ 重開仍從坑開始；舊版殘留的 lastNavTab 也不理', (tester) async {
     final p = await prefsWith({});
     await pumpApp(tester, p);
     await tester.tap(find.text('我的').last);
     await settle(tester);
-    expect(p.getInt('lastNavTab'), 2);
+    expect(p.getInt('lastNavTab'), isNull);
     await restart(tester);
 
     await pumpApp(tester, p);
-    expect(find.byType(PitsPage).hitTestable(), findsNothing);
+    expect(find.byType(PitsPage).hitTestable(), findsOneWidget);
     await restart(tester);
 
-    await pumpApp(tester, await prefsWith({'lastNavTab': 5}));
+    await pumpApp(tester, await prefsWith({'lastNavTab': 2}));
     expect(find.byType(PitsPage).hitTestable(), findsOneWidget);
     await restart(tester);
   });

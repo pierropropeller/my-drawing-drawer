@@ -199,7 +199,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('D-110：iPad 全螢幕預覽（參考圖檢視）也模糊，頂欄有「安全模式」鈕', (tester) async {
+    testWidgets('iPad 全螢幕預覽（參考圖檢視）沒有安全模式：不模糊、沒有圓／小標／鈕', (tester) async {
       await show(
         tester,
         AlbumReferenceScreen(
@@ -218,13 +218,10 @@ void main() {
           title: '坑A · 同人圖',
         ),
       );
-      expect(find.byKey(blur), findsWidgets);
-      final btn = find.byKey(const ValueKey('sensitiveSafeButton'));
-      expect(btn, findsOneWidget);
-      await tester.tap(btn);
-      await settle(tester);
       expect(find.byKey(blur), findsNothing);
-      expect(find.byTooltip('開啟安全模式'), findsOneWidget);
+      expect(find.byKey(const ValueKey('sensitiveCircle')), findsNothing);
+      expect(find.byKey(const ValueKey('sensitiveBadge')), findsNothing);
+      expect(find.byKey(const ValueKey('sensitiveSafeButton')), findsNothing);
       await unmount(tester);
     });
 
