@@ -248,18 +248,25 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     widget.showPitsTab();
     final nav = widget.pitsNavigator.currentState;
     if (nav == null) return;
-    nav.popUntil((r) => r.isFirst);
-    nav.push(MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pitId)));
-    nav.push(
-      MaterialPageRoute<void>(
-        builder: (_) => switch (c.section!) {
-          ShareSection.draft => DraftListPage(pitId: pitId),
-          ShareSection.idea => IdeaListPage(pitId: pitId),
-          ShareSection.piece => FinishedListPage(pitId: pitId),
-          _ => OshiListPage(pitId: pitId),
-        },
-      ),
-    );
+    // 該格列表已經開著（同一個坑）：沿用它，只在上面開表單，存檔回來時列表
+    // 還在原本的捲動位置，與列表上按「＋」新增一致；沒開著才照舊重新開。
+    final live = findLiveListRoute(nav, c.section!, pitId);
+    if (live != null) {
+      nav.popUntil((r) => r == live);
+    } else {
+      nav.popUntil((r) => r.isFirst);
+      nav.push(MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pitId)));
+      nav.push(
+        MaterialPageRoute<void>(
+          builder: (_) => switch (c.section!) {
+            ShareSection.draft => DraftListPage(pitId: pitId),
+            ShareSection.idea => IdeaListPage(pitId: pitId),
+            ShareSection.piece => FinishedListPage(pitId: pitId),
+            _ => OshiListPage(pitId: pitId),
+          },
+        ),
+      );
+    }
     if (c.section == ShareSection.oshi) {
       final inner = nav.overlay?.context;
       if (inner != null) openOshiForm(inner, pitId, paths);
@@ -293,4 +300,35 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     });
     return widget.child;
   }
+}
+
+/// 在 [nav] 的頁面堆疊裡找「[pitId] 的 [section] 列表」所在的 route（沒開著回傳 null）。
+///
+/// 列表頁從各處（坑內頁、分區 tab、側欄）打開，route 都沒有名字，所以從 widget 樹找
+/// 列表頁，再取它所屬的 route。
+@visibleForTesting
+Route<dynamic>? findLiveListRoute(
+  NavigatorState nav,
+  ShareSection section,
+  String pitId,
+) {
+  bool match(Widget w) => switch (section) {
+    ShareSection.draft => w is DraftListPage && w.pitId == pitId,
+    ShareSection.idea => w is IdeaListPage && w.pitId == pitId,
+    ShareSection.piece => w is FinishedListPage && w.pitId == pitId,
+    ShareSection.oshi => w is OshiListPage && w.pitId == pitId,
+    _ => false,
+  };
+  Route<dynamic>? found;
+  void visit(Element e) {
+    if (found != null) return;
+    if (match(e.widget)) {
+      found = ModalRoute.of(e);
+      return;
+    }
+    e.visitChildren(visit);
+  }
+
+  (nav.context as Element).visitChildren(visit);
+  return found;
 }

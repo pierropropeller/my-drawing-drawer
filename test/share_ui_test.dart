@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -9,6 +10,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
+import 'package:huakeng/data/oshi_queries.dart';
 import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/l10n/l10n.dart';
 import 'package:huakeng/main.dart';
@@ -24,6 +26,7 @@ import 'package:huakeng/ui/entity/piece_form_page.dart';
 import 'package:huakeng/ui/junk/junk_list_page.dart';
 import 'package:huakeng/ui/pits/pit_new_page.dart';
 import 'package:huakeng/ui/pits/pit_page.dart';
+import 'package:huakeng/ui/pits/pits_page.dart';
 import 'package:huakeng/ui/oshi/oshi_form_page.dart';
 import 'package:huakeng/ui/oshi/oshi_list_page.dart';
 import 'package:huakeng/ui/share/share_sheet.dart';
@@ -555,6 +558,93 @@ void main() {
       (await SharedPreferences.getInstance()).getString('shareLastSection'),
       'oshi',
     );
+    await unmount(tester);
+  });
+
+  /// 推活列表已開著、捲到一半時，從「下一步」或列表自己的新增開表單，存檔／返回後
+  /// 捲動位置要一樣（分享與一般新增一致）。
+  Future<void> seedOshi(WidgetTester tester, String pit) async {
+    await tester.runAsync(() async {
+      for (var i = 0; i < 40; i++) {
+        await db.saveOshiRecord(
+          pitId: pit,
+          date: DateTime(2026, 10, 28).subtract(Duration(days: i * 3)),
+          title: '紀錄$i',
+          images: [NewImage(file: 'a.png', width: 30, height: 40)],
+        );
+      }
+    });
+  }
+
+  Future<NavigatorState> openOshiListWithRecords(
+    WidgetTester tester,
+    String pit,
+  ) async {
+    final nav = Navigator.of(tester.element(find.byType(PitsPage)));
+    nav.push(MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pit)));
+    nav.push(MaterialPageRoute<void>(builder: (_) => OshiListPage(pitId: pit)));
+    await settle(tester);
+    return nav;
+  }
+
+  /// 推活時間軸（CustomScrollView）的捲動控制器。
+  ScrollPosition listPosition(WidgetTester tester) {
+    final sv = find.descendant(
+      of: find.byType(OshiListPage),
+      matching: find.byType(CustomScrollView),
+      skipOffstage: false,
+    );
+    return tester.widget<CustomScrollView>(sv.first).controller!.position;
+  }
+
+  double listOffset(WidgetTester tester) => listPosition(tester).pixels;
+
+  /// 捲到一半，回傳實際位置（需大於 0，代表列表夠長）。
+  Future<double> scrollListHalfway(WidgetTester tester) async {
+    final pos = listPosition(tester);
+    pos.jumpTo(600);
+    await tester.pump();
+    expect(pos.maxScrollExtent, greaterThan(600));
+    return pos.pixels;
+  }
+
+  testWidgets('一般新增：列表捲到一半，開新增頁再返回，位置不變（對照組）', (tester) async {
+    await seedOshi(tester, pitB);
+    await pumpApp(tester, FakeShareChannel());
+    await openOshiListWithRecords(tester, pitB);
+    final before = await scrollListHalfway(tester);
+    unawaited(
+      openOshiFormPage(tester.element(find.byType(OshiListPage)), pitId: pitB),
+    );
+    await settle(tester);
+    expect(find.byType(OshiFormPage), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await settle(tester);
+    expect(listOffset(tester), before);
+    await unmount(tester);
+  });
+
+  testWidgets('分享「下一步」：推活列表已開著捲到一半，沿用該列表，返回後位置不變', (tester) async {
+    await seedOshi(tester, pitB);
+    await pumpApp(tester, FakeShareChannel());
+    await openOshiListWithRecords(tester, pitB);
+    final before = await scrollListHalfway(tester);
+    channel.push(sharedFiles(1));
+    await settle(tester);
+    await tapIn(tester, '坑B');
+    await tapIn(tester, '推活');
+    await tapIn(tester, '下一步');
+    await settle(tester);
+    expect(find.byType(OshiFormPage), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await settle(tester);
+    expect(find.byType(OshiListPage), findsOneWidget);
+    expect(listOffset(tester), before);
+    // 返回仍是坑內頁，不多出一層列表。
+    await tester.binding.handlePopRoute();
+    await settle(tester);
+    expect(find.byType(OshiListPage), findsNothing);
+    expect(find.byType(PitPage), findsOneWidget);
     await unmount(tester);
   });
 
