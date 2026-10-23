@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/image_store.dart';
-import 'package:huakeng/data/tables.dart' show PitStatus;
 import 'package:huakeng/main.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/state/settings.dart';
