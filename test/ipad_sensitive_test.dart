@@ -25,7 +25,7 @@ import 'package:huakeng/ui/pits/pit_page_tablet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// P-036／P-037：敏感內容在 iPad 的顯示（FanArtSensitive／FanArtSensitiveOff／FanArtSelect／
-/// NewOfficialSensitive）：左邊列表照安全模式處理、右邊預覽面板一律正常；多選時面板收起、4 欄；
+/// NewOfficialSensitive）：左邊列表與右邊預覽面板都照安全模式處理（Molly 10/23 改：詳情也模糊）；全螢幕預覽才正常；多選時面板收起、4 欄；
 /// 表單的「全部標為敏感」；坑頁的格子封面也走同一個閘門；確認框沿用手機寬度。
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -130,7 +130,7 @@ void main() {
       find.descendant(of: find.byType(MasonryGridView), matching: f);
 
   group('好看同人圖：列表＋預覽並排', () {
-    testWidgets('安全模式開：列表模糊＋34px 眼睛圓；點開後右邊預覽面板同一張正常顯示', (tester) async {
+    testWidgets('安全模式開：列表模糊＋34px 眼睛圓；點開後右邊預覽面板同一張也模糊（詳情照安全模式）', (tester) async {
       await show(tester, FanArtListPage(pitId: pitId));
       expect(inList(find.byKey(blur)), findsOneWidget);
       expect(tester.getSize(inList(find.byKey(circle))).width, 34);
@@ -138,17 +138,16 @@ void main() {
 
       await tester.tap(inList(find.byKey(circle)), warnIfMissed: false);
       await settle(tester);
-      // 面板出現，而且面板裡沒有模糊／小標。
+      // 面板出現；詳情（預覽面板）照安全模式也模糊，只有點進全螢幕預覽才正常。
       expect(find.byType(SidePanelFrame), findsOneWidget);
-      expect(inPanel(find.byKey(blur)), findsNothing);
-      expect(inPanel(find.byKey(circle)), findsNothing);
+      expect(inPanel(find.byKey(blur)), findsOneWidget);
       expect(inPanel(find.byKey(badge)), findsNothing);
       // 列表那張仍然是模糊的。
       expect(inList(find.byKey(blur)), findsOneWidget);
       await unmount(tester);
     });
 
-    testWidgets('安全模式關：列表左上 22px 小標、不模糊；預覽面板沒有小標', (tester) async {
+    testWidgets('安全模式關：列表左上 22px 小標、不模糊；預覽面板同樣只有小標、不模糊', (tester) async {
       await show(tester, FanArtListPage(pitId: pitId), safe: false);
       expect(find.byKey(blur), findsNothing);
       expect(inList(find.byKey(badge)), findsOneWidget);
@@ -157,7 +156,7 @@ void main() {
       await tester.tap(inList(find.byKey(badge)), warnIfMissed: false);
       await settle(tester);
       expect(find.byType(SidePanelFrame), findsOneWidget);
-      expect(inPanel(find.byKey(badge)), findsNothing);
+      expect(inPanel(find.byKey(badge)), findsOneWidget);
       expect(inPanel(find.byKey(blur)), findsNothing);
       await unmount(tester);
     });
