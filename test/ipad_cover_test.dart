@@ -24,15 +24,12 @@ void main() {
 
   late AppDatabase db;
   late Directory tmp;
-  late String groupId;
 
   setUp(() async {
     db = AppDatabase(NativeDatabase.memory());
     tmp = await Directory.systemTemp.createTemp('huakeng_cover');
     await Directory('${tmp.path}/images').create();
     File('${tmp.path}/pick.png').writeAsBytesSync(_png1x1);
-    final pit = await db.createPit(name: '用來取預設分組');
-    groupId = (await db.watchGroups(pit).first).first.id;
   });
 
   tearDown(() async {
