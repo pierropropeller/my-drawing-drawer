@@ -14,6 +14,7 @@ import 'package:huakeng/l10n/l10n.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/state/settings.dart';
 import 'package:huakeng/theme/app_theme.dart';
+import 'package:huakeng/ui/album/album_image.dart';
 import 'package:huakeng/ui/album/fan_art_list_page.dart';
 import 'package:huakeng/ui/album/image_picker_field.dart';
 import 'package:huakeng/ui/album/wide_layout.dart';
@@ -21,6 +22,7 @@ import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/common/sensitive_dialogs.dart';
 import 'package:huakeng/ui/common/sensitive_gate.dart';
 import 'package:huakeng/ui/pits/pit_page.dart';
+import 'package:huakeng/ui/reference/reference_viewer.dart';
 import 'package:huakeng/ui/pits/pit_page_tablet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -158,6 +160,71 @@ void main() {
       expect(find.byType(SidePanelFrame), findsOneWidget);
       expect(inPanel(find.byKey(badge)), findsOneWidget);
       expect(inPanel(find.byKey(blur)), findsNothing);
+      await unmount(tester);
+    });
+
+    testWidgets('D-110：預覽面板有標記的圖才多「安全模式」鈕（列表沒有）；點一下整頁清晰、再點恢復', (tester) async {
+      await show(tester, FanArtListPage(pitId: pitId));
+      // 列表上沒有這顆鈕。
+      expect(find.byKey(const ValueKey('sensitiveSafeButton')), findsNothing);
+      await tester.tap(inList(find.byKey(circle)), warnIfMissed: false);
+      await settle(tester);
+      // 面板的封面是 52px 圓。
+      expect(tester.getSize(inPanel(find.byKey(circle))).width, 52);
+      final btn = inPanel(find.byKey(const ValueKey('sensitiveSafeButton')));
+      expect(btn, findsOneWidget);
+      expect(find.byTooltip('關閉安全模式'), findsOneWidget);
+
+      await tester.tap(btn);
+      await settle(tester);
+      // 全 App 同一個設定：面板與列表一起清晰。
+      expect(find.byKey(blur), findsNothing);
+      expect(find.byTooltip('開啟安全模式'), findsOneWidget);
+
+      await tester.tap(btn);
+      await settle(tester);
+      expect(inPanel(find.byKey(blur)), findsOneWidget);
+      expect(inList(find.byKey(blur)), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('D-110：面板選到沒有標記的圖：沒有「安全模式」鈕', (tester) async {
+      await show(tester, FanArtListPage(pitId: pitId));
+      // 第二張（b.png，沒標記）。
+      final plain = inList(find.byType(Image)).at(1);
+      await tester.tap(plain, warnIfMissed: false);
+      await settle(tester);
+      expect(find.byType(SidePanelFrame), findsOneWidget);
+      expect(find.byKey(const ValueKey('sensitiveSafeButton')), findsNothing);
+      await unmount(tester);
+    });
+
+    testWidgets('D-110：iPad 全螢幕預覽（參考圖檢視）也模糊，頂欄有「安全模式」鈕', (tester) async {
+      await show(
+        tester,
+        AlbumReferenceScreen(
+          images: [
+            for (final f in ['a.png', 'b.png'])
+              AlbumImage(
+                id: f,
+                file: f,
+                width: 100,
+                height: 100,
+                kind: AlbumKind.fanArt,
+              ),
+          ],
+          index: 0,
+          pitId: pitId,
+          title: '坑A · 同人圖',
+        ),
+      );
+      expect(find.byKey(blur), findsWidgets);
+      final btn = find.byKey(const ValueKey('sensitiveSafeButton'));
+      expect(btn, findsOneWidget);
+      await tester.tap(btn);
+      await settle(tester);
+      expect(find.byKey(blur), findsNothing);
+      expect(find.byTooltip('開啟安全模式'), findsOneWidget);
       await unmount(tester);
     });
 

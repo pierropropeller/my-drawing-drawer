@@ -8,6 +8,7 @@ import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../common/app_icons.dart';
 import '../common/detail_carousel.dart';
+import '../common/sensitive_safe_button.dart';
 import '../common/nav_bar_hidden.dart';
 import '../search/tagged_list.dart';
 import '../common/responsive.dart';
@@ -58,6 +59,7 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
               titleSize: 20,
               gap: 6,
               trailing: [
+                SensitiveSafeButton(files: flaggableFiles(v.images)),
                 HeaderIconButton(
                   icon: AppIcons.edit,
                   label: context.l10n.commonEdit,

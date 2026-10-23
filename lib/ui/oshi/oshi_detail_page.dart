@@ -8,6 +8,7 @@ import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
 import '../common/app_icons.dart';
 import '../common/detail_carousel.dart';
+import '../common/sensitive_safe_button.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
@@ -71,6 +72,7 @@ class _OshiDetailPageState extends ConsumerState<OshiDetailPage>
             SubPageHeader(
               title: '',
               trailing: [
+                SensitiveSafeButton(files: flaggableFiles(v.images)),
                 HeaderIconButton(
                   icon: AppIcons.edit,
                   label: context.l10n.commonEdit,

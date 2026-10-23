@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../common/sensitive_gate.dart';
+
 import '../../l10n/l10n.dart';
 import '../album/album_image.dart';
 import 'ref_image.dart';
@@ -97,11 +99,15 @@ class _RefFilmstripState extends State<RefFilmstrip> {
             borderRadius: BorderRadius.circular(vertical ? 12 : 10),
             child: file == null
                 ? ColoredBox(color: widget.palette.chip)
-                : StoredImage(
-                    file,
-                    cacheWidth: (widget.thumb * 3).round(),
-                    showDownloadBadge: false,
-                    placeholderColor: widget.palette.chip,
+                : SensitiveGate(
+                    file: file,
+                    circleSize: 24,
+                    child: StoredImage(
+                      file,
+                      cacheWidth: (widget.thumb * 3).round(),
+                      showDownloadBadge: false,
+                      placeholderColor: widget.palette.chip,
+                    ),
                   ),
           );
           return Center(

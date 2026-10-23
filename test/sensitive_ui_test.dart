@@ -475,7 +475,9 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('詳情頁主圖與縮圖列照安全模式模糊；點開的全螢幕預覽正常顯示', (tester) async {
+    testWidgets('詳情頁主圖（52px 圓）與縮圖列（24px 圓）照安全模式模糊；點開的全螢幕預覽也模糊（D-110）', (
+      tester,
+    ) async {
       await seed(tester);
       await pump(
         tester,
@@ -491,10 +493,31 @@ void main() {
       );
       // 主圖（第 1 頁）＋縮圖列兩張標記的圖。
       expect(find.byKey(blur), findsNWidgets(3));
+      final sizes = [
+        for (final e in find.byKey(circle).evaluate())
+          tester.getSize(find.byWidget(e.widget)).width,
+      ]..sort();
+      expect(sizes, [24, 24, 52]);
       await tester.tap(find.byType(PageView).first);
       await settle(tester);
       expect(find.byType(ImageGalleryPage), findsOneWidget);
-      expect(find.byKey(blur), findsNothing);
+      // D-110：全螢幕預覽也模糊（52px 圓），不再「點進來就正常」。
+      final inGallery = find.descendant(
+        of: find.byType(ImageGalleryPage),
+        matching: find.byKey(blur),
+      );
+      expect(inGallery, findsOneWidget);
+      expect(
+        tester
+            .getSize(
+              find.descendant(
+                of: find.byType(ImageGalleryPage),
+                matching: find.byKey(circle),
+              ),
+            )
+            .width,
+        52,
+      );
       expect(find.byKey(badge), findsNothing);
       await unmount(tester);
     });

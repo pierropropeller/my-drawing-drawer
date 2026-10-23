@@ -3885,6 +3885,18 @@ abstract class AppLocalizations {
   /// **'標記並移除封面'**
   String get sensitiveCoverConfirm;
 
+  /// No description provided for @sensitiveSafeTurnOff.
+  ///
+  /// In zh, this message translates to:
+  /// **'關閉安全模式'**
+  String get sensitiveSafeTurnOff;
+
+  /// No description provided for @sensitiveSafeTurnOn.
+  ///
+  /// In zh, this message translates to:
+  /// **'開啟安全模式'**
+  String get sensitiveSafeTurnOn;
+
   /// No description provided for @shallowName.
   ///
   /// In zh, this message translates to:

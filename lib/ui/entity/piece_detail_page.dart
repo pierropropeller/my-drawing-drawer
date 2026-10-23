@@ -13,6 +13,7 @@ import 'draft_detail_page.dart';
 import '../search/tagged_list.dart';
 import '../common/app_icons.dart';
 import '../common/detail_carousel.dart';
+import '../common/sensitive_safe_button.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 import 'entity_widgets.dart';
@@ -88,6 +89,7 @@ class PieceDetailPage extends ConsumerWidget {
               SubPageHeader(
                 title: '',
                 trailing: [
+                  SensitiveSafeButton(files: flaggableFiles(v.images)),
                   HeaderIconButton(
                     label: context.l10n.commonEdit,
                     icon: AppIcons.edit,

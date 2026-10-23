@@ -5,6 +5,8 @@ import '../common/app_icons.dart';
 import '../common/dismissible_preview.dart';
 import '../common/svg_icon.dart';
 import '../common/media_widgets.dart';
+import '../common/sensitive_gate.dart';
+import '../common/sensitive_safe_button.dart';
 
 /// 預覽頁固定深色（ImagePreview／FanArtPreview 設計稿），不隨主題變化。
 abstract final class PreviewPalette {
@@ -94,11 +96,21 @@ class PreviewShell extends StatelessWidget {
                       itemCount: media.length,
                       onPageChanged: onPageChanged,
                       // 圖片與 GIF 可縮放；影片用自己的控制列（同詳情頁），不縮放。
-                      itemBuilder: (_, i) => MediaViewer(
-                        media[i],
-                        active: i == currentIndex,
-                        zoomable: true,
-                      ),
+                      // 安全模式開時已標記的圖也模糊＋52px 圓（D-110）；關閉就是正常的圖（不加小標）。
+                      itemBuilder: (_, i) {
+                        final viewer = MediaViewer(
+                          media[i],
+                          active: i == currentIndex,
+                          zoomable: true,
+                        );
+                        if (media[i].isVideo) return viewer;
+                        return SensitiveGate(
+                          file: media[i].file,
+                          circleSize: 52,
+                          showBadge: false,
+                          child: viewer,
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -155,6 +167,13 @@ class PreviewShell extends StatelessWidget {
             headerTrailing!,
             const SizedBox(width: 8),
           ],
+          SensitiveSafeButton(
+            files: [
+              for (final m in media)
+                if (!m.isVideo) m.file,
+            ],
+            color: PreviewPalette.text,
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Text(
