@@ -80,6 +80,7 @@ class _YearViewState extends ConsumerState<YearView> {
             month: m,
             file: files[m],
             allEmpty: selected == 0,
+            wide: widget.wide,
             goals: monthGoals[m],
             onTap: () => widget.onMonthTap?.call(m),
             // 多於一張成圖才能長按換圖（D-056）；只有一張或沒有＝長按沒反應
@@ -334,12 +335,16 @@ class _MonthCell extends StatelessWidget {
     required this.file,
     required this.allEmpty,
     required this.onTap,
+    this.wide = false,
     this.goals,
     this.onLongPress,
   });
   final int month;
   final String? file;
   final bool allEmpty;
+
+  /// iPad 版面（P-039，`Goal` 稿）：進度圈 24px、離右上角 6。
+  final bool wide;
 
   /// 該月的月度小目標進度；沒有小目標＝null（不畫進度圈）。
   final MonthGoalProgress? goals;
@@ -444,7 +449,11 @@ class _MonthCell extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 inner,
-                Positioned(right: 5, top: 5, child: MonthGoalRing(progress: g)),
+                Positioned(
+                  right: wide ? 6 : 5,
+                  top: wide ? 6 : 5,
+                  child: MonthGoalRing(progress: g, size: wide ? 24 : 20),
+                ),
               ],
             ),
     );
@@ -455,8 +464,11 @@ class _MonthCell extends StatelessWidget {
 /// 內圈半徑 7、線寬 2.4、圓頭；底圈 #EFE7DC，進度從 12 點鐘順時針；
 /// 全部達成＝綠 #5c8a5c，否則主色。深色：底＝surface .92、底圈＝chipBg、綠＝#8DBB8D（稿沒畫，推導）。
 class MonthGoalRing extends StatelessWidget {
-  const MonthGoalRing({super.key, required this.progress});
+  const MonthGoalRing({super.key, required this.progress, this.size = 20});
   final MonthGoalProgress progress;
+
+  /// 手機 20；iPad 24（P-039：稿裡是 20 的 viewBox 放大到 24，圈與線寬一起等比）。
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -469,8 +481,8 @@ class MonthGoalRing extends StatelessWidget {
       label: context.l10n.goalsSectionMonth,
       value: '${progress.done} / ${progress.total}',
       child: Container(
-        width: 20,
-        height: 20,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: (dark ? t.surface : Colors.white).withValues(alpha: .92),
@@ -499,7 +511,8 @@ class _RingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
+    canvas.scale(size.width / 20);
+    final c = const Size(20, 20).center(Offset.zero);
     const r = 7.0;
     final paint = Paint()
       ..style = PaintingStyle.stroke
