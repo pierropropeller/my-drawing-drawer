@@ -725,6 +725,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dayflowEmpty => '還沒有紀錄';
 
   @override
+  String get devOptsTitle => '開發者選項';
+
+  @override
+  String get devOptsLayoutBounds => '顯示版面邊界';
+
+  @override
+  String get devOptsBaselines => '顯示文字基線';
+
+  @override
+  String get devOptsPointers => '顯示點擊區域';
+
+  @override
   String get entityRemove => '移除';
 
   @override

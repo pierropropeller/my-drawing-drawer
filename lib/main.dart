@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'debug/input_diagnostics.dart';
+import 'debug/layout_bounds.dart';
 import 'input/ime_shift.dart';
 import 'media/player_frame_poster_generator.dart';
 import 'share/share_inbox.dart';
@@ -25,6 +26,8 @@ Future<void> main() async {
     ImeShiftBinding.ensureInitialized();
   }
   final prefs = await SharedPreferences.getInstance();
+  // 開發者選項（只有 debug 版）：還原版面邊界等繪製除錯開關。
+  if (kDebugMode) await LayoutBoundsDebug.restore(prefs);
   runApp(
     ProviderScope(
       overrides: [sharedPrefsProvider.overrideWithValue(prefs)],

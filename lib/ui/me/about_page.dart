@@ -1,6 +1,10 @@
 import '../../app_name.dart';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+
+import '../../debug/dev_options_section.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -143,6 +147,8 @@ class AboutPage extends ConsumerWidget {
               ),
             ),
           ),
+          // 開發者選項：只在 debug 版出現（release 不編入、不顯示）。
+          if (kDebugMode) const DevOptionsSection(),
         ],
       ),
     );

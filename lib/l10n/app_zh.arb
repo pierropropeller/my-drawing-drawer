@@ -544,6 +544,10 @@
     }
   },
   "dayflowEmpty": "還沒有紀錄",
+  "devOptsTitle": "開發者選項",
+  "devOptsLayoutBounds": "顯示版面邊界",
+  "devOptsBaselines": "顯示文字基線",
+  "devOptsPointers": "顯示點擊區域",
   "entityRemove": "移除",
   "entityRemoveImage": "移除圖片",
   "entityAddImage": "加圖",

@@ -352,6 +352,11 @@ class _HeaderButton extends StatelessWidget {
     tooltip: tooltip,
     onPressed: onTap,
     padding: EdgeInsets.zero,
+    // 設計稿按鈕就是 40×40；預設的 48 點擊區會讓按鈕比標題列高 8px，
+    // Row 以頂端對齊時標題就比圖示高 4px。
+    style: IconButton.styleFrom(
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    ),
     constraints: const BoxConstraints.tightFor(width: 40, height: 40),
     icon: SvgIcon(svg, size: size, color: color, strokeWidth: strokeWidth),
   );
