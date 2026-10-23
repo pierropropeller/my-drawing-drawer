@@ -139,6 +139,7 @@ void main() {
           .safeMode;
 
   /// 開→關→開的共同斷言（詳情頁）。
+  // ignore: unused_element
   Future<void> toggleFlow(WidgetTester tester, Type page) async {
     expect(find.byKey(blur), findsWidgets);
     expect(tester.getSize(find.byKey(circle).first).width, 52);
