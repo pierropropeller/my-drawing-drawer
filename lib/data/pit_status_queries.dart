@@ -114,10 +114,17 @@ extension PitStatusQueries on AppDatabase {
 
   // ---- 封面 ----
 
-  /// 淺坑自己的封面（從手機相簿直接選的圖檔；null＝清除）。
+  /// 坑自己的封面（從手機相簿直接選的圖檔；null＝清除）。任何類型（坑、淺坑、封存）都可以用（P-041）。
+  ///
+  /// 封面「最後選的贏」：選了檔案就換掉原本的坑內封面參考（[Pits.coverImageId] 清空）；
+  /// 反過來 [setCover]（從坑內選圖）會清掉這個檔。
   Future<void> setPitCoverFile(String pitId, String? file) {
     return (update(pits)..where((p) => p.id.equals(pitId))).write(
-      PitsCompanion(coverFile: Value(file), updatedAt: Value(DateTime.now())),
+      PitsCompanion(
+        coverFile: Value(file),
+        coverImageId: file == null ? const Value.absent() : const Value(null),
+        updatedAt: Value(DateTime.now()),
+      ),
     );
   }
 

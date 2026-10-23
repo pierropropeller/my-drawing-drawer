@@ -507,7 +507,7 @@ Future<bool> confirmCloseSection(
 }
 
 /// 淺坑封面：開自家圖片選擇器（單張、只列圖片），把選到的圖存進 App 儲存空間，回傳檔名；取消回傳 null。
-/// iPad 稿（NewPitShallow、PitEditShallow）才有；手機版淺坑封面照坑內的圖挑。
+/// 開新淺坑（手機 PitNewShallow、iPad NewPitShallow）與編輯坑的「從相簿選擇」（iPad，P-041）用。
 Future<String?> pickShallowCoverFile(
   BuildContext context,
   WidgetRef ref,

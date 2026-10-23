@@ -557,7 +557,8 @@ void main() {
       expect(find.text('類型'), findsOneWidget);
       expect(find.text('封存'), findsOneWidget);
       expect(switchLabels(tester), ['雜物', '敏感內容']);
-      expect(find.text('從相簿選擇'), findsNothing);
+      // P-041：三種類型都可以從相簿選封面。
+      expect(find.text('從相簿選擇'), findsOneWidget);
       expect(find.text('開啟的格子'), findsNothing);
       await unmount(tester);
     });
