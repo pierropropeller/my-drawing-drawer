@@ -26,13 +26,23 @@ String themeValueLabel(BuildContext context, AppSettings s) {
 /// 個人化（D-106，`Personalize`）：主題色、App 圖示、語言、敏感內容四列。
 /// 「我的」→ 這裡 → 各子頁，子頁的返回都回到這一頁。沒有導覽列。
 ///
-/// [embedded]＝iPad「我的」右側內容面板；點列時整頁推出子頁（返回回到這個面板）。
-class PersonalizePage extends ConsumerWidget {
-  const PersonalizePage({super.key, this.embedded = false});
-  final bool embedded;
+/// 個人化底下的四個子頁。
+enum PersonalizeSub { theme, appIcon, language, sensitive }
 
-  void _push(BuildContext context, Widget page) =>
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+/// [embedded]＝iPad「我的」右側內容面板（P-031）：點列時不 push，而是呼叫 [onOpen]，
+/// 由「我的」把右欄換成那一頁（頂部有「‹ 個人化」返回，左欄仍亮「個人化」）。
+class PersonalizePage extends ConsumerWidget {
+  const PersonalizePage({super.key, this.embedded = false, this.onOpen});
+  final bool embedded;
+  final ValueChanged<PersonalizeSub>? onOpen;
+
+  void _open(BuildContext context, PersonalizeSub sub, Widget page) {
+    if (embedded && onOpen != null) {
+      onOpen!(sub);
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,9 +54,8 @@ class PersonalizePage extends ConsumerWidget {
       title: context.l10n.personalizeTitle,
       embedded: embedded,
       child: ListView(
-        padding: embedded
-            ? const EdgeInsets.fromLTRB(0, 8, 0, 24)
-            : const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        // 並排版的外框已留 20（標題另外縮進 40），內容與其他右欄頁一致。
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [
           MePanel(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -60,7 +69,8 @@ class PersonalizePage extends ConsumerWidget {
                     tileFg: t.piece.fg,
                     title: context.l10n.meThemeColor,
                     value: themeValueLabel(context, s),
-                    onTap: () => _push(context, const ThemePage()),
+                    onTap: () =>
+                        _open(context, PersonalizeSub.theme, const ThemePage()),
                   ),
                   // App 圖示（D-086）：左邊是目前那款的小圖（不跟主題色），右邊是名稱。
                   MeListRow(
@@ -72,7 +82,11 @@ class PersonalizePage extends ConsumerWidget {
                     ),
                     title: context.l10n.appiconTitle,
                     value: appIcon.name(context.l10n),
-                    onTap: () => _push(context, const AppIconPickPage()),
+                    onTap: () => _open(
+                      context,
+                      PersonalizeSub.appIcon,
+                      const AppIconPickPage(),
+                    ),
                   ),
                   MeListRow(
                     icon: AppIcons.globe,
@@ -84,7 +98,11 @@ class PersonalizePage extends ConsumerWidget {
                         : const Color(0xFF6B7F5A),
                     title: context.l10n.meLanguage,
                     value: s.language.labelOf(context.l10n),
-                    onTap: () => _push(context, const LanguagePage()),
+                    onTap: () => _open(
+                      context,
+                      PersonalizeSub.language,
+                      const LanguagePage(),
+                    ),
                   ),
                   MeListRow(
                     key: const ValueKey('personalizeSensitive'),
@@ -98,7 +116,11 @@ class PersonalizePage extends ConsumerWidget {
                         ? context.l10n.sensitiveValueOn
                         : context.l10n.sensitiveValueOff,
                     last: true,
-                    onTap: () => _push(context, const SensitiveSettingsPage()),
+                    onTap: () => _open(
+                      context,
+                      PersonalizeSub.sensitive,
+                      const SensitiveSettingsPage(),
+                    ),
                   ),
                 ],
               ),

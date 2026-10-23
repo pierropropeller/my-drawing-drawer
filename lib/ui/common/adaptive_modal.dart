@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
@@ -49,6 +50,7 @@ Future<T?> showAdaptiveModal<T>(
   bool barrierDismissible = false,
   Color barrierColor = const Color(0x731E1B18),
   bool sheetChrome = true,
+  ValueListenable<double>? widthListenable,
 }) {
   final w = MediaQuery.sizeOf(context).width;
   final popup =
@@ -66,6 +68,7 @@ Future<T?> showAdaptiveModal<T>(
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       pageBuilder: (ctx) => AdaptiveFormSurface(
         width: width,
+        widthListenable: widthListenable,
         height: height,
         sheetChrome: sheetChrome,
         sheetBelowMedium: sheetBelowMedium,
@@ -141,6 +144,7 @@ class AdaptiveFormSurface extends StatefulWidget {
     super.key,
     required this.child,
     this.width = 600,
+    this.widthListenable,
     this.height,
     this.sheetBelowMedium = true,
     this.sheetChrome = true,
@@ -148,6 +152,9 @@ class AdaptiveFormSurface extends StatefulWidget {
   });
   final Widget child;
   final double width;
+
+  /// 內容要在開著的時候改對話框寬度時用（例如開新坑選淺坑變兩欄 880）；null＝固定 [width]。
+  final ValueListenable<double>? widthListenable;
   final double? height;
   final bool sheetBelowMedium;
 
@@ -174,10 +181,19 @@ class _AdaptiveFormSurfaceState extends State<AdaptiveFormSurface> {
     if (sheet) {
       return _FormSheetFrame(chrome: widget.sheetChrome, child: content);
     }
-    return AdaptiveModalDialog(
-      width: widget.width,
-      height: widget.height,
+    final listenable = widget.widthListenable;
+    if (listenable == null) {
+      return AdaptiveModalDialog(
+        width: widget.width,
+        height: widget.height,
+        child: content,
+      );
+    }
+    return ValueListenableBuilder<double>(
+      valueListenable: listenable,
       child: content,
+      builder: (_, w, child) =>
+          AdaptiveModalDialog(width: w, height: widget.height, child: child!),
     );
   }
 }

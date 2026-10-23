@@ -2775,17 +2775,11 @@ abstract class AppLocalizations {
   /// **'從坑內選圖'**
   String get ipadpitPickFromPit;
 
-  /// No description provided for @ipadpitJunkHint.
+  /// No description provided for @ipadpitPickFromAlbum.
   ///
   /// In zh, this message translates to:
-  /// **'在坑內頁顯示雜物入口'**
-  String get ipadpitJunkHint;
-
-  /// No description provided for @ipadpitNameHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'例：原作名稱或 CP 名'**
-  String get ipadpitNameHint;
+  /// **'從相簿選擇'**
+  String get ipadpitPickFromAlbum;
 
   /// No description provided for @ipadpitCoverLater.
   ///

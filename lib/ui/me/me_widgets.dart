@@ -120,11 +120,13 @@ class MePageFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (embedded) {
+      final back = MeEmbeddedBack.maybeOf(context);
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (back != null) _EmbeddedBackButton(back),
           Padding(
-            padding: const EdgeInsets.fromLTRB(40, 30, 40, 14),
+            padding: EdgeInsets.fromLTRB(40, back == null ? 30 : 8, 40, 14),
             child: Text(
               title,
               style: Theme.of(context).textTheme.headlineMedium
@@ -148,6 +150,73 @@ class MePageFrame extends StatelessWidget {
               MeSubHeader(title, bottom: bottom),
               Expanded(child: child),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// iPad「我的」右欄：從「個人化」點進子頁時，子頁頂部多一顆「‹ 個人化」返回鍵（Profile 稿）。
+/// 由 ProfilePage 包在子頁外面；[MePageFrame] 的 embedded 版讀到它就畫返回鍵。
+class MeEmbeddedBack extends InheritedWidget {
+  const MeEmbeddedBack({
+    super.key,
+    required this.label,
+    required this.onBack,
+    required super.child,
+  });
+
+  /// 返回鍵上的字（上一層的名稱，例如「個人化」）。
+  final String label;
+  final VoidCallback onBack;
+
+  static MeEmbeddedBack? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<MeEmbeddedBack>();
+
+  @override
+  bool updateShouldNotify(MeEmbeddedBack oldWidget) => oldWidget.label != label;
+}
+
+/// 「‹ 個人化」：36 高、14 字、text2，箭頭 18／線寬 2（Profile 稿）。
+class _EmbeddedBackButton extends StatelessWidget {
+  const _EmbeddedBackButton(this.back);
+  final MeEmbeddedBack back;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(32, 24, 40, 0),
+      child: Semantics(
+        button: true,
+        label: back.label,
+        excludeSemantics: true,
+        child: InkWell(
+          key: const ValueKey('meEmbeddedBack'),
+          borderRadius: BorderRadius.circular(10),
+          onTap: back.onBack,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 2,
+                children: [
+                  SvgIcon(
+                    AppIcons.back,
+                    size: 18,
+                    color: t.text2,
+                    strokeWidth: 2,
+                  ),
+                  Text(
+                    back.label,
+                    style: TextStyle(fontSize: 14, color: t.text2),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

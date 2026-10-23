@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
+import '../../data/media.dart';
 import '../../l10n/l10n.dart';
+import '../../media/media_import.dart';
+import '../../state/providers.dart';
 import '../../theme/tokens.dart';
+import '../album/album_image.dart';
 import '../common/app_icons.dart';
 import '../common/app_switch.dart';
+import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
 import 'pit_form.dart';
 import 'pits_icons.dart';
@@ -498,6 +504,72 @@ Future<bool> confirmCloseSection(
     ),
   );
   return ok == true;
+}
+
+/// 淺坑封面：開自家圖片選擇器（單張、只列圖片），把選到的圖存進 App 儲存空間，回傳檔名；取消回傳 null。
+/// iPad 稿（NewPitShallow、PitEditShallow）才有；手機版淺坑封面照坑內的圖挑。
+Future<String?> pickShallowCoverFile(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final picked = await ref.read(pitCoverPickerProvider)(context);
+  if (picked.isEmpty || !context.mounted) return null;
+  final store = await ref.read(imageStoreProvider.future);
+  final im = await importPickedMedia(store, picked.first);
+  return im.kind.isVideo ? im.posterFile : im.file;
+}
+
+/// 開新淺坑的封面欄位（NewPitShallow，可選）：沒選＝96×96 虛線＋號；選了＝縮圖（再點可更換）。
+class PitCoverPickTile extends StatelessWidget {
+  const PitCoverPickTile({super.key, required this.file, required this.onTap});
+  final String? file;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final l = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PitFieldLabel(l.pitsFieldCover),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Semantics(
+            button: true,
+            label: l.pitsSelectCover,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: SizedBox(
+                  width: 96,
+                  height: 96,
+                  child: file == null
+                      ? DashedBox(
+                          color: t.dashed,
+                          radius: 16,
+                          child: Center(
+                            child: SvgIcon(
+                              AppIcons.plus,
+                              size: 24,
+                              color: t.dashedText,
+                            ),
+                          ),
+                        )
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: StoredImage(file!, cacheWidth: 300),
+                        ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// 坑名旁邊的灰色小標「淺坑」。

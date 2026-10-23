@@ -19,6 +19,8 @@ Future<bool> showSensitiveConfirm(
       return Dialog(
         key: const ValueKey('sensitiveConfirm'),
         insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        // iPad 稿（ProfileSensitive）：置中、360 寬。
+        constraints: const BoxConstraints(maxWidth: 360),
         backgroundColor: t.surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

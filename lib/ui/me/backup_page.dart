@@ -328,8 +328,8 @@ class BackupPage extends ConsumerWidget {
               child: Text(context.l10n.meBackupLinkGoogle),
             ),
           ] else ...[
-            const SizedBox(height: 14),
-            const BackupStorageCard(),
+            SizedBox(height: wide ? 16 : 14),
+            BackupStorageCard(wide: wide),
             MePanel(
               padding: EdgeInsets.symmetric(
                 horizontal: wide ? 20 : 16,

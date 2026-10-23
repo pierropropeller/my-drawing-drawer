@@ -88,6 +88,10 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
   // modal 的封面選擇：選了先暫存，按「儲存」才寫入（取消不動）。
   late String? _coverId = widget.pit.coverImageId;
   String? _coverKind; // 候選篩選：null＝全部，official／fan／piece
+  bool _coverDirty = false;
+
+  /// 淺坑從相簿選的封面（iPad 稿「從相簿選擇」；先暫存，按「儲存」才寫入）。
+  String? _galleryCover;
 
   bool get _shallow => _status == PitStatus.shallow;
 
@@ -199,7 +203,9 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
       sensitiveEnabled: _sensitive == pit.sensitiveEnabled ? null : _sensitive,
       deleteClosedContent: _shallow,
     );
-    if (_coverId != pit.coverImageId) {
+    if (_shallow && _galleryCover != null) {
+      await db.setPitCoverFile(pit.id, _galleryCover);
+    } else if (_coverDirty || _coverId != pit.coverImageId) {
       await db.setCover(pit.id, _coverId);
     }
     if (mounted) Navigator.of(context).pop();
@@ -235,6 +241,11 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     } else {
       Navigator.of(context).popUntil((r) => r.isFirst);
     }
+  }
+
+  Future<void> _pickGalleryCover() async {
+    final file = await pickShallowCoverFile(context, ref);
+    if (file != null && mounted) setState(() => _galleryCover = file);
   }
 
   void _pickCover() => Navigator.of(context).push(
@@ -405,7 +416,9 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
       if (c.id == _coverId) picked = c;
     }
     final Widget preview;
-    if (picked != null) {
+    if (_galleryCover != null) {
+      preview = StoredImage(_galleryCover!, cacheWidth: 600);
+    } else if (picked != null) {
       preview = StaticMediaImage(
         MediaSource(
           file: picked.file,
@@ -448,12 +461,52 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                 ),
                 Padding(
                   padding: const EdgeInsets.only(top: 16, bottom: 12),
-                  child: Text(
-                    l.ipadpitPickFromPit,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  child: Row(
+                    spacing: 8,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l.ipadpitPickFromPit,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      // 淺坑通常還沒有坑內的圖可挑：多一顆從相簿選圖的虛線膠囊（PitEditShallow）。
+                      if (_shallow)
+                        Semantics(
+                          button: true,
+                          child: GestureDetector(
+                            key: const ValueKey('pitCoverFromAlbum'),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _pickGalleryCover,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(minHeight: 44),
+                              child: Center(
+                                widthFactor: 1,
+                                child: DashedBox(
+                                  color: t.dashed,
+                                  radius: 18,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    child: Text(
+                                      l.ipadpitPickFromAlbum,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: t.dashedText,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 SingleChildScrollView(
@@ -496,13 +549,17 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
               itemCount: shown.length,
               itemBuilder: (_, i) {
                 final c = shown[i];
-                final on = c.id == _coverId;
+                final on = _galleryCover == null && c.id == _coverId;
                 return Semantics(
                   button: true,
                   selected: on,
                   label: l.albumSetCover,
                   child: GestureDetector(
-                    onTap: () => setState(() => _coverId = c.id),
+                    onTap: () => setState(() {
+                      _coverId = c.id;
+                      _coverDirty = true;
+                      _galleryCover = null;
+                    }),
                     child: Container(
                       foregroundDecoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(Radii.image),
@@ -559,7 +616,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                 TextFormField(
                   key: const ValueKey('pit-desc'),
                   controller: _desc,
-                  minLines: 3,
+                  minLines: 2,
                   maxLines: 6,
                   style: const TextStyle(fontSize: 15, height: 1.55),
                   decoration: pitInputDecoration(context),
@@ -572,24 +629,14 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                     sensitive: _showSensitive ? _sensitive : null,
                     onSensitiveChanged: _toggleSensitive,
                   )
-                else if (_status == PitStatus.active)
+                else
+                  // 坑、封存＝「雜物」＋（總開關開了才有）「敏感內容」兩個開關（PitEdit）。
                   PitJunkSwitchCard(
-                    subtitle: l.ipadpitJunkHint,
                     value: _junk,
-                    radius: 14,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
+                    radius: 16,
                     onChanged: (v) => setState(() => _junk = v),
                     sensitive: _showSensitive ? _sensitive : null,
                     onSensitiveChanged: _toggleSensitive,
-                  )
-                else if (_showSensitive)
-                  PitSensitiveCard(
-                    radius: 14,
-                    value: _sensitive,
-                    onChanged: _toggleSensitive,
                   ),
                 const SizedBox(height: 24),
                 const Spacer(),
