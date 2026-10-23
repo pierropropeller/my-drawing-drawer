@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -24,7 +22,6 @@ import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import '../common/timeline.dart';
 import '../common/window_class.dart';
-import '../album/ipadlists_icons.dart';
 import '../album/wide_layout.dart';
 import '../entity/entity_widgets.dart';
 import '../search/tagged_list.dart';
@@ -61,10 +58,7 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
 
   String? _groupId;
 
-  // 寬版右側篩選面板的狀態（只在並排時套用；窄視窗時保留，不丟）。
-  final _queryCtl = TextEditingController();
-  String _query = '';
-  String? _panelTagId;
+  // 寬版右側面板（分組、跳到月份；P-030：搜尋框與角色 tag 篩選已拿掉，搜尋改去坑內搜尋）。
   int? _jumpedMonth;
   final _scroll = ScrollController();
   final _monthKeys = <int, GlobalKey>{};
@@ -94,7 +88,6 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
 
   @override
   void dispose() {
-    _queryCtl.dispose();
     _scroll.dispose();
     _sel.dispose();
     super.dispose();
@@ -210,20 +203,6 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
   }) {
     final t = context.tokens;
     final l = context.l10n;
-    // 角色 tag：這個坑所有推活紀錄用到的 tag（依使用次數），不受目前篩選影響。
-    final all =
-        ref.watch(oshiRecordsProvider((widget.pitId, null, null))).value ??
-        const <OshiRecordView>[];
-    final tagCount = <String, int>{};
-    final tagName = <String, String>{};
-    for (final v in all) {
-      for (final tag in v.tags) {
-        tagCount[tag.id] = (tagCount[tag.id] ?? 0) + 1;
-        tagName[tag.id] = tag.name;
-      }
-    }
-    final tagIds = tagCount.keys.toList()
-      ..sort((a, b) => tagCount[b]!.compareTo(tagCount[a]!));
     // 月份：目前列出的紀錄有哪些月份（新到舊）；前 7 個直接列，其餘合成「更早」。
     final months = <int>[];
     for (final v in views) {
@@ -319,40 +298,6 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
         child: ListView(
           padding: EdgeInsets.fromLTRB(24, 18, spec.hpad - 4, 24),
           children: [
-            Semantics(
-              label: l.ipadListsOshiSearchLabel,
-              textField: true,
-              child: Container(
-                height: 44,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: t.surface,
-                  border: Border.all(color: t.border),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  spacing: 8,
-                  children: [
-                    SvgIcon(
-                      IpadListsIcons.search,
-                      size: 18,
-                      strokeWidth: 1.9,
-                      color: t.text3,
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _queryCtl,
-                        onChanged: (v) => setState(() => _query = v),
-                        decoration: InputDecoration.collapsed(
-                          hintText: l.ipadListsOshiSearchHint,
-                        ),
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
             Row(
               children: [
                 Expanded(child: label(l.albumGroupLabel)),
@@ -385,23 +330,6 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
                 l.oshiPillUngrouped,
                 counts[null] ?? 0,
               ),
-            if (tagIds.isNotEmpty) ...[
-              label(l.ipadListsOshiCharacterTags),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final id in tagIds)
-                    chip(
-                      '#${tagName[id]}',
-                      _panelTagId == id,
-                      () => setState(
-                        () => _panelTagId = _panelTagId == id ? null : id,
-                      ),
-                    ),
-                ],
-              ),
-            ],
             if (months.isNotEmpty) ...[
               label(l.ipadListsOshiJumpToMonth),
               GridView.count(
@@ -447,11 +375,8 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
       );
       final box = _gridAreaKey.currentContext?.findRenderObject() as RenderBox?;
       if (idx < 0 || box == null) return;
-      final g = _OshiGridMetrics.of(
-        box.size.width,
-        MediaQuery.sizeOf(context).width,
-      );
-      final offset = 4 + (idx ~/ g.cols) * (g.cell + g.gap);
+      final g = _OshiGridMetrics.of(box.size.width);
+      final offset = _OshiGridMetrics.top + (idx ~/ g.cols) * (g.cell + g.gap);
       await c.animateTo(
         offset.clamp(0.0, c.position.maxScrollExtent),
         duration: const Duration(milliseconds: 250),
@@ -521,25 +446,9 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
       large: (290, 320),
     );
     final baseViews =
-        ref
-            .watch(
-              oshiRecordsProvider((
-                widget.pitId,
-                groupId,
-                wide ? _panelTagId : null,
-              )),
-            )
-            .value ??
+        ref.watch(oshiRecordsProvider((widget.pitId, groupId, null))).value ??
         const [];
-    final q = _query.trim().toLowerCase();
-    final views = wide && q.isNotEmpty
-        ? [
-            for (final v in baseViews)
-              if ((v.record.title ?? '').toLowerCase().contains(q) ||
-                  (v.record.description ?? '').toLowerCase().contains(q))
-                v,
-          ]
-        : baseViews;
+    final views = baseViews;
     final fullyEmpty = total == 0 && views.isEmpty;
     final title = pitName == null
         ? context.l10n.oshiTitle
@@ -596,7 +505,7 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
                     selection: _sel,
                     onTap: _tap,
                     controller: _scroll,
-                    wideInset: wide ? spec.hpad : null,
+                    wide: wide,
                   ),
           );
     final Widget panel = _panel(
@@ -761,36 +670,37 @@ class _LayoutToggle extends StatelessWidget {
   }
 }
 
-/// 寬版網格的欄數與格子大小（Oshi 設計稿：4 欄、間距 12；依可用闊度逐格增減）。
+/// 寬版九宮格的欄數與格子大小（Oshi 設計稿 P-030：6 欄、間距 2px、貼邊、無圓角、無文字）。
 class _OshiGridMetrics {
   const _OshiGridMetrics(this.cols, this.cell, this.gap);
   final int cols;
   final double cell;
   final double gap;
 
-  /// [areaWidth]＝網格區闊度（不含右側面板）；[windowWidth] 用來決定左右邊距。
-  static _OshiGridMetrics of(double areaWidth, double windowWidth) {
-    final inset = WideSpec.of(windowWidth).hpad;
-    const gap = 12.0;
-    final inner = areaWidth - inset - 12;
-    final cols = math.max(3, gridColumnsFor(inner, minCell: 170));
-    return _OshiGridMetrics(cols, (inner - gap * (cols - 1)) / cols, gap);
+  /// 網格上方留白（稿：左側區 padding-top 18）。
+  static const top = 18.0;
+
+  /// [areaWidth]＝網格區闊度（不含右側面板）；網格貼齊區域左右邊。
+  static _OshiGridMetrics of(double areaWidth) {
+    const cols = 6;
+    const gap = 2.0;
+    return _OshiGridMetrics(cols, (areaWidth - gap * (cols - 1)) / cols, gap);
   }
 }
 
-/// 九宮格（OshiGrid，D-078）：同草稿／雜物／素材庫的九宮格——一排 3 格正方形、貼邊、間距 2px、
+/// 九宮格（OshiGrid，D-078）：同草稿／雜物／素材庫的九宮格——正方形、貼邊、間距 2px、
 /// 沒有圓角、圖下沒有字；多張圖右下角張數。多選時右上角勾選圈，選中加 2px 主色框（D-079）。
+/// 手機 3 格一排；[wide]（≥840，Oshi 稿 P-030）6 欄、貼齊左右邊。
 class _OshiGrid extends StatelessWidget {
   const _OshiGrid({
     required this.views,
     required this.selection,
     required this.onTap,
     this.controller,
-    this.wideInset,
+    this.wide = false,
   });
 
-  /// 非 null＝平板寬版樣式（稿：4 欄、間距 12、圓角 14、左下日期標）；左右邊距用這個值。
-  final double? wideInset;
+  final bool wide;
   final ScrollController? controller;
   final List<OshiRecordView> views;
   final OshiSelection selection;
@@ -800,43 +710,20 @@ class _OshiGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final selecting = selection.active;
-    final wide = wideInset != null;
-    return LayoutBuilder(
-      builder: (context, c) {
-        final m = wide
-            ? _OshiGridMetrics.of(c.maxWidth, MediaQuery.sizeOf(context).width)
-            : null;
-        return _grid(context, t, selecting, wide, m);
-      },
-    );
-  }
-
-  Widget _grid(
-    BuildContext context,
-    AppTokens t,
-    bool selecting,
-    bool wide,
-    _OshiGridMetrics? m,
-  ) {
     return GridView.builder(
+      key: wide ? const ValueKey('oshiWideNineGrid') : null,
       controller: controller,
-      padding: wide
-          ? EdgeInsets.fromLTRB(wideInset!, 4, 12, 96)
-          : const EdgeInsets.only(top: 8, bottom: 96),
-      gridDelegate: wide
-          ? SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: m!.cols,
-              mainAxisSpacing: m.gap,
-              crossAxisSpacing: m.gap,
-            )
-          : SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columnsForWidth(
-                MediaQuery.sizeOf(context).width,
-                phone: 3,
-              ),
-              mainAxisSpacing: 2,
-              crossAxisSpacing: 2,
-            ),
+      padding: EdgeInsets.only(
+        top: wide ? _OshiGridMetrics.top : 8,
+        bottom: 96,
+      ),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: wide
+            ? 6
+            : columnsForWidth(MediaQuery.sizeOf(context).width, phone: 3),
+        mainAxisSpacing: 2,
+        crossAxisSpacing: 2,
+      ),
       itemCount: views.length,
       itemBuilder: (_, i) {
         final v = views[i];
@@ -850,43 +737,15 @@ class _OshiGrid extends StatelessWidget {
               key: ValueKey('oshi-grid-${v.record.id}'),
               fit: StackFit.expand,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(wide ? 14 : 0),
-                  child: MediaThumb(
-                    MediaSource.fromImageRef(v.cover),
-                    cacheWidth: 400,
-                    count: v.images.length,
-                  ),
+                MediaThumb(
+                  MediaSource.fromImageRef(v.cover),
+                  cacheWidth: 400,
+                  count: v.images.length,
                 ),
                 if (picked)
                   DecoratedBox(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(wide ? 14 : 0),
                       border: Border.all(color: t.accent, width: 2),
-                    ),
-                  ),
-                // 寬版：左下日期標（稿：白底半透明、11.5/600）。
-                if (wide)
-                  Positioned(
-                    left: 8,
-                    bottom: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: .88),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        oshiMd(v.date),
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2B2622),
-                        ),
-                      ),
                     ),
                   ),
                 if (selecting)

@@ -1,0 +1,8 @@
+{
+  "ipadsearchAlbums": "相冊",
+  "ipadsearchArchivedBadge": "封存",
+  "ipadsearchAddTag": "加 tag",
+  "ipadsearchSelectedItems": "已選 {count} 項",
+  "@ipadsearchSelectedItems": {"placeholders": {"count": {"type": "int"}}},
+  "ipadsearchMoreSemantics": "查看全部"
+}

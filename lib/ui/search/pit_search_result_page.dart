@@ -17,6 +17,7 @@ import '../album/album_icons.dart';
 import 'filter_pills.dart';
 import 'pit_search_tab.dart';
 import 'search_hits.dart';
+import 'search_wide.dart';
 import 'search_widgets.dart';
 
 /// 坑內搜尋結果（PitSearchResult，D-051、D-107）：
@@ -56,7 +57,9 @@ class PitSearchResultPage extends ConsumerStatefulWidget {
 }
 
 class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
-    with HidesNavBar<PitSearchResultPage> {
+    with
+        HidesNavBar<PitSearchResultPage>,
+        HidesNavBarWhenCompact<PitSearchResultPage> {
   late final TextEditingController _controller = TextEditingController(
     text: widget.text,
   );
@@ -194,6 +197,20 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
           )
         : SearchSelection.none;
 
+    if (searchIsWide(context)) {
+      return _wide(
+        context,
+        res: res,
+        counts: counts,
+        category: category,
+        section: section,
+        opener: opener,
+        selection: selection,
+        pitName: pitName,
+        tagName: tagName,
+      );
+    }
+
     final Widget body;
     if (res.isEmpty) {
       body = Center(
@@ -284,6 +301,218 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// iPad（PitSearchResult／PitSearchResultTab／PitSearchUntagged 稿）：icon rail＋返回鍵＋寬輸入框；
+  /// 左邊 210 寬的直排相冊清單（只列有結果的，帶數字），右邊是分段總覽或單一相冊的 6 欄九宮格。
+  /// 「未加 tag」結果：長按進多選，右邊內容區底部出現工具列。
+  Widget _wide(
+    BuildContext context, {
+    required PitSearchResult res,
+    required Map<SearchCategory, int> counts,
+    required SearchCategory category,
+    required PitSearchSection? section,
+    required SearchOpener opener,
+    required SearchSelection selection,
+    required String pitName,
+    required String tagName,
+  }) {
+    final t = context.tokens;
+    final l = context.l10n;
+    final pickable = [
+      for (final s in section == null ? res.visibleSections : [section])
+        ...searchTilesOf(res, s),
+    ];
+    final allSelected =
+        pickable.isNotEmpty && pickable.every((x) => _selected.contains(x.key));
+    final inset = _selecting ? WideSelectBar.height + 24 : 24.0;
+    final Widget body;
+    if (res.isEmpty) {
+      body = Center(
+        child: Text(
+          l.searchNoResults,
+          style: TextStyle(color: t.text3, fontSize: 14),
+        ),
+      );
+    } else if (section != null) {
+      body = PitSearchResultTab(
+        section: section,
+        res: res,
+        opener: opener,
+        selection: selection,
+        wide: true,
+        bottomInset: inset,
+      );
+    } else {
+      body = _wideOverview(res, opener, selection, inset);
+    }
+    return PopScope(
+      canPop: !_selecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _exitSelecting();
+      },
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              WideSearchHeader(
+                child: WideSearchInput(
+                  child: Row(
+                    children: [
+                      if (_tagId != null) ...[
+                        TagFilterPill(name: tagName, onClear: _clearFilter),
+                        const SizedBox(width: 6),
+                      ],
+                      if (_untagged) ...[
+                        UntaggedFilterPill(onClear: _clearFilter),
+                        const SizedBox(width: 6),
+                      ],
+                      Expanded(
+                        child: SearchField(
+                          controller: _controller,
+                          hint: _tagId == null && !_untagged
+                              ? l.searchHint(pitName)
+                              : '',
+                          fontSize: 16,
+                          onChanged: _setText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(32, 20, 32, 0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      WideAlbumNav(
+                        counts: counts,
+                        selected: category,
+                        onSelected: _select,
+                      ),
+                      const SizedBox(width: 28),
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            Positioned.fill(child: body),
+                            if (_selecting)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                child: WideSelectBar(
+                                  count: _selected.length,
+                                  allSelected: allSelected,
+                                  onExit: _exitSelecting,
+                                  onToggleAll: () => setState(() {
+                                    if (allSelected) {
+                                      _selected.clear();
+                                      _selecting = false;
+                                    } else {
+                                      _selected.addAll(
+                                        pickable.map((x) => x.key),
+                                      );
+                                    }
+                                  }),
+                                  onTag: _tagSelected,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// iPad 分段總覽（「全部」）：圖片一排 6 格＋「+N」（點它切到那個相冊）、腦洞文字卡兩欄。
+  Widget _wideOverview(
+    PitSearchResult res,
+    SearchOpener opener,
+    SearchSelection selection,
+    double bottomInset,
+  ) {
+    final l = context.l10n;
+    final children = <Widget>[];
+    for (final s in res.visibleSections) {
+      final total = res.counts[s]!;
+      final all = searchTilesOf(res, s);
+      final Widget content;
+      if (s == PitSearchSection.ideas) {
+        final shown = all.length < _ideaShown ? all.length : _ideaShown;
+        content = Column(
+          children: [
+            IdeaCardsGrid(
+              tiles: all.take(shown).toList(),
+              selection: selection,
+              onTap: (tile) => opener.open(s, tile.index),
+            ),
+            if (shown < all.length)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: SizedBox(
+                    key: Key('ideas-loading'),
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ),
+          ],
+        );
+      } else {
+        final shownTiles = all.take(WideThumbRow.columns).toList();
+        content = WideThumbRow(
+          tiles: shownTiles,
+          more: total - shownTiles.length,
+          selection: selection,
+          onTap: (tile) => opener.open(s, tile.index),
+          onMore: () => _select(s.category),
+        );
+      }
+      children.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 22),
+          child: Column(
+            key: ValueKey('searchSection-${s.name}'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SearchSectionHeader(s.title(l), total, wide: true),
+              content,
+            ],
+          ),
+        ),
+      );
+    }
+    return NotificationListener<ScrollNotification>(
+      onNotification: (n) {
+        if (!_batchPending &&
+            n.metrics.extentAfter < 400 &&
+            _ideaShown < res.ideas.items.length) {
+          _batchPending = true;
+          setState(() => _ideaShown += PitSearchResultPage.ideaBatch);
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _batchPending = false,
+          );
+        }
+        return false;
+      },
+      child: ListView(
+        key: const ValueKey('searchWideOverview'),
+        padding: EdgeInsets.only(bottom: bottomInset),
+        children: children,
       ),
     );
   }
@@ -504,27 +733,41 @@ class SearchSelectBar extends StatelessWidget {
 
 /// 段頭：粗體名稱＋淡色數字（沒有「全部」）。
 class SearchSectionHeader extends StatelessWidget {
-  const SearchSectionHeader(this.title, this.total, {super.key});
+  const SearchSectionHeader(
+    this.title,
+    this.total, {
+    super.key,
+    this.wide = false,
+  });
   final String title;
   final int total;
+
+  /// iPad：名稱 15、數字 13，上方不留白、下方 10。
+  final bool wide;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(2, 14, 2, 8),
+      padding: wide
+          ? const EdgeInsets.fromLTRB(2, 0, 2, 10)
+          : const EdgeInsets.fromLTRB(2, 14, 2, 8),
       child: Text.rich(
         TextSpan(
           text: title,
           children: [
             TextSpan(
               text: '  $total',
-              style: TextStyle(color: t.text4, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: t.text4,
+                fontWeight: FontWeight.w500,
+                fontSize: wide ? 13 : null,
+              ),
             ),
           ],
         ),
         style: TextStyle(
-          fontSize: 14,
+          fontSize: wide ? 15 : 14,
           fontWeight: FontWeight.w700,
           color: t.ink,
         ),

@@ -306,10 +306,14 @@ class IdeaResultCard extends StatelessWidget {
     required this.tile,
     required this.selection,
     required this.onTap,
+    this.wide = false,
   });
   final SearchTile tile;
   final SearchSelection selection;
   final VoidCallback onTap;
+
+  /// iPad（P-028、P-029）：內距 16×13、標題 15、內文 13 距標題 4。
+  final bool wide;
 
   @override
   Widget build(BuildContext context) {
@@ -324,7 +328,9 @@ class IdeaResultCard extends StatelessWidget {
           : () => selection.onStart!(tile),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: wide
+            ? const EdgeInsets.symmetric(horizontal: 16, vertical: 13)
+            : const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: t.surface,
           border: Border.all(
@@ -341,14 +347,14 @@ class IdeaResultCard extends StatelessWidget {
                   Text(
                     view.idea.title,
                     style: TextStyle(
-                      fontSize: 14.5,
+                      fontSize: wide ? 15 : 14.5,
                       fontWeight: FontWeight.w700,
                       color: t.ink,
                     ),
                   ),
                   if (body.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 3),
+                      padding: EdgeInsets.only(top: wide ? 4 : 3),
                       child: Text(
                         body,
                         maxLines: 1,
@@ -372,8 +378,9 @@ class IdeaResultCard extends StatelessWidget {
 
 /// 「+N」蓋層（第 3 格）。
 class MoreOverlay extends StatelessWidget {
-  const MoreOverlay(this.more, {super.key});
+  const MoreOverlay(this.more, {super.key, this.fontSize = 18});
   final int more;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -381,9 +388,9 @@ class MoreOverlay extends StatelessWidget {
     alignment: Alignment.center,
     child: Text(
       '+$more',
-      style: const TextStyle(
+      style: TextStyle(
         color: Colors.white,
-        fontSize: 18,
+        fontSize: fontSize,
         fontWeight: FontWeight.w700,
       ),
     ),

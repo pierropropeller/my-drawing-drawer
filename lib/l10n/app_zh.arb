@@ -1060,6 +1060,18 @@
   "ipadpitNameHint": "例：原作名稱或 CP 名",
   "ipadpitCoverLater": "封面可於建立後在「編輯坑」中選擇。",
   "ipadpitSectionsLabel": "坑內分區",
+  "ipadsearchAlbums": "相冊",
+  "ipadsearchArchivedBadge": "封存",
+  "ipadsearchAddTag": "加 tag",
+  "ipadsearchSelectedItems": "已選 {count} 項",
+  "@ipadsearchSelectedItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ipadsearchMoreSemantics": "查看全部",
   "ipadsyncNetWifi": "Wi-Fi",
   "ipadsyncNetCellular": "行動網絡",
   "ipadsyncNetEthernet": "有線網絡",

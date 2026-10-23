@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'window_class.dart';
+
 /// 目前有幾個頁面要求隱藏底部導覽列。
 ///
 /// 規則（HANDOFF 第 6 節）：瀏覽用的頁面有導覽列，做事用的頁面（新增／編輯／詳情／
@@ -31,6 +33,19 @@ mixin HidesNavBar<T extends StatefulWidget> on State<T> {
   void dispose() {
     setNavBarHidden(false);
     super.dispose();
+  }
+}
+
+/// 搭配 [HidesNavBar] 使用：只有手機版面（＜600）才隱藏導覽列；≥600 保留 rail／sidebar
+/// （iPad 搜尋頁的設計稿都畫著導覽，P-028、P-029）。
+mixin HidesNavBarWhenCompact<T extends StatefulWidget> on HidesNavBar<T> {
+  @override
+  bool get hidesNavBarOnOpen => false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    setNavBarHidden(WindowClass.of(context).isCompact);
   }
 }
 
