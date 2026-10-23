@@ -22,7 +22,7 @@ class MiniMediaThumb extends StatelessWidget {
     this.protectSensitive = true,
   });
 
-  /// 見 [MediaThumb.protectSensitive]（詳情頁的縮圖列傳 false）。
+  /// 見 [MediaThumb.protectSensitive]（詳情頁縮圖列同列表，依安全模式處理）。
   final bool protectSensitive;
 
   final MediaSource media;

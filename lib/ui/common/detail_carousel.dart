@@ -7,6 +7,7 @@ import '../entity/image_gallery_page.dart';
 import 'app_icons.dart';
 import 'media_mini.dart';
 import 'media_widgets.dart';
+import 'sensitive_gate.dart';
 import 'svg_icon.dart';
 
 /// 詳情頁圖片框比例的上下限（D-073）：最扁 1.91:1（寬:高），最高 3:4。
@@ -138,11 +139,16 @@ class _DetailCarouselState extends State<DetailCarousel> {
                         }
                         return GestureDetector(
                           onTap: () => _open(i),
-                          child: MediaViewer(
-                            media,
-                            active: i == _index,
-                            cacheWidth: widget.cacheWidth,
-                            placeholderColor: letterbox,
+                          // 詳情頁的主圖照安全模式模糊／加小標；點開的全螢幕預覽才正常顯示。
+                          child: SensitiveGate(
+                            file: media.file,
+                            badgeInset: 12,
+                            child: MediaViewer(
+                              media,
+                              active: i == _index,
+                              cacheWidth: widget.cacheWidth,
+                              placeholderColor: letterbox,
+                            ),
                           ),
                         );
                       },
@@ -260,7 +266,6 @@ class _DetailImageStageState extends State<DetailImageStage> {
                           child: MiniMediaThumb(
                             MediaSource.fromImageRef(images[i]),
                             cacheWidth: 200,
-                            protectSensitive: false, // 詳情頁不模糊（D-104）
                           ),
                         ),
                         if (i == _index)

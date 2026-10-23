@@ -5,6 +5,7 @@ import '../../data/database.dart';
 import '../../data/goal_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
+import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../nav/adaptive_nav.dart';
 import '../common/app_icons.dart';
@@ -32,7 +33,8 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
   /// 內容區至少這麼寬才用並排版面（左 430 回顧卡＋右目標列表）。
   static const _wideMin = 720.0;
 
-  int _mode = 0;
+  // 上次停留的年／月／日（設定，啟動即還原）。
+  late int _mode = ref.read(settingsProvider).lastGoalsMode;
   final _dayKey = GlobalKey<DayTimelineState>();
   int _year = DateTime.now().year; // 年度視圖的年份
   final _years = [DateTime.now().year, DateTime.now().year]; // 月、日視圖目前顯示的年份
@@ -91,7 +93,10 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
                 context.l10n.goalsModeDay,
               ],
               selected: _mode,
-              onChanged: (i) => setState(() => _mode = i),
+              onChanged: (i) {
+                setState(() => _mode = i);
+                ref.read(settingsProvider.notifier).setLastGoalsMode(i);
+              },
             );
             final titleStyle = Theme.of(context).textTheme.headlineMedium
                 ?.copyWith(
@@ -146,6 +151,9 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
                           // 月頁點日曆：切到「日」並捲到該日（D-072）。
                           onDayTap: (d) {
                             setState(() => _mode = 2);
+                            ref
+                                .read(settingsProvider.notifier)
+                                .setLastGoalsMode(2);
                             _dayKey.currentState?.jumpToDay(d);
                           },
                         ),
