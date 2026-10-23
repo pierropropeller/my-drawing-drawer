@@ -39,9 +39,8 @@ class SensitiveSettingsPage extends ConsumerWidget {
       bottom: 12,
       embedded: embedded,
       child: ListView(
-        padding: embedded
-            ? const EdgeInsets.fromLTRB(0, 8, 0, 24)
-            : const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        // 並排版的外框已留 20（標題另外縮進 40），內容與其他右欄頁一致。
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [
           MePanel(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),

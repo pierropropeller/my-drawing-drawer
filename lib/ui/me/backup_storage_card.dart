@@ -33,8 +33,12 @@ final openGoogleStorageProvider = Provider<Future<void> Function()>(
 /// Drive 已滿（D-103，BackupFull 稿）：紅框、標題「Drive 已滿」、數字和進度條變紅；卡片下方
 /// 一行「N 張未上傳」＋右邊「管理 Google 儲存空間 ↗」。已滿但還沒有用量數字（上傳被拒絕、
 /// 用量讀不到）時，卡片只有標題和下方那一行。
+///
+/// [wide]＝iPad 右欄（ProfileBackup／BackupFull 稿）：內距 20×16×18、標題 15、卡片間距 16、
+/// 進度條與圖例間距略大。
 class BackupStorageCard extends ConsumerStatefulWidget {
-  const BackupStorageCard({super.key});
+  const BackupStorageCard({super.key, this.wide = false});
+  final bool wide;
 
   @override
   ConsumerState<BackupStorageCard> createState() => _BackupStorageCardState();
@@ -77,6 +81,7 @@ class _BackupStorageCardState extends ConsumerState<BackupStorageCard> {
     final drawer = info == null ? '' : formatByteSize(info.drawerBytes);
     final other = info == null ? '' : formatByteSize(info.otherBytes);
 
+    final wide = widget.wide;
     final usedStyle = TextStyle(
       fontWeight: FontWeight.w700,
       color: full ? t.danger : t.ink,
@@ -90,16 +95,16 @@ class _BackupStorageCardState extends ConsumerState<BackupStorageCard> {
           full ? l10n.backupFullTitle : l10n.backupStorageTitle,
           style: full
               ? TextStyle(
-                  fontSize: 14.5,
+                  fontSize: wide ? 15 : 14.5,
                   fontWeight: FontWeight.w700,
                   color: t.danger,
                 )
-              : const TextStyle(fontSize: 14.5),
+              : TextStyle(fontSize: wide ? 15 : 14.5),
         ),
         if (info != null)
           Text.rich(
             TextSpan(
-              style: TextStyle(fontSize: 13, color: t.text2),
+              style: TextStyle(fontSize: wide ? 13.5 : 13, color: t.text2),
               children: [
                 if (limit == null)
                   TextSpan(text: '${l10n.backupStorageUsedLabel} '),
@@ -126,7 +131,7 @@ class _BackupStorageCardState extends ConsumerState<BackupStorageCard> {
         Text(
           text,
           style: TextStyle(
-            fontSize: 12.5,
+            fontSize: wide ? 13 : 12.5,
             color: dark ? t.text2 : const Color(0xFF4A453F),
           ),
         ),
@@ -134,7 +139,7 @@ class _BackupStorageCardState extends ConsumerState<BackupStorageCard> {
     );
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: EdgeInsets.only(bottom: wide ? 16 : 14),
       child: Semantics(
         container: true,
         label: info == null
@@ -143,7 +148,9 @@ class _BackupStorageCardState extends ConsumerState<BackupStorageCard> {
         child: ExcludeSemantics(
           excluding: !full,
           child: MePanel(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            padding: wide
+                ? const EdgeInsets.fromLTRB(20, 16, 20, 18)
+                : const EdgeInsets.fromLTRB(16, 14, 16, 16),
             borderColor: full
                 ? (dark
                       ? t.danger.withValues(alpha: 0.5)
@@ -155,7 +162,7 @@ class _BackupStorageCardState extends ConsumerState<BackupStorageCard> {
               children: [
                 header,
                 if (info != null && limit != null) ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: wide ? 12 : 10),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: Container(
@@ -182,7 +189,7 @@ class _BackupStorageCardState extends ConsumerState<BackupStorageCard> {
                   ),
                   const SizedBox(height: 10),
                   Wrap(
-                    spacing: 16,
+                    spacing: wide ? 18 : 16,
                     runSpacing: 4,
                     children: [
                       legend(drawerColor, l10n.backupStorageDrawer(drawer)),
@@ -190,7 +197,7 @@ class _BackupStorageCardState extends ConsumerState<BackupStorageCard> {
                     ],
                   ),
                 ],
-                if (full) _FullFooter(unuploaded: unuploaded),
+                if (full) _FullFooter(unuploaded: unuploaded, wide: wide),
               ],
             ),
           ),
@@ -202,8 +209,9 @@ class _BackupStorageCardState extends ConsumerState<BackupStorageCard> {
 
 /// 已滿時卡片下方：左「N 張未上傳」（N 粗體；不知道張數時不寫），右「管理 Google 儲存空間 ↗」。
 class _FullFooter extends ConsumerWidget {
-  const _FullFooter({required this.unuploaded});
+  const _FullFooter({required this.unuploaded, this.wide = false});
   final int unuploaded;
+  final bool wide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -213,7 +221,7 @@ class _FullFooter extends ConsumerWidget {
     final linkColor = dark ? t.accent : const Color(0xFFC25436);
     return Container(
       margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.only(top: 4),
+      padding: EdgeInsets.only(top: wide ? 0 : 4),
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(color: dark ? t.border : const Color(0xFFF1EADF)),
@@ -225,7 +233,7 @@ class _FullFooter extends ConsumerWidget {
           if (unuploaded > 0)
             Text.rich(
               TextSpan(
-                style: TextStyle(fontSize: 14, color: t.ink),
+                style: TextStyle(fontSize: wide ? 14.5 : 14, color: t.ink),
                 children: [
                   TextSpan(
                     text: l10n.backupFullCount(unuploaded),
@@ -251,7 +259,7 @@ class _FullFooter extends ConsumerWidget {
                     Text(
                       l10n.backupFullManage,
                       style: TextStyle(
-                        fontSize: 13.5,
+                        fontSize: wide ? 14 : 13.5,
                         fontWeight: FontWeight.w600,
                         color: linkColor,
                       ),

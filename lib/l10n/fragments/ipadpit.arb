@@ -1,8 +1,7 @@
 {
   "ipadpitChangeCover": "換封面",
   "ipadpitPickFromPit": "從坑內選圖",
-  "ipadpitJunkHint": "在坑內頁顯示雜物入口",
-  "ipadpitNameHint": "例：原作名稱或 CP 名",
+  "ipadpitPickFromAlbum": "從相簿選擇",
   "ipadpitCoverLater": "封面可於建立後在「編輯坑」中選擇。",
   "ipadpitSectionsLabel": "坑內分區"
 }

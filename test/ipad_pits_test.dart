@@ -191,7 +191,9 @@ void main() {
       await tester.tap(find.text('開新坑'));
       await settle(tester);
       expect(find.byType(Dialog), findsOneWidget);
-      expect(find.text('封面可於建立後在「編輯坑」中選擇。'), findsOneWidget);
+      // NewPit 稿（600）沒有「封面可於建立後…」那行（只有 NewPit400 有）；頂部有類型分段。
+      expect(find.text('封面可於建立後在「編輯坑」中選擇。'), findsNothing);
+      expect(find.text('類型'), findsOneWidget);
       // 置中。
       final c = tester.getCenter(find.byType(Dialog));
       expect((c.dx - 597).abs() < 1 && (c.dy - 417).abs() < 40, isTrue);
@@ -348,7 +350,8 @@ void main() {
       for (final t in ['全部', '官方圖冊', '同人圖', '成圖']) {
         expect(find.text(t), findsWidgets);
       }
-      expect(find.text('在坑內頁顯示雜物入口'), findsOneWidget);
+      // PitEdit 稿：雜物開關沒有副標。
+      expect(find.text('雜物'), findsOneWidget);
       expect(find.text('刪除這個坑'), findsOneWidget);
       expect(find.text('取消'), findsOneWidget);
       expect(find.text('儲存'), findsOneWidget);

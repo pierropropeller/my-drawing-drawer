@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/providers.dart';
 import '../../state/settings.dart';
+import '../../sync/storage_usage.dart';
 import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
@@ -15,7 +16,11 @@ import 'about_page.dart';
 import 'backup_page.dart';
 import 'me_widgets.dart';
 import 'personalize_page.dart';
+import 'app_icon_page.dart';
+import 'language_page.dart';
 import 'profile_edit_page.dart';
+import 'sensitive_settings_page.dart';
+import 'theme_page.dart';
 import '../../l10n/l10n.dart';
 
 /// iPad 版「我的」右側內容面板顯示哪一項（Profile 稿的設定列；D-106 起主題色、App 圖示、語言、敏感內容收進「個人化」）。
@@ -54,6 +59,9 @@ class ProfilePage extends ConsumerStatefulWidget {
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   /// 並排版右側目前顯示的項目（預設「個人化」）。
   ProfileSection _section = ProfileSection.personalize;
+
+  /// 並排版「個人化」右欄目前開著的子頁（null＝個人化列表本身）。
+  PersonalizeSub? _sub;
 
   void _takeRequest(ProfileSection? s) {
     if (s == null) return;
@@ -230,6 +238,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
+  /// 個人化右欄（Profile／ProfileSensitive 稿）：列表，或點進去的子頁（頂部「‹ 個人化」）。
+  Widget _personalizePanel(BuildContext context) {
+    final sub = _sub;
+    if (sub == null) {
+      return PersonalizePage(
+        embedded: true,
+        onOpen: (s) => setState(() => _sub = s),
+      );
+    }
+    final page = switch (sub) {
+      PersonalizeSub.theme => const ThemePage(embedded: true),
+      PersonalizeSub.appIcon => const AppIconPickPage(embedded: true),
+      PersonalizeSub.language => const LanguagePage(embedded: true),
+      PersonalizeSub.sensitive => const SensitiveSettingsPage(embedded: true),
+    };
+    return MeEmbeddedBack(
+      label: context.l10n.personalizeTitle,
+      onBack: () => setState(() => _sub = null),
+      child: page,
+    );
+  }
+
   // ---- iPad／平板：左設定列表＋右內容面板（Profile 稿） ----
 
   Widget _split(BuildContext context, double width) {
@@ -257,7 +287,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       tileFg: tileFg,
       title: title,
       value: value,
-      onTap: () => setState(() => _section = section),
+      onTap: () => setState(() {
+        // 再點一次左欄的「個人化」＝回到個人化列表。
+        if (section == ProfileSection.personalize) _sub = null;
+        _section = section;
+      }),
     );
 
     final list = ListView(
@@ -327,7 +361,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               tileBg: dark ? t.official.bg : const Color(0xFFEAF0F5),
               tileFg: t.official.fg,
               title: context.l10n.meBackupSync,
-              value: _backupLabel(context, s, sync),
+              // Drive 已滿（BackupFull）：左欄副標改成「Drive 已滿」。
+              value: ref.watch(driveFullProvider)
+                  ? context.l10n.backupFullTitle
+                  : _backupLabel(context, s, sync),
             ),
             item(
               section: ProfileSection.about,
@@ -343,7 +380,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     final Widget panel = switch (_section) {
       ProfileSection.library => const MaterialLibraryPage(embedded: true),
-      ProfileSection.personalize => const PersonalizePage(embedded: true),
+      ProfileSection.personalize => _personalizePanel(context),
       ProfileSection.backup => const BackupPage(embedded: true),
       ProfileSection.about => const AboutPage(embedded: true),
     };
@@ -360,7 +397,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ),
         Expanded(
           // 換項目時重建面板（各面板自己的暫時狀態，例如素材庫的分類，不帶到別項）。
-          child: KeyedSubtree(key: ValueKey(_section), child: panel),
+          child: KeyedSubtree(key: ValueKey((_section, _sub)), child: panel),
         ),
       ],
     );

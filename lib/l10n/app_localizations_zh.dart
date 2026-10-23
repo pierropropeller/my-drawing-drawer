@@ -1532,10 +1532,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ipadpitPickFromPit => '從坑內選圖';
 
   @override
-  String get ipadpitJunkHint => '在坑內頁顯示雜物入口';
-
-  @override
-  String get ipadpitNameHint => '例：原作名稱或 CP 名';
+  String get ipadpitPickFromAlbum => '從相簿選擇';
 
   @override
   String get ipadpitCoverLater => '封面可於建立後在「編輯坑」中選擇。';
