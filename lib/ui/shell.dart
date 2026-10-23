@@ -29,7 +29,20 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  int _index = 0;
+  late int _index = _restoreIndex();
+
+  /// 上次停留的分頁（設定裡的值不合法就回坑）。
+  int _restoreIndex() {
+    final i = ref.read(settingsProvider).lastNavTab;
+    return i >= 0 && i < navTabs.length ? i : 0;
+  }
+
+  /// 切換分頁並記住（下次開 App 回到這裡）。
+  void _setIndex(int i) {
+    setState(() => _index = i);
+    ref.read(settingsProvider.notifier).setLastNavTab(i);
+  }
+
   final _navKeys = List.generate(
     navTabs.length,
     (_) => GlobalKey<NavigatorState>(),
@@ -55,7 +68,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   /// sidebar 點一個坑：切到坑分頁，回到主頁後開啟該坑。
   void _openPit(String pitId) {
-    setState(() => _index = 0);
+    _setIndex(0);
     final nav = _navKeys[0].currentState;
     if (nav == null) return;
     nav.popUntil((r) => r.isFirst);
@@ -67,11 +80,11 @@ class _AppShellState extends ConsumerState<AppShell> {
     ref
         .read(profileSectionRequestProvider.notifier)
         .request(ProfileSection.backup);
-    setState(() => _index = 2);
+    _setIndex(2);
   }
 
   void _newPit() {
-    setState(() => _index = 0);
+    _setIndex(0);
     _navKeys[0].currentState?.push(
       MaterialPageRoute<void>(builder: (_) => const PitNewPage()),
     );
@@ -91,11 +104,11 @@ class _AppShellState extends ConsumerState<AppShell> {
       child: ShareHost(
         pitsNavigator: _navKeys[0],
         showPitsTab: () {
-          if (_index != 0) setState(() => _index = 0);
+          if (_index != 0) _setIndex(0);
         },
         profileNavigator: _navKeys[2],
         showProfileTab: () {
-          if (_index != 2) setState(() => _index = 2);
+          if (_index != 2) _setIndex(2);
         },
         child: _buildShell(context, t),
       ),
@@ -106,7 +119,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     return AdaptiveNavScaffold(
       index: _index,
       controller: _sideNav,
-      onSelect: (i) => setState(() => _index = i),
+      onSelect: (i) => _setIndex(i),
       onOpenPit: _openPit,
       onNewPit: _newPit,
       onOpenSyncSettings: _openSyncSettings,
@@ -119,7 +132,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           if (nav.canPop()) {
             nav.pop();
           } else if (_index != 0) {
-            setState(() => _index = 0);
+            _setIndex(0);
           } else {
             SystemNavigator.pop();
           }

@@ -332,6 +332,11 @@ void main() {
     expect(pill('角色1'), findsOneWidget);
     // 分頁帶數字。
     expect(find.text('全部 20'), findsOneWidget);
+    // 相冊 pill 列靠左（設計稿 padding 左 20、pill 內距 13），不可置中。
+    expect(
+      tester.getTopLeft(find.text('全部 20')).dx,
+      moreOrLessEquals(20 + 13, epsilon: 1),
+    );
     expect(find.text('成圖 5'), findsOneWidget);
     expect(find.text('同人圖 4'), findsOneWidget);
     expect(find.text('推活 7'), findsOneWidget);

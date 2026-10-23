@@ -33,7 +33,8 @@ void _openNewPit(BuildContext context, {PitStatus status = PitStatus.active}) =>
     openNewPit(context, initialStatus: status);
 
 class _PitsPageState extends ConsumerState<PitsPage> {
-  PitStatus _tab = PitStatus.active;
+  // 上次停留的分頁（設定，啟動即還原，第一格就是它）。
+  late PitStatus _tab = ref.read(settingsProvider).lastPitsTab;
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +71,10 @@ class _PitsPageState extends ConsumerState<PitsPage> {
             },
             selected: _tab == st,
             big: tablet,
-            onTap: () => setState(() => _tab = st),
+            onTap: () {
+              setState(() => _tab = st);
+              ref.read(settingsProvider.notifier).setLastPitsTab(st);
+            },
           ),
         ],
       ],

@@ -8,6 +8,7 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/media_widgets.dart';
+import '../common/sensitive_gate.dart';
 import '../common/svg_icon.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
@@ -81,14 +82,17 @@ class AlbumPreviewPanel extends StatelessWidget {
                     children: [
                       ColoredBox(color: t.chipBg),
                       if (media.isGif)
-                        MediaViewer(media, cacheWidth: 900)
+                        SensitiveGate(
+                          file: media.file,
+                          badgeInset: 10,
+                          child: MediaViewer(media, cacheWidth: 900),
+                        )
                       else
                         MediaThumb(
                           media,
                           cacheWidth: 900,
                           fit: BoxFit.contain,
                           badgeInset: 10,
-                          protectSensitive: false, // 預覽不模糊（D-104）
                         ),
                       if (media.isGif)
                         Positioned(

@@ -176,39 +176,46 @@ class SearchCategoryChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
-      child: Row(
-        spacing: 6,
-        children: [
-          for (final c in SearchCategory.values)
-            if (counts == null ||
-                c == SearchCategory.all ||
-                (counts![c] ?? 0) > 0)
-              GestureDetector(
-                onTap: () => onSelected(c),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: c == selected ? t.ink : t.surface,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: c == selected ? t.ink : t.border),
-                  ),
-                  child: Text(
-                    _label(context.l10n, c),
-                    style: TextStyle(
-                      color: c == selected ? t.surface : t.text2,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+    // 外層 Align：橫向 SingleChildScrollView 在 Column（預設置中）裡會縮成內容寬並置中，
+    // 設計稿是靠左（padding 4/20/10）。
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+        child: Row(
+          spacing: 6,
+          children: [
+            for (final c in SearchCategory.values)
+              if (counts == null ||
+                  c == SearchCategory.all ||
+                  (counts![c] ?? 0) > 0)
+                GestureDetector(
+                  onTap: () => onSelected(c),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: c == selected ? t.ink : t.surface,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: c == selected ? t.ink : t.border,
+                      ),
+                    ),
+                    child: Text(
+                      _label(context.l10n, c),
+                      style: TextStyle(
+                        color: c == selected ? t.surface : t.text2,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
-              ),
-        ],
+          ],
+        ),
       ),
     );
   }

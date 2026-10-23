@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/profile_queries.dart';
+import '../data/tables.dart' show PitStatus;
 import '../sync/network_kind.dart';
 import 'providers.dart' show databaseProvider;
 import '../theme/tokens.dart';
@@ -31,12 +32,21 @@ class AppSettings {
     this.videoLoop = false,
     this.sensitiveEnabled = false,
     this.safeMode = true,
+    this.lastNavTab = 0,
+    this.lastPitsTab = PitStatus.active,
+    this.lastGoalsMode = 0,
   });
 
   /// 敏感內容標記的總開關（D-104，個人化 → 敏感內容）；本機設定，不同步，預設關。
   /// 關閉時整個 App 看不到任何敏感內容相關的東西（開關、標記按鈕、小標、模糊），已標記的圖照常顯示；
   /// 標記保留，重新開啟後自動恢復。
   final bool sensitiveEnabled;
+
+  /// 記住上次停留的位置（本機設定，不同步）：底部導覽分頁（0 坑／1 目標／2 我的）、
+  /// 主頁分頁（現坑／淺坑／封存坑）、目標分頁的年／月／日（0／1／2）。下次開 App 直接回到那裡。
+  final int lastNavTab;
+  final PitStatus lastPitsTab;
+  final int lastGoalsMode;
 
   /// 安全模式（D-104）：總開關開著才有意義；開＝已標記的圖在列表類畫面模糊顯示，
   /// 關＝正常顯示、只在縮圖左上角加敏感小標。本機設定，不同步，預設開。
@@ -89,7 +99,13 @@ class AppSettings {
     bool? videoLoop,
     bool? sensitiveEnabled,
     bool? safeMode,
+    int? lastNavTab,
+    PitStatus? lastPitsTab,
+    int? lastGoalsMode,
   }) => AppSettings(
+    lastNavTab: lastNavTab ?? this.lastNavTab,
+    lastPitsTab: lastPitsTab ?? this.lastPitsTab,
+    lastGoalsMode: lastGoalsMode ?? this.lastGoalsMode,
     sensitiveEnabled: sensitiveEnabled ?? this.sensitiveEnabled,
     safeMode: safeMode ?? this.safeMode,
     videoLoop: videoLoop ?? this.videoLoop,
@@ -165,7 +181,35 @@ class SettingsNotifier extends Notifier<AppSettings> {
       videoLoop: p.getBool('videoLoop') ?? false,
       sensitiveEnabled: p.getBool('sensitiveEnabled') ?? false,
       safeMode: p.getBool('safeMode') ?? true,
+      lastNavTab: _inRange(p.getInt('lastNavTab'), 3),
+      lastPitsTab: PitStatus.values.firstWhere(
+        (s) => s.name == p.getString('lastPitsTab'),
+        orElse: () => PitStatus.active,
+      ),
+      lastGoalsMode: _inRange(p.getInt('lastGoalsMode'), 3),
     );
+  }
+
+  /// 讀回的 index 不在 0..<count（舊版、損毀、未知值）就用預設 0。
+  static int _inRange(int? v, int count) =>
+      v != null && v >= 0 && v < count ? v : 0;
+
+  void setLastNavTab(int v) {
+    if (v == state.lastNavTab) return;
+    state = state.copyWith(lastNavTab: v);
+    _p?.setInt('lastNavTab', v);
+  }
+
+  void setLastPitsTab(PitStatus v) {
+    if (v == state.lastPitsTab) return;
+    state = state.copyWith(lastPitsTab: v);
+    _p?.setString('lastPitsTab', v.name);
+  }
+
+  void setLastGoalsMode(int v) {
+    if (v == state.lastGoalsMode) return;
+    state = state.copyWith(lastGoalsMode: v);
+    _p?.setInt('lastGoalsMode', v);
   }
 
   void setSensitiveEnabled(bool v) {

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
+import 'package:huakeng/data/entity_queries.dart' show ImageRef;
 import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/data/sensitive_queries.dart';
 import 'package:huakeng/l10n/l10n.dart';
@@ -19,11 +20,13 @@ import 'package:huakeng/ui/album/form_image_preview_page.dart';
 import 'package:huakeng/ui/album/image_picker_field.dart';
 import 'package:huakeng/ui/album/official_list_page.dart';
 import 'package:huakeng/ui/common/app_switch.dart';
+import 'package:huakeng/ui/common/detail_carousel.dart';
 import 'package:huakeng/ui/common/media_mini.dart';
 import 'package:huakeng/ui/common/media_widgets.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/common/sensitive_gate.dart';
 import 'package:huakeng/ui/entity/entity_widgets.dart';
+import 'package:huakeng/ui/entity/image_gallery_page.dart';
 import 'package:huakeng/ui/entity/piece_widgets.dart';
 import 'package:huakeng/ui/pits/pit_edit_page.dart';
 import 'package:huakeng/ui/share/share_sheet.dart';
@@ -469,6 +472,49 @@ void main() {
         tester.getSize(within('mini', find.byKey(circle))).width,
         lessThan(34),
       );
+      await unmount(tester);
+    });
+
+    testWidgets('詳情頁主圖與縮圖列照安全模式模糊；點開的全螢幕預覽正常顯示', (tester) async {
+      await seed(tester);
+      await pump(
+        tester,
+        const Scaffold(
+          body: DetailImageStage(
+            images: [
+              ImageRef('flag.png', 1, 1, sensitive: true),
+              ImageRef('plain.png', 1, 1),
+              ImageRef('flag.png', 1, 1, sensitive: true),
+            ],
+          ),
+        ),
+      );
+      // 主圖（第 1 頁）＋縮圖列兩張標記的圖。
+      expect(find.byKey(blur), findsNWidgets(3));
+      await tester.tap(find.byType(PageView).first);
+      await settle(tester);
+      expect(find.byType(ImageGalleryPage), findsOneWidget);
+      expect(find.byKey(blur), findsNothing);
+      expect(find.byKey(badge), findsNothing);
+      await unmount(tester);
+    });
+
+    testWidgets('詳情頁安全模式關：主圖與縮圖列只有小標、不模糊', (tester) async {
+      await seed(tester);
+      await pump(
+        tester,
+        const Scaffold(
+          body: DetailImageStage(
+            images: [
+              ImageRef('flag.png', 1, 1, sensitive: true),
+              ImageRef('plain.png', 1, 1),
+            ],
+          ),
+        ),
+        safe: false,
+      );
+      expect(find.byKey(blur), findsNothing);
+      expect(find.byKey(badge), findsNWidgets(2));
       await unmount(tester);
     });
 
