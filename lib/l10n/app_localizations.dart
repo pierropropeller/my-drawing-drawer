@@ -1359,6 +1359,30 @@ abstract class AppLocalizations {
   /// **'還沒有紀錄'**
   String get dayflowEmpty;
 
+  /// No description provided for @devOptsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'開發者選項'**
+  String get devOptsTitle;
+
+  /// No description provided for @devOptsLayoutBounds.
+  ///
+  /// In zh, this message translates to:
+  /// **'顯示版面邊界'**
+  String get devOptsLayoutBounds;
+
+  /// No description provided for @devOptsBaselines.
+  ///
+  /// In zh, this message translates to:
+  /// **'顯示文字基線'**
+  String get devOptsBaselines;
+
+  /// No description provided for @devOptsPointers.
+  ///
+  /// In zh, this message translates to:
+  /// **'顯示點擊區域'**
+  String get devOptsPointers;
+
   /// No description provided for @entityRemove.
   ///
   /// In zh, this message translates to:
