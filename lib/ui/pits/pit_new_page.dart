@@ -79,9 +79,6 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
       ? {PitSectionKey.official, PitSectionKey.fan}
       : {};
 
-  /// 淺坑封面（可選，從相簿選）。
-  String? _cover;
-
   bool get _shallow => _status == PitStatus.shallow;
 
   @override
@@ -101,7 +98,6 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
           description: desc.isEmpty ? null : desc,
           status: _status,
           enabledSections: _shallow ? _sections : const {},
-          coverFile: _shallow ? _cover : null,
         );
     // 回傳新坑的 id（分享進來的「開新坑」要接著選它，D-053）。
     if (mounted) Navigator.of(context).pop(id);
@@ -112,11 +108,6 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
     widget.widthNotifier?.value = s == PitStatus.shallow
         ? PitNewPage.shallowWidth
         : PitNewPage.pitWidth;
-  }
-
-  Future<void> _pickCover() async {
-    final file = await pickShallowCoverFile(context, ref);
-    if (file != null && mounted) setState(() => _cover = file);
   }
 
   String? _validateName(String? v) =>
@@ -159,8 +150,7 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
     final t = context.tokens;
     return [
       _typeSegment(),
-      // 開新淺坑的封面（選填，PitNewShallow／NewPitShallow）；開新坑（類型＝坑）沒有。
-      if (_shallow) PitCoverPickTile(file: _cover, onTap: _pickCover),
+      // 開新坑／開新淺坑都沒有封面欄（Molly 10/23：淺坑不要封面）。
       PitFieldLabel(context.l10n.pitsFieldName),
       _nameField(),
       SizedBox(height: modal ? 18 : 16),
@@ -181,7 +171,7 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
     ];
   }
 
-  /// 兩欄（NewPitShallow，對話框 ≥760）：左 400＝類型、封面、坑名、描述；右＝開啟的格子。
+  /// 兩欄（NewPitShallow，對話框 ≥760）：左 400＝類型、坑名、描述；右＝開啟的格子。
   Widget _twoColumns() {
     final t = context.tokens;
     return Row(
@@ -195,7 +185,6 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _typeSegment(),
-                PitCoverPickTile(file: _cover, onTap: _pickCover),
                 PitFieldLabel(context.l10n.pitsFieldName),
                 _nameField(),
                 const SizedBox(height: 18),

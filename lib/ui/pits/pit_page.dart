@@ -157,8 +157,10 @@ class PitPage extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 返回／編輯 icon 對「標題＋描述」整塊垂直置中（Molly 10/23：有描述時 icon 在兩行中間，
+                    // 同一般 app 的大小標題列；沒有描述時整塊就是標題，自然對齊）。
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         _HeaderButton(
                           tooltip: context.l10n.commonBack,
@@ -352,11 +354,7 @@ class _HeaderButton extends StatelessWidget {
     tooltip: tooltip,
     onPressed: onTap,
     padding: EdgeInsets.zero,
-    // 設計稿按鈕就是 40×40；預設的 48 點擊區會讓按鈕比標題列高 8px，
-    // Row 以頂端對齊時標題就比圖示高 4px。
-    style: IconButton.styleFrom(
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    ),
+    // 視覺 40×40；點擊區維持 Material 預設 48（標題列的點擊範圍就該比圖示大）。
     constraints: const BoxConstraints.tightFor(width: 40, height: 40),
     icon: SvgIcon(svg, size: size, color: color, strokeWidth: strokeWidth),
   );

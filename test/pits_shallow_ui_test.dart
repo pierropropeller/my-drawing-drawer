@@ -440,9 +440,9 @@ void main() {
         findsNothing,
       );
       await tapSeg(tester, '淺坑');
-      // 開新淺坑有選填封面（D-088 PitNewShallow）；開新坑（類型＝坑）沒有。
-      expect(find.text('封面'), findsOneWidget);
-      expect(find.byType(PitCoverPickTile), findsOneWidget);
+      // 開新坑、開新淺坑都沒有封面欄（Molly 10/23：淺坑不要封面）。
+      expect(find.text('封面'), findsNothing);
+      expect(find.byType(PitCoverPickTile), findsNothing);
       await tapSeg(tester, '坑');
       expect(find.text('封面'), findsNothing);
       await tapSeg(tester, '淺坑');
@@ -454,11 +454,11 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('建立淺坑：封面選填（沒選＝沒有封面檔）；描述、開啟的格子都寫進去', (tester) async {
+    testWidgets('建立淺坑：沒有封面欄；描述、開啟的格子都寫進去', (tester) async {
       phoneView(tester);
       await pumpLaunch(tester, const PitNewPage());
       await tapSeg(tester, '淺坑');
-      expect(find.byType(PitCoverPickTile), findsOneWidget); // 封面欄位選填
+      expect(find.byType(PitCoverPickTile), findsNothing); // 淺坑沒有封面欄
       await tester.enterText(find.byKey(const ValueKey('pit-name')), '新淺坑');
       await tester.enterText(find.byKey(const ValueKey('pit-desc')), '先看看');
       await tapSwitch(tester, '官方圖冊');
@@ -479,7 +479,7 @@ void main() {
       expect(p.description, '先看看');
       expect(p.enabledSections, {PitSectionKey.official, PitSectionKey.junk});
       expect(p.junkEnabled, isTrue);
-      expect(p.coverFile, isNull); // 沒選封面
+      expect(p.coverFile, isNull);
       await unmount(tester);
     });
 

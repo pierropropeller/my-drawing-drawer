@@ -18,7 +18,7 @@ import 'package:huakeng/ui/pits/pit_type_widgets.dart';
 import 'package:image_picker/image_picker.dart' show XFile;
 
 /// P-041：封面。編輯坑三種類型（坑、淺坑、封存）都可以「從坑內選圖」或「從相簿選擇」，
-/// 封面最後選的贏；開新淺坑有選填封面、開新坑（類型＝坑）沒有。
+/// 封面最後選的贏；開新坑、開新淺坑都沒有封面欄（Molly 10/23）。
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -193,7 +193,7 @@ void main() {
   });
 
   group('開新坑', () {
-    testWidgets('iPad modal：開新坑（類型＝坑）沒有封面欄位；切到淺坑有選填封面，選了會存', (tester) async {
+    testWidgets('iPad modal：開新坑、開新淺坑都沒有封面欄位（Molly 10/23：淺坑不要封面）', (tester) async {
       setView(tester, 1194, 834);
       await pump(tester, const PitNewPage(asModal: true));
       expect(find.byType(PitCoverPickTile), findsNothing);
@@ -204,25 +204,21 @@ void main() {
         ),
       );
       await settle(tester);
-      expect(find.byType(PitCoverPickTile), findsOneWidget);
-      await tester.tap(find.bySemanticsLabel('選擇封面'));
-      await settle(tester);
-      await settle(tester);
-      await settle(tester);
+      expect(find.byType(PitCoverPickTile), findsNothing);
       await tester.enterText(find.byKey(const ValueKey('pit-name')), '新淺坑');
       await tester.tap(find.text('建立'));
       await settle(tester);
       final shallow = await tester.runAsync(
         () => db.watchPitsByStatus({PitStatus.shallow}).first,
       );
-      expect(shallow!.single.coverFile, isNotNull);
+      expect(shallow!.single.coverFile, isNull);
       await unmount(tester);
     });
 
-    testWidgets('窄的 sheet（單欄）：淺坑也有選填封面', (tester) async {
+    testWidgets('窄的 sheet（單欄）：淺坑也沒有封面欄', (tester) async {
       setView(tester, 400, 834);
       await pump(tester, const PitNewPage(initialStatus: PitStatus.shallow));
-      expect(find.byType(PitCoverPickTile), findsOneWidget);
+      expect(find.byType(PitCoverPickTile), findsNothing);
       await unmount(tester);
     });
   });
