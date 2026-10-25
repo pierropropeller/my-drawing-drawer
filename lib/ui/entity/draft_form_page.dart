@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../data/entity_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
-import '../album/album_actions.dart';
 import '../album/image_picker_field.dart';
 import '../common/adaptive_modal.dart';
 import '../common/modal_form_layout.dart';
@@ -120,7 +119,6 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
 
   Future<void> _save() async {
     if (_images.isEmpty) {
-      showSnack(context, context.l10n.draftFormMissingImage);
       return;
     }
     setState(() => _saving = true);

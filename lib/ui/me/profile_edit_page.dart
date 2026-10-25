@@ -7,7 +7,6 @@ import '../../data/media.dart';
 import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
-import '../album/album_actions.dart';
 import '../album/album_image.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
@@ -55,8 +54,8 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage>
       final store = await ref.read(imageStoreProvider.future);
       final im = await store.import(picked.first);
       if (mounted) setState(() => _pendingAvatar = im.file);
-    } catch (e) {
-      if (mounted) showSnack(context, '$e');
+    } catch (_) {
+      // 表單中途的失敗不跳提示條（D-114）：頭像維持原樣。
     }
   }
 

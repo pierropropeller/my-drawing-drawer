@@ -13,6 +13,7 @@ import '../album/tag_batch_sheet.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import '../common/themed_sheet.dart';
+import '../common/top_toast.dart' show BottomInsetAnchor;
 
 /// 摸魚、成圖列表的多選共用件（D-095，DraftSelect／MaterialSelect 的標題列與底部動作列）。
 
@@ -115,67 +116,69 @@ class EntitySelectBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final l = context.l10n;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-      decoration: BoxDecoration(
-        color: t.nav,
-        border: Border(top: BorderSide(color: t.border)),
-      ),
-      child: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: 14),
-        child: Row(
-          children: [
-            Expanded(
-              child: _BarAction(
-                key: const ValueKey('entitySelectShare'),
-                label: l.commonShare,
-                svg: AppIcons.share,
-                color: t.ink,
-                onTap: onShare,
-              ),
-            ),
-            Expanded(
-              child: _BarAction(
-                key: const ValueKey('entitySelectDownload'),
-                label: l.commonDownload,
-                svg: AppIcons.download,
-                color: t.ink,
-                onTap: onDownload,
-              ),
-            ),
-            if (onSensitive != null)
+    return BottomInsetAnchor(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+        decoration: BoxDecoration(
+          color: t.nav,
+          border: Border(top: BorderSide(color: t.border)),
+        ),
+        child: SafeArea(
+          top: false,
+          minimum: const EdgeInsets.only(bottom: 14),
+          child: Row(
+            children: [
               Expanded(
                 child: _BarAction(
-                  key: const ValueKey('entitySelectSensitive'),
-                  label: l.sensitiveAction,
-                  svg: AppIcons.eyeSlash,
+                  key: const ValueKey('entitySelectShare'),
+                  label: l.commonShare,
+                  svg: AppIcons.share,
                   color: t.ink,
-                  strokeWidth: 1.9,
-                  onTap: onSensitive!,
+                  onTap: onShare,
                 ),
               ),
-            Expanded(
-              child: _BarAction(
-                key: const ValueKey('entitySelectTag'),
-                label: l.shareMoveTag,
-                svg: AlbumIcons.tag,
-                color: t.ink,
-                onTap: onTag,
+              Expanded(
+                child: _BarAction(
+                  key: const ValueKey('entitySelectDownload'),
+                  label: l.commonDownload,
+                  svg: AppIcons.download,
+                  color: t.ink,
+                  onTap: onDownload,
+                ),
               ),
-            ),
-            Expanded(
-              child: _BarAction(
-                key: const ValueKey('entitySelectDelete'),
-                label: l.commonDelete,
-                svg: AppIcons.trash,
-                color: t.danger,
-                iconSize: 20,
-                strokeWidth: 1.8,
-                onTap: onDelete,
+              if (onSensitive != null)
+                Expanded(
+                  child: _BarAction(
+                    key: const ValueKey('entitySelectSensitive'),
+                    label: l.sensitiveAction,
+                    svg: AppIcons.eyeSlash,
+                    color: t.ink,
+                    strokeWidth: 1.9,
+                    onTap: onSensitive!,
+                  ),
+                ),
+              Expanded(
+                child: _BarAction(
+                  key: const ValueKey('entitySelectTag'),
+                  label: l.shareMoveTag,
+                  svg: AlbumIcons.tag,
+                  color: t.ink,
+                  onTap: onTag,
+                ),
               ),
-            ),
-          ],
+              Expanded(
+                child: _BarAction(
+                  key: const ValueKey('entitySelectDelete'),
+                  label: l.commonDelete,
+                  svg: AppIcons.trash,
+                  color: t.danger,
+                  iconSize: 20,
+                  strokeWidth: 1.8,
+                  onTap: onDelete,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

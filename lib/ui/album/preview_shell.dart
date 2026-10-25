@@ -4,7 +4,8 @@ import '../../l10n/l10n.dart';
 import '../common/app_icons.dart';
 import '../common/dismissible_preview.dart';
 import '../common/svg_icon.dart';
-import '../common/media_widgets.dart';
+import '../common/media_source.dart';
+import '../common/preview_layout.dart';
 
 /// 預覽頁固定深色（ImagePreview／FanArtPreview 設計稿），不隨主題變化。
 abstract final class PreviewPalette {
@@ -80,40 +81,36 @@ class PreviewShell extends StatelessWidget {
       background: PreviewPalette.bg,
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: SafeArea(
-          child: Column(
+        // 圖片鋪滿整個螢幕（放大時也是），頂欄與底欄以 80% 不透明疊在圖上，點一下圖收起／叫出。
+        body: PreviewLayout(
+          bannerColor: PreviewLayout.bannerOf(PreviewPalette.bg),
+          header: _header(context),
+          media: PreviewMediaArea(
+            pageController: controller,
+            child: PreviewPageView(
+              controller: controller,
+              itemCount: media.length,
+              onPageChanged: onPageChanged,
+              // 圖片與 GIF 可縮放；影片用自己的控制列（同詳情頁），不縮放。
+              // 預覽頁沒有安全模式：一律正常顯示（Molly：預覽頁就不要安全模式了）。
+              // 長圖（高 > 寬）寬度鋪滿、貼齊最上面、垂直捲動（見 [PreviewMediaPage]）。
+              itemBuilder: (_, i) =>
+                  PreviewMediaPage(media[i], active: i == currentIndex),
+            ),
+          ),
+          // 資訊區一律靠左（設計稿 ImagePreview／FanArtPreview：padding 8/24/14，左對齊）。
+          bottom: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              PreviewChrome(child: _header(context)),
-              Expanded(
-                child: PreviewMediaArea(
-                  pageController: controller,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: PreviewPageView(
-                      controller: controller,
-                      itemCount: media.length,
-                      onPageChanged: onPageChanged,
-                      // 圖片與 GIF 可縮放；影片用自己的控制列（同詳情頁），不縮放。
-                      // 預覽頁沒有安全模式：一律正常顯示（Molly：預覽頁就不要安全模式了）。
-                      itemBuilder: (_, i) => MediaViewer(
-                        media[i],
-                        active: i == currentIndex,
-                        zoomable: true,
-                      ),
-                    ),
-                  ),
+              info,
+              Container(
+                padding: const EdgeInsets.fromLTRB(10, 6, 10, 18),
+                decoration: const BoxDecoration(
+                  border: Border(top: BorderSide(color: Color(0x14FFFFFF))),
                 ),
-              ),
-              PreviewChrome(child: info),
-              PreviewChrome(
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(10, 6, 10, 18),
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: Color(0x14FFFFFF))),
-                  ),
-                  child: Row(
-                    children: [for (final a in actions) _ActionButton(a)],
-                  ),
+                child: Row(
+                  children: [for (final a in actions) _ActionButton(a)],
                 ),
               ),
             ],

@@ -168,7 +168,6 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
       return;
     }
     if (_files.isEmpty) {
-      showSnack(context, context.l10n.albumPickImageFirst);
       return;
     }
     setState(() => _saving = true);

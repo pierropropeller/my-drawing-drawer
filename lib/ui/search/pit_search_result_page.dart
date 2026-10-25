@@ -20,6 +20,7 @@ import 'pit_search_tab.dart';
 import 'search_hits.dart';
 import 'search_wide.dart';
 import 'search_widgets.dart';
+import '../common/top_toast.dart' show BottomInsetAnchor;
 
 /// 坑內搜尋結果（PitSearchResult，D-051、D-107）：
 /// 頂部相冊 pills（只列有結果的，每顆帶數字）＋分段總覽——分段順序 成圖 → 官方圖冊 → 好看同人圖 → 推活 →
@@ -710,36 +711,38 @@ class SearchSelectBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final l = context.l10n;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-      decoration: BoxDecoration(
-        color: t.nav,
-        border: Border(top: BorderSide(color: t.border)),
-      ),
-      child: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: 14),
-        child: InkWell(
-          key: const ValueKey('searchSelectTag'),
-          onTap: onTag,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 52),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SvgIcon(
-                  AlbumIcons.tag,
-                  size: 22,
-                  color: t.ink,
-                  strokeWidth: 1.7,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  l.shareMoveTag,
-                  style: TextStyle(color: t.ink, fontSize: 11.5),
-                ),
-              ],
+    return BottomInsetAnchor(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+        decoration: BoxDecoration(
+          color: t.nav,
+          border: Border(top: BorderSide(color: t.border)),
+        ),
+        child: SafeArea(
+          top: false,
+          minimum: const EdgeInsets.only(bottom: 14),
+          child: InkWell(
+            key: const ValueKey('searchSelectTag'),
+            onTap: onTag,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 52),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SvgIcon(
+                    AlbumIcons.tag,
+                    size: 22,
+                    color: t.ink,
+                    strokeWidth: 1.7,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l.shareMoveTag,
+                    style: TextStyle(color: t.ink, fontSize: 11.5),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

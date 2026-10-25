@@ -6,6 +6,7 @@ import '../../data/goal_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
+import '../album/album_actions.dart' show showSnack;
 import '../common/app_icons.dart';
 import '../common/media_source.dart';
 import '../common/svg_icon.dart';
@@ -64,9 +65,7 @@ class _DayPageState extends ConsumerState<DayPage> {
           p.sectionOpen(PitSectionKey.piece),
     );
     if (!addable) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(context.l10n.goalsCreatePitFirst)));
+      showSnack(context, context.l10n.goalsCreatePitFirst);
       return;
     }
     final picked = await showDayAddSheet(context, pits: pits);

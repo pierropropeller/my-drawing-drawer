@@ -32,6 +32,7 @@ import '../entity/image_gallery_page.dart';
 import 'material_category.dart';
 import 'material_category_sheet.dart';
 import 'material_icons.dart';
+import '../common/top_toast.dart' show BottomInsetAnchor;
 
 /// 素材庫的兩種版面，記在本機設定（跟裝置走）。
 enum MaterialLayout { waterfall, grid }
@@ -370,69 +371,71 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
             ? null
             : EntityFab(label: l.materialAddLabel, onPressed: _add),
         bottomNavigationBar: _selecting
-            ? Container(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-                decoration: BoxDecoration(
-                  color: t.nav,
-                  border: Border(top: BorderSide(color: t.border)),
-                ),
-                child: SafeArea(
-                  top: false,
-                  minimum: const EdgeInsets.only(bottom: 14),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _BarAction(
-                          l.commonShare,
-                          AppIcons.share,
-                          t.ink,
-                          iconSize: 22,
-                          strokeWidth: 1.7,
-                          onTap: () => _share(picked),
-                        ),
-                      ),
-                      Expanded(
-                        child: _BarAction(
-                          l.commonDownload,
-                          AppIcons.download,
-                          t.ink,
-                          iconSize: 22,
-                          strokeWidth: 1.7,
-                          onTap: () => _download(picked),
-                        ),
-                      ),
-                      if (ref.watch(sensitiveMarkingProvider(null)))
+            ? BottomInsetAnchor(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                  decoration: BoxDecoration(
+                    color: t.nav,
+                    border: Border(top: BorderSide(color: t.border)),
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    minimum: const EdgeInsets.only(bottom: 14),
+                    child: Row(
+                      children: [
                         Expanded(
                           child: _BarAction(
-                            l.sensitiveAction,
-                            AppIcons.eyeSlash,
+                            l.commonShare,
+                            AppIcons.share,
                             t.ink,
                             iconSize: 22,
-                            strokeWidth: 1.9,
-                            onTap: () => _sensitive(picked),
+                            strokeWidth: 1.7,
+                            onTap: () => _share(picked),
                           ),
                         ),
-                      Expanded(
-                        child: _BarAction(
-                          l.commonMove,
-                          AlbumIcons.moveFolder,
-                          t.ink,
-                          iconSize: 22,
-                          strokeWidth: 1.7,
-                          onTap: () => _move(picked),
+                        Expanded(
+                          child: _BarAction(
+                            l.commonDownload,
+                            AppIcons.download,
+                            t.ink,
+                            iconSize: 22,
+                            strokeWidth: 1.7,
+                            onTap: () => _download(picked),
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        child: _BarAction(
-                          l.commonDelete,
-                          AppIcons.trash,
-                          t.danger,
-                          iconSize: 20,
-                          strokeWidth: 1.8,
-                          onTap: () => _delete(picked),
+                        if (ref.watch(sensitiveMarkingProvider(null)))
+                          Expanded(
+                            child: _BarAction(
+                              l.sensitiveAction,
+                              AppIcons.eyeSlash,
+                              t.ink,
+                              iconSize: 22,
+                              strokeWidth: 1.9,
+                              onTap: () => _sensitive(picked),
+                            ),
+                          ),
+                        Expanded(
+                          child: _BarAction(
+                            l.commonMove,
+                            AlbumIcons.moveFolder,
+                            t.ink,
+                            iconSize: 22,
+                            strokeWidth: 1.7,
+                            onTap: () => _move(picked),
+                          ),
                         ),
-                      ),
-                    ],
+                        Expanded(
+                          child: _BarAction(
+                            l.commonDelete,
+                            AppIcons.trash,
+                            t.danger,
+                            iconSize: 20,
+                            strokeWidth: 1.8,
+                            onTap: () => _delete(picked),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               )

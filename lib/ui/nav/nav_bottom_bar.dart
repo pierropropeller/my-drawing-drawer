@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import 'nav_tabs.dart';
+import '../common/top_toast.dart' show BottomInsetAnchor;
 
 /// 手機（compact）底部導覽列：坑／時間軸／我的。設計稿導覽列高 74（64＋底部 10）。
 class NavBottomBar extends StatelessWidget {
@@ -15,27 +16,29 @@ class NavBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    return Container(
-      decoration: BoxDecoration(
-        color: t.nav,
-        border: Border(top: BorderSide(color: t.border)),
-      ),
-      child: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: 10),
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            children: [
-              for (final tab in navTabs)
-                Expanded(
-                  child: _NavItem(
-                    tab: tab,
-                    selected: tab.id == index,
-                    onTap: () => onSelect(tab.id),
+    return BottomInsetAnchor(
+      child: Container(
+        decoration: BoxDecoration(
+          color: t.nav,
+          border: Border(top: BorderSide(color: t.border)),
+        ),
+        child: SafeArea(
+          top: false,
+          minimum: const EdgeInsets.only(bottom: 10),
+          child: SizedBox(
+            height: 64,
+            child: Row(
+              children: [
+                for (final tab in navTabs)
+                  Expanded(
+                    child: _NavItem(
+                      tab: tab,
+                      selected: tab.id == index,
+                      onTap: () => onSelect(tab.id),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

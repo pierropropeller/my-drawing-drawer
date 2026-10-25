@@ -325,7 +325,7 @@ class SyncFinalPanel extends ConsumerWidget {
                               : () => unawaited(
                                   ref
                                       .read(syncControllerProvider.notifier)
-                                      .syncNow(),
+                                      .syncNowByUser(),
                                 ),
                           child: Text(
                             l.syncuiRetry,

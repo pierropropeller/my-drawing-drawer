@@ -26,6 +26,7 @@ import 'idea_form_page.dart';
 import 'master_detail.dart';
 import '../album/album_view.dart' show ChipRow;
 import '../pits/pit_section_tabs.dart';
+import '../common/top_toast.dart' show BottomInsetAnchor;
 
 /// 我的腦洞：卡片顯示標題、狀態、內文兩行、配圖、tag、日期；長按多選（只有刪除）。
 /// 瀏覽狀態有底部導覽列；多選時隱藏（IdeaSelect）。
@@ -336,30 +337,32 @@ class _SelectBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final color = enabled ? t.danger : t.danger.withValues(alpha: 0.4);
-    return Container(
-      decoration: BoxDecoration(
-        color: t.nav,
-        border: Border(top: BorderSide(color: t.border)),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-      child: SafeArea(
-        top: false,
-        child: GestureDetector(
-          onTap: enabled ? onDelete : null,
-          behavior: HitTestBehavior.opaque,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 52),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SvgIcon(AppIcons.trash, size: 22, color: color),
-                const SizedBox(height: 4),
-                Text(
-                  context.l10n.commonDelete,
-                  style: TextStyle(color: color, fontSize: 11.5),
-                ),
-              ],
+    return BottomInsetAnchor(
+      child: Container(
+        decoration: BoxDecoration(
+          color: t.nav,
+          border: Border(top: BorderSide(color: t.border)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+        child: SafeArea(
+          top: false,
+          child: GestureDetector(
+            onTap: enabled ? onDelete : null,
+            behavior: HitTestBehavior.opaque,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 52),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SvgIcon(AppIcons.trash, size: 22, color: color),
+                  const SizedBox(height: 4),
+                  Text(
+                    context.l10n.commonDelete,
+                    style: TextStyle(color: color, fontSize: 11.5),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -8,6 +8,7 @@ import '../album/album_image.dart';
 import '../common/app_icons.dart';
 import '../common/dismissible_preview.dart';
 import '../common/media_widgets.dart';
+import '../common/preview_layout.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
 
@@ -82,98 +83,87 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage>
       background: bg,
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: SafeArea(
-          child: Column(
-            children: [
-              PreviewChrome(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
-                  child: Row(
-                    children: [
-                      InkResponse(
-                        radius: 24,
-                        onTap: () => Navigator.of(context).maybePop(),
-                        child: const SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: Center(
-                            child: SvgIcon(
-                              AppIcons.back,
-                              size: 24,
-                              strokeWidth: 1.9,
-                              color: fg,
-                            ),
-                          ),
-                        ),
+        // 圖片鋪滿整個螢幕，頂欄與底欄以 80% 不透明疊在圖上（見 [PreviewLayout]）。
+        body: PreviewLayout(
+          bannerColor: PreviewLayout.bannerOf(bg),
+          header: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
+            child: Row(
+              children: [
+                InkResponse(
+                  radius: 24,
+                  onTap: () => Navigator.of(context).maybePop(),
+                  child: const SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: Center(
+                      child: SvgIcon(
+                        AppIcons.back,
+                        size: 24,
+                        strokeWidth: 1.9,
+                        color: fg,
                       ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          '${_index + 1} / ${widget.images.length}',
-                          style: const TextStyle(
-                            color: fg,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Expanded(
-                child: PreviewMediaArea(
-                  pageController: _controller,
-                  child: PreviewPageView(
-                    controller: _controller,
-                    itemCount: widget.images.length,
-                    onPageChanged: (i) => setState(() => _index = i),
-                    // 圖片與 GIF 可縮放；影片用自己的控制列（D-080），換頁自動暫停。
-                    // 預覽頁沒有安全模式：一律正常顯示。
-                    itemBuilder: (_, i) => MediaViewer(
-                      MediaSource.fromImageRef(widget.images[i]),
-                      active: i == _index,
-                      zoomable: true,
-                      start: i == widget.initialIndex
-                          ? widget.videoStart
-                          : null,
                     ),
                   ),
                 ),
-              ),
-              PreviewChrome(
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: Color(0x14FFFFFF))),
-                  ),
-                  child: Row(
-                    children: [
-                      action(
-                        AppIcons.share,
-                        context.l10n.commonShare,
-                        () => shareImage(ref, _current),
-                      ),
-                      action(
-                        AppIcons.download,
-                        context.l10n.commonDownload,
-                        () async {
-                          final n = await downloadImages(ref, [_current]);
-                          if (context.mounted) {
-                            showSnack(
-                              context,
-                              n > 0
-                                  ? context.l10n.entityGallerySaved
-                                  : context.l10n.entityGallerySaveFailed,
-                            );
-                          }
-                        },
-                      ),
-                    ],
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    '${_index + 1} / ${widget.images.length}',
+                    style: const TextStyle(
+                      color: fg,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
+              ],
+            ),
+          ),
+          media: PreviewMediaArea(
+            pageController: _controller,
+            child: PreviewPageView(
+              controller: _controller,
+              itemCount: widget.images.length,
+              onPageChanged: (i) => setState(() => _index = i),
+              // 圖片與 GIF 可縮放；影片用自己的控制列（D-080），換頁自動暫停。
+              // 預覽頁沒有安全模式：一律正常顯示。長圖寬度鋪滿、貼齊最上面、垂直捲動。
+              itemBuilder: (_, i) => PreviewMediaPage(
+                MediaSource.fromImageRef(widget.images[i]),
+                active: i == _index,
+                start: i == widget.initialIndex ? widget.videoStart : null,
               ),
-            ],
+            ),
+          ),
+          bottom: Container(
+            padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: Color(0x14FFFFFF))),
+            ),
+            child: Row(
+              children: [
+                action(
+                  AppIcons.share,
+                  context.l10n.commonShare,
+                  () => shareImage(ref, _current),
+                ),
+                action(
+                  AppIcons.download,
+                  context.l10n.commonDownload,
+                  () async {
+                    final n = await downloadImages(ref, [_current]);
+                    if (context.mounted) {
+                      showSnack(
+                        context,
+                        n > 0
+                            ? context.l10n.entityGallerySaved
+                            : context.l10n.entityGallerySaveFailed,
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),

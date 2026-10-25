@@ -249,11 +249,20 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     if (file != null && mounted) setState(() => _galleryCover = file);
   }
 
-  void _pickCover() => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => CoverPickPage(pitId: widget.pit.id),
-    ),
-  );
+  /// 更換封面（D-115）：只更新這個表單的預覽，按「儲存」才寫入；返回不存＝作廢。
+  Future<void> _pickCover() async {
+    final id = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (_) => CoverPickPage(pitId: widget.pit.id, pickOnly: true),
+      ),
+    );
+    if (id == null || !mounted) return;
+    setState(() {
+      _coverId = id;
+      _coverDirty = true;
+      _galleryCover = null;
+    });
+  }
 
   String? _validateName(String? v) =>
       (v == null || v.trim().isEmpty) ? context.l10n.pitsNameRequired : null;
@@ -692,7 +701,24 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     final t = context.tokens;
     final hasImages =
         (ref.watch(pitStatsProvider(widget.pit.id)).value?.imageCount ?? 0) > 0;
-    final coverFile = ref.watch(coverFileProvider(widget.pit.id)).value;
+    var coverFile = ref.watch(coverFileProvider(widget.pit.id)).value;
+    // 還沒儲存的封面（D-115）：表單裡先顯示新選的那張。
+    if (_galleryCover != null) {
+      coverFile = _galleryCover;
+    } else if (_coverDirty && _coverId != widget.pit.coverImageId) {
+      final all =
+          ref.watch(coverCandidatesProvider((widget.pit.id, null))).value ??
+          const <CoverCandidate>[];
+      for (final c in all) {
+        if (c.id == _coverId) {
+          coverFile = MediaSource(
+            file: c.file,
+            kind: c.kind,
+            poster: c.poster,
+          ).staticFile;
+        }
+      }
+    }
     return Scaffold(
       body: SafeArea(
         child: Column(

@@ -6,48 +6,28 @@ import 'package:share_plus/share_plus.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
-import '../common/app_icons.dart';
-import '../common/svg_icon.dart';
+import '../common/top_toast.dart';
 import 'album_image.dart';
 
 /// 提示條（States 設計稿）：深色底，[success]＝前面加綠色勾，[offline]＝前面加黃色離線雲。
+/// D-114：留在下方、浮在固定底部元件上面（不蓋住按鈕），實作見 `top_toast.dart`；新的取代舊的。
+/// 只在「動作已生效、使用者留在這一頁」時用；表單中途的操作、會跳頁的動作不要用。
+/// [actionLabel]／[onAction]＝右邊的文字按鈕（例如「復原」）。
 void showSnack(
   BuildContext context,
   String text, {
   bool success = false,
   bool offline = false,
-}) {
-  final icon = success
-      ? const SvgIcon(
-          AppIcons.check,
-          size: 18,
-          strokeWidth: 2.2,
-          color: Color(0xFF8FD19E),
-        )
-      : offline
-      ? const SvgIcon(
-          AppIcons.cloudOff,
-          size: 18,
-          strokeWidth: 1.9,
-          color: Color(0xFFE6C98F),
-        )
-      : null;
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        content: icon == null
-            ? Text(text)
-            : Row(
-                children: [
-                  icon,
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(text)),
-                ],
-              ),
-      ),
-    );
-}
+  String? actionLabel,
+  VoidCallback? onAction,
+}) => showTopToast(
+  context,
+  text,
+  success: success,
+  offline: offline,
+  actionLabel: actionLabel,
+  onAction: onAction,
+);
 
 /// 刪除一律要確認。
 Future<bool> confirmDelete(

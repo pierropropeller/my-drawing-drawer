@@ -233,12 +233,30 @@ class SyncController extends Notifier<SyncState> {
   @override
   SyncState build() => const SyncState();
 
+  bool _userInitiated = false;
+
+  /// 使用者主動觸發的同步（「立即同步」、重試、首次連結、更換帳號）：同 [syncNow]，
+  /// 但允許在拿不到靜默授權時彈出 Google 的互動授權畫面。自動同步請用 [syncNow]。
+  Future<bool> syncNowByUser() {
+    _userInitiated = true;
+    return syncNow();
+  }
+
   /// 立即同步。未連結或正在同步時不做事（**不看 connectivity**：沒有明確斷線就嘗試，
   /// 以實際請求的成敗為準，失敗會顯示在 [SyncState.message]）。回傳是否實際執行。
+  ///
+  /// 自動同步（啟動、回前景、定時、資料變動）絕不彈 Google／系統授權畫面，拿不到靜默授權就當離線
+  /// （暫時失敗、退避重試）；要允許互動授權請用 [syncNowByUser]。
   Future<bool> syncNow() async {
+    final userInitiated = _userInitiated;
+    _userInitiated = false;
     final remote = ref.read(syncRemoteProvider);
     if (remote == null || _running) return false;
     _running = true;
+    final accounts = ref.read(accountServiceProvider);
+    if (accounts is GoogleAccountService) {
+      accounts.allowInteractive = userInitiated;
+    }
     final gen = ++_generation;
     final settings = ref.read(settingsProvider);
     final email = settings.accountEmail;
@@ -362,6 +380,11 @@ class SyncController extends Notifier<SyncState> {
     } on SyncFormatException catch (e) {
       state = failed(e.message, needsUpdate: true);
       return true;
+    } on SyncAuthUnavailableException catch (e) {
+      // 背景拿不到靜默授權：照離線處理，安靜失敗、稍後退避重試（不彈任何畫面）。
+      syncLog('syncNow auth unavailable (background)');
+      state = failed(e.message, retry: true);
+      return true;
     } on SyncAuthException catch (e) {
       syncLog('syncNow auth error');
       state = failed(e.message);
@@ -381,15 +404,16 @@ class SyncController extends Notifier<SyncState> {
       watchdog?.cancel();
       _generation++; // 讓被放棄的舊一次同步之後的回報失效
       _running = false;
+      if (accounts is GoogleAccountService) accounts.allowInteractive = false;
     }
   }
 
   /// 首次連結後開始同步，等到結束才回傳（SyncFirst 頁可以 await 它）。
-  Future<bool> startFirstSync() => syncNow();
+  Future<bool> startFirstSync() => syncNowByUser();
 
   /// 開始同步但不等待：使用者按「先開始使用」離開 SyncFirst 後，同步由這個 controller
   /// 在背景繼續（狀態都在 [SyncState]，主頁橫條照常顯示進度）。
-  void startFirstSyncInBackground() => unawaited(syncNow());
+  void startFirstSyncInBackground() => unawaited(syncNowByUser());
 
   /// 更換同步帳號：登出舊帳號、清掉同步記錄（本機資料會整個上傳到新帳號）、重新登入。
   Future<String> switchAccount() async {
@@ -403,7 +427,7 @@ class SyncController extends Notifier<SyncState> {
       remote: remote ?? MemoryRemote(),
       images: await ref.read(imageStoreProvider.future),
     ).resetState();
-    unawaited(syncNow());
+    unawaited(syncNowByUser());
     return email;
   }
 
