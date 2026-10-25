@@ -5,6 +5,7 @@ import '../../l10n/l10n.dart';
 import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
 import '../common/user_avatar.dart';
+import '../me/backup_page.dart';
 import 'ring_painter.dart';
 import 'sync_colors.dart';
 import 'sync_popover.dart';
@@ -19,7 +20,7 @@ enum SyncRingDot { none, failed, full }
 /// 主頁左上角頭像：同步狀態收在外圈（MainSyncing）。
 ///
 /// 檢查中＝一段短弧轉圈（不可點）；傳輸中＝進度環（按完成張數／總張數），可點開「同步進度」；
-/// 其他＝外圈淡出。外圈 48px 但佔位只有頭像本身（外圈畫在頭像外 4px），頁面不會因此位移。
+/// 其他＝外圈淡出，若有琥珀點（失敗）／紅點（Drive 已滿）也可點，開啟對應狀態的 sheet（D-113 ③）。外圈 48px 但佔位只有頭像本身（外圈畫在頭像外 4px），頁面不會因此位移。
 ///
 /// 點開的方式依視窗闊度：＜600 底部 sheet（手機）、≥600 頭像 popover（iPad／平板，見
 /// [showSyncProgress]）。rail／sidebar 的頭像用 [serif]／[background]／[foreground] 套上稿的配色，
@@ -71,8 +72,21 @@ class SyncAvatar extends ConsumerWidget {
       navStyleDot: serif,
       fraction: fraction,
       size: size,
-      onTap: mode == SyncRingMode.transferring
-          ? () => showSyncProgress(context, onOpenSettings: onOpenSettings)
+      // 傳輸中點外圈、或外圈收掉後點琥珀／紅點（D-113 ③）都打開同步 sheet／popover；
+      // 小點在可點範圍裡（整個 48px 外圈）。檢查中不可點。
+      onTap:
+          mode == SyncRingMode.transferring ||
+              (mode == SyncRingMode.none && dot != SyncRingDot.none)
+          ? () => showSyncProgress(
+              context,
+              onOpenSettings: onOpenSettings,
+              // 手機沒有「我的」側欄：Drive 已滿的「管理儲存空間」直接推備份頁（BackupFull）。
+              onManageStorage:
+                  onOpenSettings ??
+                  () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const BackupPage()),
+                  ),
+            )
           : null,
       child: UserAvatar(
         size: size,

@@ -175,22 +175,42 @@ class MediaThumb extends StatelessWidget {
         placeholderColor: placeholderColor,
       );
     } else {
-      content = StoredImage(
+      Widget image(bool moving) => StoredImage(
         media.file,
         cacheWidth: cacheWidth,
         fit: fit,
         placeholderColor: placeholderColor,
-        animate: animate && media.isGif,
+        animate: moving && media.isGif,
         isGif: media.isGif ? true : null,
       );
+      content = image(animate);
     }
     if (protectSensitive) {
-      content = SensitiveGate(
-        file: media.file,
-        circleSize: sensitiveCircle,
-        showBadge: sensitiveBadge,
-        child: content,
-      );
+      if (animate && media.isGif) {
+        // D-113 ①：已標記的 GIF 在安全模式開時只畫模糊的第一格，不解碼動畫。
+        final moving = content;
+        content = SensitiveMotionGate(
+          file: media.file,
+          circleSize: sensitiveCircle,
+          showBadge: sensitiveBadge,
+          still: (_) => StoredImage(
+            media.file,
+            cacheWidth: cacheWidth,
+            fit: fit,
+            placeholderColor: placeholderColor,
+            animate: false,
+            isGif: true,
+          ),
+          live: (_) => moving,
+        );
+      } else {
+        content = SensitiveGate(
+          file: media.file,
+          circleSize: sensitiveCircle,
+          showBadge: sensitiveBadge,
+          child: content,
+        );
+      }
     }
     final badge = !showBadge
         ? null
@@ -318,6 +338,90 @@ class _MediaViewerState extends State<MediaViewer> {
       transformationController: _controller,
       maxScale: 5,
       child: SizedBox.expand(child: image),
+    );
+  }
+}
+
+/// [MediaViewer] 加上敏感內容閘門（D-110／D-113 ①）：詳情頁輪播、預覽頁、全螢幕看圖用。
+///
+/// - 圖片：已標記且安全模式開 → 模糊＋圓圈（同 [SensitiveGate]）。
+/// - GIF、影片：安全模式開時只畫模糊的第一格（GIF＝第一格、影片＝poster），**不建立播放器、
+///   不播動畫**，沒有影片控制列；關閉安全模式（或 iPad 面板撳開這一張）後才換成 [MediaViewer]
+///   正常播放。
+/// - 安全模式關：不加左上角小標（[showBadge] false）。
+class SensitiveMediaViewer extends StatelessWidget {
+  const SensitiveMediaViewer(
+    this.media, {
+    super.key,
+    this.active = true,
+    this.cacheWidth,
+    this.placeholderColor,
+    this.zoomable = false,
+    this.onFullscreen,
+    this.start,
+    this.badgeInset = 12,
+    this.circleSize = 52,
+    this.showBadge = false,
+    this.onBlurredTap,
+  });
+
+  /// 模糊中（沒有播放器）時點一下的動作，例如詳情頁輪播的影片頁開全螢幕。
+  final VoidCallback? onBlurredTap;
+
+  final MediaSource media;
+  final bool active;
+  final int? cacheWidth;
+  final Color? placeholderColor;
+  final bool zoomable;
+  final VideoFullscreenCallback? onFullscreen;
+  final VideoStart? start;
+  final double badgeInset;
+  final double circleSize;
+  final bool showBadge;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget viewer(BuildContext _) => MediaViewer(
+      media,
+      active: active,
+      cacheWidth: cacheWidth,
+      placeholderColor: placeholderColor,
+      zoomable: zoomable,
+      onFullscreen: onFullscreen,
+      start: start,
+      badgeInset: badgeInset,
+    );
+    if (!media.isVideo && !media.isGif) {
+      return SensitiveGate(
+        file: media.file,
+        circleSize: circleSize,
+        showBadge: showBadge,
+        child: viewer(context),
+      );
+    }
+    return SensitiveMotionGate(
+      file: media.file,
+      circleSize: circleSize,
+      showBadge: showBadge,
+      still: (_) {
+        final still = SizedBox.expand(
+          child: StaticMediaImage(
+            media,
+            cacheWidth: cacheWidth,
+            fit: BoxFit.contain,
+            placeholderColor: placeholderColor,
+          ),
+        );
+        final tap = onBlurredTap;
+        return tap == null
+            ? still
+            : GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: tap,
+                child: still,
+              );
+      },
+      live: viewer,
     );
   }
 }

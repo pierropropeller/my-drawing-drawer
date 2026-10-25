@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/entity_queries.dart' show ImageRef;
 import '../../l10n/l10n.dart';
-import '../../data/media.dart' show MediaKind;
 import '../../state/sensitive.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
@@ -11,10 +10,9 @@ import '../album/wide_layout.dart' show WideIconButton;
 import 'app_icons.dart';
 import 'svg_icon.dart';
 
-/// 詳情頁的圖片檔名（影片不模糊，不算）。
+/// 詳情頁的圖片檔名（影片、GIF 也算：安全模式開時它們顯示模糊的第一格，D-113 ①）。
 List<String> flaggableFiles(Iterable<ImageRef> images) => [
-  for (final i in images)
-    if (i.kind != MediaKind.video) i.file,
+  for (final i in images) i.file,
 ];
 
 /// 詳情頁／圖片預覽頁標題列的「安全模式」快捷鈕（D-110，`DraftDetailSafe`／`ImagePreviewSafe`）。

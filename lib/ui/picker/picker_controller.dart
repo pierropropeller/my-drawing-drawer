@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart' show XFile;
 
@@ -42,6 +44,12 @@ class PickerController extends ChangeNotifier {
   bool loading = true;
   bool exporting = false;
 
+  /// 「下一步」要不要顯示轉圈（D-113 ②）：匯出超過 [exportSpinnerDelay] 還沒完才顯示，
+  /// 很快就完成的不會閃一下。
+  bool showExportSpinner = false;
+  static const exportSpinnerDelay = Duration(milliseconds: 300);
+  Timer? _spinnerTimer;
+
   /// pills 的相簿（已排序：全部、截圖、相機，其餘按張數多到少）。
   List<GalleryAlbum> albums = const [];
   String? albumId;
@@ -76,6 +84,7 @@ class PickerController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _spinnerTimer?.cancel();
     super.dispose();
   }
 
@@ -294,6 +303,12 @@ class PickerController extends ChangeNotifier {
   Future<List<XFile>> exportSelected() async {
     exporting = true;
     notifyListeners();
+    _spinnerTimer?.cancel();
+    _spinnerTimer = Timer(exportSpinnerDelay, () {
+      if (!exporting) return;
+      showExportSpinner = true;
+      notifyListeners();
+    });
     final total = Stopwatch()..start();
     try {
       final ids = List<String>.of(_selected);
@@ -325,7 +340,9 @@ class PickerController extends ChangeNotifier {
       );
       return results.whereType<XFile>().toList();
     } finally {
+      _spinnerTimer?.cancel();
       exporting = false;
+      showExportSpinner = false;
       notifyListeners();
     }
   }

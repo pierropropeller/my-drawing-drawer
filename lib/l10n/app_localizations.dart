@@ -4173,6 +4173,12 @@ abstract class AppLocalizations {
   /// **'未上傳'**
   String get backupFullUnuploaded;
 
+  /// No description provided for @syncuiManageStorage.
+  ///
+  /// In zh, this message translates to:
+  /// **'管理儲存空間'**
+  String get syncuiManageStorage;
+
   /// No description provided for @backupFullManage.
   ///
   /// In zh, this message translates to:

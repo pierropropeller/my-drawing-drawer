@@ -51,19 +51,38 @@ class AlbumPreviewPanel extends StatelessWidget {
         // GIF 預覽時自動循環；圖片仍是靜態圖＋右下角「參考檢視」。
         final Widget cover;
         if (media.isVideo) {
+          // D-113 ①：已標記的影片在安全模式開時只顯示模糊的 poster，不建立播放器；
+          // 撳面板左上角的眼睛鈕（P-038）只顯示這一張。
           cover = SizedBox(
             height: coverH,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: ColoredBox(
                 color: const Color(0xFF1E1B18),
-                child: VideoPlayerView(
-                  key: ValueKey('panel-video-${image.id}'),
-                  file: media.file,
-                  poster: media.poster,
-                  durationMs: media.durationMs,
-                  badgeInset: 10,
-                  onFullscreen: (_, _) => onReference(),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    SensitiveMotionGate(
+                      file: media.file,
+                      badgeInset: 10,
+                      circleSize: 52,
+                      showBadge: false,
+                      still: (_) => StaticMediaImage(
+                        media,
+                        cacheWidth: 900,
+                        fit: BoxFit.contain,
+                      ),
+                      live: (_) => VideoPlayerView(
+                        key: ValueKey('panel-video-${image.id}'),
+                        file: media.file,
+                        poster: media.poster,
+                        durationMs: media.durationMs,
+                        badgeInset: 10,
+                        onFullscreen: (_, _) => onReference(),
+                      ),
+                    ),
+                    const SensitiveRevealOverlayButton(),
+                  ],
                 ),
               ),
             ),
@@ -83,11 +102,17 @@ class AlbumPreviewPanel extends StatelessWidget {
                     children: [
                       ColoredBox(color: t.chipBg),
                       if (media.isGif)
-                        SensitiveGate(
+                        // 已標記的 GIF 在安全模式開時只畫模糊的第一格（D-113 ①）。
+                        SensitiveMotionGate(
                           file: media.file,
                           badgeInset: 10,
                           circleSize: 52,
-                          child: MediaViewer(media, cacheWidth: 900),
+                          still: (_) => StaticMediaImage(
+                            media,
+                            cacheWidth: 900,
+                            fit: BoxFit.contain,
+                          ),
+                          live: (_) => MediaViewer(media, cacheWidth: 900),
                         )
                       else
                         MediaThumb(
@@ -127,7 +152,7 @@ class AlbumPreviewPanel extends StatelessWidget {
             ? context.l10n.ipadauditGifMeta
             : null;
         return SensitiveReveal(
-          current: media.isVideo ? null : media.file,
+          current: media.file,
           child: Column(
             children: [
               Expanded(

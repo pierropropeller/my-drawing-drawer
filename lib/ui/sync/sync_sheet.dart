@@ -30,11 +30,17 @@ import '../common/sensitive_gate.dart';
 /// 傳完**不自動關**：原地變成完成狀態（D-100，SyncSheetDone），按「完成」、下拉或點外面才關。
 ///
 /// 設計稿的 sheet 蓋住底部導覽列，所以用最上層 Navigator（全域 sheet）。
-Future<void> showSyncSheet(BuildContext context) {
+///
+/// 從頭像上的琥珀點／紅點打開（D-113 ③）時沒有傳輸也不會關，直接顯示「同步完成・有失敗」
+/// （SyncSheetPartial）或「Drive 已滿」狀態；[onManageStorage] 是「管理儲存空間」的動作（前往備份頁）。
+Future<void> showSyncSheet(
+  BuildContext context, {
+  VoidCallback? onManageStorage,
+}) {
   return showThemedSheet<void>(
     context: context,
     useRootNavigator: true,
-    builder: (_) => const SyncSheet(),
+    builder: (_) => SyncSheet(onManageStorage: onManageStorage),
   );
 }
 
@@ -145,50 +151,104 @@ SyncSheetTransition syncSheetTransition(
 }
 
 class SyncSheet extends ConsumerStatefulWidget {
-  const SyncSheet({super.key});
+  const SyncSheet({super.key, this.onManageStorage});
+
+  /// 「管理儲存空間」按鈕的動作（Drive 已滿時）；null＝不處理（只關閉）。
+  final VoidCallback? onManageStorage;
 
   @override
   ConsumerState<SyncSheet> createState() => _SyncSheetState();
 }
 
-class _SyncSheetState extends ConsumerState<SyncSheet> {
-  bool _closing = false;
-  SyncDoneSummary? _done;
+class _SyncSheetState extends ConsumerState<SyncSheet>
+    with SyncPanelMixin<SyncSheet> {
+  @override
+  void initState() {
+    super.initState();
+    initPanel();
+  }
 
-  void _close() {
+  @override
+  Widget build(BuildContext context) {
+    listenPanel();
+    return SyncSheetBody(
+      done: done,
+      fullStatic: fullStatic,
+      onDone: closePanel,
+      onManageStorage: () => manageStorage(widget.onManageStorage),
+    );
+  }
+}
+
+/// 從頭像的琥珀點／紅點打開時，狀態來自上一次同步的結果（沒有進行中的傳輸）：
+/// - 紅點（Drive 已滿）→ [fullStatic]：「Drive 已滿」、等空間的上傳行、「管理儲存空間」；
+/// - 琥珀點（有失敗）→ [done] 是部分失敗摘要（SyncSheetPartial，有「重試」）。
+/// 這種 sheet／popover 一直開著，直到使用者關掉；不會因為「現在沒有在傳」而立刻關閉。
+mixin SyncPanelMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
+  SyncDoneSummary? done;
+  bool fullStatic = false;
+  bool _closing = false;
+
+  void closePanel() {
     if (_closing || !mounted) return;
     _closing = true;
     Navigator.of(context).maybePop();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    // 打開的瞬間沒有在傳（剛好傳完或根本沒東西傳）：直接關。
+  /// 「管理儲存空間」：先關掉 sheet／popover，再做 [go]。
+  void manageStorage(VoidCallback? go) {
+    closePanel();
+    go?.call();
+  }
+
+  void initPanel() {
+    final s = ref.read(syncControllerProvider);
+    if (!s.isSyncing) {
+      if (s.quotaFull) {
+        fullStatic = true;
+      } else if (s.hasFailures) {
+        done = _summaryOf(s, s);
+      }
+    }
+    // 打開的瞬間沒有在傳、也不是從小點打開的（剛好傳完或根本沒東西傳）：直接關。
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !ref.read(syncControllerProvider).isTransferring) {
-        _close();
+      if (mounted &&
+          done == null &&
+          !fullStatic &&
+          !ref.read(syncControllerProvider).isTransferring) {
+        closePanel();
       }
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
+  void listenPanel() {
     ref.listen(syncControllerProvider, (prev, next) {
       if (prev == null) return;
-      final tr = syncSheetTransition(prev, next, _done);
+      if (fullStatic) {
+        // Drive 還是滿的：面板留著（一輪同步結束也一樣）；有空間了才回到一般流程。
+        if (next.quotaFull || next.isSyncing) return;
+        setState(() => fullStatic = false);
+        // 剛好把排隊的傳完（空間回來了）或還有失敗 → 顯示結果；其他情況關閉。
+        final sum = prev.isSyncing ? _summaryOf(prev, next) : null;
+        if (sum != null || next.hasFailures) {
+          setState(() => done = sum ?? _summaryOf(next, next));
+        } else {
+          closePanel();
+        }
+        return;
+      }
+      final tr = syncSheetTransition(prev, next, done);
       switch (tr.action) {
         case SyncSheetAction.show:
-          setState(() => _done = tr.summary);
+          setState(() => done = tr.summary);
         case SyncSheetAction.clear:
-          setState(() => _done = null);
+          setState(() => done = null);
         case SyncSheetAction.close:
-          _close();
+          closePanel();
         case SyncSheetAction.keep:
           break;
       }
     });
-    return SyncSheetBody(done: _done, onDone: _close);
   }
 }
 
@@ -198,10 +258,20 @@ class _SyncSheetState extends ConsumerState<SyncSheet> {
 /// 張數與完成時間、底部「完成」按鈕（[onDone]）；有失敗＝部分失敗（D-109）：琥珀「!」＋
 /// 「同步完成，N 張失敗」、失敗清單、底部「重試」「完成」。都沒有清單。
 class SyncSheetBody extends StatelessWidget {
-  const SyncSheetBody({super.key, this.done, this.onDone});
+  const SyncSheetBody({
+    super.key,
+    this.done,
+    this.onDone,
+    this.fullStatic = false,
+    this.onManageStorage,
+  });
 
   final SyncDoneSummary? done;
   final VoidCallback? onDone;
+
+  /// 從紅點打開、沒有傳輸中：顯示「Drive 已滿」（見 [SyncPanelContent]）。
+  final bool fullStatic;
+  final VoidCallback? onManageStorage;
 
   @override
   Widget build(BuildContext context) {
@@ -212,11 +282,13 @@ class SyncSheetBody extends StatelessWidget {
       scopesRoute: true,
       namesRoute: true,
       explicitChildNodes: true,
-      label: done == null
-          ? l.syncuiSheetLabel
-          : done.isPartial
-          ? l.syncuiPartialTitle(done.failed.length)
-          : l.syncuiDoneTitle,
+      label: done != null
+          ? (done.isPartial
+                ? l.syncuiPartialTitle(done.failed.length)
+                : l.syncuiDoneTitle)
+          : fullStatic
+          ? l.backupFullTitle
+          : l.syncuiSheetLabel,
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 26),
@@ -235,16 +307,167 @@ class SyncSheetBody extends StatelessWidget {
                   ),
                 ),
               ),
-              if (done != null)
-                SyncFinalPanel(summary: done, onDone: onDone)
-              else ...[
-                const SyncProgressHeader(),
-                const SyncProgressRows(),
-              ],
+              SyncPanelContent(
+                done: done,
+                fullStatic: fullStatic,
+                onDone: onDone,
+                onManageStorage: onManageStorage,
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// sheet 與 iPad popover 共用的內容（依狀態選一種）：
+/// 1. [done] 非 null：完成／部分失敗（[SyncFinalPanel]）；
+/// 2. [fullStatic] 且沒有傳輸中：Drive 已滿的靜態狀態（[SyncFullPanel]，標題「Drive 已滿」）；
+/// 3. 同步中且剩下的全是等空間的上傳：SyncPopoverFull 版面（標題照舊「同步中」）＋「管理儲存空間」；
+/// 4. 其他：一般的同步進度。
+class SyncPanelContent extends ConsumerWidget {
+  const SyncPanelContent({
+    super.key,
+    this.done,
+    this.fullStatic = false,
+    this.onDone,
+    this.onManageStorage,
+    this.onOpenSettings,
+    this.popover = false,
+  });
+
+  final SyncDoneSummary? done;
+  final bool fullStatic;
+  final VoidCallback? onDone;
+  final VoidCallback? onManageStorage;
+
+  /// 一般進度底下的「同步設定」連結（popover 才有）。
+  final VoidCallback? onOpenSettings;
+  final bool popover;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final done = this.done;
+    if (done != null) {
+      return SyncFinalPanel(summary: done, onDone: onDone, popover: popover);
+    }
+    final transferring = ref.watch(
+      syncControllerProvider.select((s) => s.isTransferring),
+    );
+    final waiting = ref.watch(
+      syncControllerProvider.select(syncIsWaitingForSpace),
+    );
+    if (fullStatic && !transferring) {
+      return SyncFullPanel(
+        popover: popover,
+        onManageStorage: onManageStorage,
+        titled: true,
+      );
+    }
+    if (waiting) {
+      return SyncFullPanel(popover: popover, onManageStorage: onManageStorage);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SyncProgressHeader(popover: popover),
+        SyncProgressRows(onOpenSettings: popover ? onOpenSettings : null),
+      ],
+    );
+  }
+}
+
+/// Drive 已滿的版面（D-103／D-113 ③）：等空間的上傳行（灰字「等待空間」）＋底部「管理儲存空間」。
+///
+/// [titled]＝從紅點打開、沒有在傳：標題「Drive 已滿」（紅字）＋右邊「N 張未上傳」；
+/// 否則（同步中、剩下的都在等空間）沿用 SyncPopoverFull 的標頭（標題「同步中」＋進度＋進度條）。
+class SyncFullPanel extends ConsumerWidget {
+  const SyncFullPanel({
+    super.key,
+    this.popover = false,
+    this.onManageStorage,
+    this.titled = false,
+  });
+
+  final bool popover;
+  final VoidCallback? onManageStorage;
+  final bool titled;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.tokens;
+    final colors = SyncColors.of(context);
+    final l = context.l10n;
+    final pending = ref.watch(
+      syncControllerProvider.select((s) => syncWaitingRows(s).length),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (titled)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    l.backupFullTitle,
+                    key: const Key('sync-full-title'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: popover ? 19 : 18,
+                      fontWeight: FontWeight.w700,
+                      color: colors.fullDot,
+                    ),
+                  ),
+                ),
+                if (pending > 0)
+                  Text.rich(
+                    TextSpan(
+                      style: TextStyle(fontSize: 13.5, color: t.text2),
+                      children: [
+                        TextSpan(
+                          text: l.backupFullCount(pending),
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        TextSpan(text: l.backupFullUnuploaded),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          )
+        else
+          SyncProgressHeader(popover: popover, showCounts: false),
+        const SyncFullRows(),
+        Padding(
+          padding: EdgeInsets.only(top: popover ? 16 : 18),
+          child: SizedBox(
+            height: popover ? 46 : 48,
+            child: FilledButton(
+              key: const Key('sync-manage-storage-button'),
+              style: FilledButton.styleFrom(
+                backgroundColor: t.accent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: onManageStorage,
+              child: Text(
+                l.syncuiManageStorage,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1234,6 +1457,21 @@ bool syncIsWaitingForSpace(SyncState s) {
   return pending.isNotEmpty && pending.every((x) => x.isUpload && !x.isActive);
 }
 
+/// 「等待空間」要列的上傳：同步中＝還沒處理完的傳輸；同步結束後（傳輸清單已清空，從紅點打開時）＝
+/// 上一次結果裡沒上傳成功的上傳。
+List<SyncTransfer> syncWaitingRows(SyncState s) {
+  if (s.transfers.isNotEmpty) {
+    return [
+      for (final x in s.transfers)
+        if (!x.isSettled) x,
+    ];
+  }
+  return [
+    for (final x in s.lastResult?.transfers ?? const <SyncTransfer>[])
+      if (x.isUpload && !x.isDone) x,
+  ];
+}
+
 /// SyncPopoverFull 的列：縮圖、只有字的「上傳」標籤、位置、灰字「等待空間」（沒有進度條）；
 /// 超過 [syncFullMaxRows] 張，底下置中寫「還有 N 張等待空間」。
 class SyncFullRows extends ConsumerWidget {
@@ -1244,13 +1482,7 @@ class SyncFullRows extends ConsumerWidget {
     final t = context.tokens;
     final colors = SyncColors.of(context);
     final l = context.l10n;
-    final transfers = ref.watch(
-      syncControllerProvider.select((s) => s.transfers),
-    );
-    final pending = [
-      for (final x in transfers)
-        if (!x.isSettled) x,
-    ];
+    final pending = ref.watch(syncControllerProvider.select(syncWaitingRows));
     final shown = pending.take(syncFullMaxRows).toList();
     final more = pending.length - shown.length;
     final files = [for (final x in shown) x.file];
