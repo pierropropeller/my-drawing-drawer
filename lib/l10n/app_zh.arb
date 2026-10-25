@@ -1698,6 +1698,7 @@
     }
   },
   "backupFullUnuploaded": "未上傳",
+  "syncuiManageStorage": "管理儲存空間",
   "backupFullManage": "管理 Google 儲存空間",
   "meBackupUploadPaused": "上傳暫停　下載正常",
   "syncuiSheetLabel": "同步進度",

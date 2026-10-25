@@ -118,6 +118,7 @@ class _ImagePickerSheetState extends State<ImagePickerSheet>
   }
 
   Future<void> _next() async {
+    if (_c.exporting) return; // 處理中不能再按（D-113 ②）
     final files = await _c.exportSelected();
     if (mounted) Navigator.of(context).pop(files);
   }
@@ -619,6 +620,7 @@ class _BarContent extends StatelessWidget {
     final ids = controller.selected;
     final bottom = math.max(MediaQuery.paddingOf(context).bottom, 18.0);
     final busy = controller.exporting;
+    final spinning = controller.showExportSpinner;
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFF1C1917),
@@ -650,24 +652,41 @@ class _BarContent extends StatelessWidget {
             key: const ValueKey('picker-next'),
             behavior: HitTestBehavior.opaque,
             onTap: busy ? null : onNext,
-            child: Opacity(
-              opacity: busy ? 0.6 : 1,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: accent,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              // D-113 ②：處理超過 300ms 才把文字換成轉圈（按鈕大小不變、期間鎖住不能再按）；
+              // 很快完成的不顯示，免得閃一下。
+              child: Stack(
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: accent,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  context.l10n.pickerNext(ids.length),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                children: [
+                  Opacity(
+                    opacity: spinning ? 0 : 1,
+                    child: Text(
+                      context.l10n.pickerNext(ids.length),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                ),
+                  if (spinning)
+                    const SizedBox(
+                      key: ValueKey('picker-next-spinner'),
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
+                    ),
+                ],
               ),
             ),
           ),

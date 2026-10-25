@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/entity_queries.dart';
-import '../../data/media.dart' show MediaKind;
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
@@ -326,11 +325,10 @@ class IdeaDetailPane extends ConsumerWidget {
   }
 }
 
-/// 面板現在顯示的那張圖的檔名（影片、沒圖＝null：沒有可模糊的圖）。
+/// 面板現在顯示的那張圖的檔名（沒圖＝null）。影片、GIF 也算（D-113 ①：模糊時只顯示第一格）。
 String? _revealFile(List<ImageRef> images, int index) {
   if (images.isEmpty) return null;
-  final im = images[index.clamp(0, images.length - 1)];
-  return im.kind == MediaKind.video ? null : im.file;
+  return images[index.clamp(0, images.length - 1)].file;
 }
 
 /// 腦洞面板記住輪播現在翻到第幾張（換腦洞時用 key 重置）。

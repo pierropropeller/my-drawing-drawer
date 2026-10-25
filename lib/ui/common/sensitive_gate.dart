@@ -18,7 +18,7 @@ export '../../state/sensitive.dart' show SensitiveDisplay;
 /// - 所有「列表類」畫面的縮圖（列表、九宮格、瀑布、搜尋結果、時間軸、各種選擇 sheet、同步 sheet…）
 ///   都經過它（目前集中在 `MediaThumb`）。D-110 起詳情頁也模糊（取代 D-104「一律正常顯示」），
 ///   圓圈固定 52px（[circleSize]；`DraftDetailSafe`），安全模式關時不加小標（[showBadge] false）。
-///   圖片預覽頁（全螢幕）沒有安全模式，不經過它。
+///   圖片預覽頁（官圖／同人圖預覽、詳情頁點開的全螢幕看圖、iPad 參考檢視）和表單內預覽（D-102）一律正常顯示，不經過它。
 /// - [file] 是這張圖的檔名（原檔檔名；影片的截圖檔名也可以）。
 /// - 模糊的是 [child]（圖片本身）；GIF／影片小標、張數、選取框等請畫在它外面，不會被模糊。
 /// - 不攔截點擊（蓋層包 [IgnorePointer]）。
@@ -51,23 +51,73 @@ class SensitiveGate extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!enabled) return child;
-    var mode = ref.watch(sensitiveDisplayProvider(file));
-    if (!showBadge && mode == SensitiveDisplay.badge) {
+    return SensitiveFrame(
+      mode: resolveSensitiveMode(context, ref, file, showBadge: showBadge),
+      badgeInset: badgeInset,
+      circleSize: circleSize,
+      child: child,
+    );
+  }
+}
+
+/// [file] 現在該怎麼畫（[SensitiveGate]、[SensitiveMotionGate] 共用）。
+///
+/// - [showBadge] false：安全模式關時不加左上角小標（詳情／預覽頁）。
+/// - iPad 預覽／詳情面板（P-038 [SensitiveReveal]）：安全模式關時不加小標；安全模式開時，撳了眼睛鈕的那一張清晰。
+SensitiveDisplay resolveSensitiveMode(
+  BuildContext context,
+  WidgetRef ref,
+  String file, {
+  bool showBadge = true,
+}) {
+  var mode = ref.watch(sensitiveDisplayProvider(file));
+  if (!showBadge && mode == SensitiveDisplay.badge) {
+    mode = SensitiveDisplay.none;
+  }
+  final reveal = SensitiveReveal.maybeOf(context);
+  if (reveal != null) {
+    if (mode == SensitiveDisplay.badge) mode = SensitiveDisplay.none;
+    if (mode == SensitiveDisplay.blur && reveal.isRevealed(file)) {
       mode = SensitiveDisplay.none;
     }
-    // iPad 預覽／詳情面板（P-038）：安全模式關時不加小標；安全模式開時，撳了眼睛鈕的那一張清晰。
-    final reveal = SensitiveReveal.maybeOf(context);
-    if (reveal != null) {
-      if (mode == SensitiveDisplay.badge) mode = SensitiveDisplay.none;
-      if (mode == SensitiveDisplay.blur && reveal.isRevealed(file)) {
-        mode = SensitiveDisplay.none;
-      }
-    }
+  }
+  return mode;
+}
+
+/// 會動的媒體（GIF、影片，D-113 ①）的敏感閘門。
+///
+/// 安全模式開（[SensitiveDisplay.blur]／[SensitiveDisplay.pending]）：只畫 [still]（第一格靜態圖：
+/// GIF＝第一格、影片＝poster），套模糊＋中間圓圈；**不會建立 [live]**——不解碼動畫、不建立播放器，
+/// 也就不會在模糊後面偷偷播放。其他情況（沒標記、安全模式關、被撳開）畫 [live]（安全模式關時
+/// 照 [showBadge] 決定要不要加左上角小標）。
+class SensitiveMotionGate extends ConsumerWidget {
+  const SensitiveMotionGate({
+    super.key,
+    required this.file,
+    required this.still,
+    required this.live,
+    this.badgeInset = 6,
+    this.circleSize,
+    this.showBadge = true,
+  });
+
+  final String file;
+  final WidgetBuilder still;
+  final WidgetBuilder live;
+  final double badgeInset;
+  final double? circleSize;
+  final bool showBadge;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = resolveSensitiveMode(context, ref, file, showBadge: showBadge);
+    final blurred =
+        mode == SensitiveDisplay.blur || mode == SensitiveDisplay.pending;
     return SensitiveFrame(
       mode: mode,
       badgeInset: badgeInset,
       circleSize: circleSize,
-      child: child,
+      child: blurred ? still(context) : live(context),
     );
   }
 }

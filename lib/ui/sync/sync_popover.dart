@@ -13,11 +13,17 @@ import 'sync_sheet.dart';
 /// [context] 必須是頭像本身的 context（用它的位置錨定 popover）。＜600 直接用手機版的
 /// [showSyncSheet]；≥600 開 [SyncPopover]。彈出期間拉窗跨過 600，同一個彈層會即時換樣式。
 /// [onOpenSettings]：popover 底下「同步設定」連結的動作（前往我的 › 備份與同步）。
+///
+/// [onManageStorage]：Drive 已滿時「管理儲存空間」按鈕的動作（前往備份頁）；沒給就用 [onOpenSettings]。
 Future<void> showSyncProgress(
   BuildContext context, {
   VoidCallback? onOpenSettings,
+  VoidCallback? onManageStorage,
 }) {
-  if (WindowClass.of(context).isCompact) return showSyncSheet(context);
+  final manage = onManageStorage ?? onOpenSettings;
+  if (WindowClass.of(context).isCompact) {
+    return showSyncSheet(context, onManageStorage: manage);
+  }
   final box = context.findRenderObject();
   Rect? anchor;
   if (box is RenderBox && box.hasSize) {
@@ -30,8 +36,11 @@ Future<void> showSyncProgress(
     barrierLabel: context.l10n.commonClose,
     barrierColor: Colors.transparent,
     transitionDuration: const Duration(milliseconds: 160),
-    pageBuilder: (ctx, _, _) =>
-        SyncPopover(anchor: anchor, onOpenSettings: onOpenSettings),
+    pageBuilder: (ctx, _, _) => SyncPopover(
+      anchor: anchor,
+      onOpenSettings: onOpenSettings,
+      onManageStorage: manage,
+    ),
     transitionBuilder: (_, anim, _, child) =>
         FadeTransition(opacity: anim, child: child),
   );
@@ -42,11 +51,19 @@ Future<void> showSyncProgress(
 /// 原地變成完成（SyncPopoverDone）或部分失敗（SyncPopoverPartial）狀態，按鈕高 46；
 /// Drive 已滿且只剩等空間的上傳時換成 SyncPopoverFull 版面（[SyncFullRows]）。
 class SyncPopover extends ConsumerStatefulWidget {
-  const SyncPopover({super.key, this.anchor, this.onOpenSettings});
+  const SyncPopover({
+    super.key,
+    this.anchor,
+    this.onOpenSettings,
+    this.onManageStorage,
+  });
 
   /// 頭像在畫面上的位置；null＝找不到時放在左上。
   final Rect? anchor;
   final VoidCallback? onOpenSettings;
+
+  /// Drive 已滿時「管理儲存空間」的動作（前往備份頁）。
+  final VoidCallback? onManageStorage;
 
   /// 設計稿寬度與離視窗邊緣的最小留白。
   static const width = 400.0;
@@ -59,49 +76,23 @@ class SyncPopover extends ConsumerStatefulWidget {
   ConsumerState<SyncPopover> createState() => _SyncPopoverState();
 }
 
-class _SyncPopoverState extends ConsumerState<SyncPopover> {
-  bool _closing = false;
-  SyncDoneSummary? _done;
-
-  void _close() {
-    if (_closing || !mounted) return;
-    _closing = true;
-    Navigator.of(context).maybePop();
-  }
-
+class _SyncPopoverState extends ConsumerState<SyncPopover>
+    with SyncPanelMixin<SyncPopover> {
   void _openSettings() {
     final go = widget.onOpenSettings;
-    _close();
+    closePanel();
     go?.call();
   }
 
   @override
   void initState() {
     super.initState();
-    // 打開的瞬間剛好傳完：直接關。
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !ref.read(syncControllerProvider).isTransferring) {
-        _close();
-      }
-    });
+    initPanel();
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(syncControllerProvider, (prev, next) {
-      if (prev == null) return;
-      final tr = syncSheetTransition(prev, next, _done);
-      switch (tr.action) {
-        case SyncSheetAction.show:
-          setState(() => _done = tr.summary);
-        case SyncSheetAction.clear:
-          setState(() => _done = null);
-        case SyncSheetAction.close:
-          _close();
-        case SyncSheetAction.keep:
-          break;
-      }
-    });
+    listenPanel();
     // 拉窗跨過 600：換成底部 sheet 的樣子（內容不重開）。
     if (WindowClass.of(context).isCompact) {
       return Material(
@@ -112,7 +103,12 @@ class _SyncPopoverState extends ConsumerState<SyncPopover> {
             Align(
               alignment: Alignment.bottomCenter,
               child: ThemedSheetSurface(
-                child: SyncSheetBody(done: _done, onDone: _close),
+                child: SyncSheetBody(
+                  done: done,
+                  fullStatic: fullStatic,
+                  onDone: closePanel,
+                  onManageStorage: () => manageStorage(widget.onManageStorage),
+                ),
               ),
             ),
           ],
@@ -134,17 +130,19 @@ class _SyncPopoverState extends ConsumerState<SyncPopover> {
     final top = anchor.bottom + 14;
     final arrowCenter = (anchor.center.dx - left).clamp(24.0, width - 24);
     final maxHeight = (screen.height - top - 14).clamp(160.0, 900.0);
-    // Drive 已滿、剩下的全是等空間的上傳：SyncPopoverFull 版面。
+    // Drive 已滿、剩下的全是等空間的上傳：SyncPopoverFull 版面（內容見 [SyncPanelContent]）。
     final waitingSpace = ref.watch(
       syncControllerProvider.select(syncIsWaitingForSpace),
     );
-    final done = _done;
-    final label = done == null
-        ? (waitingSpace
+    final summary = done;
+    final label = summary == null
+        ? (fullStatic
+              ? context.l10n.backupFullTitle
+              : waitingSpace
               ? context.l10n.ipadsyncFullLabel
               : context.l10n.syncuiSheetLabel)
-        : done.isPartial
-        ? context.l10n.syncuiPartialTitle(done.failed.length)
+        : summary.isPartial
+        ? context.l10n.syncuiPartialTitle(summary.failed.length)
         : context.l10n.syncuiDoneTitle;
     return Material(
       type: MaterialType.transparency,
@@ -216,22 +214,15 @@ class _SyncPopoverState extends ConsumerState<SyncPopover> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            if (_done != null)
-                              SyncFinalPanel(
-                                summary: _done!,
-                                onDone: _close,
-                                popover: true,
-                              )
-                            else if (waitingSpace) ...[
-                              const SyncProgressHeader(
-                                popover: true,
-                                showCounts: false,
-                              ),
-                              const SyncFullRows(),
-                            ] else ...[
-                              const SyncProgressHeader(popover: true),
-                              SyncProgressRows(onOpenSettings: _openSettings),
-                            ],
+                            SyncPanelContent(
+                              popover: true,
+                              done: done,
+                              fullStatic: fullStatic,
+                              onDone: closePanel,
+                              onManageStorage: () =>
+                                  manageStorage(widget.onManageStorage),
+                              onOpenSettings: _openSettings,
+                            ),
                           ],
                         ),
                       ),

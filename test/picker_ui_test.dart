@@ -26,6 +26,9 @@ class FakeGallery extends GalleryRepository {
   int requestCalls = 0;
   final List<String> exported = [];
 
+  /// 匯出花多久（模擬 iCloud 下載）；零＝馬上完成。
+  Duration exportDelay = Duration.zero;
+
   @override
   Future<GalleryPermission> permission() async => perm;
 
@@ -58,6 +61,7 @@ class FakeGallery extends GalleryRepository {
   @override
   Future<XFile?> export(String itemId) async {
     exported.add(itemId);
+    if (exportDelay > Duration.zero) await Future<void>.delayed(exportDelay);
     return XFile('/fake/$itemId.jpg');
   }
 
@@ -485,6 +489,137 @@ void main() {
     await _settle(tester, 1000);
     expect(done, isTrue);
     expect(result, isNull);
+  });
+
+  // D-113 ②：「下一步」處理超過 300ms 才把文字換成轉圈；期間鎖住不能再按；很快完成不閃一下。
+  group('下一步轉圈（D-113 ②）', () {
+    final spinner = find.byKey(const ValueKey('picker-next-spinner'));
+    final next = find.byKey(const ValueKey('picker-next'));
+
+    Future<(FakeGallery, List<List<XFile>?>)> openShowing(
+      WidgetTester tester,
+      Duration exportDelay,
+    ) async {
+      phone(tester);
+      final g = _gallery()..exportDelay = exportDelay;
+      final results = <List<XFile>?>[];
+      await tester.pumpWidget(
+        _app(
+          Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: TextButton(
+                  onPressed: () async => results.add(
+                    await showAppImagePicker(
+                      context,
+                      repository: g,
+                      now: () => _now,
+                    ),
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await _settle(tester, 1000);
+      await tester.tap(cell('t1'));
+      await _settle(tester);
+      return (g, results);
+    }
+
+    testWidgets('處理很久（800ms）：300ms 前文字照舊、300ms 後換成轉圈並鎖住；完成後關閉', (tester) async {
+      final (g, results) = await openShowing(
+        tester,
+        const Duration(milliseconds: 800),
+      );
+      expect(find.text('下一步（1）'), findsOneWidget);
+      final before = tester.getSize(next);
+
+      await tester.tap(next);
+      await tester.pump(const Duration(milliseconds: 100));
+      // 還沒到 300ms：什麼都沒變（不閃）。
+      expect(spinner, findsNothing);
+      expect(
+        tester
+            .widget<Opacity>(
+              find.ancestor(
+                of: find.text('下一步（1）'),
+                matching: find.byType(Opacity),
+              ),
+            )
+            .opacity,
+        1,
+      );
+      // 按第二次沒有用（已鎖住）。
+      await tester.tap(next);
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(spinner, findsNothing);
+
+      await tester.pump(const Duration(milliseconds: 100)); // 350ms
+      expect(spinner, findsOneWidget);
+      expect(
+        tester
+            .widget<Opacity>(
+              find.ancestor(
+                of: find.text('下一步（1）'),
+                matching: find.byType(Opacity),
+              ),
+            )
+            .opacity,
+        0,
+      );
+      expect(tester.getSize(next), before, reason: '按鈕大小不變');
+      await tester.tap(next);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(g.exported, ['t1'], reason: '轉圈期間再按也只匯出一次');
+
+      await _settle(tester, 1000);
+      expect(spinner, findsNothing);
+      expect(results.single!.map((f) => f.path), ['/fake/t1.jpg']);
+      expect(find.byType(ImagePickerSheet), findsNothing);
+    });
+
+    testWidgets('很快完成（100ms）：整個過程都不出現轉圈', (tester) async {
+      final (g, results) = await openShowing(
+        tester,
+        const Duration(milliseconds: 100),
+      );
+      await tester.tap(next);
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(spinner, findsNothing, reason: '第 ${(i + 1) * 50}ms');
+      }
+      await _settle(tester, 1000);
+      expect(spinner, findsNothing);
+      expect(g.exported, ['t1']);
+      expect(results.single!.map((f) => f.path), ['/fake/t1.jpg']);
+    });
+
+    test('控制器：超過 300ms 才 showExportSpinner；完成就清掉', () async {
+      final g = FakeGallery()..exportDelay = const Duration(milliseconds: 600);
+      final c = PickerController(g)..toggle('e1');
+      final flags = <bool>[];
+      c.addListener(() => flags.add(c.showExportSpinner));
+      final f = c.exportSelected();
+      expect(c.exporting, isTrue);
+      expect(c.showExportSpinner, isFalse);
+      await Future<void>.delayed(const Duration(milliseconds: 450));
+      expect(c.showExportSpinner, isTrue);
+      await f;
+      expect(c.exporting, isFalse);
+      expect(c.showExportSpinner, isFalse);
+
+      // 快的：從頭到尾沒有 true。
+      g.exportDelay = const Duration(milliseconds: 20);
+      flags.clear();
+      await c.exportSelected();
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(flags.contains(true), isFalse);
+      c.dispose();
+    });
   });
 
   FakeGallery longGallery() {

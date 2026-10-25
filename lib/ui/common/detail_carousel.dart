@@ -7,7 +7,6 @@ import '../entity/image_gallery_page.dart';
 import 'app_icons.dart';
 import 'media_mini.dart';
 import 'media_widgets.dart';
-import 'sensitive_gate.dart';
 import 'svg_icon.dart';
 
 /// 詳情頁圖片框比例的上下限（D-073）：最扁 1.91:1（寬:高），最高 3:4。
@@ -126,8 +125,9 @@ class _DetailCarouselState extends State<DetailCarousel> {
                         final media = MediaSource.fromImageRef(images[i]);
                         // 影片（D-080）：點一下是播放，不開全螢幕；全螢幕鍵才開預覽頁並接續播放。
                         // 換頁（_index 變了）自動暫停。GIF 直接循環播放、不顯示標記。
+                        // 已標記的影片／GIF 在安全模式開時只顯示模糊的第一格，不建立播放器、不播動畫（D-113 ①）。
                         if (media.isVideo) {
-                          return MediaViewer(
+                          return SensitiveMediaViewer(
                             media,
                             active: i == _index,
                             placeholderColor: letterbox,
@@ -135,22 +135,18 @@ class _DetailCarouselState extends State<DetailCarousel> {
                               i,
                               start: VideoStart(pos, autoPlay: playing),
                             ),
+                            onBlurredTap: () => _open(i),
                           );
                         }
                         return GestureDetector(
                           onTap: () => _open(i),
                           // 詳情頁的主圖：安全模式開＝模糊（52px 圓，D-110）；關閉＝正常的圖（不加小標，小標只在列表類）。
-                          // 全螢幕預覽沒有安全模式。
-                          child: SensitiveGate(
-                            file: media.file,
-                            circleSize: 52,
-                            showBadge: false,
-                            child: MediaViewer(
-                              media,
-                              active: i == _index,
-                              cacheWidth: widget.cacheWidth,
-                              placeholderColor: letterbox,
-                            ),
+                          // 全螢幕預覽也一樣（Molly 10/25）。
+                          child: SensitiveMediaViewer(
+                            media,
+                            active: i == _index,
+                            cacheWidth: widget.cacheWidth,
+                            placeholderColor: letterbox,
                           ),
                         );
                       },

@@ -2335,6 +2335,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupFullUnuploaded => '未上傳';
 
   @override
+  String get syncuiManageStorage => '管理儲存空間';
+
+  @override
   String get backupFullManage => '管理 Google 儲存空間';
 
   @override

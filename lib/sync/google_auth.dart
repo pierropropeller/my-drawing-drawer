@@ -170,7 +170,7 @@ class GoogleAccountService implements AccountService {
       // 背景：連不上 Google 之類的錯誤一律當暫時失敗（安靜、稍後重試）。
       if (!allowInteractive) {
         throw SyncAuthUnavailableException(
-          l10nStatic.syncAuthExpiredDetail('${e.code.name}'),
+          l10nStatic.syncAuthExpiredDetail(e.code.name),
         );
       }
       throw SyncAuthException(

@@ -435,15 +435,16 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('NewPitShallow：選淺坑 → 880 兩欄；左封面＋坑名＋描述；右 7 個開關預設只開官方圖冊與好看同人圖', (
+    testWidgets('NewPitShallow：選淺坑 → 880 兩欄；左 類型＋坑名＋描述（沒有封面）；右 7 個開關預設只開官方圖冊與好看同人圖', (
       tester,
     ) async {
       await openNew(tester, const Size(1194, 834));
       await tester.tap(find.text('淺坑'));
       await settle(tester);
       expect(dialogWidth(tester), 880);
-      expect(find.text('封面'), findsOneWidget);
-      expect(find.bySemanticsLabel('選擇封面'), findsOneWidget);
+      // 淺坑不要封面（Molly 10/23）。
+      expect(find.text('封面'), findsNothing);
+      expect(find.bySemanticsLabel('選擇封面'), findsNothing);
       expect(find.text('開啟的格子'), findsOneWidget);
       // 左右兩欄：開啟的格子在右邊。
       expect(

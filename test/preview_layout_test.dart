@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
-import 'package:huakeng/data/tables.dart' show TagTarget;
 import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/l10n/l10n.dart';
 import 'package:huakeng/state/providers.dart';
