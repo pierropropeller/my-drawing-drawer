@@ -24,6 +24,7 @@ import 'ipadlists_icons.dart';
 import 'move_sheet.dart';
 import 'tag_batch_sheet.dart';
 import 'wide_layout.dart';
+import '../common/top_toast.dart' show BottomInsetAnchor;
 
 /// 寬版預覽面板的內容建構器：[image] 目前選取的圖，[openReference] 開參考檢視（`openReferenceViewer`），
 /// [dismiss] 圖被刪掉後關閉面板。
@@ -522,89 +523,91 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                 ),
               ),
         bottomNavigationBar: _selecting
-            ? Container(
-                // iPad 寬版（FanArtSelect）：動作列兩側各留 120，五個動作靠近中間。
-                padding: EdgeInsets.fromLTRB(
-                  wide ? 120 : (widget.shareInSelect ? 12 : 20),
-                  4,
-                  wide ? 120 : (widget.shareInSelect ? 12 : 20),
-                  0,
-                ),
-                decoration: BoxDecoration(
-                  color: t.nav,
-                  border: Border(top: BorderSide(color: t.border)),
-                ),
-                child: SafeArea(
-                  top: false,
-                  minimum: const EdgeInsets.only(bottom: 14),
-                  child: Row(
-                    children: [
-                      if (widget.shareInSelect)
+            ? BottomInsetAnchor(
+                child: Container(
+                  // iPad 寬版（FanArtSelect）：動作列兩側各留 120，五個動作靠近中間。
+                  padding: EdgeInsets.fromLTRB(
+                    wide ? 120 : (widget.shareInSelect ? 12 : 20),
+                    4,
+                    wide ? 120 : (widget.shareInSelect ? 12 : 20),
+                    0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: t.nav,
+                    border: Border(top: BorderSide(color: t.border)),
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    minimum: const EdgeInsets.only(bottom: 14),
+                    child: Row(
+                      children: [
+                        if (widget.shareInSelect)
+                          Expanded(
+                            child: _BarAction(
+                              context.l10n.commonShare,
+                              AppIcons.share,
+                              t.ink,
+                              iconSize: 22,
+                              strokeWidth: 1.7,
+                              onTap: _share,
+                            ),
+                          ),
                         Expanded(
                           child: _BarAction(
-                            context.l10n.commonShare,
-                            AppIcons.share,
+                            context.l10n.commonDownload,
+                            AppIcons.download,
                             t.ink,
                             iconSize: 22,
                             strokeWidth: 1.7,
-                            onTap: _share,
+                            onTap: _download,
                           ),
                         ),
-                      Expanded(
-                        child: _BarAction(
-                          context.l10n.commonDownload,
-                          AppIcons.download,
-                          t.ink,
-                          iconSize: 22,
-                          strokeWidth: 1.7,
-                          onTap: _download,
-                        ),
-                      ),
-                      if (_sensitiveSource != null &&
-                          ref.watch(sensitiveMarkingProvider(widget.pitId)))
+                        if (_sensitiveSource != null &&
+                            ref.watch(sensitiveMarkingProvider(widget.pitId)))
+                          Expanded(
+                            child: _BarAction(
+                              context.l10n.sensitiveAction,
+                              AppIcons.eyeSlash,
+                              t.ink,
+                              iconSize: 22,
+                              strokeWidth: 1.9,
+                              onTap: _sensitive,
+                            ),
+                          ),
+                        if (widget.cell != null)
+                          Expanded(
+                            child: _BarAction(
+                              context.l10n.commonMove,
+                              AlbumIcons.moveFolder,
+                              t.ink,
+                              iconSize: 22,
+                              strokeWidth: 1.7,
+                              onTap: _move,
+                            ),
+                          ),
+                        if (_taggable)
+                          Expanded(
+                            child: _BarAction(
+                              context.l10n.shareMoveTag,
+                              AlbumIcons.tag,
+                              t.ink,
+                              iconSize: 22,
+                              strokeWidth: 1.7,
+                              onTap: _tag,
+                            ),
+                          ),
                         Expanded(
                           child: _BarAction(
-                            context.l10n.sensitiveAction,
-                            AppIcons.eyeSlash,
-                            t.ink,
-                            iconSize: 22,
-                            strokeWidth: 1.9,
-                            onTap: _sensitive,
+                            context.l10n.commonDelete,
+                            AppIcons.trash,
+                            t.danger,
+                            iconSize: 20,
+                            strokeWidth: 1.8,
+                            onTap: _delete,
                           ),
                         ),
-                      if (widget.cell != null)
-                        Expanded(
-                          child: _BarAction(
-                            context.l10n.commonMove,
-                            AlbumIcons.moveFolder,
-                            t.ink,
-                            iconSize: 22,
-                            strokeWidth: 1.7,
-                            onTap: _move,
-                          ),
-                        ),
-                      if (_taggable)
-                        Expanded(
-                          child: _BarAction(
-                            context.l10n.shareMoveTag,
-                            AlbumIcons.tag,
-                            t.ink,
-                            iconSize: 22,
-                            strokeWidth: 1.7,
-                            onTap: _tag,
-                          ),
-                        ),
-                      Expanded(
-                        child: _BarAction(
-                          context.l10n.commonDelete,
-                          AppIcons.trash,
-                          t.danger,
-                          iconSize: 20,
-                          strokeWidth: 1.8,
-                          onTap: _delete,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               )

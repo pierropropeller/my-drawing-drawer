@@ -192,7 +192,7 @@ class BackupPage extends ConsumerWidget {
           : () async {
               final ran = await ref
                   .read(syncControllerProvider.notifier)
-                  .syncNow();
+                  .syncNowByUser();
               if (!ran && context.mounted) {
                 showSnack(context, context.l10n.syncOffline, offline: true);
               }

@@ -500,7 +500,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('沒有圖片時不能建立；× 移除圖片後按建立會提示', (tester) async {
+    testWidgets('沒有圖片時不能建立；× 移除圖片後按建立不會建立（表單內不跳提示條，D-114）', (tester) async {
       final img = png('two.png');
       await show(tester, OshiFormPage(pitId: pitId, initialImages: [img.path]));
       await tester.tap(find.bySemanticsLabel('移除圖片'));
@@ -508,7 +508,7 @@ void main() {
       await tester.ensureVisible(find.text('建立紀錄'));
       await tester.tap(find.text('建立紀錄'));
       await tester.pump();
-      expect(find.text('請先選擇圖片'), findsOneWidget);
+      expect(find.text('請先選擇圖片'), findsNothing);
       expect(await db.watchOshiRecords(pitId).first, isEmpty);
       await unmount(tester);
     });

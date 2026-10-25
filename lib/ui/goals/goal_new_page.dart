@@ -106,7 +106,6 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
     if (_kind == GoalKind.piece && _requireLikes) {
       likes = int.tryParse(_likes.text.trim());
       if (likes == null) {
-        showSnack(context, context.l10n.goalsEnterLikes);
         return;
       }
     }

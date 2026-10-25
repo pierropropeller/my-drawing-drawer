@@ -1,13 +1,20 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 /// 在列表區域左右滑動＝切換上方篩選 pills 的上一個／下一個（沒有畫在設計稿，介面上看不到）。
 ///
-/// 做法：只用 [Listener] 看原始指標事件，**不進手勢競技場**，所以垂直捲動、點擊、長按多選、
-/// 長按拖曳選取（D-081）、子層橫向捲動都不會被它搶走。放開手指時才判斷是否算一次「橫滑」：
-/// - 起點在螢幕左右邊緣 [edgeInset] 內不算（iOS 邊緣滑動返回／Android 手勢返回）；
-/// - 這次觸碰期間，子層有任何捲動被使用者拖動（橫向輪播、橫向 chips、日曆、垂直列表）就不算；
-/// - [enabled] 為 false（多選中）不算——按下與放開時各檢查一次；
-/// - 位移 ≥ [minDistance]，且橫向位移 ≥ 縱向的 [dominance] 倍，費時 ≤ [maxDuration]；
+/// 做法：跟 [TabBarView]／[PageView] 一樣，用 [RawGestureDetector] 放一個水平拖曳辨識器
+/// **進手勢競技場**競爭：
+/// - 手指位移先超過水平 touch slop（而且垂直還沒超過）→ 水平辨識器勝出，列表不會跟著捲；
+///   先超過垂直 slop → 列表的垂直辨識器勝出，照常捲動。真手指橫滑時幾 px 的垂直抖動不會影響結果。
+/// - 起點在子層橫向捲動區（輪播、chips、日曆）上：子層的水平辨識器在命中測試中更深、先處理事件，
+///   所以由子層勝出，這裡不會動。
+/// - 點擊、長按多選、長按拖曳選取（D-081）：長按辨識器勝出後本辨識器會被取消，互不影響。
+///
+/// 放開時才決定要不要切換：
+/// - 起點在螢幕左右邊緣 [edgeInset] 內不收（iOS 邊緣滑動返回／Android 手勢返回）；
+/// - [enabled] 為 false（多選中）不收；
+/// - 橫向位移 ≥ [minDistance]，或橫向甩動速度 ≥ [minVelocity]，且方向以橫向為主；
 /// - 多指不算。
 /// 往右滑（手指向右）＝上一個，往左滑＝下一個；[onPrev]／[onNext] 為 null＝已在端點，什麼都不做（不循環）。
 ///
@@ -20,9 +27,8 @@ class SwipeToSwitch extends StatefulWidget {
     this.onNext,
     this.enabled = true,
     this.edgeInset = 24,
-    this.minDistance = 64,
-    this.dominance = 1.5,
-    this.maxDuration = const Duration(milliseconds: 800),
+    this.minDistance = 48,
+    this.minVelocity = 400,
   });
 
   /// 在 [order] 裡以 [current] 的相鄰項目切換；端點不循環。
@@ -51,92 +57,85 @@ class SwipeToSwitch extends StatefulWidget {
   final VoidCallback? onNext;
   final bool enabled;
   final double edgeInset;
+
+  /// 放開時橫向位移至少這麼多（px）。
   final double minDistance;
-  final double dominance;
-  final Duration maxDuration;
+
+  /// 或放開時橫向速度至少這麼快（px/s）。
+  final double minVelocity;
 
   @override
   State<SwipeToSwitch> createState() => _SwipeToSwitchState();
 }
 
+/// 只負責「起點不在邊緣、enabled」的篩選；其餘交給 [HorizontalDragGestureRecognizer]。
+class _EdgeAwareHorizontalDrag extends HorizontalDragGestureRecognizer {
+  _EdgeAwareHorizontalDrag({super.debugOwner});
+
+  bool enabled = true;
+  double edgeInset = 24;
+  double viewWidth = double.infinity;
+
+  @override
+  bool isPointerAllowed(PointerEvent event) {
+    if (!enabled) return false;
+    final x = event.position.dx;
+    if (x < edgeInset || x > viewWidth - edgeInset) return false;
+    return super.isPointerAllowed(event);
+  }
+}
+
 class _SwipeToSwitchState extends State<SwipeToSwitch> {
-  int _pointers = 0;
-  int? _tracked;
   Offset _down = Offset.zero;
-  Duration _downAt = Duration.zero;
-  bool _cancelled = false;
+  Offset _last = Offset.zero;
 
-  void _onDown(PointerDownEvent e) {
-    _pointers++;
-    if (_pointers > 1) {
-      _cancelled = true;
-      return;
-    }
-    _tracked = e.pointer;
-    _down = e.position;
-    _downAt = e.timeStamp;
-    final width = MediaQuery.sizeOf(context).width;
-    _cancelled =
-        !widget.enabled ||
-        e.position.dx < widget.edgeInset ||
-        e.position.dx > width - widget.edgeInset;
+  void _onDown(DragDownDetails d) {
+    _down = d.globalPosition;
+    _last = d.globalPosition;
   }
 
-  void _onUp(PointerUpEvent e) {
-    final mine = e.pointer == _tracked;
-    final cancelled = _cancelled;
-    _release();
-    if (!mine || cancelled || !widget.enabled) return;
-    final d = e.position - _down;
-    final dt = e.timeStamp - _downAt;
-    if (d.dx.abs() < widget.minDistance) return;
-    if (d.dx.abs() < d.dy.abs() * widget.dominance) return;
-    if (dt > widget.maxDuration) return;
-    (d.dx > 0 ? widget.onPrev : widget.onNext)?.call();
-  }
+  void _onUpdate(DragUpdateDetails d) => _last = d.globalPosition;
 
-  void _onCancel(PointerCancelEvent e) => _release();
-
-  void _release() {
-    if (_pointers > 0) _pointers--;
-    if (_pointers == 0) {
-      _tracked = null;
-      _cancelled = false;
-    }
-  }
-
-  bool _onScroll(ScrollNotification n) {
-    // 使用者正在拖動某個子層捲動區，這次觸碰屬於它：
-    // - 橫向捲動區（輪播、chips、日曆）：一開始拖就算（到端點捲不動也算）；
-    // - 垂直捲動區：真的捲了（或在端點拉伸）才算。放手時垂直拖曳辨識器會在競技場「掃尾獲勝」，
-    //   單純的橫向滑動也會收到一個 ScrollStart（位移 0），不能因此取消。
-    final user = switch (n) {
-      ScrollStartNotification() => n.dragDetails != null,
-      ScrollUpdateNotification() => n.dragDetails != null,
-      OverscrollNotification() => n.dragDetails != null,
-      _ => false,
-    };
-    if (!user) return false;
-    if (n.metrics.axis == Axis.horizontal) {
-      _cancelled = true;
-    } else if ((n is ScrollUpdateNotification && (n.scrollDelta ?? 0) != 0) ||
-        (n is OverscrollNotification && n.overscroll != 0)) {
-      _cancelled = true;
-    }
-    return false;
+  void _onEnd(DragEndDetails d) {
+    if (!widget.enabled) return;
+    final dx = _last.dx - _down.dx;
+    final dy = _last.dy - _down.dy;
+    final v = d.velocity.pixelsPerSecond;
+    // 以橫向為主：位移或速度，橫向都要大於縱向。
+    final byDistance = dx.abs() >= widget.minDistance && dx.abs() >= dy.abs();
+    final byFling = v.dx.abs() >= widget.minVelocity && v.dx.abs() > v.dy.abs();
+    if (!byDistance && !byFling) return;
+    // 方向：位移夠就看位移，只靠甩動就看速度。
+    final right = byDistance ? dx > 0 : v.dx > 0;
+    (right ? widget.onPrev : widget.onNext)?.call();
   }
 
   @override
-  Widget build(BuildContext context) => Listener(
-    behavior: HitTestBehavior.translucent,
-    onPointerDown: _onDown,
-    onPointerUp: _onUp,
-    onPointerCancel: _onCancel,
-    child: NotificationListener<ScrollNotification>(
-      onNotification: _onScroll,
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    return RawGestureDetector(
+      behavior: HitTestBehavior.translucent,
+      gestures: {
+        _EdgeAwareHorizontalDrag:
+            GestureRecognizerFactoryWithHandlers<_EdgeAwareHorizontalDrag>(
+              () => _EdgeAwareHorizontalDrag(debugOwner: this),
+              (r) {
+                r
+                  ..enabled = widget.enabled
+                  ..edgeInset = widget.edgeInset
+                  ..viewWidth = width
+                  ..onDown = _onDown
+                  ..onUpdate = _onUpdate
+                  ..onEnd = _onEnd
+                  ..gestureSettings = MediaQuery.maybeGestureSettingsOf(
+                    context,
+                  );
+              },
+            ),
+      },
       child: widget.child,
-    ),
-  );
+    );
+  }
 }
 
 /// 被選中（false→true）時，把自己捲進最近的**橫向**捲動區內完全可見（pills 列用）。

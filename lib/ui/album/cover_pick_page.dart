@@ -15,11 +15,20 @@ import 'album_actions.dart';
 /// 的封面（`setCellCover`）；[kind] 為 null（編輯坑的「更換封面」）則設為坑的封面（`setCover`）。
 /// 沒有選中狀態。
 class CoverPickPage extends ConsumerStatefulWidget {
-  const CoverPickPage({super.key, required this.pitId, this.kind});
+  const CoverPickPage({
+    super.key,
+    required this.pitId,
+    this.kind,
+    this.pickOnly = false,
+  });
   final String pitId;
 
   /// `official`／`fan`／`draft`／`idea`／`piece`／`oshi`；null＝整個坑的圖都列出（編輯坑的「更換封面」）。
   final String? kind;
+
+  /// true＝編輯坑的「更換封面」（D-115）：不寫資料庫、不跳提示條，只把選到的圖片 id 回傳
+  /// （`Navigator.pop(id)`），由編輯頁按「儲存」時才寫入。
+  final bool pickOnly;
 
   @override
   ConsumerState<CoverPickPage> createState() => _CoverPickPageState();
@@ -40,6 +49,10 @@ class _CoverPickPageState extends ConsumerState<CoverPickPage>
   };
 
   Future<void> _pick(CoverCandidate c) async {
+    if (widget.pickOnly) {
+      Navigator.of(context).pop(c.id);
+      return;
+    }
     final db = ref.read(databaseProvider);
     final kind = widget.kind;
     final l = context.l10n;

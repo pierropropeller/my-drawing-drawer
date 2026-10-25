@@ -30,6 +30,10 @@ abstract class AccountService {
 }
 
 class GoogleAccountService implements AccountService {
+  /// 允許互動授權（會彈出 Google／系統畫面）。只有使用者主動觸發的同步（立即同步、首次連結、
+  /// 更換帳號）才設成 true；自動同步一律 false，拿不到靜默授權就當作暫時失敗。
+  bool allowInteractive = false;
+
   bool _initialized = false;
   GoogleSignInAccount? _account;
 
@@ -131,6 +135,13 @@ class GoogleAccountService implements AccountService {
       //    「Signing you in」的 Google 登入小視窗；取不到才往下走。
       var authz = await GoogleSignIn.instance.authorizationClient
           .authorizationForScopes([driveAppDataScope]);
+      if (authz == null && !allowInteractive) {
+        // 背景同步：不彈任何畫面。連不到 Google（例如中國大陸）或授權過期，都照離線處理。
+        syncLog('auth: silent authorization unavailable (background), skip');
+        throw SyncAuthUnavailableException(
+          l10nStatic.syncAuthExpiredDetail('silent'),
+        );
+      }
       if (authz == null) {
         // 2) 要互動才能授權（第一次、或授權過期；iOS 上 authorizationForScopes 常回 null）：
         //    才去還原帳號，必要時顯示 Google 的畫面。拿不到就丟出授權失敗，絕不回空標頭。
@@ -156,6 +167,12 @@ class GoogleAccountService implements AccountService {
       rethrow;
     } on GoogleSignInException catch (e) {
       syncLog('auth: GoogleSignInException ${e.code.name}');
+      // 背景：連不上 Google 之類的錯誤一律當暫時失敗（安靜、稍後重試）。
+      if (!allowInteractive) {
+        throw SyncAuthUnavailableException(
+          l10nStatic.syncAuthExpiredDetail('${e.code.name}'),
+        );
+      }
       throw SyncAuthException(
         l10nStatic.syncAuthExpiredDetail(
           '${e.code.name}：${e.description ?? ''}',
@@ -163,6 +180,11 @@ class GoogleAccountService implements AccountService {
       );
     } catch (e) {
       syncLog('auth: ${e.runtimeType}');
+      if (!allowInteractive) {
+        throw SyncAuthUnavailableException(
+          l10nStatic.syncAuthExpiredDetail('$e'),
+        );
+      }
       throw SyncAuthException(l10nStatic.syncAuthExpiredDetail('$e'));
     }
   }

@@ -48,6 +48,21 @@ abstract interface class PreviewController {
   void setZoomed(Object owner, bool zoomed);
   bool get zoomed;
 
+  /// 回報某一頁（長圖）目前能不能垂直捲動、是否停在最上面（[owner] 用來區分多頁）。
+  /// 能捲動時，垂直拖曳是「捲動」：只有停在最上面再往下拉才算退出，往上拖或捲到一半都不退出。
+  /// 不能捲動（圖整張放得下）的頁面不用回報，垂直拖曳照常退出。
+  void setVerticalScroll(
+    Object owner, {
+    required bool scrollable,
+    required bool atTop,
+  });
+
+  /// 目前有沒有一頁在垂直捲動（長圖）。
+  bool get verticalScrollable;
+
+  /// 垂直捲動中的頁面是否都停在最上面。
+  bool get verticalAtTop;
+
   /// 關閉預覽（預設 `Navigator.maybePop`）。回傳是否真的關掉（被攔截返回時為 false）。
   Future<bool> dismiss();
 }
@@ -95,6 +110,8 @@ class _DismissiblePreviewState extends State<DismissiblePreview>
   final _progress = ValueNotifier<double>(0);
   final _dragging = ValueNotifier<bool>(false);
   final _zoomedOwners = <Object>{};
+  final _scrollable = <Object>{};
+  final _notAtTop = <Object>{};
   bool _dismissed = false;
 
   @override
@@ -120,6 +137,29 @@ class _DismissiblePreviewState extends State<DismissiblePreview>
 
   @override
   bool get zoomed => _zoomedOwners.isNotEmpty;
+
+  @override
+  void setVerticalScroll(
+    Object owner, {
+    required bool scrollable,
+    required bool atTop,
+  }) {
+    if (scrollable) {
+      _scrollable.add(owner);
+    } else {
+      _scrollable.remove(owner);
+    }
+    if (scrollable && !atTop) {
+      _notAtTop.add(owner);
+    } else {
+      _notAtTop.remove(owner);
+    }
+  }
+
+  @override
+  bool get verticalScrollable => _scrollable.isNotEmpty;
+  @override
+  bool get verticalAtTop => _notAtTop.isEmpty;
 
   /// 拖曳進度由 [PreviewMediaArea] 回報。
   void _setDrag({required bool dragging, required double progress}) {
@@ -328,6 +368,13 @@ class _PreviewMediaAreaState extends State<PreviewMediaArea>
       final d = e.position - _start;
       if (d.distance < kPreviewDragSlop) return;
       final vertical = d.dy.abs() > d.dx.abs();
+      if (vertical && (_scope?.verticalScrollable ?? false)) {
+        // 長圖（垂直捲動中）：垂直拖曳是捲動。只有停在最上面、再往下拉才算退出。
+        if (!(d.dy > 0 && (_scope?.verticalAtTop ?? true))) {
+          _blocked = true;
+          return;
+        }
+      }
       if (!vertical && (!widget.allowHorizontalDismiss || !_atEdge(d.dx))) {
         // 一般的左右切圖：交給 PageView。
         _blocked = true;

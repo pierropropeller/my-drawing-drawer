@@ -10,6 +10,7 @@ import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import 'oshi_icons.dart';
 import 'oshi_select_actions.dart';
+import '../common/top_toast.dart' show BottomInsetAnchor;
 
 /// 推活多選的標題列（OshiSelect）：左「×」取消、「已選 N 筆」、右「全選」。
 class OshiSelectHeader extends StatelessWidget {
@@ -105,58 +106,60 @@ class OshiSelectBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final l = context.l10n;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-      decoration: BoxDecoration(
-        color: t.nav,
-        border: Border(top: BorderSide(color: t.border)),
-      ),
-      child: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: 14),
-        child: Row(
-          children: [
-            if (onSensitive != null)
+    return BottomInsetAnchor(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+        decoration: BoxDecoration(
+          color: t.nav,
+          border: Border(top: BorderSide(color: t.border)),
+        ),
+        child: SafeArea(
+          top: false,
+          minimum: const EdgeInsets.only(bottom: 14),
+          child: Row(
+            children: [
+              if (onSensitive != null)
+                Expanded(
+                  child: _BarAction(
+                    key: const ValueKey('oshiSelectSensitive'),
+                    label: l.sensitiveAction,
+                    svg: AppIcons.eyeSlash,
+                    color: t.ink,
+                    strokeWidth: 1.9,
+                    onTap: onSensitive!,
+                  ),
+                ),
               Expanded(
                 child: _BarAction(
-                  key: const ValueKey('oshiSelectSensitive'),
-                  label: l.sensitiveAction,
-                  svg: AppIcons.eyeSlash,
+                  key: const ValueKey('oshiSelectGroup'),
+                  label: l.albumGroupLabel,
+                  svg: OshiIcons.folder,
                   color: t.ink,
-                  strokeWidth: 1.9,
-                  onTap: onSensitive!,
+                  onTap: onGroup,
                 ),
               ),
-            Expanded(
-              child: _BarAction(
-                key: const ValueKey('oshiSelectGroup'),
-                label: l.albumGroupLabel,
-                svg: OshiIcons.folder,
-                color: t.ink,
-                onTap: onGroup,
+              Expanded(
+                child: _BarAction(
+                  key: const ValueKey('oshiSelectTag'),
+                  label: l.shareMoveTag,
+                  svg: AlbumIcons.tag,
+                  color: t.ink,
+                  onTap: onTag,
+                ),
               ),
-            ),
-            Expanded(
-              child: _BarAction(
-                key: const ValueKey('oshiSelectTag'),
-                label: l.shareMoveTag,
-                svg: AlbumIcons.tag,
-                color: t.ink,
-                onTap: onTag,
+              Expanded(
+                child: _BarAction(
+                  key: const ValueKey('oshiSelectDelete'),
+                  label: l.commonDelete,
+                  svg: AppIcons.trash,
+                  color: t.danger,
+                  iconSize: 20,
+                  strokeWidth: 1.8,
+                  onTap: onDelete,
+                ),
               ),
-            ),
-            Expanded(
-              child: _BarAction(
-                key: const ValueKey('oshiSelectDelete'),
-                label: l.commonDelete,
-                svg: AppIcons.trash,
-                color: t.danger,
-                iconSize: 20,
-                strokeWidth: 1.8,
-                onTap: onDelete,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

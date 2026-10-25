@@ -25,6 +25,14 @@ class SyncAuthException implements Exception {
   String toString() => message;
 }
 
+/// 背景同步拿不到「靜默」授權（Google 連不上、授權過期、要使用者互動才能授權）。
+/// 背景同步**絕不**自己彈出 Google／系統的授權畫面（在中國大陸等連不到 Google 的地方，
+/// 那個畫面會變成蓋在 App 上的灰色方塊）：照離線處理，安靜失敗、稍後退避重試；
+/// 使用者按「立即同步」或首次連結時才允許互動授權。
+class SyncAuthUnavailableException extends SyncAuthException {
+  SyncAuthUnavailableException([super.message]);
+}
+
 /// 網絡層失敗（逾時、斷線、伺服器暫時錯誤）且重試用盡：向上報錯，由同步流程顯示並稍後重排。
 class SyncNetworkException implements Exception {
   SyncNetworkException(this.message);

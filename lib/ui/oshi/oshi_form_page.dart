@@ -172,7 +172,6 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage>
 
   Future<void> _save(List<String> validGroupIds) async {
     if (_images.isEmpty) {
-      showSnack(context, context.l10n.albumPickImageFirst);
       return;
     }
     setState(() => _saving = true);

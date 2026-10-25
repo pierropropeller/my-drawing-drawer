@@ -8,7 +8,6 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
-import '../album/album_actions.dart';
 import '../album/image_picker_field.dart';
 import '../common/app_icons.dart';
 import '../common/adaptive_modal.dart';
@@ -192,7 +191,6 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     if (_images.isEmpty) {
-      showSnack(context, context.l10n.pieceFormMissingImage);
       return;
     }
     setState(() => _saving = true);

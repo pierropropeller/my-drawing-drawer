@@ -10,7 +10,6 @@ import '../common/modal_form_layout.dart';
 import '../common/nav_bar_hidden.dart';
 import '../pits/pit_form.dart';
 import '../tags/tag_picker.dart';
-import 'album_actions.dart';
 import 'album_form.dart';
 import 'group_picker.dart';
 import 'image_picker_field.dart';
@@ -82,7 +81,6 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
 
   Future<void> _save() async {
     if (_files.isEmpty) {
-      showSnack(context, context.l10n.albumPickImageFirst);
       return;
     }
     setState(() => _saving = true);

@@ -19,6 +19,22 @@ class SyncDriver extends ConsumerStatefulWidget {
   const SyncDriver({super.key, required this.child});
   final Widget child;
 
+  /// 連續失敗後的退避（在連不到 Google 的地方，不要每幾秒就打一次）：第 n 次失敗後，
+  /// 自動觸發（回前景、定時、資料變動）要等 [backoffFor] 才會真的去同步。
+  /// 上面的 [retryDelays] 自動重試排程與「恢復網絡」不受影響；同步成功就歸零。
+  /// 使用者按「立即同步」不經過這裡。
+  static Duration backoffFor(int failures) {
+    if (failures <= 0) return Duration.zero;
+    const steps = [
+      Duration(seconds: 15),
+      Duration(seconds: 60),
+      Duration(seconds: 180),
+      Duration(minutes: 10),
+      Duration(minutes: 30),
+    ];
+    return steps[(failures - 1).clamp(0, steps.length - 1)];
+  }
+
   @override
   ConsumerState<SyncDriver> createState() => _SyncDriverState();
 }
@@ -44,6 +60,9 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
   Timer? _retry;
   int _retries = 0;
 
+  int _failures = 0;
+  DateTime? _blockedUntil;
+
   /// 從 inactive 回到 resumed（下拉通知中心、系統對話框、分屏切換焦點）時，離上次觸發
   /// 不到這麼久就不重複觸發。
   static const _resumeCooldown = Duration(seconds: 30);
@@ -53,7 +72,9 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
     return s.autoSync && s.accountEmail != null;
   }
 
-  void _trigger() {
+  void _trigger({bool force = false}) {
+    final blocked = _blockedUntil;
+    if (!force && blocked != null && DateTime.now().isBefore(blocked)) return;
     if (_foreground && _enabled) {
       _lastTrigger = DateTime.now();
       unawaited(ref.read(syncControllerProvider.notifier).syncNow());
@@ -129,16 +150,24 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
       if (prev?.phase == next.phase) return;
       if (next.phase == SyncPhase.idle) {
         _retries = 0;
+        _failures = 0;
+        _blockedUntil = null;
         _retry?.cancel();
-      } else if (next.phase == SyncPhase.error &&
-          next.retryable &&
-          _retries < retryDelays.length) {
-        _retry?.cancel();
-        _retry = Timer(retryDelays[_retries++], _trigger);
+      } else if (next.phase == SyncPhase.error) {
+        if (next.retryable) {
+          _failures++;
+          _blockedUntil = DateTime.now().add(SyncDriver.backoffFor(_failures));
+        }
+        if (next.retryable && _retries < retryDelays.length) {
+          _retry?.cancel();
+          _retry = Timer(retryDelays[_retries++], () => _trigger(force: true));
+        }
       }
     });
     ref.listen(onlineProvider, (prev, next) {
-      if (next.value == true && prev?.value == false) _trigger(); // 恢復網絡後自動上傳
+      if (next.value == true && prev?.value == false) {
+        _trigger(force: true); // 恢復網絡後自動上傳（明確的恢復訊號，不受退避限制）
+      }
     });
     return widget.child;
   }
