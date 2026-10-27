@@ -292,7 +292,7 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('刪除'));
     await settle(tester);
-    expect(find.text('刪除 1 張圖？'), findsOneWidget);
+    expect(find.text('刪除 1 項？'), findsOneWidget);
     // 取消＝不刪。
     await tester.tap(find.text('取消'));
     await settle(tester);

@@ -18,6 +18,7 @@ import '../data/junk_queries.dart';
 import '../data/material_queries.dart';
 import '../data/oshi_queries.dart';
 import '../data/timeline_queries.dart';
+import '../data/trash_queries.dart';
 import '../media/gallery_repository.dart';
 import '../media/media_import.dart';
 import '../media/photo_manager_gallery.dart';
@@ -278,6 +279,11 @@ final materialsProvider =
       (ref, category) =>
           ref.watch(databaseProvider).watchMaterials(category: category),
     );
+
+/// 最近刪除的全部內容（D-120）：Profile 入口的項目數、最近刪除頁。
+final trashProvider = StreamProvider<TrashContents>(
+  (ref) => ref.watch(databaseProvider).watchTrash(),
+);
 
 /// 素材庫各分類張數與總數（Profile 素材庫卡、移動 sheet）。
 final materialCountsProvider = StreamProvider<MaterialCounts>(

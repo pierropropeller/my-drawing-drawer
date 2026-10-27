@@ -55,6 +55,8 @@ class PreviewShell extends StatelessWidget {
     required this.info,
     required this.actions,
     this.headerTrailing,
+    this.counterColor = PreviewPalette.muted,
+    this.emptyMedia,
   });
 
   final String title;
@@ -73,6 +75,12 @@ class PreviewShell extends StatelessWidget {
   /// 頂欄頁碼前面的額外按鈕（例如「參考檢視」入口）；null＝和原來一樣。
   final Widget? headerTrailing;
 
+  /// 頂欄右邊文字的顏色（最近刪除預覽的「剩 N 天」用琥珀色）。
+  final Color counterColor;
+
+  /// [media] 是空的時候中間顯示的內容（最近刪除裡沒有圖的腦洞）。
+  final Widget? emptyMedia;
+
   @override
   Widget build(BuildContext context) {
     // 套用共用的預覽手勢（見 dismissible_preview.dart）：點一下圖片收起／叫出 UI、
@@ -85,19 +93,21 @@ class PreviewShell extends StatelessWidget {
         body: PreviewLayout(
           bannerColor: PreviewLayout.bannerOf(PreviewPalette.bg),
           header: _header(context),
-          media: PreviewMediaArea(
-            pageController: controller,
-            child: PreviewPageView(
-              controller: controller,
-              itemCount: media.length,
-              onPageChanged: onPageChanged,
-              // 圖片與 GIF 可縮放；影片用自己的控制列（同詳情頁），不縮放。
-              // 預覽頁沒有安全模式：一律正常顯示（Molly：預覽頁就不要安全模式了）。
-              // 長圖（高 > 寬）寬度鋪滿、貼齊最上面、垂直捲動（見 [PreviewMediaPage]）。
-              itemBuilder: (_, i) =>
-                  PreviewMediaPage(media[i], active: i == currentIndex),
-            ),
-          ),
+          media: media.isEmpty && emptyMedia != null
+              ? emptyMedia!
+              : PreviewMediaArea(
+                  pageController: controller,
+                  child: PreviewPageView(
+                    controller: controller,
+                    itemCount: media.length,
+                    onPageChanged: onPageChanged,
+                    // 圖片與 GIF 可縮放；影片用自己的控制列（同詳情頁），不縮放。
+                    // 預覽頁沒有安全模式：一律正常顯示（Molly：預覽頁就不要安全模式了）。
+                    // 長圖（高 > 寬）寬度鋪滿、貼齊最上面、垂直捲動（見 [PreviewMediaPage]）。
+                    itemBuilder: (_, i) =>
+                        PreviewMediaPage(media[i], active: i == currentIndex),
+                  ),
+                ),
           // 資訊區一律靠左（設計稿 ImagePreview／FanArtPreview：padding 8/24/14，左對齊）。
           bottom: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -157,7 +167,7 @@ class PreviewShell extends StatelessWidget {
             padding: const EdgeInsets.only(right: 8),
             child: Text(
               counter,
-              style: const TextStyle(color: PreviewPalette.muted, fontSize: 12),
+              style: TextStyle(color: counterColor, fontSize: 12),
             ),
           ),
         ],

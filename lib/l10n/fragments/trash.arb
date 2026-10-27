@@ -1,0 +1,121 @@
+{
+  "trashTitle": "最近刪除",
+  "trashSelect": "選擇",
+  "trashSectionPits": "坑",
+  "trashDaysLeft": "剩 {days} 天",
+  "@trashDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "trashItemCount": "{count} 項",
+  "@trashItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trashSelectedCount": "已選 {count} 項",
+  "@trashSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trashSelectTitle": "選擇項目",
+  "trashRestore": "還原",
+  "trashPurge": "永久刪除",
+  "trashRestoreAll": "全部還原",
+  "trashClearAll": "全部清空",
+  "trashClearTitle": "清空最近刪除？",
+  "trashClearBodyPits": "{pits} 個坑和 {items} 項內容會永久刪除，無法復原。",
+  "@trashClearBodyPits": {
+    "placeholders": {
+      "pits": {
+        "type": "int"
+      },
+      "items": {
+        "type": "int"
+      }
+    }
+  },
+  "trashClearBodyItems": "{items} 項內容會永久刪除，無法復原。",
+  "@trashClearBodyItems": {
+    "placeholders": {
+      "items": {
+        "type": "int"
+      }
+    }
+  },
+  "trashPurgeTitle": "永久刪除 {count} 項？",
+  "@trashPurgeTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trashPurgeBody": "刪除後無法復原。",
+  "trashPitRestoreTitle": "「{name}」",
+  "@trashPitRestoreTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "trashPitRestoreBody": "坑內 {count} 項會跟坑一起還原。",
+  "@trashPitRestoreBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trashDeletedOn": "{year} / {month} / {day} 刪除",
+  "@trashDeletedOn": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "trashMovedSnack": "已移到最近刪除",
+  "trashRestoredSnack": "已還原",
+  "trashDeleteBody": "30 天內可以在「最近刪除」還原。",
+  "trashDeleteItemsTitle": "刪除 {count} 項？",
+  "@trashDeleteItemsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trashPitDeleteTitle": "刪除「{name}」？",
+  "@trashPitDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "trashPitDeleteBody": "坑內所有內容會移到「最近刪除」，30 天內可以還原。",
+  "trashPurgePitTitle": "永久刪除「{name}」？",
+  "@trashPurgePitTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
+}

@@ -273,7 +273,7 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('刪除'));
     await settle(tester);
-    expect(find.text('刪除 1 張圖？'), findsOneWidget);
+    expect(find.text('刪除 1 項？'), findsOneWidget);
     await tester.tap(find.widgetWithText(TextButton, '刪除'));
     await settle(tester);
     final junk = await tester.runAsync(() => db.watchJunk(pitId).first);

@@ -391,7 +391,7 @@ void main() {
 
       await tester.tap(bar('entitySelectDelete'));
       await settle(tester);
-      expect(find.text('刪除 2 份摸魚？'), findsOneWidget);
+      expect(find.text('刪除 2 項？'), findsOneWidget);
       await tester.tap(find.text('取消'));
       await settle(tester);
       expect(find.text('已選 2 份'), findsOneWidget);
@@ -552,7 +552,7 @@ void main() {
       await tester.pump();
       await tester.tap(bar('entitySelectDelete'));
       await settle(tester);
-      expect(find.text('刪除 2 張成圖？'), findsOneWidget);
+      expect(find.text('刪除 2 項？'), findsOneWidget);
       await tester.tap(
         find.descendant(
           of: find.byType(AlertDialog),

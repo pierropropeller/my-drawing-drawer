@@ -245,11 +245,12 @@ void main() {
         'lib/ui/pits/pit_edit_page.dart',
       ];
       for (final f in forms) {
-        expect(
-          File(f).readAsStringSync().contains('showSnack('),
-          isFalse,
-          reason: f,
+        // 唯一例外：刪除坑後「已移到最近刪除」（D-120 指定要有）。
+        final src = File(f).readAsStringSync().replaceAll(
+          'showSnack(context, context.l10n.trashMovedSnack)',
+          '',
         );
+        expect(src.contains('showSnack('), isFalse, reason: f);
       }
     });
   });

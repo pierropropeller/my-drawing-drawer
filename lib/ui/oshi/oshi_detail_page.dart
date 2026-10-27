@@ -49,6 +49,7 @@ class _OshiDetailPageState extends ConsumerState<OshiDetailPage>
     final ok = await confirmDelete(
       context,
       title: context.l10n.oshiDeleteTitle,
+      toTrash: true,
     );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteOshiRecords([widget.recordId]);

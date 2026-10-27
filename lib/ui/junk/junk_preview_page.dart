@@ -99,6 +99,7 @@ class _JunkPreviewPageState extends ConsumerState<JunkPreviewPage>
     final ok = await confirmDelete(
       context,
       title: context.l10n.albumDeleteImageTitle,
+      toTrash: true,
     );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteJunk([_current.id]);

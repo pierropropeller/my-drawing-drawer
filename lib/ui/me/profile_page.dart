@@ -21,10 +21,11 @@ import 'language_page.dart';
 import 'profile_edit_page.dart';
 import 'sensitive_settings_page.dart';
 import 'theme_page.dart';
+import '../trash/trash_page.dart';
 import '../../l10n/l10n.dart';
 
 /// iPad 版「我的」右側內容面板顯示哪一項（Profile 稿的設定列；D-106 起主題色、App 圖示、語言、敏感內容收進「個人化」）。
-enum ProfileSection { library, personalize, backup, about }
+enum ProfileSection { library, personalize, backup, trash, about }
 
 /// 其他地方（例如同步進度 popover 的「同步設定」）要「我的」切到某一項時寫入；
 /// ProfilePage 收到後切換並清掉。
@@ -120,6 +121,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final sync = ref.watch(syncControllerProvider);
     final backupLabel = _backupLabel(context, s, sync);
     final materialTotal = ref.watch(materialCountsProvider).value?.total ?? 0;
+    final trashCount = ref.watch(trashProvider).value?.count ?? 0;
 
     Widget row({
       String? icon,
@@ -219,6 +221,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         value: backupLabel,
                         onTap: () => _push(const BackupPage()),
                       ),
+                      // 最近刪除（D-120）：沒有內容時整行不顯示。
+                      if (trashCount > 0)
+                        row(
+                          icon: AppIcons.trash,
+                          tileBg: dark ? t.chipBg : const Color(0xFFEEEAE2),
+                          tileFg: t.text3,
+                          title: context.l10n.trashTitle,
+                          value: context.l10n.trashItemCount(trashCount),
+                          onTap: () => _push(const TrashPage()),
+                        ),
                       row(
                         icon: AppIcons.info,
                         tileBg: dark ? t.chipBg : const Color(0xFFEEEAE2),
@@ -268,6 +280,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final s = ref.watch(settingsProvider);
     final sync = ref.watch(syncControllerProvider);
     final materialTotal = ref.watch(materialCountsProvider).value?.total ?? 0;
+    final trashCount = ref.watch(trashProvider).value?.count ?? 0;
+    // 最近刪除清空後那一行消失：右欄回到「個人化」。
+    final shown = _section == ProfileSection.trash && trashCount == 0
+        ? ProfileSection.personalize
+        : _section;
     // 稿：列表欄 360；內容區較窄時縮到 280。
     final listW = (width * 0.34).clamp(280.0, 360.0);
 
@@ -280,7 +297,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       required String title,
       String? value,
     }) => _SplitRow(
-      selected: _section == section,
+      selected: shown == section,
       icon: icon,
       leading: leading,
       tileBg: tileBg,
@@ -366,6 +383,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ? context.l10n.backupFullTitle
                   : _backupLabel(context, s, sync),
             ),
+            if (trashCount > 0)
+              item(
+                section: ProfileSection.trash,
+                icon: AppIcons.trash,
+                tileBg: dark ? t.chipBg : const Color(0xFFEEEAE2),
+                tileFg: t.text3,
+                title: context.l10n.trashTitle,
+                value: context.l10n.trashItemCount(trashCount),
+              ),
             item(
               section: ProfileSection.about,
               icon: AppIcons.info,
@@ -378,10 +404,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       ],
     );
 
-    final Widget panel = switch (_section) {
+    final Widget panel = switch (shown) {
       ProfileSection.library => const MaterialLibraryPage(embedded: true),
       ProfileSection.personalize => _personalizePanel(context),
       ProfileSection.backup => const BackupPage(embedded: true),
+      ProfileSection.trash => const TrashPage(embedded: true),
       ProfileSection.about => const AboutPage(embedded: true),
     };
 
@@ -397,7 +424,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ),
         Expanded(
           // 換項目時重建面板（各面板自己的暫時狀態，例如素材庫的分類，不帶到別項）。
-          child: KeyedSubtree(key: ValueKey((_section, _sub)), child: panel),
+          child: KeyedSubtree(key: ValueKey((shown, _sub)), child: panel),
         ),
       ],
     );

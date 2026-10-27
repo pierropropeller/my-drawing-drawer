@@ -8,6 +8,7 @@ import '../../data/sensitive_queries.dart';
 import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
+import '../album/album_actions.dart' show showSnack;
 import '../album/album_image.dart';
 import '../album/cover_pick_page.dart';
 import '../common/adaptive_modal.dart';
@@ -217,8 +218,9 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(ctx.l10n.pitsDeleteTitle),
-        content: Text(ctx.l10n.pitsDeleteBody),
+        // PitDeleteConfirm（D-120）：坑和坑內所有內容一起移到最近刪除。
+        title: Text(ctx.l10n.trashPitDeleteTitle(widget.pit.name)),
+        content: Text(ctx.l10n.trashPitDeleteBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -237,6 +239,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     if (ok != true || !mounted) return;
     await ref.read(databaseProvider).deletePit(widget.pit.id);
     if (!mounted) return;
+    showSnack(context, context.l10n.trashMovedSnack);
     // 回到主頁（越過坑內頁）。modal 在最上層 Navigator，交給 openPitEdit 處理。
     if (widget.asModal) {
       Navigator.of(context).pop(true);

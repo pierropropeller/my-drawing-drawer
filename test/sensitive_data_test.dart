@@ -567,7 +567,7 @@ void main() {
   group('有效敏感的檔名集合（列表縮圖用）', () {
     Future<Set<String>> files() => db.watchSensitiveFiles().first;
 
-    test('坑的開關關：不算；開：算；素材庫不看坑；已刪除／隱藏的不算', () async {
+    test('坑的開關關：不算；開：算；素材庫不看坑；已刪除的照算（最近刪除裡也要模糊，D-120）', () async {
       final off = await pitWithFlag(on: false);
       final on = await pitWithFlag();
       final g1 = await groupOf(off);
@@ -603,10 +603,10 @@ void main() {
       expect(await files(), containsAll(['off.png', 'ioff.png']));
       await db.setPitSensitiveEnabled(on, false);
       expect(await files(), {'off.png', 'ioff.png', 'm.png'});
-      // 刪除
+      // 刪除：移到最近刪除，那裡的縮圖照樣按安全模式模糊（D-120）。
       final m = (await db.select(db.materialImages).getSingle()).id;
       await db.deleteMaterials([m]);
-      expect(await files(), {'off.png', 'ioff.png'});
+      expect(await files(), {'off.png', 'ioff.png', 'm.png'});
     });
 
     test('影片：截圖檔名也算（以截圖顯示的地方查得到）', () async {

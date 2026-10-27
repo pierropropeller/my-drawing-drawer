@@ -38,7 +38,7 @@
       }
     }
   },
-  "shallowCloseBody": "格子裡的 {detail}會一併刪除，無法復原。",
+  "shallowCloseBody": "格子裡的 {detail}會移到「最近刪除」，30 天內可以還原；還原時這個格子會自動重新開啟。",
   "@shallowCloseBody": {
     "placeholders": {
       "detail": {
@@ -86,5 +86,5 @@
       }
     }
   },
-  "shallowCloseConfirm": "關閉並刪除"
+  "shallowCloseConfirm": "關閉"
 }

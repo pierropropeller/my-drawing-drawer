@@ -163,7 +163,7 @@ abstract class AppLocalizations {
   /// No description provided for @pitsDeleteHint.
   ///
   /// In zh, this message translates to:
-  /// **'刪除後坑內所有圖片、腦洞、摸魚及成圖將一併移除'**
+  /// **'坑內所有內容會一併移到最近刪除'**
   String get pitsDeleteHint;
 
   /// No description provided for @pitsNewTitle.
@@ -4032,7 +4032,7 @@ abstract class AppLocalizations {
   /// No description provided for @shallowCloseBody.
   ///
   /// In zh, this message translates to:
-  /// **'格子裡的 {detail}會一併刪除，無法復原。'**
+  /// **'格子裡的 {detail}會移到「最近刪除」，30 天內可以還原；還原時這個格子會自動重新開啟。'**
   String shallowCloseBody(String detail);
 
   /// No description provided for @shallowCountImages.
@@ -4068,7 +4068,7 @@ abstract class AppLocalizations {
   /// No description provided for @shallowCloseConfirm.
   ///
   /// In zh, this message translates to:
-  /// **'關閉並刪除'**
+  /// **'關閉'**
   String get shallowCloseConfirm;
 
   /// No description provided for @shareTitle.
@@ -4358,6 +4358,162 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'有 {count} 張圖片下載失敗，下次同步會再試'**
   String syncuiImagesFailed(int count);
+
+  /// No description provided for @trashTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'最近刪除'**
+  String get trashTitle;
+
+  /// No description provided for @trashSelect.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇'**
+  String get trashSelect;
+
+  /// No description provided for @trashSectionPits.
+  ///
+  /// In zh, this message translates to:
+  /// **'坑'**
+  String get trashSectionPits;
+
+  /// No description provided for @trashDaysLeft.
+  ///
+  /// In zh, this message translates to:
+  /// **'剩 {days} 天'**
+  String trashDaysLeft(int days);
+
+  /// No description provided for @trashItemCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 項'**
+  String trashItemCount(int count);
+
+  /// No description provided for @trashSelectedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選 {count} 項'**
+  String trashSelectedCount(int count);
+
+  /// No description provided for @trashSelectTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇項目'**
+  String get trashSelectTitle;
+
+  /// No description provided for @trashRestore.
+  ///
+  /// In zh, this message translates to:
+  /// **'還原'**
+  String get trashRestore;
+
+  /// No description provided for @trashPurge.
+  ///
+  /// In zh, this message translates to:
+  /// **'永久刪除'**
+  String get trashPurge;
+
+  /// No description provided for @trashRestoreAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部還原'**
+  String get trashRestoreAll;
+
+  /// No description provided for @trashClearAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部清空'**
+  String get trashClearAll;
+
+  /// No description provided for @trashClearTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空最近刪除？'**
+  String get trashClearTitle;
+
+  /// No description provided for @trashClearBodyPits.
+  ///
+  /// In zh, this message translates to:
+  /// **'{pits} 個坑和 {items} 項內容會永久刪除，無法復原。'**
+  String trashClearBodyPits(int pits, int items);
+
+  /// No description provided for @trashClearBodyItems.
+  ///
+  /// In zh, this message translates to:
+  /// **'{items} 項內容會永久刪除，無法復原。'**
+  String trashClearBodyItems(int items);
+
+  /// No description provided for @trashPurgeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'永久刪除 {count} 項？'**
+  String trashPurgeTitle(int count);
+
+  /// No description provided for @trashPurgeBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除後無法復原。'**
+  String get trashPurgeBody;
+
+  /// No description provided for @trashPitRestoreTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{name}」'**
+  String trashPitRestoreTitle(String name);
+
+  /// No description provided for @trashPitRestoreBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'坑內 {count} 項會跟坑一起還原。'**
+  String trashPitRestoreBody(int count);
+
+  /// No description provided for @trashDeletedOn.
+  ///
+  /// In zh, this message translates to:
+  /// **'{year} / {month} / {day} 刪除'**
+  String trashDeletedOn(int year, String month, String day);
+
+  /// No description provided for @trashMovedSnack.
+  ///
+  /// In zh, this message translates to:
+  /// **'已移到最近刪除'**
+  String get trashMovedSnack;
+
+  /// No description provided for @trashRestoredSnack.
+  ///
+  /// In zh, this message translates to:
+  /// **'已還原'**
+  String get trashRestoredSnack;
+
+  /// No description provided for @trashDeleteBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'30 天內可以在「最近刪除」還原。'**
+  String get trashDeleteBody;
+
+  /// No description provided for @trashDeleteItemsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除 {count} 項？'**
+  String trashDeleteItemsTitle(int count);
+
+  /// No description provided for @trashPitDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除「{name}」？'**
+  String trashPitDeleteTitle(String name);
+
+  /// No description provided for @trashPitDeleteBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'坑內所有內容會移到「最近刪除」，30 天內可以還原。'**
+  String get trashPitDeleteBody;
+
+  /// No description provided for @trashPurgePitTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'永久刪除「{name}」？'**
+  String trashPurgePitTitle(String name);
 
   /// No description provided for @videoloopLoop.
   ///

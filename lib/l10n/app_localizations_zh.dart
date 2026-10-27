@@ -43,7 +43,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pitsDeleteThis => '刪除這個坑';
 
   @override
-  String get pitsDeleteHint => '刪除後坑內所有圖片、腦洞、摸魚及成圖將一併移除';
+  String get pitsDeleteHint => '坑內所有內容會一併移到最近刪除';
 
   @override
   String get pitsNewTitle => '開新坑';
@@ -2244,7 +2244,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String shallowCloseBody(String detail) {
-    return '格子裡的 $detail會一併刪除，無法復原。';
+    return '格子裡的 $detail會移到「最近刪除」，30 天內可以還原；還原時這個格子會自動重新開啟。';
   }
 
   @override
@@ -2273,7 +2273,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get shallowCloseConfirm => '關閉並刪除';
+  String get shallowCloseConfirm => '關閉';
 
   @override
   String get shareTitle => '加入到';
@@ -2453,6 +2453,108 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String syncuiImagesFailed(int count) {
     return '有 $count 張圖片下載失敗，下次同步會再試';
+  }
+
+  @override
+  String get trashTitle => '最近刪除';
+
+  @override
+  String get trashSelect => '選擇';
+
+  @override
+  String get trashSectionPits => '坑';
+
+  @override
+  String trashDaysLeft(int days) {
+    return '剩 $days 天';
+  }
+
+  @override
+  String trashItemCount(int count) {
+    return '$count 項';
+  }
+
+  @override
+  String trashSelectedCount(int count) {
+    return '已選 $count 項';
+  }
+
+  @override
+  String get trashSelectTitle => '選擇項目';
+
+  @override
+  String get trashRestore => '還原';
+
+  @override
+  String get trashPurge => '永久刪除';
+
+  @override
+  String get trashRestoreAll => '全部還原';
+
+  @override
+  String get trashClearAll => '全部清空';
+
+  @override
+  String get trashClearTitle => '清空最近刪除？';
+
+  @override
+  String trashClearBodyPits(int pits, int items) {
+    return '$pits 個坑和 $items 項內容會永久刪除，無法復原。';
+  }
+
+  @override
+  String trashClearBodyItems(int items) {
+    return '$items 項內容會永久刪除，無法復原。';
+  }
+
+  @override
+  String trashPurgeTitle(int count) {
+    return '永久刪除 $count 項？';
+  }
+
+  @override
+  String get trashPurgeBody => '刪除後無法復原。';
+
+  @override
+  String trashPitRestoreTitle(String name) {
+    return '「$name」';
+  }
+
+  @override
+  String trashPitRestoreBody(int count) {
+    return '坑內 $count 項會跟坑一起還原。';
+  }
+
+  @override
+  String trashDeletedOn(int year, String month, String day) {
+    return '$year / $month / $day 刪除';
+  }
+
+  @override
+  String get trashMovedSnack => '已移到最近刪除';
+
+  @override
+  String get trashRestoredSnack => '已還原';
+
+  @override
+  String get trashDeleteBody => '30 天內可以在「最近刪除」還原。';
+
+  @override
+  String trashDeleteItemsTitle(int count) {
+    return '刪除 $count 項？';
+  }
+
+  @override
+  String trashPitDeleteTitle(String name) {
+    return '刪除「$name」？';
+  }
+
+  @override
+  String get trashPitDeleteBody => '坑內所有內容會移到「最近刪除」，30 天內可以還原。';
+
+  @override
+  String trashPurgePitTitle(String name) {
+    return '永久刪除「$name」？';
   }
 
   @override

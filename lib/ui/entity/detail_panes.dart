@@ -139,6 +139,7 @@ class IdeaDetailPane extends ConsumerWidget {
                     final ok = await confirmDelete(
                       context,
                       title: l.ideaDetailDeleteTitle,
+                      toTrash: true,
                     );
                     if (!ok || !context.mounted) return;
                     await ref.read(databaseProvider).deleteIdeas([ideaId]);
@@ -583,6 +584,7 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                       final ok = await confirmDelete(
                         context,
                         title: l.draftDetailDeleteTitle,
+                        toTrash: true,
                       );
                       if (!ok || !context.mounted) return;
                       await ref.read(databaseProvider).deleteDrafts([

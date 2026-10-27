@@ -250,7 +250,8 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
     if (picked.isEmpty) return;
     final ok = await confirmDelete(
       context,
-      title: context.l10n.albumDeleteImagesTitle(picked.length),
+      title: context.l10n.trashDeleteItemsTitle(picked.length),
+      toTrash: true,
     );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteMaterials([

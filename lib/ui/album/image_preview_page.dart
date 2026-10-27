@@ -91,6 +91,7 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
     final ok = await confirmDelete(
       context,
       title: context.l10n.albumDeleteImageTitle,
+      toTrash: true,
     );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteOfficial([_current.id]);

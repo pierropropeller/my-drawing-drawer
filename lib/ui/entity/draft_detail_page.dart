@@ -80,6 +80,7 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
                     final ok = await confirmDelete(
                       context,
                       title: context.l10n.draftDetailDeleteTitle,
+                      toTrash: true,
                     );
                     if (!ok || !context.mounted) return;
                     await ref.read(databaseProvider).deleteDrafts([draftId]);

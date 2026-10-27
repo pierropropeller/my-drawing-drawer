@@ -132,6 +132,7 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
     final ok = await confirmDelete(
       context,
       title: context.l10n.albumDeleteImageTitle,
+      toTrash: true,
     );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteOfficial([widget.editImageId!]);

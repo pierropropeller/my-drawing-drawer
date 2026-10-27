@@ -17,6 +17,7 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    ScribbleOff.install()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -399,5 +400,35 @@ import UIKit
       "durationMs": durationMs,
       "poster": poster,
     ]
+  }
+}
+
+/// iPad 打字時看不到切換輸入法（地球鍵）的小 popup（CR3，Molly 選了「修，收起輸入框手寫」）。
+///
+/// Flutter 引擎只要是 iPad 就當成「可能用 Apple Pencil 手寫」（`isScribbleAvailable` 不看有沒有連 Pencil），
+/// 把隱藏的輸入 view 疊到輸入框上並把它的 tintColor 設成透明；系統的輸入法切換提示跟著這個顏色，
+/// 所以整個看不見。這裡讓 iPad 走跟 iPhone 一樣的路線：不當成可手寫（tint 不會被清掉），
+/// 同時關掉輸入框的 Pencil 手寫（直接手寫和「在輸入框附近手寫」都不接），避免半套的手寫狀態。
+/// 代價：輸入框不能用 Apple Pencil 手寫轉文字（Pencil 照常可以點、捲動）。
+private enum ScribbleOff {
+  static func install() {
+    guard UIDevice.current.userInterfaceIdiom == .pad else { return }
+    if let view = NSClassFromString("FlutterTextInputView") {
+      let notAvailable: @convention(block) (AnyObject) -> Bool = { _ in false }
+      replace(view, "isScribbleAvailable", notAvailable)
+      let noDirect: @convention(block) (AnyObject, AnyObject, CGPoint) -> Bool = { _, _, _ in false }
+      replace(view, "scribbleInteraction:shouldBeginAtLocation:", noDirect)
+    }
+    if let plugin = NSClassFromString("FlutterTextInputPlugin") {
+      let noElements: @convention(block) (
+        AnyObject, AnyObject, CGRect, @escaping @convention(block) ([AnyObject]) -> Void
+      ) -> Void = { _, _, _, completion in completion([]) }
+      replace(plugin, "indirectScribbleInteraction:requestElementsInRect:completion:", noElements)
+    }
+  }
+
+  private static func replace(_ cls: AnyClass, _ name: String, _ block: Any) {
+    guard let method = class_getInstanceMethod(cls, NSSelectorFromString(name)) else { return }
+    method_setImplementation(method, imp_implementationWithBlock(block))
   }
 }

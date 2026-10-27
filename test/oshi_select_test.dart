@@ -271,7 +271,7 @@ void main() {
       await settle(tester);
       await tester.tap(find.byKey(const ValueKey('oshiSelectDelete')));
       await settle(tester);
-      expect(find.text('刪除 2 筆紀錄？'), findsOneWidget);
+      expect(find.text('刪除 2 項？'), findsOneWidget);
       await tester.tap(find.text('取消'));
       await settle(tester);
       expect(await view(tester, a), isNotNull);

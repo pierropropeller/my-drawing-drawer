@@ -27,41 +27,42 @@ extension SensitiveSourceX on SensitiveSource {
 /// 需要判斷「有效敏感」的圖：標記為敏感，且（有所屬坑時）該坑的敏感內容開關是開的。
 /// 只回傳**檔名**（原檔與影片截圖都列），UI 的縮圖元件用檔名查它，不必把坑 id 一路傳下去。
 /// 總開關是裝置設定，不在這裡處理。
+/// 已刪除的列也算（最近刪除的格子要照安全模式模糊，D-120）；它們只在最近刪除出現。
 const _effectiveSensitiveSql = '''
 SELECT o.image_file AS f, o.poster_file AS p FROM official_images o
   JOIN pits t ON t.id = o.pit_id
-  WHERE o.sensitive = 1 AND o.deleted_at IS NULL AND o.hidden = 0 AND t.sensitive_enabled = 1
+  WHERE o.sensitive = 1 AND o.hidden = 0 AND t.sensitive_enabled = 1
 UNION
 SELECT o.image_file, o.poster_file FROM fan_arts o
   JOIN pits t ON t.id = o.pit_id
-  WHERE o.sensitive = 1 AND o.deleted_at IS NULL AND o.hidden = 0 AND t.sensitive_enabled = 1
+  WHERE o.sensitive = 1 AND o.hidden = 0 AND t.sensitive_enabled = 1
 UNION
 SELECT o.image_file, o.poster_file FROM junk_images o
   JOIN pits t ON t.id = o.pit_id
-  WHERE o.sensitive = 1 AND o.deleted_at IS NULL AND o.hidden = 0 AND t.sensitive_enabled = 1
+  WHERE o.sensitive = 1 AND o.hidden = 0 AND t.sensitive_enabled = 1
 UNION
 SELECT m.image_file, m.poster_file FROM material_images m
-  WHERE m.sensitive = 1 AND m.deleted_at IS NULL
+  WHERE m.sensitive = 1
 UNION
 SELECT e.image_file, e.poster_file FROM entity_images e
   JOIN ideas x ON e.owner_type = 'idea' AND x.id = e.owner_id
   JOIN pits t ON t.id = x.pit_id
-  WHERE e.sensitive = 1 AND e.deleted_at IS NULL AND t.sensitive_enabled = 1
+  WHERE e.sensitive = 1 AND t.sensitive_enabled = 1
 UNION
 SELECT e.image_file, e.poster_file FROM entity_images e
   JOIN drafts x ON e.owner_type = 'draft' AND x.id = e.owner_id
   JOIN pits t ON t.id = x.pit_id
-  WHERE e.sensitive = 1 AND e.deleted_at IS NULL AND t.sensitive_enabled = 1
+  WHERE e.sensitive = 1 AND t.sensitive_enabled = 1
 UNION
 SELECT e.image_file, e.poster_file FROM entity_images e
   JOIN pieces x ON e.owner_type = 'piece' AND x.id = e.owner_id
   JOIN pits t ON t.id = x.pit_id
-  WHERE e.sensitive = 1 AND e.deleted_at IS NULL AND t.sensitive_enabled = 1
+  WHERE e.sensitive = 1 AND t.sensitive_enabled = 1
 UNION
 SELECT e.image_file, e.poster_file FROM entity_images e
   JOIN oshi_records x ON e.owner_type = 'oshi' AND x.id = e.owner_id
   JOIN pits t ON t.id = x.pit_id
-  WHERE e.sensitive = 1 AND e.deleted_at IS NULL AND t.sensitive_enabled = 1
+  WHERE e.sensitive = 1 AND t.sensitive_enabled = 1
 ''';
 
 extension SensitiveQueries on AppDatabase {

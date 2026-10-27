@@ -34,12 +34,15 @@ Future<bool> confirmDelete(
   BuildContext context, {
   required String title,
   String? message,
+  bool toTrash = false,
 }) async {
+  // 移到最近刪除（D-120）：內文固定說明 30 天內可以還原；按了刪除後出「已移到最近刪除」。
+  final body = message ?? (toTrash ? context.l10n.trashDeleteBody : null);
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(title),
-      content: message == null ? null : Text(message),
+      content: body == null ? null : Text(body),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
@@ -55,6 +58,9 @@ Future<bool> confirmDelete(
       ],
     ),
   );
+  if (ok == true && toTrash && context.mounted) {
+    showSnack(context, context.l10n.trashMovedSnack);
+  }
   return ok == true;
 }
 

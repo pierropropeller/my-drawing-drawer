@@ -70,7 +70,8 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
   Future<void> _delete() async {
     final ok = await confirmDelete(
       context,
-      title: context.l10n.ideaListDeleteSelected(_selected.length),
+      title: context.l10n.trashDeleteItemsTitle(_selected.length),
+      toTrash: true,
     );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteIdeas(_selected);

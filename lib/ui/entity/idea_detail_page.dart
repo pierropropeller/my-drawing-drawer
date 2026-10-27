@@ -74,6 +74,7 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
                     final ok = await confirmDelete(
                       context,
                       title: context.l10n.ideaDetailDeleteTitle,
+                      toTrash: true,
                     );
                     if (!ok || !context.mounted) return;
                     await ref.read(databaseProvider).deleteIdeas([ideaId]);

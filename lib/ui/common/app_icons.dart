@@ -44,6 +44,10 @@ abstract final class AppIcons {
   /// 垃圾桶（刪除這個坑）。PitEdit
   static const trash = '<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/>';
 
+  /// 還原（逆時針箭頭；最近刪除 TrashSelect／TrashPreview，D-120）。
+  static const restore =
+      '<path d="M4.5 9.5A8 8 0 1 1 4 13"/><path d="M4 4.5v5h5"/>';
+
   /// 鉛筆＋圓點（開頭畫面 logo）。Welcome
   static const pencilDot =
       '<path d="M4 20l1-4L15.5 5.5a2.1 2.1 0 0 1 3 3L8 19z"/><path d="M13.5 7.5l3 3"/><circle cx="6" cy="18" r="1.1" fill="currentColor" stroke="none"/>';

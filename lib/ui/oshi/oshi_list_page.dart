@@ -171,7 +171,8 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
     if (picked.isEmpty) return;
     final ok = await confirmDelete(
       context,
-      title: context.l10n.oshiDeleteSelectedTitle(picked.length),
+      title: context.l10n.trashDeleteItemsTitle(picked.length),
+      toTrash: true,
     );
     if (!ok || !mounted) return;
     await OshiSelectActions(ref.read(databaseProvider))

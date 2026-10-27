@@ -104,6 +104,7 @@ class PieceDetailPage extends ConsumerWidget {
                       final ok = await confirmDelete(
                         context,
                         title: context.l10n.pieceDetailDeleteTitle,
+                        toTrash: true,
                       );
                       if (!ok || !context.mounted) return;
                       await ref.read(databaseProvider).deletePieces([pieceId]);

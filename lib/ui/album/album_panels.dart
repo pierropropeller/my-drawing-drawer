@@ -399,6 +399,7 @@ class OfficialPreviewPanel extends ConsumerWidget {
           final ok = await confirmDelete(
             context,
             title: l.albumDeleteImageTitle,
+            toTrash: true,
           );
           if (!ok || !context.mounted) return;
           await ref.read(databaseProvider).deleteOfficial([image.id]);
@@ -503,6 +504,7 @@ class FanArtPreviewPanel extends ConsumerWidget {
           final ok = await confirmDelete(
             context,
             title: l.albumDeleteImageTitle,
+            toTrash: true,
           );
           if (!ok || !context.mounted) return;
           await ref.read(databaseProvider).deleteFanArts([image.id]);

@@ -70,7 +70,11 @@ List<RefInfoAction> buildRefActions({
   }
 
   Future<void> delete() async {
-    final ok = await confirmDelete(context, title: l10n.albumDeleteImageTitle);
+    final ok = await confirmDelete(
+      context,
+      title: l10n.albumDeleteImageTitle,
+      toTrash: true,
+    );
     if (!ok) return;
     if (fan) {
       await db.deleteFanArts([a.id]);

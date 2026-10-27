@@ -10,7 +10,7 @@
   "pitsFieldDesc": "描述",
   "pitsArchive": "封存",
   "pitsDeleteThis": "刪除這個坑",
-  "pitsDeleteHint": "刪除後坑內所有圖片、腦洞、摸魚及成圖將一併移除",
+  "pitsDeleteHint": "坑內所有內容會一併移到最近刪除",
   "pitsNewTitle": "開新坑",
   "pitsCreate": "建立",
   "pitsOfficial": "官方圖冊",

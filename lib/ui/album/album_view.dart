@@ -276,7 +276,8 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     if (picked.isEmpty) return;
     final ok = await confirmDelete(
       context,
-      title: context.l10n.albumDeleteImagesTitle(picked.length),
+      title: context.l10n.trashDeleteItemsTitle(picked.length),
+      toTrash: true,
     );
     if (!ok || !mounted) return;
     await widget.onDelete(picked);

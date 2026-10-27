@@ -84,6 +84,7 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
     final ok = await confirmDelete(
       context,
       title: context.l10n.albumDeleteImageTitle,
+      toTrash: true,
     );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteFanArts([_current.id]);

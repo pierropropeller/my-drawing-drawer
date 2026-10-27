@@ -127,7 +127,8 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
     if (picked.isEmpty) return;
     final ok = await confirmDelete(
       context,
-      title: context.l10n.pieceDeleteSelectedTitle(picked.length),
+      title: context.l10n.trashDeleteItemsTitle(picked.length),
+      toTrash: true,
     );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deletePieces([

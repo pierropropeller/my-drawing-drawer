@@ -157,7 +157,8 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
     if (picked.isEmpty) return;
     final ok = await confirmDelete(
       context,
-      title: context.l10n.draftDeleteSelectedTitle(picked.length),
+      title: context.l10n.trashDeleteItemsTitle(picked.length),
+      toTrash: true,
     );
     if (!ok || !mounted) return;
     await ref.read(databaseProvider).deleteDrafts([
