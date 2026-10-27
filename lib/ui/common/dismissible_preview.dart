@@ -48,6 +48,9 @@ abstract interface class PreviewController {
   void setZoomed(Object owner, bool zoomed);
   bool get zoomed;
 
+  /// 目前有沒有圖放大中（放大時左右拖曳＝移動圖片，不切換上／下一張，D-121）。
+  ValueListenable<bool> get zoomedListenable;
+
   /// 回報某一頁（長圖）目前能不能垂直捲動、是否停在最上面（[owner] 用來區分多頁）。
   /// 能捲動時，垂直拖曳是「捲動」：只有停在最上面再往下拉才算退出，往上拖或捲到一半都不退出。
   /// 不能捲動（圖整張放得下）的頁面不用回報，垂直拖曳照常退出。
@@ -110,6 +113,7 @@ class _DismissiblePreviewState extends State<DismissiblePreview>
   final _progress = ValueNotifier<double>(0);
   final _dragging = ValueNotifier<bool>(false);
   final _zoomedOwners = <Object>{};
+  final _zoomedNotifier = ValueNotifier<bool>(false);
   final _scrollable = <Object>{};
   final _notAtTop = <Object>{};
   bool _dismissed = false;
@@ -133,7 +137,17 @@ class _DismissiblePreviewState extends State<DismissiblePreview>
     } else {
       _zoomedOwners.remove(owner);
     }
+    final z = _zoomedOwners.isNotEmpty;
+    if (_zoomedNotifier.value != z) {
+      // 可能在 build／layout 途中回報：下一格再通知。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _zoomedNotifier.value = _zoomedOwners.isNotEmpty;
+      });
+    }
   }
+
+  @override
+  ValueListenable<bool> get zoomedListenable => _zoomedNotifier;
 
   @override
   bool get zoomed => _zoomedOwners.isNotEmpty;
@@ -197,6 +211,7 @@ class _DismissiblePreviewState extends State<DismissiblePreview>
     _chrome.dispose();
     _progress.dispose();
     _dragging.dispose();
+    _zoomedNotifier.dispose();
     super.dispose();
   }
 
@@ -534,7 +549,8 @@ class PreviewPageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dragging = PreviewScope.maybeOf(context)?.dragging;
+    final scope = PreviewScope.maybeOf(context);
+    final dragging = scope?.dragging;
     Widget pages(bool lock) => PageView.builder(
       controller: controller,
       itemCount: itemCount,
@@ -545,9 +561,13 @@ class PreviewPageView extends StatelessWidget {
       itemBuilder: itemBuilder,
     );
     if (dragging == null) return pages(false);
+    // 拖曳退出中、或圖放大中（左右拖曳＝移動圖片）都不換頁。
     return ValueListenableBuilder<bool>(
       valueListenable: dragging,
-      builder: (_, d, _) => pages(d),
+      builder: (_, d, _) => ValueListenableBuilder<bool>(
+        valueListenable: scope!.zoomedListenable,
+        builder: (_, z, _) => pages(d || z),
+      ),
     );
   }
 }

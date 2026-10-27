@@ -15,6 +15,7 @@ import '../album/album_actions.dart';
 import '../album/album_image.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
+import '../common/top_toast.dart' show BottomInsetAnchor;
 import '../entity/entity_widgets.dart';
 import 'review_canvas.dart';
 import '../common/sensitive_gate.dart';
@@ -332,23 +333,26 @@ class _ReviewEditPageState extends ConsumerState<ReviewEditPage>
                       ),
                     ),
                     const SizedBox(height: 16),
-                    GestureDetector(
-                      onTap: _exporting ? null : () => _export(current),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: _exporting
-                              ? t.accent.withValues(alpha: .5)
-                              : t.accent,
-                          borderRadius: BorderRadius.circular(Radii.button),
-                        ),
-                        child: Text(
-                          context.l10n.goalsSaveExport,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
+                    // 提示條浮在這顆按鈕上方，不蓋住它（D-114）。
+                    BottomInsetAnchor(
+                      child: GestureDetector(
+                        onTap: _exporting ? null : () => _export(current),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _exporting
+                                ? t.accent.withValues(alpha: .5)
+                                : t.accent,
+                            borderRadius: BorderRadius.circular(Radii.button),
+                          ),
+                          child: Text(
+                            context.l10n.goalsSaveExport,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),

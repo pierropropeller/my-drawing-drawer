@@ -31,6 +31,7 @@ void main() {
       Widget? bottom,
       Brightness brightness = Brightness.light,
       double keyboard = 0,
+      Widget? fab,
     }) async {
       tester.view.physicalSize = screen;
       tester.view.devicePixelRatio = 1;
@@ -64,6 +65,7 @@ void main() {
               ),
             ),
             bottomNavigationBar: bottom,
+            floatingActionButton: fab,
           ),
         ),
       );
@@ -152,6 +154,30 @@ void main() {
       final r = toastRect(tester, '已刪除 3 張');
       expect(bar.top - r.bottom, closeTo(12, 0.5));
       await tester.pump(const Duration(seconds: 4));
+    });
+
+    testWidgets('右下「＋」：提示條出現時推高到提示條上方 12，收起後滑回', (tester) async {
+      await pumpHost(
+        tester,
+        bottom: const BottomInsetAnchor(
+          child: SizedBox(height: 74, key: Key('bar')),
+        ),
+        fab: const ToastLift(
+          child: SizedBox(width: 56, height: 56, key: Key('fab')),
+        ),
+      );
+      final before = tester.getRect(find.byKey(const Key('fab')));
+      await tester.tap(find.text('go'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 300));
+      final r = toastRect(tester, '已刪除 3 張');
+      final lifted = tester.getRect(find.byKey(const Key('fab')));
+      expect(r.top - lifted.bottom, closeTo(12, 0.5));
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.getRect(find.byKey(const Key('fab'))), before);
     });
 
     testWidgets('鍵盤打開：浮在鍵盤上方 12', (tester) async {

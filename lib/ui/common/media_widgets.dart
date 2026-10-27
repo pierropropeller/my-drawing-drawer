@@ -336,7 +336,7 @@ class _MediaViewerState extends State<MediaViewer> {
     if (!widget.zoomable) return image;
     return InteractiveViewer(
       transformationController: _controller,
-      maxScale: 5,
+      maxScale: 4,
       child: SizedBox.expand(child: image),
     );
   }

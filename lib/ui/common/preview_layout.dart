@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 
 import 'dismissible_preview.dart';
 import 'media_widgets.dart';
+import 'top_toast.dart' show BottomInsetAnchor;
 
 /// 預覽頁（官方圖冊／同人圖／雜物／詳情輪播的全螢幕）共用版面：
 ///
@@ -99,12 +100,15 @@ class _PreviewLayoutState extends State<PreviewLayout> {
           right: 0,
           child: _MeasureSize(
             onSize: (s) => _update(bottom: s.height),
-            child: PreviewChrome(
-              child: ColoredBox(
-                color: widget.bannerColor,
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: pad.bottom),
-                  child: widget.bottom,
+            // 提示條浮在底欄（資訊區＋操作列）上方，不蓋住操作列（D-114）。
+            child: BottomInsetAnchor(
+              child: PreviewChrome(
+                child: ColoredBox(
+                  color: widget.bannerColor,
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: pad.bottom),
+                    child: widget.bottom,
+                  ),
                 ),
               ),
             ),
@@ -164,13 +168,18 @@ class _RenderMeasureSize extends RenderProxyBox {
 /// 放大超過這個倍數就算「放大中」（此時不觸發拖曳退出）。
 const _zoomedThreshold = 1.02;
 
-/// 預覽頁的一頁媒體。
+/// 雙擊放大的倍數、雙指最多放大到幾倍（D-121）。
+const kPreviewDoubleTapScale = 2.0;
+const kPreviewMaxScale = 4.0;
+
+/// 預覽頁的一頁媒體（D-116 對齊、D-121 縮放）。
 ///
-/// - 影片：維持原樣，放在兩個橫幅之間（不縮放）；
-/// - 寬圖（寬 ≥ 高）／尺寸不明：原樣 contain 置中在兩個橫幅之間；雙指放大時
-///   可放大到整個螢幕（疊在橫幅底下），只被螢幕裁切；
-/// - 長圖（高 > 寬）：寬度＝螢幕寬度、貼齊最上面，往下垂直捲動（像條漫）；雙指也能放大。
-///   圖整張放得下時就貼齊最上面，不能捲。
+/// 「可用區」＝頂欄下面到底欄（資訊區）上面那一段；圖片一律滿寬、不裁切：
+/// - 影片：維持原樣，放在可用區內（不縮放）；
+/// - 圖片高度 ≤ 可用區：垂直置中（上下留白相等）；
+/// - 圖片高度 ＞ 可用區：靠頂（從頂欄下面開始），往下捲看餘下部分。
+/// 兩種圖都能雙指縮放（最多 4 倍）、雙擊放大 2 倍（以點的位置為中心）／再雙擊還原；
+/// 放大時可放大到整個螢幕（疊在橫幅底下），只被螢幕裁切。
 class PreviewMediaPage extends StatelessWidget {
   const PreviewMediaPage(
     this.media, {
@@ -185,10 +194,6 @@ class PreviewMediaPage extends StatelessWidget {
   final VideoStart? start;
   final VideoFullscreenCallback? onFullscreen;
 
-  /// 這個媒體是不是長圖（高 > 寬，影片除外）。
-  static bool isTall(MediaSource m) =>
-      !m.isVideo && m.width > 0 && m.height > m.width;
-
   @override
   Widget build(BuildContext context) {
     final insets = PreviewInsets.of(context);
@@ -200,36 +205,100 @@ class PreviewMediaPage extends StatelessWidget {
     );
     if (media.isVideo) {
       return Padding(
-        padding: EdgeInsets.fromLTRB(0, insets.top + 8, 0, insets.bottom + 8),
+        padding: EdgeInsets.fromLTRB(0, insets.top, 0, insets.bottom),
         child: inner,
       );
     }
-    if (isTall(media)) {
-      return _TallPage(media: media, active: active, child: inner);
-    }
-    return _ZoomPage(
-      active: active,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(0, insets.top + 8, 0, insets.bottom + 8),
-        child: inner,
-      ),
+    return LayoutBuilder(
+      builder: (context, c) {
+        final known = media.width > 0 && media.height > 0;
+        final area = c.maxHeight - insets.top - insets.bottom;
+        final h = known ? c.maxWidth * media.height / media.width : 0.0;
+        if (known && h > area + 0.5) {
+          return _TallPage(
+            media: media,
+            active: active,
+            top: insets.top,
+            bottom: insets.bottom,
+            child: inner,
+          );
+        }
+        return PreviewZoom(
+          active: active,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(0, insets.top, 0, insets.bottom),
+            child: inner,
+          ),
+        );
+      },
     );
   }
 }
 
-/// 寬圖：整個螢幕大的 InteractiveViewer，圖在裡面置中。
-class _ZoomPage extends StatefulWidget {
-  const _ZoomPage({required this.active, required this.child});
+/// 雙擊：沒放大＝以點的位置為中心放大 [kPreviewDoubleTapScale] 倍；放大中＝還原。
+Matrix4 _doubleTapTarget(Matrix4 current, Offset? at, Size viewport) {
+  if (current.getMaxScaleOnAxis() > _zoomedThreshold) return Matrix4.identity();
+  final p = at ?? viewport.center(Offset.zero);
+  // 先把現在的位移換回內容座標，再以那一點為中心放大。
+  final inv = Matrix4.inverted(current);
+  final scene = MatrixUtils.transformPoint(inv, p);
+  const k = kPreviewDoubleTapScale;
+  return Matrix4.identity()
+    ..translateByDouble(p.dx - scene.dx * k, p.dy - scene.dy * k, 0, 1)
+    ..scaleByDouble(k, k, 1, 1);
+}
+
+/// 縮放動畫（雙擊用）。
+mixin _AnimatedZoom<T extends StatefulWidget> on State<T>, TickerProvider {
+  TransformationController get tc;
+  AnimationController? _anim;
+  Offset? _tapAt;
+
+  void animateTo(Matrix4 target) {
+    _anim?.dispose();
+    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (reduce) {
+      tc.value = target;
+      return;
+    }
+    final tween = Matrix4Tween(begin: tc.value.clone(), end: target);
+    final a = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    _anim = a;
+    final curved = CurvedAnimation(parent: a, curve: Curves.easeOut);
+    a.addListener(() => tc.value = tween.evaluate(curved));
+    a.forward();
+  }
+
+  Widget doubleTap(Size viewport, Widget child) => GestureDetector(
+    onDoubleTapDown: (d) => _tapAt = d.localPosition,
+    onDoubleTap: () => animateTo(_doubleTapTarget(tc.value, _tapAt, viewport)),
+    child: child,
+  );
+
+  void disposeZoom() => _anim?.dispose();
+}
+
+/// 圖片放得下：整個螢幕大的 InteractiveViewer，圖在可用區內置中。雙指最多 4 倍、雙擊 2 倍，
+/// 回報縮放狀態給預覽手勢（放大時不退出、不換頁）。表單內預覽也用它。
+class PreviewZoom extends StatefulWidget {
+  const PreviewZoom({super.key, this.active = true, required this.child});
   final bool active;
   final Widget child;
 
   @override
-  State<_ZoomPage> createState() => _ZoomPageState();
+  State<PreviewZoom> createState() => PreviewZoomState();
 }
 
-class _ZoomPageState extends State<_ZoomPage> {
+class PreviewZoomState extends State<PreviewZoom>
+    with TickerProviderStateMixin, _AnimatedZoom {
   final _tc = TransformationController();
   PreviewController? _preview;
+
+  @override
+  TransformationController get tc => _tc;
 
   @override
   void initState() {
@@ -249,46 +318,61 @@ class _ZoomPageState extends State<_ZoomPage> {
   );
 
   @override
-  void didUpdateWidget(_ZoomPage old) {
-    super.didUpdateWidget(old);
-    if (old.active && !widget.active) _tc.value = Matrix4.identity();
+  void didUpdateWidget(PreviewZoom oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.active && !widget.active) _tc.value = Matrix4.identity();
   }
 
   @override
   void dispose() {
+    disposeZoom();
     _preview?.setZoomed(this, false);
     _tc.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => InteractiveViewer(
-    transformationController: _tc,
-    maxScale: 5,
-    child: SizedBox.expand(child: widget.child),
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, c) => doubleTap(
+      c.biggest,
+      InteractiveViewer(
+        transformationController: _tc,
+        maxScale: kPreviewMaxScale,
+        child: SizedBox.expand(child: widget.child),
+      ),
+    ),
   );
 }
 
-/// 長圖：寬度＝螢幕寬度、貼齊最上面；InteractiveViewer 同時負責垂直捲動（縮放倍率 1 時）和雙指縮放。
+/// 圖片比可用區高：寬度＝螢幕寬度、從頂欄下面開始；InteractiveViewer 同時負責垂直捲動
+/// （縮放倍率 1 時）和縮放。內容上下各墊頂欄／底欄的高度，捲到底時圖的底邊停在資訊區上面。
 class _TallPage extends StatefulWidget {
   const _TallPage({
     required this.media,
     required this.active,
+    required this.top,
+    required this.bottom,
     required this.child,
   });
   final MediaSource media;
   final bool active;
+  final double top;
+  final double bottom;
   final Widget child;
 
   @override
   State<_TallPage> createState() => _TallPageState();
 }
 
-class _TallPageState extends State<_TallPage> {
+class _TallPageState extends State<_TallPage>
+    with TickerProviderStateMixin, _AnimatedZoom {
   final _tc = TransformationController();
   PreviewController? _preview;
   double _contentH = 0;
   double _viewportH = 0;
+
+  @override
+  TransformationController get tc => _tc;
 
   @override
   void initState() {
@@ -324,6 +408,7 @@ class _TallPageState extends State<_TallPage> {
 
   @override
   void dispose() {
+    disposeZoom();
     _preview?.setZoomed(this, false);
     _preview?.setVerticalScroll(this, scrollable: false, atTop: true);
     _tc.dispose();
@@ -335,7 +420,8 @@ class _TallPageState extends State<_TallPage> {
     return LayoutBuilder(
       builder: (context, c) {
         final w = c.maxWidth;
-        final contentH = w * widget.media.height / widget.media.width;
+        final imageH = w * widget.media.height / widget.media.width;
+        final contentH = widget.top + imageH + widget.bottom;
         if (contentH != _contentH || c.maxHeight != _viewportH) {
           _contentH = contentH;
           _viewportH = c.maxHeight;
@@ -343,12 +429,25 @@ class _TallPageState extends State<_TallPage> {
             if (mounted) _report();
           });
         }
-        return InteractiveViewer(
-          transformationController: _tc,
-          constrained: false,
-          alignment: Alignment.topLeft,
-          maxScale: 5,
-          child: SizedBox(width: w, height: contentH, child: widget.child),
+        return doubleTap(
+          c.biggest,
+          InteractiveViewer(
+            transformationController: _tc,
+            constrained: false,
+            alignment: Alignment.topLeft,
+            maxScale: kPreviewMaxScale,
+            child: SizedBox(
+              width: w,
+              height: contentH,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: widget.top,
+                  bottom: widget.bottom,
+                ),
+                child: widget.child,
+              ),
+            ),
+          ),
         );
       },
     );

@@ -15,6 +15,7 @@ import '../common/media_widgets.dart';
 import '../common/media_mini.dart';
 import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
+import '../common/top_toast.dart' show ToastLift;
 import '../common/reorder_tile.dart';
 
 String fmtDate(DateTime d) =>
@@ -160,31 +161,33 @@ class EntityFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    return Semantics(
-      button: true,
-      label: label,
-      child: GestureDetector(
-        onTap: onPressed,
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: t.accent,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: t.accent.withValues(alpha: 0.38),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+    return ToastLift(
+      child: Semantics(
+        button: true,
+        label: label,
+        child: GestureDetector(
+          onTap: onPressed,
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: t.accent,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: t.accent.withValues(alpha: 0.38),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: SvgIcon(
+                AppIcons.plus,
+                size: 26,
+                strokeWidth: 2.2,
+                color: Colors.white,
               ),
-            ],
-          ),
-          child: const Center(
-            child: SvgIcon(
-              AppIcons.plus,
-              size: 26,
-              strokeWidth: 2.2,
-              color: Colors.white,
             ),
           ),
         ),

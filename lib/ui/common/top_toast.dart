@@ -30,6 +30,9 @@ const kToastAboveGap = 12.0;
 
 _ToastHandle? _current;
 
+/// 目前提示條的頂端離螢幕底部多遠（沒有提示條＝0）。右下「＋」用 [ToastLift] 聽它往上推。
+final ValueNotifier<double> topToastTopFromBottom = ValueNotifier<double>(0);
+
 class _ToastHandle {
   _ToastHandle(this.entry);
   final OverlayEntry entry;
@@ -43,6 +46,7 @@ void hideTopToast() {
   final c = _current;
   if (c == null) return;
   _current = null;
+  topToastTopFromBottom.value = 0;
   // 舊的提示條所在的 Overlay 可能已經隨頁面／整棵樹一起拆掉了：移除與釋放都要容錯。
   try {
     c.entry.remove();
@@ -73,6 +77,8 @@ class BottomInsetAnchor extends StatefulWidget {
       if (ro is! RenderBox || !ro.attached || !ro.hasSize) continue;
       if (ro.size.height <= 0) continue;
       final top = ro.localToGlobal(Offset.zero).dy;
+      // 捲出畫面上方的（例如跟著內容捲動的按鈕）不算。
+      if (top < 0) continue;
       final v = viewHeight - top;
       if (v > best) best = v;
     }
@@ -170,6 +176,20 @@ class _ToastState extends State<_Toast> with SingleTickerProviderStateMixin {
   bool _reduce = false;
   double _drag = 0;
   bool _dismissing = false;
+  final _barKey = GlobalKey();
+
+  /// 量提示條頂端的位置，給 [ToastLift]（「＋」停在提示條上方 12）。
+  void _publishTop() {
+    if (!mounted || _dismissing || _current == null) return;
+    final ro = _barKey.currentContext?.findRenderObject();
+    if (ro is! RenderBox || !ro.hasSize) return;
+    final h = MediaQuery.sizeOf(context).height;
+    final top = h - ro.localToGlobal(Offset.zero).dy + _drag;
+    // 只在滑入完成後量（動畫中的位移不算）。
+    if ((top - topToastTopFromBottom.value).abs() > 0.5) {
+      topToastTopFromBottom.value = top;
+    }
+  }
 
   @override
   void initState() {
@@ -201,6 +221,7 @@ class _ToastState extends State<_Toast> with SingleTickerProviderStateMixin {
   void _dismissNow() {
     if (_dismissing) return;
     _dismissing = true;
+    topToastTopFromBottom.value = 0;
     widget.onDone();
   }
 
@@ -290,6 +311,16 @@ class _ToastState extends State<_Toast> with SingleTickerProviderStateMixin {
       animation: _c,
       builder: (context, child) {
         final p = _shown;
+        final total = _c.duration!.inMilliseconds;
+        final ms = _c.value * total;
+        if (ms >= _inMs && ms <= total - _inMs) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _publishTop());
+        } else if (ms > total - _inMs && topToastTopFromBottom.value != 0) {
+          // 開始滑出：「＋」同時滑回。
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => topToastTopFromBottom.value = 0,
+          );
+        }
         // 位置：預設螢幕底上方 16（加安全區）；有固定底部元件就在它上方 12；鍵盤打開浮在鍵盤上方 12。
         final anchor = BottomInsetAnchor.topFromBottom(mq.size.height);
         var bottom = mq.padding.bottom + kToastBottomGap;
@@ -320,6 +351,7 @@ class _ToastState extends State<_Toast> with SingleTickerProviderStateMixin {
         container: true,
         // 往下滑收掉（提示條浮在固定底部元件上方，不會蓋住按鈕）。
         child: GestureDetector(
+          key: _barKey,
           onVerticalDragUpdate: (d) =>
               setState(() => _drag = (_drag + d.delta.dy).clamp(0.0, 200.0)),
           onVerticalDragEnd: (d) {
@@ -332,6 +364,61 @@ class _ToastState extends State<_Toast> with SingleTickerProviderStateMixin {
           child: bar,
         ),
       ),
+    );
+  }
+}
+
+/// 包住右下「＋」浮動按鈕：提示條出現時往上推，停在提示條上方 12，提示條收起後滑回（D-114）。
+class ToastLift extends StatefulWidget {
+  const ToastLift({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<ToastLift> createState() => _ToastLiftState();
+}
+
+class _ToastLiftState extends State<ToastLift> {
+  double _lift = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    topToastTopFromBottom.addListener(_update);
+  }
+
+  @override
+  void dispose() {
+    topToastTopFromBottom.removeListener(_update);
+    super.dispose();
+  }
+
+  void _update() {
+    if (!mounted) return;
+    final toastTop = topToastTopFromBottom.value;
+    var lift = 0.0;
+    if (toastTop > 0) {
+      final ro = context.findRenderObject();
+      if (ro is RenderBox && ro.hasSize && ro.attached) {
+        // 按鈕原本（未位移）的底邊離螢幕底部多遠（自己的 Transform 不影響自己的位置）。
+        final h = MediaQuery.sizeOf(context).height;
+        final bottom = h - ro.localToGlobal(Offset(0, ro.size.height)).dy;
+        final need = toastTop + kToastAboveGap - bottom;
+        if (need > 0) lift = need;
+      }
+    }
+    if ((lift - _lift).abs() > 0.5) setState(() => _lift = lift);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: _lift),
+      duration: reduce ? Duration.zero : const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      builder: (context, v, child) =>
+          Transform.translate(offset: Offset(0, -v), child: child),
+      child: widget.child,
     );
   }
 }

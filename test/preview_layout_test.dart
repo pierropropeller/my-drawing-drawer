@@ -175,6 +175,8 @@ void main() {
       expect(before.top, greaterThan(header.bottom));
       expect(before.bottom, lessThan(footer.top));
       await tester.tapAt(center(tester));
+      // 單擊要等雙擊逾時（D-121 雙擊放大）才收起橫幅。
+      await tester.pump(const Duration(milliseconds: 350));
       await settle(tester);
       expect(opacityOf(tester, find.text('分享')), 0);
       expect(box(), before);
@@ -201,20 +203,21 @@ void main() {
   });
 
   group('長圖（高 > 寬）', () {
-    testWidgets('寬度＝螢幕寬度、貼齊最上面（y=0，在頂欄底下），高度依比例', (tester) async {
+    testWidgets('D-116 比可用區高：滿寬、從頂欄下面開始（靠頂），高度依比例', (tester) async {
       await pushPage(tester, shell([(100, 400)]));
       final child =
           tester.widget<InteractiveViewer>(viewer()).child as SizedBox;
       expect(child.width, 390);
-      expect(child.height, closeTo(1560, 0.01));
-      final box = find.descendant(
-        of: viewer(),
-        matching: find.byType(SizedBox),
+      final img = tester.getRect(
+        find.descendant(of: viewer(), matching: find.byType(MediaViewer)).first,
       );
-      expect(tester.getTopLeft(box.first), Offset.zero);
+      expect(img.width, 390);
+      expect(img.height, closeTo(1560, 0.01));
+      final header = tester.getRect(find.text('坑A · 官方圖冊'));
+      // 圖的頂邊＝頂欄底邊（在標題文字下面、不在它後面）。
+      expect(img.top, greaterThan(header.bottom));
+      expect(img.top, lessThan(header.bottom + 30));
       expect(tcOf(tester).value.getTranslation().y, 0);
-      // 頂欄疊在圖上：頂欄文字落在圖片範圍內。
-      expect(tester.getRect(find.text('坑A · 官方圖冊')).top, greaterThan(0));
       await unmount(tester);
     });
 
@@ -231,7 +234,17 @@ void main() {
         await settle(tester);
       }
       expect(find.byType(PreviewShell), findsOneWidget);
-      expect(tc.value.getTranslation().y, closeTo(-(1560 - 844), 1));
+      // 捲到底：圖的底邊停在資訊區上面。
+      final child =
+          tester.widget<InteractiveViewer>(viewer()).child as SizedBox;
+      expect(tc.value.getTranslation().y, closeTo(-(child.height! - 844), 1));
+      final img = tester.getRect(
+        find.descendant(of: viewer(), matching: find.byType(MediaViewer)).first,
+      );
+      expect(
+        img.bottom,
+        lessThanOrEqualTo(tester.getRect(find.text('資訊區')).top),
+      );
       await unmount(tester);
     });
 
@@ -274,10 +287,14 @@ void main() {
       await pushPage(tester, shell([(100, 400)]));
       expect(opacityOf(tester, find.text('分享')), 1);
       await tester.tapAt(center(tester));
+      // 單擊要等雙擊逾時（D-121 雙擊放大）才收起橫幅。
+      await tester.pump(const Duration(milliseconds: 350));
       await settle(tester);
       expect(opacityOf(tester, find.text('分享')), 0);
       expect(opacityOf(tester, find.text('坑A · 官方圖冊')), 0);
       await tester.tapAt(center(tester));
+      // 單擊要等雙擊逾時（D-121 雙擊放大）才收起橫幅。
+      await tester.pump(const Duration(milliseconds: 350));
       await settle(tester);
       expect(opacityOf(tester, find.text('分享')), 1);
       await pinchOut(tester, center(tester));
@@ -286,12 +303,16 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('不用捲動的矮長圖（100x150）：貼齊最上面，垂直拖曳照樣退出', (tester) async {
+    testWidgets('D-116 放得下的直圖（100x150）：滿寬、在可用區垂直置中，垂直拖曳照樣退出', (tester) async {
       await pushPage(tester, shell([(100, 150)]));
       final tc = tcOf(tester);
+      expect(tester.widget<InteractiveViewer>(viewer()).constrained, isTrue);
+      final header = tester.getRect(find.text('坑A · 官方圖冊'));
+      final footer = tester.getRect(find.text('資訊區'));
       await tester.dragFrom(center(tester), const Offset(0, -80));
       await settle(tester);
       expect(tc.value.getTranslation().y, closeTo(0, 0.5));
+      expect(header.bottom, lessThan(footer.top));
       await tester.dragFrom(center(tester), const Offset(0, -260));
       await settle(tester);
       await tester.pump(const Duration(milliseconds: 600));
@@ -308,6 +329,49 @@ void main() {
       expect(c.page, 1);
       // 換到寬圖：IV 是整個螢幕大的（constrained）。
       expect(tester.widget<InteractiveViewer>(viewer()).constrained, isTrue);
+      await unmount(tester);
+    });
+  });
+
+  group('D-121 雙擊放大', () {
+    testWidgets('雙擊放大 2 倍（以點的位置為中心），再雙擊還原；放大時左右拖曳不換頁', (tester) async {
+      final c = PageController();
+      await pushPage(tester, shell([(300, 200), (300, 200)], controller: c));
+      final tc = tcOf(tester);
+      final at = center(tester) + const Offset(60, 0);
+      await tester.tapAt(at);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(at);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(tc.value.getMaxScaleOnAxis(), closeTo(2, 0.01));
+      // 點的位置放大後不動。
+      final p = MatrixUtils.transformPoint(tc.value, at);
+      expect(p.dx, closeTo(at.dx, 1));
+      // 放大中往左拖：移動圖片，不換到下一張。
+      await tester.pump();
+      await tester.dragFrom(center(tester), const Offset(-300, 0));
+      await settle(tester);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(c.page, 0);
+      await tester.tapAt(at);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(at);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(tc.value.getMaxScaleOnAxis(), closeTo(1, 0.01));
+      await settle(tester);
+      // 縮回原大小後恢復左右切換。
+      await tester.dragFrom(center(tester), const Offset(-300, 0));
+      await settle(tester);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(c.page, 1);
+      await unmount(tester);
+    });
+
+    testWidgets('雙指最多 4 倍', (tester) async {
+      await pushPage(tester, shell([(300, 200)]));
+      expect(tester.widget<InteractiveViewer>(viewer()).maxScale, 4);
       await unmount(tester);
     });
   });

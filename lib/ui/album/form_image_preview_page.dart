@@ -10,6 +10,7 @@ import '../common/app_icons.dart';
 import '../common/dismissible_preview.dart';
 import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
+import '../common/preview_layout.dart' show PreviewZoom;
 import '../common/svg_icon.dart';
 import 'image_picker_field.dart';
 import 'preview_shell.dart';
@@ -154,10 +155,11 @@ class _FormPreviewPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stored = item.stored;
     if (stored != null) {
-      return MediaViewer(
-        MediaSource.fromNewImage(stored),
+      final src = MediaSource.fromNewImage(stored);
+      if (src.isVideo) return MediaViewer(src, active: active);
+      return PreviewZoom(
         active: active,
-        zoomable: true,
+        child: MediaViewer(src, active: active),
       );
     }
     final path = item.picked!.path;
@@ -165,57 +167,15 @@ class _FormPreviewPage extends ConsumerWidget {
       case MediaKind.video:
         return _PickedVideoPoster(path, probe: ref.watch(videoProbeProvider));
       case MediaKind.gif:
-        return _PickedZoomable(
-          active
+        return PreviewZoom(
+          child: active
               ? Image.file(File(path), fit: BoxFit.contain)
               : FirstFrameImage(provider: FileImage(File(path))),
         );
       case MediaKind.image:
-        return _PickedZoomable(Image.file(File(path), fit: BoxFit.contain));
+        return PreviewZoom(child: Image.file(File(path), fit: BoxFit.contain));
     }
   }
-}
-
-/// 還沒匯入的本機圖：可雙指縮放，並回報縮放狀態給預覽手勢（放大時不觸發拖曳退出）。
-class _PickedZoomable extends StatefulWidget {
-  const _PickedZoomable(this.child);
-  final Widget child;
-
-  @override
-  State<_PickedZoomable> createState() => _PickedZoomableState();
-}
-
-class _PickedZoomableState extends State<_PickedZoomable> {
-  final _tc = TransformationController();
-  PreviewController? _preview;
-
-  @override
-  void initState() {
-    super.initState();
-    _tc.addListener(() {
-      _preview?.setZoomed(this, _tc.value.getMaxScaleOnAxis() > 1.02);
-    });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _preview = PreviewScope.maybeOf(context);
-  }
-
-  @override
-  void dispose() {
-    _preview?.setZoomed(this, false);
-    _tc.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => InteractiveViewer(
-    transformationController: _tc,
-    maxScale: 5,
-    child: SizedBox.expand(child: widget.child),
-  );
 }
 
 /// 還沒匯入的影片：設計稿沒畫影片控制列，只顯示第一格截圖＋長度小標（不能播放）。

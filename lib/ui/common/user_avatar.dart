@@ -37,8 +37,7 @@ class UserAvatar extends ConsumerWidget {
       final store = ref.watch(imageStoreProvider).value;
       ref.watch(imageExistsProvider(file));
       ref.watch(thumbVersionProvider(file));
-      hasImage =
-          store != null && (store.exists(file) || store.hasThumb(file));
+      hasImage = store != null && (store.exists(file) || store.hasThumb(file));
     }
     return SizedBox(
       width: size,

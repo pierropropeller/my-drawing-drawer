@@ -24,7 +24,7 @@ import 'ipadlists_icons.dart';
 import 'move_sheet.dart';
 import 'tag_batch_sheet.dart';
 import 'wide_layout.dart';
-import '../common/top_toast.dart' show BottomInsetAnchor;
+import '../common/top_toast.dart' show BottomInsetAnchor, ToastLift;
 
 /// 寬版預覽面板的內容建構器：[image] 目前選取的圖，[openReference] 開參考檢視（`openReferenceViewer`），
 /// [dismiss] 圖被刪掉後關閉面板。
@@ -507,19 +507,21 @@ class _AlbumViewState extends ConsumerState<AlbumView>
         ),
         floatingActionButton: (_selecting || fullyEmpty)
             ? null
-            : FloatingActionButton(
-                backgroundColor: t.accent,
-                foregroundColor: Colors.white,
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                onPressed: widget.onAdd,
-                child: const SvgIcon(
-                  AppIcons.plus,
-                  size: 26,
-                  color: Colors.white,
-                  strokeWidth: 2.2,
+            : ToastLift(
+                child: FloatingActionButton(
+                  backgroundColor: t.accent,
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  onPressed: widget.onAdd,
+                  child: const SvgIcon(
+                    AppIcons.plus,
+                    size: 26,
+                    color: Colors.white,
+                    strokeWidth: 2.2,
+                  ),
                 ),
               ),
         bottomNavigationBar: _selecting
