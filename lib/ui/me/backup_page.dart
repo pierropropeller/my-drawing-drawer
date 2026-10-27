@@ -16,6 +16,7 @@ import 'backup_storage_card.dart';
 import 'me_icons.dart';
 import 'me_widgets.dart';
 import '../../l10n/l10n.dart';
+import '../login/auth_error.dart';
 
 /// 備份與同步（Backup）：Google Drive 帳號、自動同步、前台自動刷新間隔、
 /// 立即同步（主按鈕）、更換同步的 Google 帳號、取消連結。沒有導覽列。
@@ -31,7 +32,9 @@ class BackupPage extends ConsumerWidget {
       ref.read(settingsProvider.notifier).setAccount(email);
       if (context.mounted) SyncFirstPage.open(context, ref);
     } catch (e) {
-      if (context.mounted) showSnack(context, '$e');
+      if (!context.mounted) return;
+      final msg = friendlyAuthError(context, e);
+      if (msg != null) showSnack(context, msg);
     }
   }
 
@@ -61,7 +64,9 @@ class BackupPage extends ConsumerWidget {
         SyncFirstPage.open(context, ref);
       }
     } catch (e) {
-      if (context.mounted) showSnack(context, '$e');
+      if (!context.mounted) return;
+      final msg = friendlyAuthError(context, e);
+      if (msg != null) showSnack(context, msg);
     }
   }
 

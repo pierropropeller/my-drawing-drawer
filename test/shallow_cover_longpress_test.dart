@@ -102,7 +102,10 @@ void main() {
       pitId: id,
       title: 'd',
       body: '',
-      images: const [NewImage(file: 'd1.png'), NewImage(file: 'd2.png')],
+      images: const [
+        NewImage(file: 'd1.png'),
+        NewImage(file: 'd2.png'),
+      ],
       tagIds: const [],
       ideaIds: const [],
       pieceIds: const [],
@@ -111,7 +114,10 @@ void main() {
       pitId: id,
       title: 'i',
       body: '',
-      images: const [NewImage(file: 'i1.png'), NewImage(file: 'i2.png')],
+      images: const [
+        NewImage(file: 'i1.png'),
+        NewImage(file: 'i2.png'),
+      ],
       tagIds: const [],
       draftIds: const [],
       pieceIds: const [],
@@ -120,7 +126,10 @@ void main() {
       pitId: id,
       title: 'p',
       body: '',
-      images: const [NewImage(file: 'p1.png'), NewImage(file: 'p2.png')],
+      images: const [
+        NewImage(file: 'p1.png'),
+        NewImage(file: 'p2.png'),
+      ],
       tagIds: const [],
       links: const [],
       targetLikes: 0,
@@ -131,7 +140,10 @@ void main() {
     await db.saveOshiRecord(
       pitId: id,
       date: DateTime(2026, 10, 1),
-      images: const [NewImage(file: 'k1.png'), NewImage(file: 'k2.png')],
+      images: const [
+        NewImage(file: 'k1.png'),
+        NewImage(file: 'k2.png'),
+      ],
     );
     return id;
   }

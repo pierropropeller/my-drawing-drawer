@@ -6,7 +6,7 @@ import '../../data/goal_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
-import '../album/album_actions.dart' show showSnack;
+import '../pits/pit_new_page.dart' show openNewPit;
 import '../common/app_icons.dart';
 import '../common/media_source.dart';
 import '../common/svg_icon.dart';
@@ -65,7 +65,25 @@ class _DayPageState extends ConsumerState<DayPage> {
           p.sectionOpen(PitSectionKey.piece),
     );
     if (!addable) {
-      showSnack(context, context.l10n.goalsCreatePitFirst);
+      // 還沒有可新增的坑：對話框「還沒有坑」＋「開新坑」（D-117 ③）。
+      final l = context.l10n;
+      final create = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l.goalsNoPitTitle),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.commonCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.pitsNewTitle),
+            ),
+          ],
+        ),
+      );
+      if (create == true && mounted) await openNewPit(context);
       return;
     }
     final picked = await showDayAddSheet(context, pits: pits);

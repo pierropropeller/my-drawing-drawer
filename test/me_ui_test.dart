@@ -383,10 +383,7 @@ void main() {
         isTrue,
       );
       expect(find.text('安全模式'), findsOneWidget);
-      expect(
-        find.text('開啟後會模糊顯示已標記的圖片，關閉則正常顯示'),
-        findsOneWidget,
-      );
+      expect(find.text('開啟後會模糊顯示已標記的圖片，關閉則正常顯示'), findsOneWidget);
       // 安全模式可以切換，且是本機設定。
       await tester.tap(find.byKey(const ValueKey('sensitiveSafeModeSwitch')));
       await settle(tester);
@@ -420,11 +417,7 @@ void main() {
     testWidgets('設定存在本機並在重開後還原', (tester) async {
       final c = await pumpApp(
         tester,
-        prefs: {
-          'onboarded': true,
-          'sensitiveEnabled': true,
-          'safeMode': false,
-        },
+        prefs: {'onboarded': true, 'sensitiveEnabled': true, 'safeMode': false},
       );
       expect(c.read(settingsProvider).sensitiveEnabled, isTrue);
       expect(c.read(settingsProvider).safeMode, isFalse);

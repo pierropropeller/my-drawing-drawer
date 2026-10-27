@@ -417,9 +417,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get meThemeAppearance => '外觀';
 
   @override
-  String get meThemeNote => '每個主題色都有深／淺兩個版本，「跟隨系統」會依照裝置設定自動切換。';
-
-  @override
   String get meThemePreview => '預覽';
 
   @override
@@ -966,6 +963,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get entityPlatformMarkInstagram => 'IG';
+
+  @override
+  String get formNumberInvalid => '請輸入數字';
+
+  @override
+  String get authLinkFailedFriendly => '連結失敗，請稍後再試';
+
+  @override
+  String get authOfflineFriendly => '連不上網絡，請檢查網絡後再試';
+
+  @override
+  String get goalsNoPitTitle => '還沒有坑';
+
+  @override
+  String get formImageLoadFailed => '這張圖讀取失敗';
 
   @override
   String get globalSearchHint => '搜尋全部坑';

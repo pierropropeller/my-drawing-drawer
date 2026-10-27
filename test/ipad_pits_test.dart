@@ -197,10 +197,12 @@ void main() {
       // 置中。
       final c = tester.getCenter(find.byType(Dialog));
       expect((c.dx - 597).abs() < 1 && (c.dy - 417).abs() < 40, isTrue);
-      await tester.tap(find.text('建立')); // 沒填坑名
+      await tester.tap(find.text('建立')); // 沒填坑名：按鈕變灰不能按，不另加提示（D-121 ①）
       await settle(tester);
-      expect(find.text('請輸入坑名'), findsOneWidget);
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.text('請輸入坑名'), findsNothing);
       await tester.enterText(find.byType(TextFormField).first, '新坑');
+      await tester.pump();
       await tester.tap(find.text('建立'));
       await settle(tester);
       expect(find.byType(Dialog), findsNothing);
@@ -366,6 +368,7 @@ void main() {
       await tester.tap(find.text('編輯坑').first);
       await settle(tester);
       await tester.enterText(find.byType(TextFormField).first, '亂改');
+      await tester.pump();
       await tester.tap(find.bySemanticsLabel('設為封面').first);
       await tester.pump();
       await tester.tap(find.text('取消'));
@@ -377,6 +380,7 @@ void main() {
       await tester.tap(find.text('編輯坑').first);
       await settle(tester);
       await tester.enterText(find.byType(TextFormField).first, '坑改');
+      await tester.pump();
       await tester.tap(find.bySemanticsLabel('設為封面').first);
       await tester.pump();
       await tester.tap(find.text('儲存'));

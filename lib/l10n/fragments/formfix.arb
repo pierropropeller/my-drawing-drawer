@@ -1,0 +1,7 @@
+{
+  "formNumberInvalid": "請輸入數字",
+  "authLinkFailedFriendly": "連結失敗，請稍後再試",
+  "authOfflineFriendly": "連不上網絡，請檢查網絡後再試",
+  "goalsNoPitTitle": "還沒有坑",
+  "formImageLoadFailed": "這張圖讀取失敗"
+}

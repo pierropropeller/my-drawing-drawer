@@ -114,18 +114,16 @@ void main() {
         );
 
         for (final r in await db.select(db.officialImages).get()) {
-          expect((r.kind, r.posterFile, r.durationMs), (
-            MediaKind.video,
-            v.posterFile,
-            7000,
-          ));
+          expect(
+            (r.kind, r.posterFile, r.durationMs),
+            (MediaKind.video, v.posterFile, 7000),
+          );
         }
         final fan = await db.select(db.fanArts).getSingle();
-        expect((fan.kind, fan.posterFile, fan.durationMs), (
-          MediaKind.video,
-          v.posterFile,
-          7000,
-        ));
+        expect(
+          (fan.kind, fan.posterFile, fan.durationMs),
+          (MediaKind.video, v.posterFile, 7000),
+        );
         expect(
           (await db.select(db.junkImages).getSingle()).posterFile,
           v.posterFile,
@@ -137,11 +135,10 @@ void main() {
         final ents = await db.select(db.entityImages).get();
         expect(ents, hasLength(4)); // 腦洞、草稿、成圖、推活
         for (final e in ents) {
-          expect((e.kind, e.posterFile, e.durationMs), (
-            MediaKind.video,
-            v.posterFile,
-            7000,
-          ));
+          expect(
+            (e.kind, e.posterFile, e.durationMs),
+            (MediaKind.video, v.posterFile, 7000),
+          );
         }
         expect(await db.videosWithoutPoster(), isEmpty);
       });
@@ -155,10 +152,7 @@ void main() {
         File('${store.dir.path}/old.mp4').writeAsBytesSync(_mp4Head);
         // 舊版本匯入：kind 預設 image、沒有媒體欄位。
         await db.addFanArts(pit, const [NewImage(file: 'old.mp4')], author: '');
-        expect(
-          (await db.select(db.fanArts).getSingle()).kind,
-          MediaKind.image,
-        );
+        expect((await db.select(db.fanArts).getSingle()).kind, MediaKind.image);
 
         final n = await generateMissingPosters(db, store, probe: probe);
         expect(n, 1);

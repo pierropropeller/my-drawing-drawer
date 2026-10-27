@@ -820,12 +820,6 @@ abstract class AppLocalizations {
   /// **'外觀'**
   String get meThemeAppearance;
 
-  /// No description provided for @meThemeNote.
-  ///
-  /// In zh, this message translates to:
-  /// **'每個主題色都有深／淺兩個版本，「跟隨系統」會依照裝置設定自動切換。'**
-  String get meThemeNote;
-
   /// No description provided for @meThemePreview.
   ///
   /// In zh, this message translates to:
@@ -1820,6 +1814,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'IG'**
   String get entityPlatformMarkInstagram;
+
+  /// No description provided for @formNumberInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'請輸入數字'**
+  String get formNumberInvalid;
+
+  /// No description provided for @authLinkFailedFriendly.
+  ///
+  /// In zh, this message translates to:
+  /// **'連結失敗，請稍後再試'**
+  String get authLinkFailedFriendly;
+
+  /// No description provided for @authOfflineFriendly.
+  ///
+  /// In zh, this message translates to:
+  /// **'連不上網絡，請檢查網絡後再試'**
+  String get authOfflineFriendly;
+
+  /// No description provided for @goalsNoPitTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有坑'**
+  String get goalsNoPitTitle;
+
+  /// No description provided for @formImageLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'這張圖讀取失敗'**
+  String get formImageLoadFailed;
 
   /// No description provided for @globalSearchHint.
   ///

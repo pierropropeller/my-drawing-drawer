@@ -123,9 +123,9 @@ class _JunkPreviewPageState extends ConsumerState<JunkPreviewPage>
       onPageChanged: (i) => setState(() => _index = i),
       info: Padding(
         padding: const EdgeInsets.fromLTRB(24, 6, 24, 14),
+        // 日期靠左，和官圖預覽一致（D-121 ②）。
         child: Row(
           children: [
-            const Spacer(),
             if (date != null)
               Text(
                 previewDate(date),

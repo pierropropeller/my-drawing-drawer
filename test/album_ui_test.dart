@@ -537,6 +537,7 @@ void main() {
     );
     await settle(tester);
     await tester.enterText(find.byType(TextField), '#新tag');
+    await tester.pump();
     await tester.tap(find.text(l10nStatic.albumConfirm));
     await settle(tester);
     expect(tagChip('新tag', TagCoverage.all), findsOneWidget);

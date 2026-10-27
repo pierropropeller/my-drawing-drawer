@@ -507,6 +507,7 @@ void main() {
       phoneView(tester);
       await pumpLaunch(tester, const PitNewPage());
       await tester.enterText(find.byKey(const ValueKey('pit-name')), '一般坑');
+      await tester.pump();
       await tester.tap(find.text('建立'));
       await settle(tester);
       final p = (await tester.runAsync(

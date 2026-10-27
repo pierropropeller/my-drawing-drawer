@@ -435,38 +435,43 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('NewPitShallow：選淺坑 → 880 兩欄；左 類型＋坑名＋描述（沒有封面）；右 7 個開關預設只開官方圖冊與好看同人圖', (
-      tester,
-    ) async {
-      await openNew(tester, const Size(1194, 834));
-      await tester.tap(find.text('淺坑'));
-      await settle(tester);
-      expect(dialogWidth(tester), 880);
-      // 淺坑不要封面（Molly 10/23）。
-      expect(find.text('封面'), findsNothing);
-      expect(find.bySemanticsLabel('選擇封面'), findsNothing);
-      expect(find.text('開啟的格子'), findsOneWidget);
-      // 左右兩欄：開啟的格子在右邊。
-      expect(
-        tester.getTopLeft(find.text('開啟的格子')).dx,
-        greaterThan(tester.getTopLeft(find.text('坑名')).dx + 380),
-      );
-      final switches = tester
-          .widgetList<AppSwitch>(find.byType(AppSwitch))
-          .map((s) => s.value)
-          .toList();
-      expect(switches, [true, true, false, false, false, false, false]);
+    testWidgets(
+      'NewPitShallow：選淺坑 → 880 兩欄；左 類型＋坑名＋描述（沒有封面）；右 7 個開關預設只開官方圖冊與好看同人圖',
+      (tester) async {
+        await openNew(tester, const Size(1194, 834));
+        await tester.tap(find.text('淺坑'));
+        await settle(tester);
+        expect(dialogWidth(tester), 880);
+        // 淺坑不要封面（Molly 10/23）。
+        expect(find.text('封面'), findsNothing);
+        expect(find.bySemanticsLabel('選擇封面'), findsNothing);
+        expect(find.text('開啟的格子'), findsOneWidget);
+        // 左右兩欄：開啟的格子在右邊。
+        expect(
+          tester.getTopLeft(find.text('開啟的格子')).dx,
+          greaterThan(tester.getTopLeft(find.text('坑名')).dx + 380),
+        );
+        final switches = tester
+            .widgetList<AppSwitch>(find.byType(AppSwitch))
+            .map((s) => s.value)
+            .toList();
+        expect(switches, [true, true, false, false, false, false, false]);
 
-      // 建立：淺坑、只開官方圖冊＋同人圖。
-      await tester.enterText(find.byType(TextFormField).first, '新淺坑');
-      await tester.tap(find.text('建立'));
-      await settle(tester);
-      final pits = await tester.runAsync(() => db.select(db.pits).get());
-      final pit = pits!.single;
-      expect(pit.status, PitStatus.shallow);
-      expect(pit.enabledSections, {PitSectionKey.official, PitSectionKey.fan});
-      await unmount(tester);
-    });
+        // 建立：淺坑、只開官方圖冊＋同人圖。
+        await tester.enterText(find.byType(TextFormField).first, '新淺坑');
+        await tester.pump();
+        await tester.tap(find.text('建立'));
+        await settle(tester);
+        final pits = await tester.runAsync(() => db.select(db.pits).get());
+        final pit = pits!.single;
+        expect(pit.status, PitStatus.shallow);
+        expect(pit.enabledSections, {
+          PitSectionKey.official,
+          PitSectionKey.fan,
+        });
+        await unmount(tester);
+      },
+    );
 
     testWidgets('切回「坑」縮回 600 單欄', (tester) async {
       await openNew(tester, const Size(1194, 834));

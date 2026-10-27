@@ -16,6 +16,7 @@ import '../common/window_class.dart';
 import '../pits/pit_form.dart';
 import 'sync_first_page.dart';
 import '../../l10n/l10n.dart';
+import 'auth_error.dart';
 
 /// 開頭畫面：用 Google 帳號開始（Drive 同步），或離線繼續。
 /// 沒有自家帳號系統；Google 帳號只用於 Drive 同步。
@@ -334,7 +335,10 @@ class _ConnectPageState extends ConsumerState<ConnectPage> {
       final email = await ref.read(accountServiceProvider).signIn();
       if (mounted) setState(() => _email = email);
     } catch (e) {
-      if (mounted) showSnack(context, '$e');
+      if (mounted) {
+        final msg = friendlyAuthError(context, e);
+        if (msg != null) showSnack(context, msg);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

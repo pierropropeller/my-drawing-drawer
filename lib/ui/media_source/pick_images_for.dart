@@ -8,9 +8,7 @@ import 'package:path/path.dart' as p;
 
 import '../../data/database.dart';
 import '../../data/image_store.dart';
-import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
-import '../album/album_actions.dart' show showSnack;
 import '../common/device_class.dart';
 import '../common/window_class.dart';
 import 'material_pick_sheet.dart';
@@ -74,19 +72,14 @@ Future<ClipboardProbe> _safeProbe(ClipboardImageService s) async {
   }
 }
 
-/// 執行選單選到的來源。
+/// 執行選單選到的來源。失敗（權限被拒、沒有相機、剪貼簿沒有圖…）一律靜默回傳空的：
+/// 加圖是表單中途的操作，不出提示條（D-117 ①、D-121 ⑤）。
 Future<List<XFile>> runAddSource(
   BuildContext context,
   AddSource source,
   ProviderReader read,
 ) async {
   final services = read(mediaSourceServicesProvider);
-  final l = context.l10n;
-  void toast(String text) {
-    if (context.mounted && ScaffoldMessenger.maybeOf(context) != null) {
-      showSnack(context, text);
-    }
-  }
 
   switch (source) {
     case AddSource.photos:
@@ -95,7 +88,6 @@ Future<List<XFile>> runAddSource(
       try {
         return await services.files.pick();
       } catch (_) {
-        toast(l.ipadmediaFilesFailed);
         return const [];
       }
     case AddSource.materials:
@@ -105,10 +97,8 @@ Future<List<XFile>> runAddSource(
         final store = await read(imageStoreProvider.future);
         final dir = await services.tempDir();
         final files = await copyMaterialsToTemp(store, rows, dir);
-        if (files.isEmpty) toast(l.ipadmediaMaterialsFailed);
         return files;
       } catch (_) {
-        toast(l.ipadmediaMaterialsFailed);
         return const [];
       }
     case AddSource.camera:
@@ -117,7 +107,6 @@ Future<List<XFile>> runAddSource(
         return shot == null ? const [] : [shot];
       } catch (_) {
         // 權限被拒、沒有相機等。
-        toast(l.ipadmediaCameraFailed);
         return const [];
       }
     case AddSource.paste:
@@ -125,12 +114,10 @@ Future<List<XFile>> runAddSource(
         final dir = await services.tempDir();
         final pasted = await services.clipboard.read(dir);
         if (pasted == null) {
-          toast(l.ipadmediaPasteEmpty);
           return const [];
         }
         return [pasted];
       } catch (_) {
-        toast(l.ipadmediaPasteEmpty);
         return const [];
       }
   }

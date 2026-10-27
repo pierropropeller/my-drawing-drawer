@@ -23,10 +23,9 @@ ByteData legacyMessage(int keyCode, int metaState, {String type = 'keydown'}) {
 }
 
 /// 模擬舊通道訊息經過 [ImeShiftMessenger] 後的效果。
-void feed(int keyCode, int metaState) =>
-    ImeShiftState.instance.record(
-      LegacyKeyInfo.tryParse(legacyMessage(keyCode, metaState)),
-    );
+void feed(int keyCode, int metaState) => ImeShiftState.instance.record(
+  LegacyKeyInfo.tryParse(legacyMessage(keyCode, metaState)),
+);
 
 class _FakeInner extends BinaryMessenger {
   final handlers = <String, MessageHandler?>{};
@@ -73,10 +72,8 @@ void main() {
 
     test('解析失敗視為沒有 shift 且不丟例外', () async {
       final inner = _FakeInner();
-      ImeShiftMessenger(inner).setMessageHandler(
-        'flutter/keyevent',
-        (d) async => null,
-      );
+      ImeShiftMessenger(inner)
+          .setMessageHandler('flutter/keyevent', (d) async => null);
       final bad = ByteData.sublistView(Uint8List.fromList([1, 2, 3]));
       await inner.handlers['flutter/keyevent']!(bad);
       expect(

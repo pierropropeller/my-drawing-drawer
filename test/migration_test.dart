@@ -648,7 +648,9 @@ void main() {
     await db.addOfficial(pitId, g, [const NewImage(file: 'o.png')]);
     await db.addFanArts(pitId, [const NewImage(file: 'f.png')], author: 'a');
     await db.addJunk(pitId, [const NewImage(file: 'j.png')]);
-    await db.addMaterials(MaterialCategory.pose, [const NewImage(file: 'm.png')]);
+    await db.addMaterials(MaterialCategory.pose, [
+      const NewImage(file: 'm.png'),
+    ]);
     await db.saveOshiRecord(
       pitId: pitId,
       date: DateTime(2026, 10, 1),

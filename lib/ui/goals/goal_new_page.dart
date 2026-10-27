@@ -101,7 +101,16 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
     super.dispose();
   }
 
+  bool get _needsLikes => _kind == GoalKind.piece && _requireLikes;
+  bool get _likesBad =>
+      _needsLikes && isBadNumberText(_likes.text, integer: true);
+
+  /// 「需要達成互動量」開著時要填；沒填按鈕變灰，填錯欄位下紅字（D-121 ①）。
+  bool get _canSave =>
+      _loaded && !_likesBad && !(_needsLikes && _likes.text.trim().isEmpty);
+
   Future<void> _save() async {
+    if (!_canSave) return;
     int? likes;
     if (_kind == GoalKind.piece && _requireLikes) {
       likes = int.tryParse(_likes.text.trim());
@@ -455,6 +464,11 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                     ],
                   ),
                 ),
+              if (_requireLikes && _likesBad)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: FieldErrorText(l.formNumberInvalid),
+                ),
             ],
           ),
         ),
@@ -521,7 +535,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                             label: widget.goalId == null
                                 ? l.goalsCreateGoal
                                 : l.commonSave,
-                            onPressed: _loaded ? _save : null,
+                            onPressed: _canSave ? _save : null,
                           ),
                         ],
                       ),
@@ -565,9 +579,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
           title: title,
           actionLabel: editing ? l.commonSave : l.goalsCreateGoal,
           compactActionLabel: editing ? null : l.pitsCreate,
-          onAction: () {
-            if (_loaded) _save();
-          },
+          onAction: _canSave ? _save : null,
           extraActions: [
             if (editing) _deleteButton(context),
             const SizedBox(width: 4),

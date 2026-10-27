@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
+import '../common/adaptive_modal.dart' show disabledButtonBg, disabledButtonFg;
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 
@@ -87,13 +88,14 @@ class AlbumSubmitButton extends StatelessWidget {
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(vertical: 15),
         decoration: BoxDecoration(
-          color: onTap == null ? t.accent.withValues(alpha: 0.4) : t.accent,
+          // 必填未填：變灰（D-121 ①）。
+          color: onTap == null ? disabledButtonBg(context) : t.accent,
           borderRadius: BorderRadius.circular(Radii.button),
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: onTap == null ? disabledButtonFg(context) : Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),

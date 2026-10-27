@@ -40,9 +40,15 @@ void main() {
     ]);
   }
 
-  List<int> u32(int v) => [(v >> 24) & 255, (v >> 16) & 255, (v >> 8) & 255, v & 255];
+  List<int> u32(int v) => [
+    (v >> 24) & 255,
+    (v >> 16) & 255,
+    (v >> 8) & 255,
+    v & 255,
+  ];
 
-  Uint8List ispe(int w, int h) => box('ispe', [0, 0, 0, 0, ...u32(w), ...u32(h)]);
+  Uint8List ispe(int w, int h) =>
+      box('ispe', [0, 0, 0, 0, ...u32(w), ...u32(h)]);
 
   Uint8List fakeHeic({int rotation = 0, int w = 4032, int h = 3024}) {
     final ipco = box('ipco', [
@@ -76,13 +82,25 @@ void main() {
 
     test('heifDimensions：取最大的 ispe，irot 奇數時寬高對調', () {
       expect(heifDimensions(fakeHeic()), (width: 4032, height: 3024));
-      expect(heifDimensions(fakeHeic(rotation: 1)), (width: 3024, height: 4032));
-      expect(heifDimensions(fakeHeic(rotation: 2)), (width: 4032, height: 3024));
-      expect(heifDimensions(fakeHeic(rotation: 3)), (width: 3024, height: 4032));
+      expect(heifDimensions(fakeHeic(rotation: 1)), (
+        width: 3024,
+        height: 4032,
+      ));
+      expect(heifDimensions(fakeHeic(rotation: 2)), (
+        width: 4032,
+        height: 3024,
+      ));
+      expect(heifDimensions(fakeHeic(rotation: 3)), (
+        width: 3024,
+        height: 4032,
+      ));
     });
 
     test('heifDimensions：不是 HEIC／被截斷都回 null，不丟例外', () {
-      expect(heifDimensions(Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0])), isNull);
+      expect(
+        heifDimensions(Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0])),
+        isNull,
+      );
       expect(heifDimensions(Uint8List(0)), isNull);
       final full = fakeHeic();
       for (var n = 0; n < full.length; n += 3) {
@@ -120,10 +138,13 @@ void main() {
     tearDown(() => messenger.setMockMethodCallHandler(channel, null));
 
     test('getInitialShare 回傳 .heic 路徑不被過濾或改名', () async {
-      messenger.setMockMethodCallHandler(channel, (call) async => <Object?>[
-        '/var/mobile/Library/Caches/share_import/share_1_0.heic',
-        '/var/mobile/Library/Caches/share_import/share_1_1.jpg',
-      ]);
+      messenger.setMockMethodCallHandler(
+        channel,
+        (call) async => <Object?>[
+          '/var/mobile/Library/Caches/share_import/share_1_0.heic',
+          '/var/mobile/Library/Caches/share_import/share_1_1.jpg',
+        ],
+      );
       final r = await const ShareChannel().getInitialShare();
       expect(r.first, endsWith('share_1_0.heic'));
       expect(r, hasLength(2));
@@ -175,7 +196,10 @@ void main() {
     test('iOS：原生回 null＝剪貼簿沒有圖；不退回 pasteboard', () async {
       messenger.setMockMethodCallHandler(native, (call) async => null);
       mockPlugin(Uint8List.fromList([9, 9, 9]));
-      expect(await const PasteboardClipboardSource(isIOS: true).read(tmp), isNull);
+      expect(
+        await const PasteboardClipboardSource(isIOS: true).read(tmp),
+        isNull,
+      );
       expect(pluginCalls, 0);
     });
 
@@ -221,7 +245,9 @@ void main() {
     Future<void> fromNative(String method, Object? args) =>
         messenger.handlePlatformMessage(
           name,
-          const StandardMethodCodec().encodeMethodCall(MethodCall(method, args)),
+          const StandardMethodCodec().encodeMethodCall(
+            MethodCall(method, args),
+          ),
           (_) {},
         );
 

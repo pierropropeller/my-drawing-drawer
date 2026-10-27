@@ -209,6 +209,9 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
         : (groups.any((g) => g.id == widget.initialGroupId)
               ? widget.initialGroupId
               : (groups.isEmpty ? null : groups.first.id));
+    // 必填（圖、分組）沒填完：按鈕變灰（D-121 ①）。
+    final canSave =
+        groupId != null && (_editing ? _editItem != null : _files.isNotEmpty);
     final imageField = [
       AlbumFieldLabel(
         // 彈出頁（form sheet／page sheet）新增時標題帶張數：「圖片 · 2 張」。
@@ -257,9 +260,11 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
             ? context.l10n.commonSave
             : context.l10n.albumOfficialAdd,
         compactActionLabel: _editing ? null : context.l10n.shareAdd,
-        onAction: () {
-          if (!_saving && groupId != null) _save(groupId);
-        },
+        onAction: canSave
+            ? () {
+                if (!_saving) _save(groupId);
+              }
+            : null,
         panes: [
           ModalPane(width: 420, children: imageField),
           ModalPane(
@@ -294,7 +299,7 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
                 ? context.l10n.commonSave
                 : context.l10n.albumOfficialAdd,
             busy: _saving,
-            onTap: groupId == null ? null : () => _save(groupId),
+            onTap: canSave ? () => _save(groupId) : null,
           ),
         ],
       );

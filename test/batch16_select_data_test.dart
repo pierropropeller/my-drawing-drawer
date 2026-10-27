@@ -66,10 +66,10 @@ void main() {
         await db.setTags(target, a, [t1]);
 
         var cov = await db.tagCoverageFor(target, [a, b]);
-        expect({for (final e in cov) e.tag.name: e.coverage}, {
-          'A': TagCoverage.some,
-          'B': TagCoverage.none,
-        });
+        expect(
+          {for (final e in cov) e.tag.name: e.coverage},
+          {'A': TagCoverage.some, 'B': TagCoverage.none},
+        );
 
         final created = await db.applyBatchTagsFor(
           target,

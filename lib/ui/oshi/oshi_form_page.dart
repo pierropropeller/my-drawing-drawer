@@ -311,9 +311,11 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage>
         actionLabel: actionLabel,
         compactActionLabel: _isNew ? context.l10n.pitsCreate : null,
         loaded: _loaded,
-        onAction: () {
-          if (!_saving) _save(validIds);
-        },
+        onAction: _images.isEmpty
+            ? null
+            : () {
+                if (!_saving) _save(validIds);
+              },
         panes: [
           ModalPane(
             width: 440,
@@ -356,7 +358,10 @@ class _OshiFormPageState extends ConsumerState<OshiFormPage>
                           const SizedBox(height: 24),
                           FormSubmitButton(
                             label: actionLabel,
-                            onPressed: _saving ? null : () => _save(validIds),
+                            // 沒有圖：「建立」變灰（D-121 ①）。
+                            onPressed: _saving || _images.isEmpty
+                                ? null
+                                : () => _save(validIds),
                           ),
                         ],
                       ),

@@ -167,6 +167,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
   @override
   void initState() {
     super.initState();
+    _name.addListener(_onNameChanged);
     _countsLoaded; // 一進來就開始數各格內容
   }
 
@@ -178,7 +179,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
   }
 
   Future<void> _save() async {
-    if (!_form.currentState!.validate()) return;
+    if (!_form.currentState!.validate() || !_canSave) return;
     final desc = _desc.text.trim();
     final db = ref.read(databaseProvider);
     final pit = widget.pit;
@@ -264,8 +265,12 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
     });
   }
 
-  String? _validateName(String? v) =>
-      (v == null || v.trim().isEmpty) ? context.l10n.pitsNameRequired : null;
+  /// 坑名填了才能建立／儲存；沒填按鈕變灰，不另加提示（D-121 ①）。
+  bool get _canSave => _name.text.trim().isNotEmpty;
+
+  void _onNameChanged() {
+    if (mounted) setState(() {});
+  }
 
   Widget _coverSection(String? ownedCover) {
     final t = context.tokens;
@@ -618,7 +623,6 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                   controller: _name,
                   style: const TextStyle(fontSize: 15),
                   decoration: pitInputDecoration(context),
-                  validator: _validateName,
                 ),
                 const SizedBox(height: 18),
                 PitFieldLabel(l.pitsFieldDesc),
@@ -671,7 +675,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
       child: ModalFormFrame(
         title: context.l10n.pitsEditTitle,
         actionLabel: context.l10n.commonSave,
-        onAction: _save,
+        onAction: _canSave ? _save : null,
         expandBody: true,
         child: LayoutBuilder(
           builder: (context, c) {
@@ -747,7 +751,6 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                               controller: _name,
                               style: const TextStyle(fontSize: 15),
                               decoration: pitInputDecoration(context),
-                              validator: _validateName,
                             ),
                             const SizedBox(height: 16),
                             PitFieldLabel(context.l10n.pitsFieldDesc),
@@ -785,7 +788,7 @@ class _PitEditPageState extends ConsumerState<PitEditPage>
                             SizedBox(height: _shallow ? 0 : 22),
                             PitPrimaryButton(
                               label: context.l10n.commonSave,
-                              onPressed: _save,
+                              onPressed: _canSave ? _save : null,
                             ),
                             const SizedBox(height: 28),
                             const Spacer(),

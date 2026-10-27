@@ -212,11 +212,6 @@ class ThemePage extends ConsumerWidget {
                       ],
                     ],
                   ),
-                const SizedBox(height: 12),
-                Text(
-                  context.l10n.meThemeNote,
-                  style: TextStyle(fontSize: 12, color: t.text3, height: 1.5),
-                ),
               ],
             ),
           ),

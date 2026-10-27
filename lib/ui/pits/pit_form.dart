@@ -4,6 +4,7 @@ import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
+import '../common/adaptive_modal.dart' show disabledButtonBg, disabledButtonFg;
 
 /// 設計稿輸入框外框色 #E3D8C9（深色沿用 border token）。
 Color fieldBorderColor(BuildContext context) =>
@@ -108,7 +109,9 @@ class PitPrimaryButton extends StatelessWidget {
     required this.onPressed,
   });
   final String label;
-  final VoidCallback onPressed;
+
+  /// null＝坑名還沒填，按鈕變灰（D-121 ①）。
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +120,8 @@ class PitPrimaryButton extends StatelessWidget {
       child: FilledButton(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
+          disabledBackgroundColor: disabledButtonBg(context),
+          disabledForegroundColor: disabledButtonFg(context),
           padding: const EdgeInsets.symmetric(vertical: 15),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),

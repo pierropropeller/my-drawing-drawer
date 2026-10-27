@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
-import '../album/album_actions.dart' show showSnack;
 import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
 import 'drop_target_service.dart';
@@ -125,11 +124,8 @@ class _DropZoneState extends ConsumerState<DropZone> {
     if (!mounted) return;
     setState(() => _loading = null);
     final files = [for (final f in results) ?f];
-    final failed = total - files.length;
+    // 載入失敗／不支援的檔案靜默略過（D-121 ⑤）。
     if (files.isNotEmpty) widget.onFiles(files);
-    if (failed > 0 && mounted && ScaffoldMessenger.maybeOf(context) != null) {
-      showSnack(context, context.l10n.ipadmediaDropFailed(failed));
-    }
   }
 
   @override

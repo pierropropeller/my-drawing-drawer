@@ -413,7 +413,7 @@ void main() {
       expect(got!.map((f) => f.path), order.map((f) => f.path));
     });
 
-    testWidgets('檔案：回傳檔案 App 選到的檔；失敗提示並回傳空', (tester) async {
+    testWidgets('檔案：回傳檔案 App 選到的檔；失敗靜默回傳空', (tester) async {
       size(tester, 834, 1194);
       List<XFile>? got;
       final files = _FakeFiles([XFile('${tmp.path}/pick.png')]);
@@ -446,10 +446,11 @@ void main() {
       await tester.tap(find.byKey(const Key('media-source-files')));
       await settle(tester);
       expect(got, isEmpty);
-      expect(find.text('無法讀取所選檔案'), findsOneWidget);
+      // D-117 ①／D-121 ⑤：表單中途不出提示條，靜默略過。
+      expect(find.text('無法讀取所選檔案'), findsNothing);
     });
 
-    testWidgets('拍照：回傳照片；被拒絕提示無法開啟相機', (tester) async {
+    testWidgets('拍照：回傳照片；被拒絕靜默回傳空', (tester) async {
       size(tester, 834, 1194);
       List<XFile>? got;
       final cam = _FakeCamera(shot: XFile('${tmp.path}/pick.png'));
@@ -481,10 +482,11 @@ void main() {
       await tester.tap(find.byKey(const Key('media-source-camera')));
       await settle(tester);
       expect(got, isEmpty);
-      expect(find.text('無法開啟相機'), findsOneWidget);
+      // D-117 ①／D-121 ⑤：表單中途不出提示條，靜默略過。
+      expect(find.text('無法開啟相機'), findsNothing);
     });
 
-    testWidgets('貼上：有圖回傳；實際沒圖（不確定時）提示剪貼簿裡沒有圖片', (tester) async {
+    testWidgets('貼上：有圖回傳；實際沒圖（不確定時）靜默回傳空', (tester) async {
       size(tester, 834, 1194);
       List<XFile>? got;
       final clip = _FakeClipboard(
@@ -522,7 +524,8 @@ void main() {
       await tester.tap(find.byKey(const Key('media-source-paste')));
       await settle(tester);
       expect(got, isEmpty);
-      expect(find.text('剪貼簿裡沒有圖片'), findsOneWidget);
+      // D-117 ①／D-121 ⑤：表單中途不出提示條，靜默略過。
+      expect(find.text('剪貼簿裡沒有圖片'), findsNothing);
     });
 
     testWidgets('素材庫：依點選次序複製成暫存檔，保留副檔名', (tester) async {
@@ -755,7 +758,7 @@ void main() {
       expect(received.single.map((f) => f.name), ['a.png', 'b.png']);
     });
 
-    testWidgets('單項載入失敗（iCloud 下載不到）：其餘照常加入，提示 N 張無法載入', (tester) async {
+    testWidgets('單項載入失敗（iCloud 下載不到）：其餘照常加入，失敗的靜默略過', (tester) async {
       final received = <List<XFile>>[];
       final fake = await pumpZone(tester, received: received);
       fake.drop([
@@ -768,7 +771,8 @@ void main() {
       await tester.pump();
       expect(received, hasLength(1));
       expect(received.single, hasLength(1));
-      expect(find.text('2 張無法載入'), findsOneWidget);
+      // D-117 ①／D-121 ⑤：表單中途不出提示條，靜默略過。
+      expect(find.text('2 張無法載入'), findsNothing);
     });
 
     testWidgets('全部失敗：不呼叫 onFiles', (tester) async {
@@ -779,7 +783,8 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(received, isEmpty);
-      expect(find.text('1 張無法載入'), findsOneWidget);
+      // D-117 ①／D-121 ⑤：表單中途不出提示條，靜默略過。
+      expect(find.text('1 張無法載入'), findsNothing);
     });
 
     testWidgets('放在範圍外：忽略', (tester) async {

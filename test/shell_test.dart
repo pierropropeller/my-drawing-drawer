@@ -71,6 +71,7 @@ void main() {
     await tester.tap(find.text('開新坑'));
     await frames(tester);
     await tester.enterText(find.byType(TextFormField).first, '測試坑');
+    await tester.pump();
     await tester.tap(find.text('建立'));
     await settle(tester);
     await frames(tester);

@@ -354,6 +354,16 @@ class AdaptiveModalDialog extends StatelessWidget {
   }
 }
 
+/// 停用（必填未填）的按鈕：設計稿 `ConnectEmpty` 的 #E7DFD4 底／#B3A898 字；深色用 chip 底／text-4（D-121 ①）。
+Color disabledButtonBg(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+    ? context.tokens.chipBg
+    : const Color(0xFFE7DFD4);
+Color disabledButtonFg(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+    ? context.tokens.text4
+    : const Color(0xFFB3A898);
+
 /// modal 內的表單外框：標題列（取消／襯線標題／主動作）＋內容。
 ///
 /// - form sheet（≥600）：64 高標題列，主動作用 [actionLabel]（例：「加入官方圖冊」）。
@@ -377,7 +387,9 @@ class ModalFormFrame extends StatelessWidget {
   final String title;
   final String actionLabel;
   final String? compactActionLabel;
-  final VoidCallback onAction;
+
+  /// null＝必填還沒填完，按鈕變灰不能按（D-121 ①）。
+  final VoidCallback? onAction;
   final VoidCallback? onCancel;
   final Widget child;
   final bool expandBody;
@@ -421,6 +433,8 @@ class ModalFormFrame extends StatelessWidget {
           FilledButton(
             onPressed: onAction,
             style: FilledButton.styleFrom(
+              disabledBackgroundColor: disabledButtonBg(context),
+              disabledForegroundColor: disabledButtonFg(context),
               minimumSize: Size(44, sheet ? 36 : 40),
               padding: EdgeInsets.symmetric(horizontal: sheet ? 14 : 18),
               shape: RoundedRectangleBorder(

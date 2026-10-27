@@ -109,11 +109,7 @@ void main() {
     await tester.tapAt(cell(tester, 1));
     await settle(tester);
     expect(find.text('2 / 3'), findsOneWidget);
-    await tester.fling(
-      find.byType(PageView),
-      const Offset(-300, 0),
-      1500,
-    );
+    await tester.fling(find.byType(PageView), const Offset(-300, 0), 1500);
     await settle(tester);
     expect(find.text('3 / 3'), findsOneWidget);
     await tester.fling(find.byType(PageView), const Offset(300, 0), 1500);
@@ -144,11 +140,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
     expect(find.byType(FormImagePreviewPage), findsNothing);
-    expect([for (final i in items) i.picked!.path], [
-      paths[1],
-      paths[2],
-      paths[0],
-    ]);
+    expect(
+      [for (final i in items) i.picked!.path],
+      [paths[1], paths[2], paths[0]],
+    );
     tmp.deleteSync(recursive: true);
   });
 

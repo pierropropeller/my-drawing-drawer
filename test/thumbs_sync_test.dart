@@ -571,10 +571,7 @@ void main() {
     expect(storeA.hasPlaceholder('p1.png'), isTrue);
     expect(storeA.hasRealThumb('p1.png'), isFalse);
     expect(storeA.thumbFileFor('p1.png'), isNull);
-    expect(
-      storeA.placeholderFileFor('p1.png')!.path,
-      contains('placeholders'),
-    );
+    expect(storeA.placeholderFileFor('p1.png')!.path, contains('placeholders'));
     await storeA.saveThumb('p1.png', Uint8List.fromList([2]));
     expect(storeA.hasRealThumb('p1.png'), isTrue);
     expect(storeA.thumbFileFor('p1.png')!.path, contains('thumbs'));

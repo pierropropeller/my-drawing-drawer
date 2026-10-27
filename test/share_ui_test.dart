@@ -327,6 +327,7 @@ void main() {
     expect(find.byType(PitNewPage), findsOneWidget);
 
     await tester.enterText(find.byType(TextFormField).first, '新坑');
+    await tester.pump();
     await tester.tap(find.text(l10nStatic.pitsCreate));
     await settle(tester);
     expect(find.byType(PitNewPage), findsNothing);
@@ -371,6 +372,7 @@ void main() {
     // 就地新增 tag：新 tag 自動選上。
     await tapIn(tester, '新增');
     await tester.enterText(find.byType(TextField).last, '夏日');
+    await tester.pump();
     await tester.tap(find.text(l10nStatic.albumConfirm));
     await settle(tester);
     expect(inSheet(find.text('#夏日')), findsOneWidget);

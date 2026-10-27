@@ -243,7 +243,12 @@ void main() {
   group('DriveRemote 縮圖連結', () {
     test('resizeThumbnailLink 各種結尾都變成 =s32', () {
       const base = 'https://lh3.googleusercontent.com/abc';
-      for (final tail in ['=s220', '=s220-c', '=w220-h160', '=w220-h160-p-k-no']) {
+      for (final tail in [
+        '=s220',
+        '=s220-c',
+        '=w220-h160',
+        '=w220-h160-p-k-no',
+      ]) {
         expect(DriveRemote.resizeThumbnailLink('$base$tail'), '$base=s32');
       }
       expect(DriveRemote.resizeThumbnailLink(base), '$base=s32');

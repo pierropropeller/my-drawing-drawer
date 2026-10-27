@@ -461,6 +461,7 @@ void main() {
 
       await tester.enterText(find.byType(TextField).at(0), '  一週年展  ');
       await tester.enterText(find.byType(TextField).at(1), '排了兩小時隊');
+      await tester.pump();
       await tester.tap(find.text('遊戲截圖'));
       await tester.pump();
       await tester.ensureVisible(find.text('#夏日企劃'));
@@ -537,6 +538,7 @@ void main() {
       await tester.tap(find.text('新增').first);
       await tester.pump(const Duration(milliseconds: 300));
       await tester.enterText(find.byType(TextField).last, '週邊');
+      await tester.pump();
       await tester.tap(find.text('確定'));
       await settle(tester);
       expect(find.text('週邊'), findsOneWidget);
@@ -566,6 +568,7 @@ void main() {
       expect(find.text('舊標題'), findsOneWidget);
       expect(find.text('2026 / 10 / 05'), findsOneWidget);
       await tester.enterText(find.byType(TextField).at(0), '新標題');
+      await tester.pump();
       await tester.ensureVisible(find.text('線下照片'));
       await tester.tap(find.text('線下照片')); // 取消分組
       await tester.pump();

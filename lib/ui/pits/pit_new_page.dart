@@ -82,6 +82,12 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
   bool get _shallow => _status == PitStatus.shallow;
 
   @override
+  void initState() {
+    super.initState();
+    _name.addListener(_onNameChanged);
+  }
+
+  @override
   void dispose() {
     _name.dispose();
     _desc.dispose();
@@ -89,7 +95,7 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
   }
 
   Future<void> _save() async {
-    if (!_form.currentState!.validate()) return;
+    if (!_form.currentState!.validate() || !_canSave) return;
     final desc = _desc.text.trim();
     final id = await ref
         .read(databaseProvider)
@@ -110,8 +116,12 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
         : PitNewPage.pitWidth;
   }
 
-  String? _validateName(String? v) =>
-      (v == null || v.trim().isEmpty) ? context.l10n.pitsNameRequired : null;
+  /// 坑名填了才能建立／儲存；沒填按鈕變灰，不另加提示（D-121 ①）。
+  bool get _canSave => _name.text.trim().isNotEmpty;
+
+  void _onNameChanged() {
+    if (mounted) setState(() {});
+  }
 
   Widget _typeSegment() => PitTypeSegment(
     value: _status,
@@ -126,7 +136,6 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
     textInputAction: TextInputAction.next,
     style: const TextStyle(fontSize: 15),
     decoration: pitInputDecoration(context),
-    validator: _validateName,
   );
 
   Widget _descField(int minLines) => TextFormField(
@@ -215,7 +224,7 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
     return ModalFormFrame(
       title: context.l10n.pitsNewTitle,
       actionLabel: context.l10n.pitsCreate,
-      onAction: _save,
+      onAction: _canSave ? _save : null,
       child: Form(
         key: _form,
         child: LayoutBuilder(
@@ -264,7 +273,7 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
                     SizedBox(height: _shallow ? 0 : 16),
                     PitPrimaryButton(
                       label: context.l10n.pitsCreate,
-                      onPressed: _save,
+                      onPressed: _canSave ? _save : null,
                     ),
                   ],
                 ),

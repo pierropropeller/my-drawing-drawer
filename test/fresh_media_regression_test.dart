@@ -62,11 +62,10 @@ void main() {
       var fail = false;
       final seen = <int>[];
       final errors = <Object>[];
-      final sub =
-          watchAssembled<int>(db, {db.pits}, () async {
-            if (fail) throw StateError('boom');
-            return (await db.select(db.pits).get()).length;
-          }).listen(seen.add, onError: errors.add);
+      final sub = watchAssembled<int>(db, {db.pits}, () async {
+        if (fail) throw StateError('boom');
+        return (await db.select(db.pits).get()).length;
+      }).listen(seen.add, onError: errors.add);
       await Future<void>.delayed(const Duration(milliseconds: 50));
       fail = true;
       await db.createPit(name: 'a');

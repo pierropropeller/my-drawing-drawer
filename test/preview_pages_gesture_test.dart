@@ -129,12 +129,14 @@ void main() {
       expect(opacityOf(tester, find.text('分享')), 1);
       expect(opacityOf(tester, find.text('1 / 2')), 1);
       await tester.tapAt(center(tester));
+      await tester.pump(const Duration(milliseconds: 350)); // 等雙擊逾時（D-121）
       await settle(tester);
       expect(opacityOf(tester, find.text('分享')), 0);
       expect(opacityOf(tester, find.text('1 / 2')), 0);
       // 收起後只剩圖片：頁面還在。
       expect(find.byType(ImagePreviewPage), findsOneWidget);
       await tester.tapAt(center(tester));
+      await tester.pump(const Duration(milliseconds: 350)); // 等雙擊逾時（D-121）
       await settle(tester);
       expect(opacityOf(tester, find.text('分享')), 1);
       await unmount(tester);
@@ -198,6 +200,7 @@ void main() {
       ),
     );
     await tester.tapAt(center(tester));
+    await tester.pump(const Duration(milliseconds: 350)); // 等雙擊逾時（D-121）
     await settle(tester);
     expect(opacityOf(tester, find.text('1 / 2')), 0);
     await tester.dragFrom(center(tester), const Offset(0, -260));
@@ -216,9 +219,11 @@ void main() {
     );
     expect(opacityOf(tester, find.text('分享')), 1);
     await tester.tapAt(center(tester));
+    await tester.pump(const Duration(milliseconds: 350)); // 等雙擊逾時（D-121）
     await settle(tester);
     expect(opacityOf(tester, find.text('分享')), 0);
     await tester.tapAt(center(tester));
+    await tester.pump(const Duration(milliseconds: 350)); // 等雙擊逾時（D-121）
     await settle(tester);
     await tester.dragFrom(center(tester), const Offset(0, 260));
     await settle(tester);
@@ -245,6 +250,7 @@ void main() {
     final back = find.bySemanticsLabel('返回');
     expect(opacityOf(tester, find.text('1 / 1')), 1);
     await tester.tapAt(stage);
+    await tester.pump(const Duration(milliseconds: 350)); // 等雙擊逾時（D-121）
     await settle(tester);
     expect(opacityOf(tester, find.text('1 / 1')), 0);
     expect(
@@ -256,6 +262,7 @@ void main() {
       isTrue,
     ); // 收起時返回鍵不可點
     await tester.tapAt(stage);
+    await tester.pump(const Duration(milliseconds: 350)); // 等雙擊逾時（D-121）
     await settle(tester);
     expect(opacityOf(tester, find.text('1 / 1')), 1);
     // 未過門檻：彈回。

@@ -83,8 +83,16 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
   void initState() {
     super.initState();
     _images.addAll(widget.initialImages.map(ImageItem.picked));
+    _title.addListener(_onRequiredChanged);
     _load();
   }
+
+  void _onRequiredChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// 標題填了才能儲存；沒填「儲存」變灰，不另加提示（D-121 ①）。
+  bool get _canSave => _title.text.trim().isNotEmpty;
 
   Future<void> _load() async {
     final id = widget.ideaId;
@@ -111,7 +119,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
   }
 
   Future<void> _save() async {
-    if (!_form.currentState!.validate()) return;
+    if (!_form.currentState!.validate() || !_canSave) return;
     setState(() => _saving = true);
     final store = await ref.read(imageStoreProvider.future);
     final imgs = await resolveImages(store, _images);
@@ -157,9 +165,6 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
         controller: _title,
         style: const TextStyle(fontSize: 15),
         decoration: entityFieldDecoration(context, ''),
-        validator: (v) => (v == null || v.trim().isEmpty)
-            ? context.l10n.entityTitleRequired
-            : null,
       ),
     ];
     Widget bodyField(int minLines, int maxLines) => TextFormField(
@@ -238,9 +243,11 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
           actionLabel: actionLabel,
           compactActionLabel: isNew ? context.l10n.pitsCreate : null,
           loaded: _loaded,
-          onAction: () {
-            if (!_saving) _save();
-          },
+          onAction: _canSave
+              ? () {
+                  if (!_saving) _save();
+                }
+              : null,
           panes: [
             ModalPane(
               width: 460,
@@ -280,7 +287,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
                             const SizedBox(height: 24),
                             FormSubmitButton(
                               label: actionLabel,
-                              onPressed: _saving ? null : _save,
+                              onPressed: _saving || !_canSave ? null : _save,
                             ),
                           ],
                         ),

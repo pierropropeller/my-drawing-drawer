@@ -176,7 +176,9 @@ void main() {
     String label(String long, String short) =>
         mode == _Mode.sheet ? short : long;
     group(name, () {
-      setUp(() => debugTabletDeviceOverride = mode == _Mode.sheet ? true : null);
+      setUp(
+        () => debugTabletDeviceOverride = mode == _Mode.sheet ? true : null,
+      );
       tearDown(() => debugTabletDeviceOverride = null);
       tw('新增腦洞：存檔並關閉', (tester) async {
         final r = <Object?>[];
@@ -184,11 +186,12 @@ void main() {
         expectMode(mode);
         expect(find.text('新增腦洞'), findsOneWidget);
         expect(find.text(label('建立腦洞', '建立')), findsOneWidget);
-        // 沒填標題：不能存、不關閉
+        // 沒填標題：按鈕變灰不能按、不關閉（D-121 ①）
         await tester.tap(find.text(label('建立腦洞', '建立')));
         await settle(tester);
         expect(find.text('新增腦洞'), findsOneWidget);
         await tester.enterText(find.byType(TextFormField).first, '天台看煙花');
+        await tester.pump();
         await tester.tap(find.text(label('建立腦洞', '建立')));
         await settle(tester);
         expect(find.text('新增腦洞'), findsNothing);
@@ -225,6 +228,7 @@ void main() {
         );
         expectMode(mode);
         await tester.enterText(find.byType(TextField).first, '構圖');
+        await tester.pump();
         await tester.tap(find.text(label('建立摸魚', '建立')));
         await settleLong(tester);
         final rows = await tester.runAsync(() => db.select(db.drafts).get());
@@ -317,6 +321,7 @@ void main() {
         expectMode(mode);
         expect(find.text(modal ? '加收藏' : '新增同人圖'), findsOneWidget);
         await tester.enterText(find.byType(TextField).first, '@ka');
+        await tester.pump();
         await tester.tap(find.text(modal ? label('加入同人圖', '加入') : '加入好看同人圖'));
         await settleLong(tester);
         final rows = await tester.runAsync(() => db.select(db.fanArts).get());
@@ -335,6 +340,7 @@ void main() {
         );
         expectMode(mode);
         await tester.enterText(find.byType(TextField).first, '@ka2');
+        await tester.pump();
         await tester.tap(find.text('儲存'));
         await settle(tester);
         final rows2 = await tester.runAsync(() => db.select(db.fanArts).get());
@@ -435,6 +441,7 @@ void main() {
       expect(find.text('編輯腦洞'), findsOneWidget);
       expect(find.text('舊標題'), findsOneWidget);
       await tester.enterText(find.byType(TextFormField).first, '新標題');
+      await tester.pump();
       await tester.tap(find.text('儲存'));
       await settle(tester);
       final rows = await tester.runAsync(() => db.select(db.ideas).get());

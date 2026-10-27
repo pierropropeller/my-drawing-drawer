@@ -193,7 +193,9 @@ void main() {
   });
 
   group('開新坑', () {
-    testWidgets('iPad modal：開新坑、開新淺坑都沒有封面欄位（Molly 10/23：淺坑不要封面）', (tester) async {
+    testWidgets('iPad modal：開新坑、開新淺坑都沒有封面欄位（Molly 10/23：淺坑不要封面）', (
+      tester,
+    ) async {
       setView(tester, 1194, 834);
       await pump(tester, const PitNewPage(asModal: true));
       expect(find.byType(PitCoverPickTile), findsNothing);
@@ -206,6 +208,7 @@ void main() {
       await settle(tester);
       expect(find.byType(PitCoverPickTile), findsNothing);
       await tester.enterText(find.byKey(const ValueKey('pit-name')), '新淺坑');
+      await tester.pump();
       await tester.tap(find.text('建立'));
       await settle(tester);
       final shallow = await tester.runAsync(

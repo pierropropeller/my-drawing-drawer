@@ -9,6 +9,7 @@ import '../../state/sensitive.dart';
 import '../album/form_image_preview_page.dart';
 import '../album/image_picker_field.dart';
 import '../album/sensitive_form.dart';
+import '../common/adaptive_modal.dart' show disabledButtonBg, disabledButtonFg;
 import '../common/add_tile_content.dart';
 import '../common/app_icons.dart';
 import '../common/media_widgets.dart';
@@ -555,9 +556,9 @@ class FormSubmitButton extends StatelessWidget {
         onPressed: onPressed,
         style: FilledButton.styleFrom(
           backgroundColor: t.accent,
-          disabledBackgroundColor: t.accent.withValues(alpha: 0.5),
-          foregroundColor: Colors.white,
-          disabledForegroundColor: Colors.white,
+          // 必填未填（或儲存中）：變灰（D-121 ①）。
+          disabledBackgroundColor: disabledButtonBg(context),
+          disabledForegroundColor: disabledButtonFg(context),
           padding: const EdgeInsets.symmetric(vertical: 15),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(Radii.button),
@@ -570,6 +571,32 @@ class FormSubmitButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 欄位格式錯誤：欄位下方的紅字（D-121 ①）。必填未填不用它（改成按鈕變灰）。
+class FieldErrorText extends StatelessWidget {
+  const FieldErrorText(this.text, {super.key});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 6, left: 2),
+    child: Text(
+      text,
+      style: TextStyle(fontSize: 12.5, color: context.tokens.danger),
+    ),
+  );
+}
+
+/// 數字欄位：有填但不是數字（[integer]＝要整數且 ≥ 1）。空白不算錯。
+bool isBadNumberText(String text, {bool integer = false}) {
+  final v = text.trim();
+  if (v.isEmpty) return false;
+  if (integer) {
+    final n = int.tryParse(v);
+    return n == null || n < 1;
+  }
+  return double.tryParse(v) == null;
 }
 
 /// 虛線小膠囊「＋ 新增」（tag）／「＋ 選擇」（關聯欄尾端，傳 [label]）。

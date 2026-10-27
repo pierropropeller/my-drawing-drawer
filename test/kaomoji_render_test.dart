@@ -118,9 +118,8 @@ Future<Uint8List> _render(
     final dir = Platform.environment['KAOMOJI_PNG_DIR'];
     if (dir != null && tag.isNotEmpty) {
       final png = await img.toByteData(format: ui.ImageByteFormat.png);
-      File(
-        '$dir/${_pngCount++}_$tag.png',
-      ).writeAsBytesSync(png!.buffer.asUint8List());
+      File('$dir/${_pngCount++}_$tag.png')
+          .writeAsBytesSync(png!.buffer.asUint8List());
     }
   });
   return dark;

@@ -60,7 +60,9 @@ void main() {
     await tester.tap(find.text('官方圖冊'));
     await settle(tester);
     for (var round = 1; round <= 3; round++) {
-      await tester.tap(round == 1 ? find.text('加圖') : find.byType(FloatingActionButton));
+      await tester.tap(
+        round == 1 ? find.text('加圖') : find.byType(FloatingActionButton),
+      );
       await settle(tester);
       await tester.tap(find.text('加入官方圖冊'));
       await settle(tester);
@@ -69,7 +71,11 @@ void main() {
       expect(rows!.length, round);
       expect(find.byType(Image), findsNWidgets(round), reason: 'round $round');
       expect(find.byIcon(Icons.broken_image_outlined), findsNothing);
-      expect(find.byType(RawImage), findsNWidgets(round), reason: 'decoded $round');
+      expect(
+        find.byType(RawImage),
+        findsNWidgets(round),
+        reason: 'decoded $round',
+      );
     }
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));

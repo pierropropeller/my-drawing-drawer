@@ -12,8 +12,11 @@ const driveAppDataScope = 'https://www.googleapis.com/auth/drive.appdata';
 const googleServerClientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
 
 class AuthFailure implements Exception {
-  const AuthFailure(this.message);
+  const AuthFailure(this.message, {this.cancelled = false});
   final String message;
+
+  /// 使用者自己取消登入（不用提示）。
+  final bool cancelled;
   @override
   String toString() => message;
 }
@@ -62,7 +65,7 @@ class GoogleAccountService implements AccountService {
       return account.email;
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
-        throw AuthFailure(l10nStatic.syncCancelled);
+        throw AuthFailure(l10nStatic.syncCancelled, cancelled: true);
       }
       throw AuthFailure(
         l10nStatic.syncLinkFailed(e.description ?? e.code.name),

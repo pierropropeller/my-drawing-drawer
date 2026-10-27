@@ -37,6 +37,31 @@ class ImageItem extends ChangeNotifier {
   final XFile? picked;
   final NewImage? stored;
   bool _sensitive;
+  bool _failed = false;
+  int _attempt = 0;
+
+  /// 剛選的圖讀不出來（檔案壞了、權限被收回…）：縮圖紅框＋「!」，點擊重試或移除（D-121 ①）。
+  bool get failed => _failed;
+
+  /// 每重試一次加一（縮圖換 key 重新讀檔）。
+  int get attempt => _attempt;
+
+  void markFailed() {
+    if (_failed) return;
+    _failed = true;
+    notifyListeners();
+  }
+
+  void retry() {
+    final path = picked?.path;
+    if (path != null) {
+      // 清掉解碼失敗的快取，重新讀檔。
+      PaintingBinding.instance.imageCache.evict(FileImage(File(path)));
+    }
+    _failed = false;
+    _attempt++;
+    notifyListeners();
+  }
 
   /// 這張圖有沒有標為敏感（D-104）。
   bool get sensitive => _sensitive;
@@ -98,10 +123,82 @@ class ImageItemThumb extends ConsumerWidget {
       case MediaKind.image:
         return Image.file(
           File(path),
+          key: ValueKey(item.attempt),
           cacheWidth: cacheWidth,
           fit: BoxFit.cover,
+          errorBuilder: (context, _, _) {
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => item.markFailed(),
+            );
+            return const MediaPlaceholder();
+          },
         );
     }
+  }
+}
+
+/// 加圖失敗的縮圖外框：紅框＋中間「!」（D-121 ①）。
+class _FailedOverlay extends StatelessWidget {
+  const _FailedOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    final danger = context.tokens.danger;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: danger, width: 2),
+        borderRadius: BorderRadius.circular(Radii.image),
+      ),
+      child: Center(
+        child: Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(color: danger, shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: const Text(
+            '!',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 點失敗的縮圖：選「重試」或「移除」。
+Future<void> _askRetryOrRemove(
+  BuildContext context,
+  ImageItem item,
+  VoidCallback remove,
+) async {
+  final l = context.l10n;
+  final retry = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(
+            l.entityRemove,
+            style: TextStyle(color: ctx.tokens.danger),
+          ),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(l.commonRetry),
+        ),
+      ],
+      content: Text(l.formImageLoadFailed),
+    ),
+  );
+  if (retry == true) {
+    item.retry();
+  } else if (retry == false) {
+    remove();
   }
 }
 
@@ -173,76 +270,89 @@ class ImagePickerField extends ConsumerWidget {
       count: items.length,
       size: 84,
       onReorder: onReorder,
-      itemBuilder: (context, i, hide) => SizedBox(
-        width: 84,
-        height: 84,
-        child: Stack(
-          fit: StackFit.expand,
-          // 「×」按鈕超出縮圖右上角 6px（D-018、OfficialNew）。
-          clipBehavior: Clip.none,
-          children: [
-            // 點一下開全螢幕預覽（D-102）；長按仍是拖曳排序，× 在縮圖右上角另外接。
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: hide
-                  ? null
-                  : () => FormImagePreviewPage.open(
-                      context,
-                      items,
-                      i,
-                      canMark: marking,
-                    ),
-              child: Semantics(
-                button: true,
-                label: context.l10n.albumPreviewImage,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(Radii.image),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      ImageItemThumb(items[i], cacheWidth: 300),
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: FormSensitiveBadge(
-                            item: items[i],
-                            pitId: pitId,
-                          ),
-                        ),
+      itemBuilder: (context, i, hide) => ListenableBuilder(
+        listenable: items[i],
+        builder: (context, _) => SizedBox(
+          width: 84,
+          height: 84,
+          child: Stack(
+            fit: StackFit.expand,
+            // 「×」按鈕超出縮圖右上角 6px（D-018、OfficialNew）。
+            clipBehavior: Clip.none,
+            children: [
+              // 點一下開全螢幕預覽（D-102）；長按仍是拖曳排序，× 在縮圖右上角另外接。
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: hide
+                    ? null
+                    : items[i].failed
+                    ? () => _askRetryOrRemove(
+                        context,
+                        items[i],
+                        () => onRemove(i),
+                      )
+                    : () => FormImagePreviewPage.open(
+                        context,
+                        items,
+                        i,
+                        canMark: marking,
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            if (!hide)
-              Positioned(
-                top: -6,
-                right: -6,
                 child: Semantics(
                   button: true,
-                  label: context.l10n.albumRemoveImage,
-                  child: GestureDetector(
-                    onTap: () => onRemove(i),
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2B2622),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: t.ground, width: 2),
-                      ),
-                      alignment: Alignment.center,
-                      child: const SvgIcon(
-                        AppIcons.closeX,
-                        size: 11,
-                        color: Colors.white,
-                        strokeWidth: 3,
-                      ),
+                  label: context.l10n.albumPreviewImage,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(Radii.image),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ImageItemThumb(items[i], cacheWidth: 300),
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: FormSensitiveBadge(
+                              item: items[i],
+                              pitId: pitId,
+                            ),
+                          ),
+                        ),
+                        if (items[i].failed)
+                          const Positioned.fill(
+                            child: IgnorePointer(child: _FailedOverlay()),
+                          ),
+                      ],
                     ),
                   ),
                 ),
               ),
-          ],
+              if (!hide)
+                Positioned(
+                  top: -6,
+                  right: -6,
+                  child: Semantics(
+                    button: true,
+                    label: context.l10n.albumRemoveImage,
+                    child: GestureDetector(
+                      onTap: () => onRemove(i),
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2B2622),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: t.ground, width: 2),
+                        ),
+                        alignment: Alignment.center,
+                        child: const SvgIcon(
+                          AppIcons.closeX,
+                          size: 11,
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
       trailing: onAdd == null

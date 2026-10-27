@@ -145,9 +145,11 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
         title: context.l10n.ipadformsFanNewTitle,
         actionLabel: context.l10n.ipadformsFanAdd,
         compactActionLabel: context.l10n.shareAdd,
-        onAction: () {
-          if (!_saving) _save();
-        },
+        onAction: _files.isEmpty
+            ? null
+            : () {
+                if (!_saving) _save();
+              },
         panes: [
           ModalPane(width: 420, children: imageField),
           ModalPane(
@@ -167,7 +169,8 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
         AlbumSubmitButton(
           label: context.l10n.albumFanAdd,
           busy: _saving,
-          onTap: _save,
+          // 沒有圖：按鈕變灰（D-121 ①）。
+          onTap: _files.isEmpty ? null : _save,
         ),
       ],
     );

@@ -108,7 +108,9 @@ class ModalFormShell extends StatelessWidget {
   final String title;
   final String actionLabel;
   final String? compactActionLabel;
-  final VoidCallback onAction;
+
+  /// null＝必填還沒填完，按鈕變灰不能按（D-121 ①）。
+  final VoidCallback? onAction;
   final List<ModalPane> panes;
   final List<Widget> extraActions;
   final bool loaded;

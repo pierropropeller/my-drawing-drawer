@@ -24,7 +24,9 @@ void main() {
     await tester.runAsync(() async {
       final manifest = await rootBundle.loadString('FontManifest.json');
       expect(manifest, contains('"family":"DrawerSymbols"'));
-      final data = await rootBundle.load('assets/fonts/DrawerSymbols-Regular.ttf');
+      final data = await rootBundle.load(
+        'assets/fonts/DrawerSymbols-Regular.ttf',
+      );
       expect(data.lengthInBytes, greaterThan(100000));
     });
   });
@@ -73,10 +75,14 @@ void main() {
       }
 
       // Serif 標題也要有同樣 fallback。
-      expect(theme.textTheme.headlineSmall!.fontFamilyFallback,
-          kFontFamilyFallback);
       expect(
-          theme.textTheme.titleLarge!.fontFamilyFallback, kFontFamilyFallback);
+        theme.textTheme.headlineSmall!.fontFamilyFallback,
+        kFontFamilyFallback,
+      );
+      expect(
+        theme.textTheme.titleLarge!.fontFamilyFallback,
+        kFontFamilyFallback,
+      );
     });
   }
 }

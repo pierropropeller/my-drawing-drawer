@@ -91,7 +91,8 @@ void main() {
       return c;
     }
 
-    Future<void> pump() => Future<void>.delayed(const Duration(milliseconds: 10));
+    Future<void> pump() =>
+        Future<void>.delayed(const Duration(milliseconds: 10));
 
     test('冷啟動：getInitialShare 的那一批排進佇列，依序取出', () async {
       messenger.setMockMethodCallHandler(channel, (call) async {

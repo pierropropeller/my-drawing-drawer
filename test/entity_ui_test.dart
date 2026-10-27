@@ -355,6 +355,7 @@ void main() {
       final picked = DateTime(today().year, today().month, day);
       expect(find.text(fmtSlash(picked)), findsOneWidget);
       await tester.enterText(find.byType(TextFormField).first, '新腦洞');
+      await tester.pump();
       await tester.ensureVisible(find.text('建立腦洞'));
       await tester.tap(find.text('建立腦洞'));
       await settle(tester);
@@ -494,6 +495,7 @@ void main() {
       await show(tester, IdeaFormPage(pitId: pitId));
       expect(find.bySemanticsLabel('移除圖片'), findsNothing);
       await tester.enterText(find.byType(TextFormField).first, '新腦洞');
+      await tester.pump();
       await tester.ensureVisible(find.text('建立腦洞'));
       await tester.tap(find.text('建立腦洞'));
       await settle(tester);
@@ -517,6 +519,7 @@ void main() {
       expect(find.text('新增 tag'), findsNothing);
 
       await tester.enterText(find.byType(TextField), '角色3');
+      await tester.pump();
       await tester.tap(find.text('新增'));
       await settle(tester);
       expect(find.text('#角色3'), findsOneWidget);
@@ -535,6 +538,7 @@ void main() {
       await settle(tester);
       expect(find.byType(TextField), findsOneWidget); // 空白不新增，輸入框還在
       await tester.enterText(find.byType(TextField), '##暫存');
+      await tester.pump();
       await tester.tap(find.text('取消'));
       await settle(tester);
       expect(find.byType(TextField), findsNothing);
