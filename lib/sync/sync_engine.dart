@@ -8,6 +8,7 @@ import '../data/image_store.dart';
 import '../data/media.dart';
 import '../media/thumbnail_maker.dart';
 import '../data/profile_queries.dart';
+import '../data/trash_queries.dart' show kTrashPurgedAt;
 import 'remote.dart';
 import 'sync_kinds.dart';
 import 'sync_log.dart';
@@ -425,6 +426,7 @@ class SyncEngine {
       result.quotaFull = true; // D-103：Drive 已滿，格式標記下次再寫
     }
     result.transfers = tracker.items;
+    await _deletePurgedImages(files, check);
     await _backfillThumbs(files, referenced, result, tracker, check);
     await _ensureListThumbs(referenced, check);
     syncLog(
@@ -624,6 +626,99 @@ class SyncEngine {
       if (r.imageFile != null) needed.add(r.imageFile!);
     }
     return needed;
+  }
+
+  /// 最近刪除永久刪除（含過期）的項目：把它們的原圖、縮圖從雲端和本機刪掉（D-120）。
+  /// 只刪「已永久刪除的列引用、而且沒有任何還在（含最近刪除裡）的列引用」的檔案，
+  /// 同一個檔案還被別處用到就留著。
+  Future<void> _deletePurgedImages(
+    Map<String, RemoteFile> files,
+    void Function() check,
+  ) async {
+    final purgedMs = kTrashPurgedAt.millisecondsSinceEpoch + 86400000;
+    bool gone(DateTime? d) => d != null && d.millisecondsSinceEpoch <= purgedMs;
+    final live = <String>{};
+    final dead = <String>{};
+    void add(bool isGone, String? f, String? poster) {
+      for (final n in [f, poster]) {
+        if (n == null || n.isEmpty) continue;
+        (isGone ? dead : live).add(n);
+      }
+    }
+
+    for (final r in await db.select(db.officialImages).get()) {
+      add(gone(r.deletedAt), r.imageFile, r.posterFile);
+    }
+    for (final r in await db.select(db.fanArts).get()) {
+      add(gone(r.deletedAt), r.imageFile, r.posterFile);
+    }
+    for (final r in await db.select(db.junkImages).get()) {
+      add(gone(r.deletedAt), r.imageFile, r.posterFile);
+    }
+    for (final r in await db.select(db.materialImages).get()) {
+      add(gone(r.deletedAt), r.imageFile, r.posterFile);
+    }
+    final goneOwners = <OwnerType, Set<String>>{
+      OwnerType.idea: {
+        for (final r in await db.select(db.ideas).get())
+          if (gone(r.deletedAt)) r.id,
+      },
+      OwnerType.draft: {
+        for (final r in await db.select(db.drafts).get())
+          if (gone(r.deletedAt)) r.id,
+      },
+      OwnerType.piece: {
+        for (final r in await db.select(db.pieces).get())
+          if (gone(r.deletedAt)) r.id,
+      },
+      OwnerType.oshi: {
+        for (final r in await db.select(db.oshiRecords).get())
+          if (gone(r.deletedAt)) r.id,
+      },
+    };
+    for (final r in await db.select(db.entityImages).get()) {
+      final ownerGone = goneOwners[r.ownerType]!.contains(r.ownerId);
+      add(ownerGone || gone(r.deletedAt), r.imageFile, r.posterFile);
+    }
+    // 其他引用（頭像、坑封面、年度回顧圖）一律算還在用。
+    live.addAll(await _referencedNonTrashImages());
+    final todo = [
+      for (final n in dead)
+        if (!live.contains(n)) n,
+    ];
+    for (final n in todo) {
+      check();
+      try {
+        if (remote is DeletableRemote) {
+          for (final remoteName in [_imageName(n), thumbRemoteName(n)]) {
+            if (files.containsKey(remoteName)) {
+              await (remote as DeletableRemote).delete(remoteName);
+            }
+          }
+        }
+        await images.deleteAll(n);
+      } on SyncAuthException {
+        rethrow;
+      } catch (e) {
+        syncLog('sync: delete purged $n failed (${e.runtimeType})');
+      }
+    }
+    if (todo.isNotEmpty) syncLog('sync: deleted ${todo.length} purged images');
+  }
+
+  Future<Set<String>> _referencedNonTrashImages() async {
+    final out = <String>{};
+    final avatar = (await db.getProfile())?.avatarFile;
+    if (avatar != null && avatar.isNotEmpty) out.add(avatar);
+    for (final r in await db.select(db.pits).get()) {
+      final c = r.coverFile;
+      if (c != null && c.isNotEmpty) out.add(c);
+    }
+    for (final r in await db.select(db.yearReviewMonths).get()) {
+      final f = r.imageFile;
+      if (f != null && f.isNotEmpty) out.add(f);
+    }
+    return out;
   }
 
   /// 本機缺少、遠端有的圖片檔名（涵蓋剛拉下來的文件，也涵蓋先前中斷的同步）。

@@ -76,6 +76,12 @@ abstract class SyncRemote {
   });
 }
 
+/// 遠端能刪除檔案時實作（D-120：最近刪除過期／永久刪除後，連雲端的原圖和縮圖一起刪）。
+/// 獨立介面，舊的／測試用的遠端不必改；檔案不存在視為成功。
+abstract interface class DeletableRemote {
+  Future<void> delete(String name);
+}
+
 /// 遠端能提供「由雲端自己產生的縮圖」時實作（D-099 的舊資料備援）。
 /// 新增成獨立介面（而不是塞進 [SyncRemote]），舊的／測試用的遠端不必改。
 abstract interface class ThumbnailFallbackRemote {
@@ -134,7 +140,11 @@ abstract interface class StorageQuotaRemote {
 /// 測試可設 [progressSteps] > 0 模擬分段傳輸：每次傳輸分成這麼多段回報進度，
 /// 段與段之間等 [stepDelay]；[onTransfer] 在每次傳輸開始時呼叫（可用來暫停／觀察）。
 class MemoryRemote
-    implements SyncRemote, ThumbnailFallbackRemote, StorageQuotaRemote {
+    implements
+        SyncRemote,
+        ThumbnailFallbackRemote,
+        StorageQuotaRemote,
+        DeletableRemote {
   MemoryRemote({
     this.progressSteps = 0,
     this.stepDelay = Duration.zero,
@@ -200,6 +210,16 @@ class MemoryRemote
   Future<Uint8List?> fallbackThumbnail(String name) async {
     fallbackCalls++;
     return fallbackThumbs[name];
+  }
+
+  /// 測試用：被刪除過的檔名。
+  final List<String> deleted = [];
+
+  @override
+  Future<void> delete(String name) async {
+    files.remove(name);
+    _version.remove(name);
+    deleted.add(name);
   }
 
   @override

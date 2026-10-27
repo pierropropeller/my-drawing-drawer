@@ -3,7 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:flutter/painting.dart' show FileImage, ImageProvider, ResizeImage;
+import 'package:flutter/painting.dart'
+    show FileImage, ImageProvider, ResizeImage;
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -23,6 +24,22 @@ class ImageStore {
   Stream<String> get changes => _changes.stream;
 
   File fileOf(String name) => File(p.join(dir.path, name));
+
+  /// 刪掉本機的原圖、列表縮圖、占位圖（最近刪除永久刪除後釋放空間）；不存在就略過。
+  Future<void> deleteAll(String name) async {
+    for (final f in [
+      fileOf(name),
+      thumbFileOf(name),
+      placeholderFileOf(name),
+    ]) {
+      try {
+        if (f.existsSync()) await f.delete();
+      } catch (_) {}
+    }
+    _evict(fileOf(name));
+    _evict(thumbFileOf(name));
+    _evict(placeholderFileOf(name));
+  }
 
   /// 本機是否已有這個檔案（同步還沒下載完的圖是 false）。
   bool exists(String name) => fileOf(name).existsSync();

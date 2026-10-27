@@ -12,7 +12,11 @@ import '../l10n/l10n.dart';
 /// Google Drive 的 App 專用資料夾（appDataFolder，使用者在 Drive 看不到，
 /// scope 只要 `drive.appdata`）。直接呼叫 Drive REST v3。
 class DriveRemote
-    implements SyncRemote, ThumbnailFallbackRemote, StorageQuotaRemote {
+    implements
+        SyncRemote,
+        ThumbnailFallbackRemote,
+        StorageQuotaRemote,
+        DeletableRemote {
   DriveRemote({
     required this.headers,
     http.Client? client,
@@ -311,6 +315,21 @@ class DriveRemote
       syncLog('thumbnailLink fallback failed (${e.runtimeType})');
       return null;
     }
+  }
+
+  @override
+  Future<void> delete(String name) async {
+    final id = _ids[name];
+    if (id == null) return; // 這次 list 沒看到＝雲端本來就沒有
+    await _run('delete', () async {
+      final r = await _http
+          .delete(Uri.parse('$_api/$id'), headers: await _headers())
+          .timeout(requestTimeout);
+      if (r.statusCode == 404) return; // 已經不在了
+      await _check(r);
+    });
+    _ids.remove(name);
+    _thumbLinks.remove(name);
   }
 
   @override
