@@ -106,6 +106,55 @@ class _BottomInsetAnchorState extends State<BottomInsetAnchor> {
   Widget build(BuildContext context) => widget.child;
 }
 
+/// 登記「提示條該置中的區域」（P-053）：iPad 並排版提示條浮在右邊內容區底部置中，
+/// 不橫跨整個畫面、不蓋 rail／sidebar。登記了多塊（內容區、詳情面板）就取最窄的那塊。
+/// < 600 的手機版面不看區域，維持橫跨全寬（左右各 16）。
+class ToastRegion extends StatefulWidget {
+  const ToastRegion({super.key, required this.child});
+  final Widget child;
+
+  static final _regions = <_ToastRegionState>{};
+
+  /// 目前可見的最窄區域（螢幕座標）；沒有＝null。
+  static Rect? current() {
+    Rect? best;
+    for (final r in _regions) {
+      if (!r.mounted) continue;
+      final route = ModalRoute.of(r.context);
+      if (route != null && !route.isCurrent) continue;
+      final ro = r.context.findRenderObject();
+      if (ro is! RenderBox || !ro.attached || !ro.hasSize) continue;
+      final rect = ro.localToGlobal(Offset.zero) & ro.size;
+      if (rect.width <= 0) continue;
+      if (best == null || rect.width < best.width) best = rect;
+    }
+    return best;
+  }
+
+  @override
+  State<ToastRegion> createState() => _ToastRegionState();
+}
+
+class _ToastRegionState extends State<ToastRegion> {
+  @override
+  void initState() {
+    super.initState();
+    ToastRegion._regions.add(this);
+  }
+
+  @override
+  void dispose() {
+    ToastRegion._regions.remove(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// 並排版提示條最闊。
+const kToastWideMaxWidth = 480.0;
+
 /// 顯示一條提示條。[success]＝前面加勾，[offline]＝前面加離線雲。
 void showTopToast(
   BuildContext context,
@@ -329,12 +378,24 @@ class _ToastState extends State<_Toast> with SingleTickerProviderStateMixin {
           final k = mq.viewInsets.bottom + kToastAboveGap;
           if (k > bottom) bottom = k;
         }
+        // ≥600（P-053）：在登記的內容區裡置中，最闊 480；沒登記就用整個視窗。
+        var left = 0.0;
+        var right = 0.0;
+        var maxW = 560.0;
+        if (mq.size.width >= 600) {
+          maxW = kToastWideMaxWidth;
+          final region = ToastRegion.current();
+          if (region != null) {
+            left = region.left.clamp(0.0, mq.size.width);
+            right = (mq.size.width - region.right).clamp(0.0, mq.size.width);
+          }
+        }
         return Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 16, bottom),
+            padding: EdgeInsets.fromLTRB(left + 16, 0, right + 16, bottom),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
+              constraints: BoxConstraints(maxWidth: maxW),
               child: Opacity(
                 opacity: p,
                 child: Transform.translate(

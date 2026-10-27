@@ -155,8 +155,8 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
     );
   }
 
-  Future<void> _pickPit() async {
-    final ids = await showGoalPitSheet(context, selected: _pitIds);
+  Future<void> _pickPit(BuildContext anchorContext) async {
+    final ids = await showGoalPitSheet(anchorContext, selected: _pitIds);
     if (ids == null || !mounted) return;
     setState(() {
       _pitIds = ids;
@@ -363,10 +363,12 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
                 _dropStaleTags(_pitIds);
               }),
             ),
-          DashedAddChip(
-            semanticLabel: l.goalsPickPit,
-            label: l.commonSelect,
-            onTap: _pickPit,
+          Builder(
+            builder: (chipContext) => DashedAddChip(
+              semanticLabel: l.goalsPickPit,
+              label: l.commonSelect,
+              onTap: () => _pickPit(chipContext),
+            ),
           ),
         ],
       ),

@@ -102,4 +102,40 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));
   });
+
+  testWidgets('iPad：選擇坑開 popover（不是 sheet），有「不選＝所有坑」小字、可多選（P-047）', (
+    tester,
+  ) async {
+    await db.createPit(name: '坑A');
+    await db.createPit(name: '坑B');
+    tester.view.physicalSize = const Size(1194, 834);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [databaseProvider.overrideWithValue(db)],
+        child: const HuaKengApp(useGoogleFonts: false),
+      ),
+    );
+    await settle(tester);
+    await tester.tap(find.text('時間軸').last);
+    await settle(tester);
+    await tester.ensureVisible(find.text('新增目標').first);
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('新增目標').first);
+    await settle(tester);
+    await tester.tap(find.text('選擇').first);
+    await settle(tester);
+    expect(find.byKey(const ValueKey('goalPitPopover')), findsOneWidget);
+    expect(find.text('不選＝所有坑'), findsOneWidget);
+    await tester.tap(find.text('坑A'));
+    await tester.pump();
+    expect(find.text('完成（1）'), findsOneWidget);
+    await tester.tap(find.text('完成（1）'));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('goalPitPopover')), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 10));
+  });
 }

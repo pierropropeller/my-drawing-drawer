@@ -777,6 +777,7 @@
   "goalsKindDraft": "摸魚",
   "goalsKindPiece": "成圖",
   "goalsPickPit": "選擇坑",
+  "goalsPitAllHint": "不選＝所有坑",
   "goalsPitSheetDone": "完成（{count}）",
   "@goalsPitSheetDone": {
     "placeholders": {

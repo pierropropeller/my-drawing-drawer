@@ -2115,6 +2115,12 @@ abstract class AppLocalizations {
   /// **'選擇坑'**
   String get goalsPickPit;
 
+  /// No description provided for @goalsPitAllHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'不選＝所有坑'**
+  String get goalsPitAllHint;
+
   /// No description provided for @goalsPitSheetDone.
   ///
   /// In zh, this message translates to:

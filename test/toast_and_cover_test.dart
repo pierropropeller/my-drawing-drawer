@@ -21,6 +21,50 @@ import 'package:huakeng/ui/pits/pit_edit_page.dart';
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
+  testWidgets('P-053：iPad 並排版提示條在內容區底部置中、最闊 480、不蓋 rail', (tester) async {
+    tester.view.physicalSize = const Size(1194, 834);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildTheme(Brightness.light, useGoogleFonts: false),
+        home: Scaffold(
+          body: Row(
+            children: [
+              const SizedBox(width: 84),
+              Expanded(
+                child: ToastRegion(
+                  child: Builder(
+                    builder: (context) => Center(
+                      child: TextButton(
+                        onPressed: () =>
+                            showSnack(context, '已移到最近刪除', success: true),
+                        child: const Text('go'),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pump(const Duration(milliseconds: 400));
+    final r = tester.getRect(find.text('已移到最近刪除'));
+    expect(r.left, greaterThan(84));
+    final bar = tester.getRect(
+      find
+          .ancestor(of: find.text('已移到最近刪除'), matching: find.byType(Container))
+          .first,
+    );
+    expect(bar.width, lessThanOrEqualTo(480));
+    expect(bar.center.dx, closeTo((84 + 1194) / 2, 1));
+    hideTopToast();
+    await tester.pumpWidget(const SizedBox());
+  });
+
   group('D-114 提示條（Snackbar）', () {
     const screen = Size(390, 844);
     var undone = 0;
@@ -246,10 +290,9 @@ void main() {
       ];
       for (final f in forms) {
         // 唯一例外：刪除坑後「已移到最近刪除」（D-120 指定要有）。
-        final src = File(f).readAsStringSync().replaceAll(
-          'showSnack(context, context.l10n.trashMovedSnack)',
-          '',
-        );
+        final src = File(f)
+            .readAsStringSync()
+            .replaceAll('showSnack(context, context.l10n.trashMovedSnack)', '');
         expect(src.contains('showSnack('), isFalse, reason: f);
       }
     });

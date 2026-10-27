@@ -1,3 +1,5 @@
+import '../common/top_toast.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../theme/tokens.dart';
@@ -55,18 +57,20 @@ class SidePanelFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: color ?? t.surface,
-        border: Border(
-          top: BorderSide(color: t.border),
-          left: BorderSide(color: t.border),
-          right: BorderSide(color: t.border),
+    return ToastRegion(
+      child: Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          color: color ?? t.surface,
+          border: Border(
+            top: BorderSide(color: t.border),
+            left: BorderSide(color: t.border),
+            right: BorderSide(color: t.border),
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: child,
       ),
-      child: child,
     );
   }
 }

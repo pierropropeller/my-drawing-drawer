@@ -1146,6 +1146,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get goalsPickPit => '選擇坑';
 
   @override
+  String get goalsPitAllHint => '不選＝所有坑';
+
+  @override
   String goalsPitSheetDone(int count) {
     return '完成（$count）';
   }

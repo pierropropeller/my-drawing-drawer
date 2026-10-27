@@ -1,3 +1,5 @@
+import '../common/top_toast.dart';
+
 import 'package:flutter/material.dart';
 
 import '../common/nav_bar_hidden.dart';
@@ -92,7 +94,7 @@ class AdaptiveNavScaffold extends StatelessWidget {
                       builder: (context) => MediaQuery.removePadding(
                         context: context,
                         removeLeft: hasSide,
-                        child: body!,
+                        child: ToastRegion(child: body!),
                       ),
                     ),
                   ),
