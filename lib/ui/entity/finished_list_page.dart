@@ -55,7 +55,7 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
 
   static final _tagBackend = entityTagBackend(
     TagTarget.piece,
-    (l, n) => l.commonCountImages(n),
+    (l, n) => l.pitsCountPieces(n),
   );
 
   @override
@@ -140,6 +140,9 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
   /// 寬版右側詳情面板目前顯示的成圖（放在 State，拉窗不會丟）。
   String? _selectedId;
 
+  /// 開詳情時那個列表的次序（詳情頁左右滑換上／下篇，D-122）。
+  List<String>? _order;
+
   /// 新增：先打開相簿選圖，選好再進入新增頁。
   Future<void> _add() async {
     final picked = await ref.read(imagePickerProvider)(context);
@@ -162,7 +165,11 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
         final wfGap = compact ? 12.0 : 16.0;
         final nineCols = compact ? 3 : gridColumnsFor(inner, minCell: 120);
         final nineGap = 8.0;
-        void tap(PieceView v) => _open(v);
+        void tap(PieceView v) {
+          _order = [for (final x in views) x.piece.id];
+          _open(v);
+        }
+
         bool sel(PieceView v) => highlight && _selectedId == v.piece.id;
         final selecting = _sel.active;
         // 多選的狀態（長按＋拖曳連續多選用 index ＝ views 的順序）。
@@ -314,7 +321,14 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
 
   void _openDetail(PieceView v) => Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => PieceDetailPage(pieceId: v.piece.id, pitId: widget.pitId),
+      builder: (_) => PieceDetailPage(
+        pieceId: v.piece.id,
+        pitId: widget.pitId,
+        order: _order,
+        onShown: (id) {
+          if (mounted) setState(() => _selectedId = id);
+        },
+      ),
     ),
   );
 

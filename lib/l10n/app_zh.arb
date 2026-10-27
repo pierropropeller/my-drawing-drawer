@@ -19,6 +19,14 @@
   "pitsDrafts": "我的摸魚",
   "pitsIdeas": "我的腦洞",
   "pitsPieces": "我的成圖",
+  "pitsCountPieces": "{count} 份",
+  "@pitsCountPieces": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pitsCountDrafts": "{count} 份",
   "@pitsCountDrafts": {
     "placeholders": {
@@ -35,7 +43,7 @@
       }
     }
   },
-  "pitsPiecesEmpty": "還沒有成圖・開始你的第一張",
+  "pitsPiecesEmpty": "還沒有成圖・開始你的第一份",
   "pitsMyPits": "我的坑",
   "albumPillNoSource": "無出處",
   "pitsActive": "現坑",
@@ -576,7 +584,7 @@
       }
     }
   },
-  "entityConnectSelectedPiece": "已選 {count} 張",
+  "entityConnectSelectedPiece": "已選 {count} 份",
   "@entityConnectSelectedPiece": {
     "placeholders": {
       "count": {
@@ -814,7 +822,7 @@
       }
     }
   },
-  "goalsAutoNamePiece": "完成 {count} 張成圖",
+  "goalsAutoNamePiece": "完成 {count} 份成圖",
   "@goalsAutoNamePiece": {
     "placeholders": {
       "count": {
@@ -822,7 +830,7 @@
       }
     }
   },
-  "goalsAutoNamePieceLikes": "互動量過 {likes} 的成圖 {count} 張",
+  "goalsAutoNamePieceLikes": "互動量過 {likes} 的成圖 {count} 份",
   "@goalsAutoNamePieceLikes": {
     "placeholders": {
       "likes": {
@@ -860,7 +868,7 @@
       }
     }
   },
-  "goalsIncomeUnpaidCount": "未收齊 {count} 張",
+  "goalsIncomeUnpaidCount": "未收齊 {count} 份",
   "@goalsIncomeUnpaidCount": {
     "placeholders": {
       "count": {
@@ -884,7 +892,7 @@
       }
     }
   },
-  "goalsIncomeReceivedCount": "已收 {amount} · {count} 張",
+  "goalsIncomeReceivedCount": "已收 {amount} · {count} 份",
   "@goalsIncomeReceivedCount": {
     "placeholders": {
       "amount": {
@@ -947,7 +955,7 @@
   "ipadListsPreviewEmpty": "選擇一張圖片以預覽",
   "ipadListsIdeaEmpty": "選擇一個腦洞以查看詳情",
   "ipadListsDraftEmpty": "選擇一份摸魚以查看詳情",
-  "ipadListsPieceEmpty": "選擇一張成圖以查看詳情",
+  "ipadListsPieceEmpty": "選擇一份成圖以查看詳情",
   "ipadListsDraftUntitled": "未命名摸魚",
   "ipadListsDraftImageN": "第 {n} 張",
   "@ipadListsDraftImageN": {
@@ -1151,7 +1159,7 @@
       }
     }
   },
-  "moveReviewPieceCount": "{count} 張成圖",
+  "moveReviewPieceCount": "{count} 份成圖",
   "@moveReviewPieceCount": {
     "placeholders": {
       "count": {
@@ -1473,7 +1481,7 @@
   "pieceViewGrid": "田字",
   "pieceViewNine": "九宮格",
   "pieceDetailUpdateLikes": "更新實際互動量",
-  "pieceDetailDeleteTitle": "刪除這張成圖？",
+  "pieceDetailDeleteTitle": "刪除這份成圖？",
   "pieceDetailReached": "已達標 ✦",
   "pieceDetailActualLikes": "實際互動量 {count}",
   "@pieceDetailActualLikes": {
@@ -1510,7 +1518,7 @@
       }
     }
   },
-  "pieceDeleteSelectedTitle": "刪除 {count} 張成圖？",
+  "pieceDeleteSelectedTitle": "刪除 {count} 份成圖？",
   "@pieceDeleteSelectedTitle": {
     "placeholders": {
       "count": {
@@ -1636,7 +1644,7 @@
       }
     }
   },
-  "shallowCountPieces": "{count} 張成圖",
+  "shallowCountPieces": "{count} 份成圖",
   "@shallowCountPieces": {
     "placeholders": {
       "count": {

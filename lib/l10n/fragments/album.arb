@@ -18,6 +18,8 @@
   "pitsDrafts": "我的摸魚",
   "pitsIdeas": "我的腦洞",
   "pitsPieces": "我的成圖",
+  "pitsCountPieces": "{count} 份",
+  "@pitsCountPieces": { "placeholders": { "count": { "type": "int" } } },
   "pitsCountDrafts": "{count} 份",
   "@pitsCountDrafts": {
     "placeholders": {
@@ -34,7 +36,7 @@
       }
     }
   },
-  "pitsPiecesEmpty": "還沒有成圖・開始你的第一張",
+  "pitsPiecesEmpty": "還沒有成圖・開始你的第一份",
   "pitsMyPits": "我的坑",
   "albumPillNoSource": "無出處",
   "pitsActive": "現坑",

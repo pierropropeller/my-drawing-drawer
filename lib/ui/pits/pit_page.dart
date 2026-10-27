@@ -92,7 +92,7 @@ class PitPage extends ConsumerWidget {
         l.pitsPieces,
         stats.pieces == 0 ? AppIcons.pitPieceEmpty : AppIcons.image,
         t.piece,
-        l.commonCountImages(stats.pieces),
+        l.pitsCountPieces(stats.pieces),
         side: side,
         file: covers.piece,
         // 有成圖但還沒有封面檔：灰粉底＋淡色相框（PitFilled）。

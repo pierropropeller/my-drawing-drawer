@@ -462,7 +462,12 @@ class _EntryCard extends StatelessWidget {
                 child: (entry.imageFile == null && entry.media == null)
                     ? const ImagePlaceholder(iconSize: 22)
                     : entry.media != null
-                    ? MiniMediaThumb(entry.media!, cacheWidth: 300, inset: 5)
+                    ? MiniMediaThumb(
+                        entry.media!,
+                        cacheWidth: 300,
+                        inset: 5,
+                        bigBadge: true,
+                      )
                     : SensitiveGate(
                         file: entry.imageFile!,
                         child: StoredImage(entry.imageFile!, cacheWidth: 300),

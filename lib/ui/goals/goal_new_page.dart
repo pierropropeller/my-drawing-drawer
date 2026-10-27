@@ -257,6 +257,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
         label: _previewLabel,
         progress: 0,
         target: _count,
+        kind: _kind,
         pitName: pit?.name,
         tags: [
           for (final tag in pitTags)

@@ -281,7 +281,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('ConnectField：成圖種類用「張」，已選 chip 可移除', (tester) async {
+    testWidgets('ConnectField：成圖種類用「份」，已選 chip 可移除', (tester) async {
       final p = await newPiece('成圖甲');
       var selected = <String>[p];
       await show(
@@ -303,7 +303,7 @@ void main() {
       expect(selected, isEmpty);
       await tester.tap(find.text('選擇'));
       await settle(tester);
-      expect(find.text('已選 0 張'), findsOneWidget);
+      expect(find.text('已選 0 份'), findsOneWidget);
       await unmount(tester);
     });
   });
@@ -424,7 +424,7 @@ void main() {
       await tester.tap(find.text('選擇').last); // 第二顆＝關聯成圖
       await settle(tester);
       expect(find.text('選擇成圖'), findsWidgets);
-      expect(find.text('已選 0 張'), findsOneWidget);
+      expect(find.text('已選 0 份'), findsOneWidget);
       await tester.tap(find.text('成圖甲'));
       await settle(tester);
       await tester.tap(find.text('完成'));

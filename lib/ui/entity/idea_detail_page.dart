@@ -16,13 +16,24 @@ import 'draft_detail_page.dart';
 import 'entity_widgets.dart';
 import 'idea_form_page.dart';
 import 'piece_detail_page.dart';
+import 'post_swipe.dart';
 
 /// 腦洞詳情：關聯的草稿／成圖以正方形縮圖呈現，多圖右下角顯示張數。
 /// 詳情頁不能新增關聯（D-037）：沒有關聯時整段不顯示，要改關聯請進編輯頁。
 class IdeaDetailPage extends ConsumerStatefulWidget {
-  const IdeaDetailPage({super.key, required this.ideaId, required this.pitId});
+  const IdeaDetailPage({
+    super.key,
+    required this.ideaId,
+    required this.pitId,
+    this.order,
+    this.onShown,
+  });
   final String ideaId;
   final String pitId;
+
+  /// 上／下篇的次序（進來前那個列表的次序，D-122）；null＝只有這一篇。
+  final List<String>? order;
+  final ValueChanged<String>? onShown;
 
   @override
   ConsumerState<IdeaDetailPage> createState() => _IdeaDetailPageState();
@@ -30,185 +41,183 @@ class IdeaDetailPage extends ConsumerStatefulWidget {
 
 class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
     with HidesNavBar<IdeaDetailPage> {
-  String get ideaId => widget.ideaId;
   String get pitId => widget.pitId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      bottom: false,
+      child: PostSwipeView(
+        initialId: widget.ideaId,
+        order: widget.order,
+        onShown: widget.onShown,
+        header: _header,
+        body: (context, id) => _body(context, id),
+      ),
+    ),
+  );
+
+  Widget _header(BuildContext context, String id, VoidCallback afterDelete) {
     final t = context.tokens;
-    final v = ref.watch(ideaViewProvider(ideaId)).value;
-    if (v == null) return const Scaffold(body: SizedBox.shrink());
-    final drafts = ref.watch(draftViewsProvider(pitId)).value ?? const [];
-    final pieces =
-        ref.watch(pieceViewsProvider((pitId, null))).value ?? const [];
-    final myDrafts = drafts
-        .where((d) => v.draftIds.contains(d.draft.id))
-        .toList();
-    final myPieces = pieces
-        .where((p) => v.pieceIds.contains(p.piece.id))
-        .toList();
-    final body = t.ink.withValues(alpha: 0.82);
-    final hasImages = v.images.isNotEmpty;
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
+    final v = ref.watch(ideaViewProvider(id)).value;
+    return SubPageHeader(
+      // D-128：標題列不顯示頁面名稱，只留返回和右邊的按鈕。
+      title: '',
+      trailing: [
+        SensitiveSafeButton(
+          files: v == null ? const [] : flaggableFiles(v.images),
+        ),
+        HeaderIconButton(
+          icon: AppIcons.edit,
+          label: context.l10n.commonEdit,
+          onTap: () => openIdeaForm(context, pitId: pitId, ideaId: id),
+        ),
+        HeaderIconButton(
+          icon: AppIcons.trash,
+          label: context.l10n.commonDelete,
+          color: t.danger,
+          onTap: () async {
+            final ok = await confirmDelete(
+              context,
+              title: context.l10n.ideaDetailDeleteTitle,
+              toTrash: true,
+            );
+            if (!ok || !context.mounted) return;
+            await ref.read(databaseProvider).deleteIdeas([id]);
+            if (context.mounted) afterDelete();
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _body(BuildContext context, String id) => Consumer(
+    builder: (context, ref, _) {
+      final t = context.tokens;
+      final v = ref.watch(ideaViewProvider(id)).value;
+      if (v == null) return const SizedBox.shrink();
+      final drafts = ref.watch(draftViewsProvider(pitId)).value ?? const [];
+      final pieces =
+          ref.watch(pieceViewsProvider((pitId, null))).value ?? const [];
+      final myDrafts = drafts
+          .where((d) => v.draftIds.contains(d.draft.id))
+          .toList();
+      final myPieces = pieces
+          .where((p) => v.pieceIds.contains(p.piece.id))
+          .toList();
+      final body = t.ink.withValues(alpha: 0.82);
+      final hasImages = v.images.isNotEmpty;
+      return ContentWidth(
+        child: ListView(
+          // 有圖時圖片滿版放最上面（D-092，同摸魚詳情）；沒圖維持原樣。
+          padding: EdgeInsets.only(bottom: hasImages ? 32 : 24),
           children: [
-            SubPageHeader(
-              title: context.l10n.ideaDetailTitle,
-              titleSize: 20,
-              gap: 6,
-              trailing: [
-                SensitiveSafeButton(files: flaggableFiles(v.images)),
-                HeaderIconButton(
-                  icon: AppIcons.edit,
-                  label: context.l10n.commonEdit,
-                  onTap: () =>
-                      openIdeaForm(context, pitId: pitId, ideaId: ideaId),
-                ),
-                HeaderIconButton(
-                  icon: AppIcons.trash,
-                  label: context.l10n.commonDelete,
-                  color: t.danger,
-                  onTap: () async {
-                    final ok = await confirmDelete(
-                      context,
-                      title: context.l10n.ideaDetailDeleteTitle,
-                      toTrash: true,
-                    );
-                    if (!ok || !context.mounted) return;
-                    await ref.read(databaseProvider).deleteIdeas([ideaId]);
-                    if (context.mounted) Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            ),
-            Expanded(
-              child: ContentWidth(
-                child: ListView(
-                  // 有圖時圖片滿版放最上面（D-092，同摸魚詳情）；沒圖維持原樣。
-                  padding: EdgeInsets.only(bottom: hasImages ? 32 : 24),
-                  children: [
-                    if (hasImages) DetailImageStage(images: v.images),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        20,
-                        hasImages ? 16 : 6,
-                        20,
-                        0,
+            if (hasImages) DetailImageStage(images: v.images),
+            Padding(
+              padding: EdgeInsets.fromLTRB(20, hasImages ? 16 : 6, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          v.idea.title,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontSize: 23,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  v.idea.title,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall
-                                      ?.copyWith(
-                                        fontSize: 23,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              IdeaStatusChip(v, short: true, fontSize: 11),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            context.l10n.ideaDetailCreatedAt(
-                              fmtSlash(v.idea.date),
-                            ),
-                            style: TextStyle(color: t.text4, fontSize: 12),
-                          ),
-                          if (v.idea.body.isNotEmpty) ...[
-                            const SizedBox(height: 14),
-                            Text(
-                              v.idea.body,
-                              style: TextStyle(
-                                color: body,
-                                fontSize: 14.5,
-                                height: 1.75,
-                              ),
-                            ),
-                          ],
-                          if (v.tags.isNotEmpty) ...[
-                            const SizedBox(height: 14),
-                            TagPills(
-                              v.tags,
-                              large: true,
-                              onTagTap: (id) =>
-                                  openTagSearch(context, pitId, id),
-                            ),
-                          ],
-                          if (myDrafts.isNotEmpty)
-                            _Section(
-                              title: context.l10n.draftLinkedHeading,
-                              children: [
-                                for (final d in myDrafts)
-                                  Semantics(
-                                    button: true,
-                                    label: (d.draft.title ?? '').isEmpty
-                                        ? context.l10n.ideaDetailDraftLabel(
-                                            d.images.length,
-                                          )
-                                        : d.draft.title,
-                                    child: ThumbSquare(
-                                      images: d.images,
-                                      size: 80,
-                                      placeholder: t.draft.bg,
-                                      onTap: () => Navigator.of(context).push(
-                                        MaterialPageRoute<void>(
-                                          builder: (_) => DraftDetailPage(
-                                            draftId: d.draft.id,
-                                            pitId: pitId,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          if (myPieces.isNotEmpty)
-                            _Section(
-                              title: context.l10n.pieceLinkedHeading,
-                              children: [
-                                for (final p in myPieces)
-                                  Semantics(
-                                    button: true,
-                                    label: p.piece.title,
-                                    child: ThumbSquare(
-                                      images: p.images,
-                                      size: 80,
-                                      placeholder: t.piece.bg,
-                                      onTap: () => Navigator.of(context).push(
-                                        MaterialPageRoute<void>(
-                                          builder: (_) => PieceDetailPage(
-                                            pieceId: p.piece.id,
-                                            pitId: pitId,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                        ],
+                      const SizedBox(width: 10),
+                      IdeaStatusChip(v, short: true, fontSize: 11),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    context.l10n.ideaDetailCreatedAt(fmtSlash(v.idea.date)),
+                    style: TextStyle(color: t.text4, fontSize: 12),
+                  ),
+                  if (v.idea.body.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      v.idea.body,
+                      style: TextStyle(
+                        color: body,
+                        fontSize: 14.5,
+                        height: 1.75,
                       ),
                     ),
                   ],
-                ),
+                  if (v.tags.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    TagPills(
+                      v.tags,
+                      large: true,
+                      onTagTap: (id) => openTagSearch(context, pitId, id),
+                    ),
+                  ],
+                  if (myDrafts.isNotEmpty)
+                    _Section(
+                      title: context.l10n.draftLinkedHeading,
+                      children: [
+                        for (final d in myDrafts)
+                          Semantics(
+                            button: true,
+                            label: (d.draft.title ?? '').isEmpty
+                                ? context.l10n.ideaDetailDraftLabel(
+                                    d.images.length,
+                                  )
+                                : d.draft.title,
+                            child: ThumbSquare(
+                              images: d.images,
+                              size: 80,
+                              placeholder: t.draft.bg,
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => DraftDetailPage(
+                                    draftId: d.draft.id,
+                                    pitId: pitId,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  if (myPieces.isNotEmpty)
+                    _Section(
+                      title: context.l10n.pieceLinkedHeading,
+                      children: [
+                        for (final p in myPieces)
+                          Semantics(
+                            button: true,
+                            label: p.piece.title,
+                            child: ThumbSquare(
+                              images: p.images,
+                              size: 80,
+                              placeholder: t.piece.bg,
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => PieceDetailPage(
+                                    pieceId: p.piece.id,
+                                    pitId: pitId,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                ],
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
 }
 
 class _Section extends StatelessWidget {

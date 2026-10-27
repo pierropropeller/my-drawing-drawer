@@ -240,7 +240,7 @@ void main() {
     await settle(tester);
     expect(find.byType(ReviewPickSheet), findsOneWidget);
     expect(find.text('選擇 3 月的圖片'), findsOneWidget);
-    expect(find.text('3 張成圖'), findsOneWidget);
+    expect(find.text('3 份成圖'), findsOneWidget);
     String? selectedTitle() {
       for (final t in ['春天', '夏天', '秋天']) {
         final s = tester.widget<Semantics>(

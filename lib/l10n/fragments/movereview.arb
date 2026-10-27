@@ -15,7 +15,7 @@
       "month": { "type": "int" }
     }
   },
-  "moveReviewPieceCount": "{count} 張成圖",
+  "moveReviewPieceCount": "{count} 份成圖",
   "@moveReviewPieceCount": {
     "placeholders": {
       "count": { "type": "int" }

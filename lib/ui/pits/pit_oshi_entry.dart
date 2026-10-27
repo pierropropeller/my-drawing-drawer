@@ -17,13 +17,15 @@ void openOshiDetail(
   String pitId,
   String recordId, {
   bool inSearchFlow = false,
+  List<String>? order,
 }) {
   Navigator.of(context).push(
     MaterialPageRoute<void>(
       settings: inSearchFlow
           ? const RouteSettings(name: kSearchFlowRoute)
           : null,
-      builder: (_) => OshiDetailPage(pitId: pitId, recordId: recordId),
+      builder: (_) =>
+          OshiDetailPage(pitId: pitId, recordId: recordId, order: order),
     ),
   );
 }

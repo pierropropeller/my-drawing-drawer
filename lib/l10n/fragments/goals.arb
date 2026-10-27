@@ -123,7 +123,7 @@
       }
     }
   },
-  "goalsAutoNamePiece": "完成 {count} 張成圖",
+  "goalsAutoNamePiece": "完成 {count} 份成圖",
   "@goalsAutoNamePiece": {
     "placeholders": {
       "count": {
@@ -131,7 +131,7 @@
       }
     }
   },
-  "goalsAutoNamePieceLikes": "互動量過 {likes} 的成圖 {count} 張",
+  "goalsAutoNamePieceLikes": "互動量過 {likes} 的成圖 {count} 份",
   "@goalsAutoNamePieceLikes": {
     "placeholders": {
       "likes": {
@@ -169,7 +169,7 @@
       }
     }
   },
-  "goalsIncomeUnpaidCount": "未收齊 {count} 張",
+  "goalsIncomeUnpaidCount": "未收齊 {count} 份",
   "@goalsIncomeUnpaidCount": {
     "placeholders": {
       "count": {
@@ -193,7 +193,7 @@
       }
     }
   },
-  "goalsIncomeReceivedCount": "已收 {amount} · {count} 張",
+  "goalsIncomeReceivedCount": "已收 {amount} · {count} 份",
   "@goalsIncomeReceivedCount": {
     "placeholders": {
       "amount": {

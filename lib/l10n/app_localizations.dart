@@ -208,6 +208,12 @@ abstract class AppLocalizations {
   /// **'我的成圖'**
   String get pitsPieces;
 
+  /// No description provided for @pitsCountPieces.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 份'**
+  String pitsCountPieces(int count);
+
   /// No description provided for @pitsCountDrafts.
   ///
   /// In zh, this message translates to:
@@ -223,7 +229,7 @@ abstract class AppLocalizations {
   /// No description provided for @pitsPiecesEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'還沒有成圖・開始你的第一張'**
+  /// **'還沒有成圖・開始你的第一份'**
   String get pitsPiecesEmpty;
 
   /// No description provided for @pitsMyPits.
@@ -1470,7 +1476,7 @@ abstract class AppLocalizations {
   /// No description provided for @entityConnectSelectedPiece.
   ///
   /// In zh, this message translates to:
-  /// **'已選 {count} 張'**
+  /// **'已選 {count} 份'**
   String entityConnectSelectedPiece(int count);
 
   /// No description provided for @entityConnectEmpty.
@@ -2256,13 +2262,13 @@ abstract class AppLocalizations {
   /// No description provided for @goalsAutoNamePiece.
   ///
   /// In zh, this message translates to:
-  /// **'完成 {count} 張成圖'**
+  /// **'完成 {count} 份成圖'**
   String goalsAutoNamePiece(int count);
 
   /// No description provided for @goalsAutoNamePieceLikes.
   ///
   /// In zh, this message translates to:
-  /// **'互動量過 {likes} 的成圖 {count} 張'**
+  /// **'互動量過 {likes} 的成圖 {count} 份'**
   String goalsAutoNamePieceLikes(int likes, int count);
 
   /// No description provided for @goalsEnterLikes.
@@ -2388,7 +2394,7 @@ abstract class AppLocalizations {
   /// No description provided for @goalsIncomeUnpaidCount.
   ///
   /// In zh, this message translates to:
-  /// **'未收齊 {count} 張'**
+  /// **'未收齊 {count} 份'**
   String goalsIncomeUnpaidCount(int count);
 
   /// No description provided for @goalsIncomeOwing.
@@ -2406,7 +2412,7 @@ abstract class AppLocalizations {
   /// No description provided for @goalsIncomeReceivedCount.
   ///
   /// In zh, this message translates to:
-  /// **'已收 {amount} · {count} 張'**
+  /// **'已收 {amount} · {count} 份'**
   String goalsIncomeReceivedCount(String amount, int count);
 
   /// No description provided for @goalsIncomeUnpaid.
@@ -2520,7 +2526,7 @@ abstract class AppLocalizations {
   /// No description provided for @ipadListsPieceEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'選擇一張成圖以查看詳情'**
+  /// **'選擇一份成圖以查看詳情'**
   String get ipadListsPieceEmpty;
 
   /// No description provided for @ipadListsDraftUntitled.
@@ -3102,7 +3108,7 @@ abstract class AppLocalizations {
   /// No description provided for @moveReviewPieceCount.
   ///
   /// In zh, this message translates to:
-  /// **'{count} 張成圖'**
+  /// **'{count} 份成圖'**
   String moveReviewPieceCount(int count);
 
   /// No description provided for @officialtagEditTitle.
@@ -3762,7 +3768,7 @@ abstract class AppLocalizations {
   /// No description provided for @pieceDetailDeleteTitle.
   ///
   /// In zh, this message translates to:
-  /// **'刪除這張成圖？'**
+  /// **'刪除這份成圖？'**
   String get pieceDetailDeleteTitle;
 
   /// No description provided for @pieceDetailReached.
@@ -3816,7 +3822,7 @@ abstract class AppLocalizations {
   /// No description provided for @pieceDeleteSelectedTitle.
   ///
   /// In zh, this message translates to:
-  /// **'刪除 {count} 張成圖？'**
+  /// **'刪除 {count} 份成圖？'**
   String pieceDeleteSelectedTitle(int count);
 
   /// No description provided for @personalizeTitle.
@@ -4056,7 +4062,7 @@ abstract class AppLocalizations {
   /// No description provided for @shallowCountPieces.
   ///
   /// In zh, this message translates to:
-  /// **'{count} 張成圖'**
+  /// **'{count} 份成圖'**
   String shallowCountPieces(int count);
 
   /// No description provided for @shallowCountOshi.

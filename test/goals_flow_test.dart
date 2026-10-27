@@ -47,8 +47,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('建立目標'));
     await settle(tester);
-    expect(find.text('完成 1 張成圖'), findsOneWidget);
-    expect(find.text('0 / 1'), findsOneWidget);
+    expect(find.text('完成 1 份成圖'), findsOneWidget);
+    expect(find.text('0 / 1 成圖'), findsOneWidget);
 
     await tester.tap(find.text('月'));
     await settle(tester);

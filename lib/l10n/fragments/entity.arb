@@ -17,7 +17,7 @@
   "@entityConnectSelectedIdea": { "placeholders": { "count": { "type": "int" } } },
   "entityConnectSelectedDraft": "已選 {count} 份",
   "@entityConnectSelectedDraft": { "placeholders": { "count": { "type": "int" } } },
-  "entityConnectSelectedPiece": "已選 {count} 張",
+  "entityConnectSelectedPiece": "已選 {count} 份",
   "@entityConnectSelectedPiece": { "placeholders": { "count": { "type": "int" } } },
   "entityConnectEmpty": "沒有可選擇的項目",
 

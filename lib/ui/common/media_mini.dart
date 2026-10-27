@@ -22,7 +22,11 @@ class MiniMediaThumb extends StatelessWidget {
     this.protectSensitive = true,
     this.sensitiveCircle,
     this.sensitiveBadge = true,
+    this.bigBadge = false,
   });
+
+  /// 76px 縮圖（推活／日頁時間軸，D-126）：小標用 20px（影片＝圓形＋三角、不顯示時長；GIF 10.5px 字）。
+  final bool bigBadge;
 
   /// 見 [MediaThumb.sensitiveCircle]。
   final double? sensitiveCircle;
@@ -54,7 +58,9 @@ class MiniMediaThumb extends StatelessWidget {
       sensitiveCircle: sensitiveCircle,
       sensitiveBadge: sensitiveBadge,
     );
-    final Widget? badge = media.isGif
+    final Widget? badge = bigBadge
+        ? _bigBadge(context)
+        : media.isGif
         ? _pill(
             Text(
               context.l10n.mediaBadgeGif,
@@ -97,6 +103,46 @@ class MiniMediaThumb extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  Widget? _bigBadge(BuildContext context) {
+    if (media.isGif) {
+      return Container(
+        key: const ValueKey('miniBadgeGif'),
+        height: 20,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: mediaBadgeColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          context.l10n.mediaBadgeGif,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.42,
+            height: 1.1,
+          ),
+        ),
+      );
+    }
+    if (media.isVideo) {
+      return Container(
+        key: const ValueKey('miniBadgeVideo'),
+        width: 20,
+        height: 20,
+        padding: const EdgeInsets.only(left: 2),
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          color: mediaBadgeColor,
+          shape: BoxShape.circle,
+        ),
+        child: const MediaGlyph(MediaIcons.playSmall, width: 8, height: 9),
+      );
+    }
+    return null;
   }
 
   Widget _pill(Widget child, Key key) => Container(

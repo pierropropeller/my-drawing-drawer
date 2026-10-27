@@ -502,7 +502,7 @@ void main() {
     expect(find.byType(PitSearchResultPage), findsNothing);
     await tester.tap(find.byTooltip('刪除'));
     await settle(tester);
-    expect(find.text('刪除這張成圖？'), findsOneWidget);
+    expect(find.text('刪除這份成圖？'), findsOneWidget);
     await tester.tap(find.text('取消'));
     await settle(tester);
     await unmount(tester);

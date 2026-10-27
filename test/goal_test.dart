@@ -58,10 +58,10 @@ void main() {
     );
     expect(goalDisplayName(l10nStatic, g(GoalKind.idea)), '生產 12 個腦洞');
     expect(goalDisplayName(l10nStatic, g(GoalKind.draft)), '畫 12 份摸魚');
-    expect(goalDisplayName(l10nStatic, g(GoalKind.piece)), '完成 12 張成圖');
+    expect(goalDisplayName(l10nStatic, g(GoalKind.piece)), '完成 12 份成圖');
     expect(
       goalDisplayName(l10nStatic, g(GoalKind.piece, likes: 500)),
-      '互動量過 500 的成圖 12 張',
+      '互動量過 500 的成圖 12 份',
     );
     expect(
       goalDisplayName(l10nStatic, g(GoalKind.piece, name: '夏日企劃')),

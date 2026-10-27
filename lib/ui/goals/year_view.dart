@@ -310,7 +310,7 @@ class _IncomeCard extends StatelessWidget {
                 ),
               ),
               Text(
-                context.l10n.commonCountImages(count),
+                context.l10n.pitsCountPieces(count),
                 style: TextStyle(fontSize: 12.5, color: t.text4),
               ),
               SvgIcon(

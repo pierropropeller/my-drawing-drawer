@@ -122,7 +122,7 @@ class PitRow extends ConsumerWidget {
             PitSectionKey.fan => l.commonCountImages(stats.fanArts),
             PitSectionKey.idea => l.pitsCountIdeas(stats.ideas),
             PitSectionKey.draft => l.pitsCountDrafts(stats.drafts),
-            PitSectionKey.piece => l.commonCountImages(stats.pieces),
+            PitSectionKey.piece => l.pitsCountPieces(stats.pieces),
             PitSectionKey.oshi => l.pitsCellOshiCount(stats.oshi),
             PitSectionKey.junk => l.commonCountImages(stats.junk),
           }),

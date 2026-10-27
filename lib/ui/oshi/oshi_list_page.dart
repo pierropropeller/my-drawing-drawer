@@ -180,10 +180,16 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
     if (mounted) _sel.exit();
   }
 
+  /// 目前顯示的時間軸／網格次序（詳情頁左右滑換上／下篇，D-122）。
+  List<String> _order = const [];
+
   void _open(OshiRecordView v) => Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) =>
-          OshiDetailPage(pitId: widget.pitId, recordId: v.record.id),
+      builder: (_) => OshiDetailPage(
+        pitId: widget.pitId,
+        recordId: v.record.id,
+        order: _order,
+      ),
     ),
   );
 
@@ -459,7 +465,8 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
     final title = pitName == null
         ? context.l10n.oshiTitle
         : context.l10n.albumTitleWithPit(pitName, context.l10n.oshiTitle);
-    _sel.updateOrder([for (final v in views) v.record.id]);
+    _order = [for (final v in views) v.record.id];
+    _sel.updateOrder(_order);
     final selecting = _sel.active;
     final order = <String?>[
       null,

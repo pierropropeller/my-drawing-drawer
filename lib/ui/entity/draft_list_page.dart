@@ -218,11 +218,22 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
     await openDraftForm(context, pitId: widget.pitId, initialImages: picked);
   }
 
+  /// 列表目前的次序（詳情頁左右滑換上／下篇，D-122）。
+  List<String> _order = const [];
+
   /// 開詳情頁（手機／600–839，或由寬變窄時停在詳情）。
   void _pushDetail(String id) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => PopWhenWide(
-        child: DraftDetailPage(draftId: id, pitId: widget.pitId),
+        child: DraftDetailPage(
+          draftId: id,
+          pitId: widget.pitId,
+          order: _order,
+          // 記住最後看的那一篇（拉寬後右邊顯示它）。
+          onShown: (id) {
+            if (mounted) setState(() => selectedId = id);
+          },
+        ),
       ),
     ),
   );
@@ -294,7 +305,8 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
     final ideaTitle = {for (final i in ideas) i.idea.id: i.idea.title};
     final wide = WindowClass.of(context).isWide;
     syncMasterDetail(wide, _pushDetail);
-    _sel.updateOrder([for (final v in views) v.draft.id]);
+    _order = [for (final v in views) v.draft.id];
+    _sel.updateOrder(_order);
     final selecting = _sel.active;
     setNavBarHidden(selecting);
     final picked = _picked(views);

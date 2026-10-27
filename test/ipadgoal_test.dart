@@ -217,7 +217,7 @@ void main() {
       await tester.tap(find.text('建立目標'));
       await settle(tester);
       expect(find.byType(AdaptiveModalDialog), findsNothing);
-      expect(find.text('完成 1 張成圖'), findsOneWidget);
+      expect(find.text('完成 1 份成圖'), findsOneWidget);
       await unmount(tester);
     });
 

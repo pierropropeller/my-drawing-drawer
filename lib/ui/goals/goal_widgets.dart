@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/database.dart';
 import '../../data/goal_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
@@ -9,6 +10,13 @@ import 'goal_name.dart';
 import 'pit_pill.dart';
 
 String kindLabel(String kind) => kind;
+
+/// 目標類型的名稱（腦洞／摸魚／成圖）。
+String goalKindLabel(AppLocalizations l, GoalKind k) => switch (k) {
+  GoalKind.idea => l.goalsKindIdea,
+  GoalKind.draft => l.goalsKindDraft,
+  GoalKind.piece => l.goalsKindPiece,
+};
 
 /// 目標卡片（GoalYear／Month）：名稱 14.5/600、右側 完成數（主色 15/700）/ 目標數，
 /// 8px 進度條；坑是白色 pill（前面放資料夾 icon），tag 每個獨立一顆灰色 pill。
@@ -23,6 +31,7 @@ class GoalCard extends StatelessWidget {
       label: goalDisplayName(context.l10n, view.goal),
       progress: view.progress,
       target: view.target,
+      kind: view.goal.kind,
       onTap: onTap,
       pitName: view.pit?.name,
       tags: [for (final tag in view.tags) '#${tag.name}'],
@@ -37,6 +46,7 @@ class GoalCardBody extends StatelessWidget {
     required this.label,
     required this.progress,
     required this.target,
+    required this.kind,
     this.onTap,
     this.pitName,
     this.tags = const [],
@@ -44,6 +54,9 @@ class GoalCardBody extends StatelessWidget {
   final String label;
   final int progress;
   final int target;
+
+  /// 目標類型：數字後面加上「腦洞」「成圖」「摸魚」（D-123）。
+  final GoalKind kind;
   final VoidCallback? onTap;
   final String? pitName;
   final List<String> tags;
@@ -90,7 +103,7 @@ class GoalCardBody extends StatelessWidget {
                     ),
                     children: [
                       TextSpan(
-                        text: ' / $target',
+                        text: ' / $target ${goalKindLabel(context.l10n, kind)}',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,

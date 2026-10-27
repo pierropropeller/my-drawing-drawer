@@ -89,16 +89,28 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
   void _openNew() => openIdeaForm(context, pitId: widget.pitId);
 
   /// 並排時：選中該項（右側顯示詳情）；否則開詳情頁（並記住它，之後拉寬可還原）。
-  void _tapItem(String id, bool wide) {
+  void _tapItem(String id, bool wide, List<String> order) {
     setState(() => selectedId = id);
+    _order = order;
     if (!wide) _pushDetail(id);
   }
+
+  /// 開詳情時那個列表的次序（詳情頁左右滑換上／下篇，D-122）。
+  List<String>? _order;
 
   /// 開詳情頁（手機／600–839，或由寬變窄時停在詳情）。
   void _pushDetail(String id) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => PopWhenWide(
-        child: IdeaDetailPage(ideaId: id, pitId: widget.pitId),
+        child: IdeaDetailPage(
+          ideaId: id,
+          pitId: widget.pitId,
+          order: _order,
+          // 記住最後看的那一篇（拉寬後右邊顯示它）。
+          onShown: (id) {
+            if (mounted) setState(() => selectedId = id);
+          },
+        ),
       ),
     ),
   );
@@ -226,7 +238,9 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                 if (!_selecting) {
                   return GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => _tapItem(v.idea.id, wide),
+                    onTap: () => _tapItem(v.idea.id, wide, [
+                      for (final x in views) x.idea.id,
+                    ]),
                     onLongPress: () {
                       setNavBarHidden(true);
                       setState(() {

@@ -524,7 +524,7 @@ void main() {
 
       await tester.tap(bar('entitySelectTag'));
       await settle(tester);
-      expect(find.text('2 張'), findsOneWidget);
+      expect(find.text('2 份'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('batchTag-角色1-none')));
       await tester.pump();
       await tester.tap(find.text('完成'));

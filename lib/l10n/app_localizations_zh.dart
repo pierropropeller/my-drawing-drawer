@@ -67,6 +67,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pitsPieces => '我的成圖';
 
   @override
+  String pitsCountPieces(int count) {
+    return '$count 份';
+  }
+
+  @override
   String pitsCountDrafts(int count) {
     return '$count 份';
   }
@@ -77,7 +82,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get pitsPiecesEmpty => '還沒有成圖・開始你的第一張';
+  String get pitsPiecesEmpty => '還沒有成圖・開始你的第一份';
 
   @override
   String get pitsMyPits => '我的坑';
@@ -784,7 +789,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String entityConnectSelectedPiece(int count) {
-    return '已選 $count 張';
+    return '已選 $count 份';
   }
 
   @override
@@ -1220,12 +1225,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String goalsAutoNamePiece(int count) {
-    return '完成 $count 張成圖';
+    return '完成 $count 份成圖';
   }
 
   @override
   String goalsAutoNamePieceLikes(int likes, int count) {
-    return '互動量過 $likes 的成圖 $count 張';
+    return '互動量過 $likes 的成圖 $count 份';
   }
 
   @override
@@ -1292,7 +1297,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String goalsIncomeUnpaidCount(int count) {
-    return '未收齊 $count 張';
+    return '未收齊 $count 份';
   }
 
   @override
@@ -1307,7 +1312,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String goalsIncomeReceivedCount(String amount, int count) {
-    return '已收 $amount · $count 張';
+    return '已收 $amount · $count 份';
   }
 
   @override
@@ -1385,7 +1390,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ipadListsDraftEmpty => '選擇一份摸魚以查看詳情';
 
   @override
-  String get ipadListsPieceEmpty => '選擇一張成圖以查看詳情';
+  String get ipadListsPieceEmpty => '選擇一份成圖以查看詳情';
 
   @override
   String get ipadListsDraftUntitled => '未命名摸魚';
@@ -1705,7 +1710,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String moveReviewPieceCount(int count) {
-    return '$count 張成圖';
+    return '$count 份成圖';
   }
 
   @override
@@ -2086,7 +2091,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pieceDetailUpdateLikes => '更新實際互動量';
 
   @override
-  String get pieceDetailDeleteTitle => '刪除這張成圖？';
+  String get pieceDetailDeleteTitle => '刪除這份成圖？';
 
   @override
   String get pieceDetailReached => '已達標 ✦';
@@ -2122,7 +2127,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String pieceDeleteSelectedTitle(int count) {
-    return '刪除 $count 張成圖？';
+    return '刪除 $count 份成圖？';
   }
 
   @override
@@ -2264,7 +2269,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String shallowCountPieces(int count) {
-    return '$count 張成圖';
+    return '$count 份成圖';
   }
 
   @override

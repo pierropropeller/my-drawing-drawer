@@ -34,7 +34,7 @@
   "pieceViewGrid": "田字",
   "pieceViewNine": "九宮格",
   "pieceDetailUpdateLikes": "更新實際互動量",
-  "pieceDetailDeleteTitle": "刪除這張成圖？",
+  "pieceDetailDeleteTitle": "刪除這份成圖？",
   "pieceDetailReached": "已達標 ✦",
   "pieceDetailActualLikes": "實際互動量 {count}",
   "@pieceDetailActualLikes": {"placeholders": {"count": {"type": "int"}}},

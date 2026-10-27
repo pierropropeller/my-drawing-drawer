@@ -21,6 +21,7 @@ import 'idea_detail_page.dart';
 import 'piece_form_page.dart';
 import 'piece_platform.dart';
 import 'piece_widgets.dart';
+import 'post_swipe.dart';
 
 /// 成圖詳情：圖片、標題內文、tag（可點）、公開發佈與商稿資訊、社交媒體連結、
 /// 互動量（可更新實際值）、完成時間、關聯的腦洞與草稿。沒有導覽列。
@@ -29,9 +30,15 @@ class PieceDetailPage extends ConsumerWidget {
     super.key,
     required this.pieceId,
     required this.pitId,
+    this.order,
+    this.onShown,
   });
   final String pieceId;
   final String pitId;
+
+  /// 上／下篇的次序（進來前那個列表的次序，D-122）；null＝只有這一篇。
+  final List<String>? order;
+  final ValueChanged<String>? onShown;
 
   Future<void> _editLikes(
     BuildContext context,
@@ -66,35 +73,29 @@ class PieceDetailPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = context.tokens;
-    final v = ref.watch(pieceViewProvider(pieceId)).value;
-    if (v == null) {
-      return const HideNavBar(child: Scaffold(body: SizedBox.shrink()));
-    }
-    final ideas = ref.watch(ideaViewsProvider((pitId, null))).value ?? const [];
-    final drafts = ref.watch(draftViewsProvider(pitId)).value ?? const [];
-    final myIdeas = ideas.where((i) => v.ideaIds.contains(i.idea.id)).toList();
-    final myDrafts = drafts
-        .where((d) => v.draftIds.contains(d.draft.id))
-        .toList();
-    final p = v.piece;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return HideNavBar(
-      child: Scaffold(
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              SubPageHeader(
+  Widget build(BuildContext context, WidgetRef ref) => HideNavBar(
+    child: Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: PostSwipeView(
+          initialId: pieceId,
+          order: order,
+          onShown: onShown,
+          header: (context, id, afterDelete) => Consumer(
+            builder: (context, ref, _) {
+              final t = context.tokens;
+              final v = ref.watch(pieceViewProvider(id)).value;
+              return SubPageHeader(
                 title: '',
                 trailing: [
-                  SensitiveSafeButton(files: flaggableFiles(v.images)),
+                  SensitiveSafeButton(
+                    files: v == null ? const [] : flaggableFiles(v.images),
+                  ),
                   HeaderIconButton(
                     label: context.l10n.commonEdit,
                     icon: AppIcons.edit,
                     onTap: () =>
-                        openPieceForm(context, pitId: pitId, pieceId: pieceId),
+                        openPieceForm(context, pitId: pitId, pieceId: id),
                   ),
                   HeaderIconButton(
                     label: context.l10n.commonDelete,
@@ -107,212 +108,225 @@ class PieceDetailPage extends ConsumerWidget {
                         toTrash: true,
                       );
                       if (!ok || !context.mounted) return;
-                      await ref.read(databaseProvider).deletePieces([pieceId]);
-                      if (context.mounted) Navigator.of(context).pop();
+                      await ref.read(databaseProvider).deletePieces([id]);
+                      if (context.mounted) afterDelete();
                     },
                   ),
                 ],
-              ),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                  children: [
-                    DetailCarousel(
-                      images: v.images,
-                      borderRadius: 18,
-                      emptyAspect: 4 / 3,
-                      emptyColor: t.piece.bg,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            p.title,
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(
-                                  fontSize: 23,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
+              );
+            },
+          ),
+          body: (context, id) => Consumer(
+            builder: (context, ref, _) {
+              final t = context.tokens;
+              final v = ref.watch(pieceViewProvider(id)).value;
+              if (v == null) return const SizedBox.shrink();
+              final ideas =
+                  ref.watch(ideaViewsProvider((pitId, null))).value ?? const [];
+              final drafts =
+                  ref.watch(draftViewsProvider(pitId)).value ?? const [];
+              final myIdeas = ideas
+                  .where((i) => v.ideaIds.contains(i.idea.id))
+                  .toList();
+              final myDrafts = drafts
+                  .where((d) => v.draftIds.contains(d.draft.id))
+                  .toList();
+              final p = v.piece;
+              final dark = Theme.of(context).brightness == Brightness.dark;
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                children: [
+                  DetailCarousel(
+                    images: v.images,
+                    borderRadius: 18,
+                    emptyAspect: 4 / 3,
+                    emptyColor: t.piece.bg,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          p.title,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontSize: 23,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
-                        const SizedBox(width: 10),
-                        Text(
-                          '${p.finishedAt.year} / ${p.finishedAt.month.toString().padLeft(2, '0')} / ${p.finishedAt.day.toString().padLeft(2, '0')}',
-                          style: TextStyle(fontSize: 12, color: t.text3),
-                        ),
-                      ],
-                    ),
-                    if (p.isPublished) ...[
-                      const SizedBox(height: 14),
-                      _LikesCard(
-                        piece: p,
-                        dark: dark,
-                        onTap: () => _editLikes(context, ref, v),
                       ),
-                    ],
-                    if (p.body.isNotEmpty) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(width: 10),
                       Text(
-                        p.body,
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.7,
-                          color: t.ink.withValues(alpha: .85),
-                        ),
+                        '${p.finishedAt.year} / ${p.finishedAt.month.toString().padLeft(2, '0')} / ${p.finishedAt.day.toString().padLeft(2, '0')}',
+                        style: TextStyle(fontSize: 12, color: t.text3),
                       ),
                     ],
-                    if (v.tags.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          for (final tag in v.tags)
-                            GestureDetector(
-                              onTap: () =>
-                                  openTagSearch(context, pitId, tag.id),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: t.chipBg,
-                                  borderRadius: BorderRadius.circular(
-                                    Radii.chip,
-                                  ),
-                                ),
-                                child: Text(
-                                  '#${tag.name}',
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    color: t.text2,
-                                  ),
+                  ),
+                  if (p.isPublished) ...[
+                    const SizedBox(height: 14),
+                    _LikesCard(
+                      piece: p,
+                      dark: dark,
+                      onTap: () => _editLikes(context, ref, v),
+                    ),
+                  ],
+                  if (p.body.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      p.body,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.7,
+                        color: t.ink.withValues(alpha: .85),
+                      ),
+                    ),
+                  ],
+                  if (v.tags.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final tag in v.tags)
+                          GestureDetector(
+                            onTap: () => openTagSearch(context, pitId, tag.id),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: t.chipBg,
+                                borderRadius: BorderRadius.circular(Radii.chip),
+                              ),
+                              child: Text(
+                                '#${tag.name}',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: t.text2,
                                 ),
                               ),
                             ),
-                        ],
+                          ),
+                      ],
+                    ),
+                  ],
+                  if (p.isPublished || p.isCommission) ...[
+                    const SizedBox(height: 16),
+                    _InfoCard(piece: p, payment: v.payment),
+                  ],
+                  if (p.isPublished && v.links.isNotEmpty) ...[
+                    _Section(context.l10n.pieceFormSocialLinks),
+                    for (final l in v.links)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _LinkRow(link: l),
                       ),
-                    ],
-                    if (p.isPublished || p.isCommission) ...[
-                      const SizedBox(height: 16),
-                      _InfoCard(piece: p, payment: v.payment),
-                    ],
-                    if (p.isPublished && v.links.isNotEmpty) ...[
-                      _Section(context.l10n.pieceFormSocialLinks),
-                      for (final l in v.links)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _LinkRow(link: l),
+                  ],
+                  if (myIdeas.isNotEmpty) ...[
+                    _Section(context.l10n.ideaLinkedHeading),
+                    for (final i in myIdeas)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => IdeaDetailPage(
+                                ideaId: i.idea.id,
+                                pitId: pitId,
+                              ),
+                            ),
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: t.idea.bg,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    // 設計稿 #EDE2B5（比腦洞底色深一階）。
+                                    color: dark
+                                        ? t.idea.fg.withValues(alpha: .2)
+                                        : const Color(0xFFEDE2B5),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Center(
+                                    child: SvgIcon(
+                                      AppIcons.bulb,
+                                      size: 20,
+                                      strokeWidth: 1.7,
+                                      color: t.idea.fg,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    i.idea.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                SvgIcon(
+                                  AppIcons.chevronRight,
+                                  size: 18,
+                                  strokeWidth: 2,
+                                  color: t.idea.fg,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                    ],
-                    if (myIdeas.isNotEmpty) ...[
-                      _Section(context.l10n.ideaLinkedHeading),
-                      for (final i in myIdeas)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: GestureDetector(
+                      ),
+                  ],
+                  if (myDrafts.isNotEmpty) ...[
+                    _Section(context.l10n.draftLinkedHeading),
+                    GridView.count(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        for (final d in myDrafts)
+                          ThumbSquare(
+                            images: d.images,
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
-                                builder: (_) => IdeaDetailPage(
-                                  ideaId: i.idea.id,
+                                builder: (_) => DraftDetailPage(
+                                  draftId: d.draft.id,
                                   pitId: pitId,
                                 ),
                               ),
                             ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
-                              ),
-                              decoration: BoxDecoration(
-                                color: t.idea.bg,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 34,
-                                    height: 34,
-                                    decoration: BoxDecoration(
-                                      // 設計稿 #EDE2B5（比腦洞底色深一階）。
-                                      color: dark
-                                          ? t.idea.fg.withValues(alpha: .2)
-                                          : const Color(0xFFEDE2B5),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Center(
-                                      child: SvgIcon(
-                                        AppIcons.bulb,
-                                        size: 20,
-                                        strokeWidth: 1.7,
-                                        color: t.idea.fg,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      i.idea.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  SvgIcon(
-                                    AppIcons.chevronRight,
-                                    size: 18,
-                                    strokeWidth: 2,
-                                    color: t.idea.fg,
-                                  ),
-                                ],
-                              ),
-                            ),
                           ),
-                        ),
-                    ],
-                    if (myDrafts.isNotEmpty) ...[
-                      _Section(context.l10n.draftLinkedHeading),
-                      GridView.count(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          for (final d in myDrafts)
-                            ThumbSquare(
-                              images: d.images,
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => DraftDetailPage(
-                                    draftId: d.draft.id,
-                                    pitId: pitId,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ],
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-/// 區塊標題：13/700，上距 20、下距 10。
 class _Section extends StatelessWidget {
   const _Section(this.text);
   final String text;

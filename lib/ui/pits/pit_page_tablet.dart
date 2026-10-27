@@ -215,7 +215,7 @@ class PitPageTablet extends ConsumerWidget {
       _Tile(
         sectionKey: PitSectionKey.piece,
         label: l.pitsPieces,
-        count: l.commonCountImages(stats.pieces),
+        count: l.pitsCountPieces(stats.pieces),
         svg: stats.pieces == 0 ? AppIcons.pitPieceEmpty : AppIcons.image,
         color: t.piece,
         file: covers.piece,

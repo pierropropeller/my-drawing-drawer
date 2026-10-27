@@ -3,6 +3,6 @@
   "@draftSelectedCount": { "placeholders": { "count": { "type": "int" } } },
   "draftDeleteSelectedTitle": "刪除 {count} 份摸魚？",
   "@draftDeleteSelectedTitle": { "placeholders": { "count": { "type": "int" } } },
-  "pieceDeleteSelectedTitle": "刪除 {count} 張成圖？",
+  "pieceDeleteSelectedTitle": "刪除 {count} 份成圖？",
   "@pieceDeleteSelectedTitle": { "placeholders": { "count": { "type": "int" } } }
 }

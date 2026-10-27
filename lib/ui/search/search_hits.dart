@@ -142,7 +142,11 @@ class SearchOpener {
     switch (section) {
       case PitSearchSection.pieces:
         _push(
-          PieceDetailPage(pieceId: res.pieces.items[i].piece.id, pitId: pitId),
+          PieceDetailPage(
+            pieceId: res.pieces.items[i].piece.id,
+            pitId: pitId,
+            order: [for (final x in res.pieces.items) x.piece.id],
+          ),
         );
       case PitSearchSection.official:
         _push(
@@ -197,13 +201,24 @@ class SearchOpener {
           pitId,
           res.oshi.items[i].record.id,
           inSearchFlow: true,
+          order: [for (final x in res.oshi.items) x.record.id],
         );
       case PitSearchSection.drafts:
         _push(
-          DraftDetailPage(draftId: res.drafts.items[i].draft.id, pitId: pitId),
+          DraftDetailPage(
+            draftId: res.drafts.items[i].draft.id,
+            pitId: pitId,
+            order: [for (final x in res.drafts.items) x.draft.id],
+          ),
         );
       case PitSearchSection.ideas:
-        _push(IdeaDetailPage(ideaId: res.ideas.items[i].idea.id, pitId: pitId));
+        _push(
+          IdeaDetailPage(
+            ideaId: res.ideas.items[i].idea.id,
+            pitId: pitId,
+            order: [for (final x in res.ideas.items) x.idea.id],
+          ),
+        );
     }
   }
 }

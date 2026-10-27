@@ -141,6 +141,7 @@ void main() {
             label: '夏日企劃',
             progress: 3,
             target: 5,
+            kind: GoalKind.piece,
             pitName: '坑A',
             tags: ['#夏日企劃'],
           ),
@@ -166,12 +167,12 @@ void main() {
       dark: true,
     );
     expect(navBarHiddenCount.value, greaterThan(0));
-    expect(find.text('完成 1 張成圖'), findsOneWidget);
+    expect(find.text('完成 1 份成圖'), findsOneWidget);
     await tester.ensureVisible(find.text('需要達成互動量'));
     // AppSwitch 不是 Material Switch：用語意標籤點。
     await tester.tap(find.byType(AppSwitch));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('互動量過 100 的成圖 1 張'), findsOneWidget);
+    expect(find.text('互動量過 100 的成圖 1 份'), findsOneWidget);
     // 切到腦洞／摸魚：動詞與量詞
     await tester.tap(find.text('腦洞'));
     await tester.pump(const Duration(milliseconds: 100));
@@ -210,7 +211,7 @@ void main() {
     });
     await show(tester, const GoalsPage());
     expect(find.text('商稿收入'), findsOneWidget);
-    expect(find.text('3 張'), findsOneWidget);
+    expect(find.text('3 份'), findsOneWidget);
     expect(find.textContaining('HK\$ 1,800'), findsOneWidget);
     await tester.tap(find.text('商稿收入'));
     await settle(tester);
@@ -220,10 +221,10 @@ void main() {
     expect(find.text('人民幣'), findsOneWidget);
     expect(find.text('港幣'), findsOneWidget);
     expect(find.text('¥ 2,800'), findsOneWidget);
-    expect(find.text('已收 ¥ 300 · 2 張'), findsOneWidget);
-    expect(find.text('已收 HK\$ 1,800 · 1 張'), findsOneWidget);
+    expect(find.text('已收 ¥ 300 · 2 份'), findsOneWidget);
+    expect(find.text('已收 HK\$ 1,800 · 1 份'), findsOneWidget);
     // 紅色提示：未收齊 2 張，尚欠 ¥ 2,500
-    expect(find.text('未收齊 2 張'), findsOneWidget);
+    expect(find.text('未收齊 2 份'), findsOneWidget);
     expect(find.text('尚欠 ¥ 2,500'), findsOneWidget);
     // 月份列與收款狀態
     expect(find.text('2月'), findsOneWidget);

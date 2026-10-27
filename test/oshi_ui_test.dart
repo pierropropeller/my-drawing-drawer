@@ -608,7 +608,7 @@ void main() {
       expect(find.text('#角色1'), findsOneWidget);
       expect(find.bySemanticsLabel('編輯'), findsOneWidget);
       expect(find.bySemanticsLabel('刪除'), findsOneWidget);
-      await tester.drag(find.byType(PageView), const Offset(-300, 0));
+      await tester.drag(find.byType(PageView).last, const Offset(-300, 0));
       await tester.pump(const Duration(seconds: 1));
       await tester.pump(const Duration(seconds: 1));
       expect(find.text('2 / 4'), findsOneWidget);
