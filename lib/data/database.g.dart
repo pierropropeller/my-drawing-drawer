@@ -10769,6 +10769,15 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _pitIdsMeta = const VerificationMeta('pitIds');
+  @override
+  late final GeneratedColumn<String> pitIds = GeneratedColumn<String>(
+    'pit_ids',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _requireLikesMeta = const VerificationMeta(
     'requireLikes',
   );
@@ -10794,6 +10803,7 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     kind,
     count,
     pitId,
+    pitIds,
     requireLikes,
   ];
   @override
@@ -10869,6 +10879,12 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
         pitId.isAcceptableOrUnknown(data['pit_id']!, _pitIdMeta),
       );
     }
+    if (data.containsKey('pit_ids')) {
+      context.handle(
+        _pitIdsMeta,
+        pitIds.isAcceptableOrUnknown(data['pit_ids']!, _pitIdsMeta),
+      );
+    }
     if (data.containsKey('require_likes')) {
       context.handle(
         _requireLikesMeta,
@@ -10939,6 +10955,10 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
         DriftSqlType.string,
         data['${effectivePrefix}pit_id'],
       ),
+      pitIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pit_ids'],
+      ),
       requireLikes: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}require_likes'],
@@ -10969,7 +10989,12 @@ class Goal extends DataClass implements Insertable<Goal> {
   final String? name;
   final GoalKind kind;
   final int count;
+
+  /// 舊版的單一目標坑；D-124 起改看 [pitIds]，這欄只留第一個坑給舊版 App 讀。
   final String? pitId;
+
+  /// 目標坑（D-124，多選）：坑 id 以逗號串起；null／空＝任意坑。舊資料為 null 時改看 [pitId]。
+  final String? pitIds;
   final int? requireLikes;
   const Goal({
     required this.id,
@@ -10984,6 +11009,7 @@ class Goal extends DataClass implements Insertable<Goal> {
     required this.kind,
     required this.count,
     this.pitId,
+    this.pitIds,
     this.requireLikes,
   });
   @override
@@ -11015,6 +11041,9 @@ class Goal extends DataClass implements Insertable<Goal> {
     if (!nullToAbsent || pitId != null) {
       map['pit_id'] = Variable<String>(pitId);
     }
+    if (!nullToAbsent || pitIds != null) {
+      map['pit_ids'] = Variable<String>(pitIds);
+    }
     if (!nullToAbsent || requireLikes != null) {
       map['require_likes'] = Variable<int>(requireLikes);
     }
@@ -11041,6 +11070,9 @@ class Goal extends DataClass implements Insertable<Goal> {
       pitId: pitId == null && nullToAbsent
           ? const Value.absent()
           : Value(pitId),
+      pitIds: pitIds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pitIds),
       requireLikes: requireLikes == null && nullToAbsent
           ? const Value.absent()
           : Value(requireLikes),
@@ -11069,6 +11101,7 @@ class Goal extends DataClass implements Insertable<Goal> {
       ),
       count: serializer.fromJson<int>(json['count']),
       pitId: serializer.fromJson<String?>(json['pitId']),
+      pitIds: serializer.fromJson<String?>(json['pitIds']),
       requireLikes: serializer.fromJson<int?>(json['requireLikes']),
     );
   }
@@ -11092,6 +11125,7 @@ class Goal extends DataClass implements Insertable<Goal> {
       ),
       'count': serializer.toJson<int>(count),
       'pitId': serializer.toJson<String?>(pitId),
+      'pitIds': serializer.toJson<String?>(pitIds),
       'requireLikes': serializer.toJson<int?>(requireLikes),
     };
   }
@@ -11109,6 +11143,7 @@ class Goal extends DataClass implements Insertable<Goal> {
     GoalKind? kind,
     int? count,
     Value<String?> pitId = const Value.absent(),
+    Value<String?> pitIds = const Value.absent(),
     Value<int?> requireLikes = const Value.absent(),
   }) => Goal(
     id: id ?? this.id,
@@ -11123,6 +11158,7 @@ class Goal extends DataClass implements Insertable<Goal> {
     kind: kind ?? this.kind,
     count: count ?? this.count,
     pitId: pitId.present ? pitId.value : this.pitId,
+    pitIds: pitIds.present ? pitIds.value : this.pitIds,
     requireLikes: requireLikes.present ? requireLikes.value : this.requireLikes,
   );
   Goal copyWithCompanion(GoalsCompanion data) {
@@ -11139,6 +11175,7 @@ class Goal extends DataClass implements Insertable<Goal> {
       kind: data.kind.present ? data.kind.value : this.kind,
       count: data.count.present ? data.count.value : this.count,
       pitId: data.pitId.present ? data.pitId.value : this.pitId,
+      pitIds: data.pitIds.present ? data.pitIds.value : this.pitIds,
       requireLikes: data.requireLikes.present
           ? data.requireLikes.value
           : this.requireLikes,
@@ -11160,6 +11197,7 @@ class Goal extends DataClass implements Insertable<Goal> {
           ..write('kind: $kind, ')
           ..write('count: $count, ')
           ..write('pitId: $pitId, ')
+          ..write('pitIds: $pitIds, ')
           ..write('requireLikes: $requireLikes')
           ..write(')'))
         .toString();
@@ -11179,6 +11217,7 @@ class Goal extends DataClass implements Insertable<Goal> {
     kind,
     count,
     pitId,
+    pitIds,
     requireLikes,
   );
   @override
@@ -11197,6 +11236,7 @@ class Goal extends DataClass implements Insertable<Goal> {
           other.kind == this.kind &&
           other.count == this.count &&
           other.pitId == this.pitId &&
+          other.pitIds == this.pitIds &&
           other.requireLikes == this.requireLikes);
 }
 
@@ -11213,6 +11253,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
   final Value<GoalKind> kind;
   final Value<int> count;
   final Value<String?> pitId;
+  final Value<String?> pitIds;
   final Value<int?> requireLikes;
   final Value<int> rowid;
   const GoalsCompanion({
@@ -11228,6 +11269,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     this.kind = const Value.absent(),
     this.count = const Value.absent(),
     this.pitId = const Value.absent(),
+    this.pitIds = const Value.absent(),
     this.requireLikes = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -11244,6 +11286,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     required GoalKind kind,
     required int count,
     this.pitId = const Value.absent(),
+    this.pitIds = const Value.absent(),
     this.requireLikes = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : period = Value(period),
@@ -11263,6 +11306,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     Expression<String>? kind,
     Expression<int>? count,
     Expression<String>? pitId,
+    Expression<String>? pitIds,
     Expression<int>? requireLikes,
     Expression<int>? rowid,
   }) {
@@ -11279,6 +11323,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
       if (kind != null) 'kind': kind,
       if (count != null) 'count': count,
       if (pitId != null) 'pit_id': pitId,
+      if (pitIds != null) 'pit_ids': pitIds,
       if (requireLikes != null) 'require_likes': requireLikes,
       if (rowid != null) 'rowid': rowid,
     });
@@ -11297,6 +11342,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     Value<GoalKind>? kind,
     Value<int>? count,
     Value<String?>? pitId,
+    Value<String?>? pitIds,
     Value<int?>? requireLikes,
     Value<int>? rowid,
   }) {
@@ -11313,6 +11359,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
       kind: kind ?? this.kind,
       count: count ?? this.count,
       pitId: pitId ?? this.pitId,
+      pitIds: pitIds ?? this.pitIds,
       requireLikes: requireLikes ?? this.requireLikes,
       rowid: rowid ?? this.rowid,
     );
@@ -11361,6 +11408,9 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     if (pitId.present) {
       map['pit_id'] = Variable<String>(pitId.value);
     }
+    if (pitIds.present) {
+      map['pit_ids'] = Variable<String>(pitIds.value);
+    }
     if (requireLikes.present) {
       map['require_likes'] = Variable<int>(requireLikes.value);
     }
@@ -11385,6 +11435,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
           ..write('kind: $kind, ')
           ..write('count: $count, ')
           ..write('pitId: $pitId, ')
+          ..write('pitIds: $pitIds, ')
           ..write('requireLikes: $requireLikes, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -19299,6 +19350,7 @@ typedef $$GoalsTableCreateCompanionBuilder = GoalsCompanion Function({
   required GoalKind kind,
   required int count,
   Value<String?> pitId,
+  Value<String?> pitIds,
   Value<int?> requireLikes,
   Value<int> rowid,
 });
@@ -19315,6 +19367,7 @@ typedef $$GoalsTableUpdateCompanionBuilder = GoalsCompanion Function({
   Value<GoalKind> kind,
   Value<int> count,
   Value<String?> pitId,
+  Value<String?> pitIds,
   Value<int?> requireLikes,
   Value<int> rowid,
 });
@@ -19386,6 +19439,11 @@ class $$GoalsTableFilterComposer extends Composer<_$AppDatabase, $GoalsTable> {
 
   ColumnFilters<String> get pitId => $composableBuilder(
     column: $table.pitId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pitIds => $composableBuilder(
+    column: $table.pitIds,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19464,6 +19522,11 @@ class $$GoalsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get pitIds => $composableBuilder(
+    column: $table.pitIds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get requireLikes => $composableBuilder(
     column: $table.requireLikes,
     builder: (column) => ColumnOrderings(column),
@@ -19515,6 +19578,9 @@ class $$GoalsTableAnnotationComposer
   GeneratedColumn<String> get pitId =>
       $composableBuilder(column: $table.pitId, builder: (column) => column);
 
+  GeneratedColumn<String> get pitIds =>
+      $composableBuilder(column: $table.pitIds, builder: (column) => column);
+
   GeneratedColumn<int> get requireLikes => $composableBuilder(
     column: $table.requireLikes,
     builder: (column) => column,
@@ -19561,6 +19627,7 @@ class $$GoalsTableTableManager
                 Value<GoalKind> kind = const Value.absent(),
                 Value<int> count = const Value.absent(),
                 Value<String?> pitId = const Value.absent(),
+                Value<String?> pitIds = const Value.absent(),
                 Value<int?> requireLikes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => GoalsCompanion(
@@ -19576,6 +19643,7 @@ class $$GoalsTableTableManager
                 kind: kind,
                 count: count,
                 pitId: pitId,
+                pitIds: pitIds,
                 requireLikes: requireLikes,
                 rowid: rowid,
               ),
@@ -19593,6 +19661,7 @@ class $$GoalsTableTableManager
                 required GoalKind kind,
                 required int count,
                 Value<String?> pitId = const Value.absent(),
+                Value<String?> pitIds = const Value.absent(),
                 Value<int?> requireLikes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => GoalsCompanion.insert(
@@ -19608,6 +19677,7 @@ class $$GoalsTableTableManager
                 kind: kind,
                 count: count,
                 pitId: pitId,
+                pitIds: pitIds,
                 requireLikes: requireLikes,
                 rowid: rowid,
               ),

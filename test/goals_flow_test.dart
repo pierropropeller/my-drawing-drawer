@@ -61,4 +61,45 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));
   });
+
+  testWidgets('新增目標：選擇坑面板可多選，卡片每個坑一顆 pill（D-124）', (tester) async {
+    await db.createPit(name: '坑A');
+    await db.createPit(name: '坑B');
+    await db.createPit(name: '坑C');
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [databaseProvider.overrideWithValue(db)],
+        child: const HuaKengApp(useGoogleFonts: false),
+      ),
+    );
+    await settle(tester);
+    await tester.tap(find.text('時間軸').last);
+    await settle(tester);
+    await tester.ensureVisible(find.text('新增目標').first);
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('新增目標').first);
+    await settle(tester);
+    await tester.tap(find.text('選擇').first);
+    await settle(tester);
+    expect(find.text('完成（0）'), findsOneWidget);
+    await tester.tap(find.text('坑A'));
+    await tester.tap(find.text('坑B'));
+    await tester.pump();
+    expect(find.text('完成（2）'), findsOneWidget);
+    await tester.tap(find.text('完成（2）'));
+    await settle(tester);
+    await tester.ensureVisible(find.text('建立目標'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('建立目標'));
+    await settle(tester);
+    expect(find.text('坑A'), findsOneWidget);
+    expect(find.text('坑B'), findsOneWidget);
+    expect(find.text('坑C'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 10));
+  });
 }

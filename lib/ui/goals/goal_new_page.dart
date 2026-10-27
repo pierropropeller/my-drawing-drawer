@@ -16,6 +16,7 @@ import '../common/modal_form_layout.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import 'goal_name.dart';
+import 'goal_pit_sheet.dart';
 import 'goal_widgets.dart';
 import 'pit_pill.dart';
 
@@ -63,7 +64,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
   final _countCtl = TextEditingController(text: '1');
   GoalKind _kind = GoalKind.piece;
   int _count = 1;
-  String? _pitId;
+  List<String> _pitIds = [];
   List<String> _tagIds = [];
   bool _requireLikes = false;
   bool _loaded = false;
@@ -84,7 +85,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
         _kind = g.kind;
         _count = g.count;
         _countCtl.text = '${g.count}';
-        _pitId = g.pitId;
+        _pitIds = goalPitIds(g);
         _tagIds = await db.goalTagIds(id);
         _requireLikes = g.requireLikes != null;
         _likes.text = g.requireLikes?.toString() ?? '';
@@ -128,7 +129,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
           name: _name.text,
           kind: _kind,
           count: _count,
-          pitId: _pitId,
+          pitIds: _pitIds,
           tagIds: _tagIds,
           requireLikes: likes,
         );
@@ -154,32 +155,25 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
     );
   }
 
-  Future<void> _pickPit(List<Pit> pits) async {
-    final id = await showModalBottomSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.all(16),
-          children: [
-            for (final p in pits)
-              Material(
-                type: MaterialType.transparency,
-                child: ListTile(
-                  title: Text(p.name),
-                  onTap: () => Navigator.pop(ctx, p.id),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (id == null || id == _pitId) return;
+  Future<void> _pickPit() async {
+    final ids = await showGoalPitSheet(context, selected: _pitIds);
+    if (ids == null || !mounted) return;
     setState(() {
-      _pitId = id;
-      _tagIds = []; // 換坑後 tag 不共用
+      _pitIds = ids;
+      _dropStaleTags(ids);
     });
   }
+
+  /// 坑變動後，已選的 tag 若不屬於剩下的坑就拿掉。
+  void _dropStaleTags(List<String> ids) {
+    _tagIds = [
+      for (final id in _tagIds)
+        if (_tagPit[id] == null || ids.contains(_tagPit[id])) id,
+    ];
+  }
+
+  /// tag id → 所屬坑（只記目前看過的，用來在換坑時清掉失效的 tag）。
+  final Map<String, String> _tagPit = {};
 
   Widget _pill(BuildContext context, String label, bool on, VoidCallback tap) {
     final t = context.tokens;
@@ -228,13 +222,32 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
     // 選擇清單：現坑＋淺坑，不含封存坑（D-088）。編輯舊目標時，已封存的坑仍顯示名稱。
     final pits = ref.watch(selectablePitsProvider).value ?? const <Pit>[];
     final archived = ref.watch(pitsProvider(true)).value ?? const <Pit>[];
-    Pit? pit;
-    for (final p in [...pits, ...archived]) {
-      if (p.id == _pitId) pit = p;
+    final byId = {
+      for (final p in [...archived, ...pits]) p.id: p,
+    };
+    final chosen = [
+      for (final id in _pitIds)
+        if (byId[id] != null) byId[id]!,
+    ];
+    // 目標 tag ＝所選各坑 tag 的合集（D-124）；不同坑有同名 tag 時，後面加「｜坑名」。
+    final pitTags = <Tag>[
+      for (final id in _pitIds) ...?ref.watch(tagsProvider(id)).value,
+    ];
+    for (final tg in pitTags) {
+      _tagPit[tg.id] = tg.pitId;
     }
-    final pitTags = _pitId == null
-        ? const <Tag>[]
-        : (ref.watch(tagsProvider(_pitId!)).value ?? const <Tag>[]);
+    final nameCount = <String, int>{};
+    for (final tg in pitTags) {
+      nameCount[tg.name] = (nameCount[tg.name] ?? 0) + 1;
+    }
+    String tagLabel(Tag tg) {
+      final dup = (nameCount[tg.name] ?? 0) > 1;
+      final pn = byId[tg.pitId]?.name;
+      return (dup && pn != null)
+          ? context.l10n.goalsTagWithPit('#${tg.name}', pn)
+          : '#${tg.name}';
+    }
+
     final l = context.l10n;
     final title = switch ((widget.goalId == null, widget.period)) {
       (true, GoalPeriod.year) => l.goalsNewYearGoal,
@@ -258,10 +271,10 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
         progress: 0,
         target: _count,
         kind: _kind,
-        pitName: pit?.name,
+        pitNames: [for (final p in chosen) p.name],
         tags: [
           for (final tag in pitTags)
-            if (_tagIds.contains(tag.id)) '#${tag.name}',
+            if (_tagIds.contains(tag.id)) tagLabel(tag),
         ],
       ),
     ];
@@ -341,19 +354,19 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
         runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          if (pit != null)
+          for (final p in chosen)
             PitPill(
-              name: pit.name,
+              name: p.name,
               large: true,
               onRemove: () => setState(() {
-                _pitId = null;
-                _tagIds = [];
+                _pitIds = _pitIds.where((e) => e != p.id).toList();
+                _dropStaleTags(_pitIds);
               }),
             ),
           DashedAddChip(
             semanticLabel: l.goalsPickPit,
             label: l.commonSelect,
-            onTap: () => _pickPit(pits),
+            onTap: _pickPit,
           ),
         ],
       ),
@@ -363,11 +376,11 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
       Padding(
         padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
         child: Text(
-          _pitId == null ? l.goalsTagHintNoPit : l.goalsTagHintPit,
+          _pitIds.isEmpty ? l.goalsTagHintNoPit : l.goalsTagHintPit,
           style: TextStyle(fontSize: 11.5, color: t.text4),
         ),
       ),
-      if (_pitId != null)
+      if (_pitIds.isNotEmpty)
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -376,7 +389,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
             for (final tag in pitTags)
               _pill(
                 context,
-                '#${tag.name}',
+                tagLabel(tag),
                 _tagIds.contains(tag.id),
                 () => setState(
                   () => _tagIds.contains(tag.id)
@@ -389,9 +402,10 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
               onTap: () async {
                 final name = await promptText(context, title: l.goalsAddTag);
                 if (name == null) return;
+                // 新 tag 建在第一個所選的坑（多坑時沒有更明確的歸屬）。
                 final id = await ref
                     .read(databaseProvider)
-                    .createTag(_pitId!, name);
+                    .createTag(_pitIds.first, name);
                 if (mounted && !_tagIds.contains(id)) {
                   setState(() => _tagIds = [..._tagIds, id]);
                 }

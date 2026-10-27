@@ -33,7 +33,7 @@ class GoalCard extends StatelessWidget {
       target: view.target,
       kind: view.goal.kind,
       onTap: onTap,
-      pitName: view.pit?.name,
+      pitNames: [for (final p in view.pits) p.name],
       tags: [for (final tag in view.tags) '#${tag.name}'],
     );
   }
@@ -48,7 +48,7 @@ class GoalCardBody extends StatelessWidget {
     required this.target,
     required this.kind,
     this.onTap,
-    this.pitName,
+    this.pitNames = const [],
     this.tags = const [],
   });
   final String label;
@@ -58,7 +58,8 @@ class GoalCardBody extends StatelessWidget {
   /// 目標類型：數字後面加上「腦洞」「成圖」「摸魚」（D-123）。
   final GoalKind kind;
   final VoidCallback? onTap;
-  final String? pitName;
+  /// 目標坑（D-124，多選）：每個坑一顆 pill 並排。
+  final List<String> pitNames;
   final List<String> tags;
 
   @override
@@ -125,14 +126,14 @@ class GoalCardBody extends StatelessWidget {
                 backgroundColor: t.chipBg,
               ),
             ),
-            if (pitName != null || tags.isNotEmpty) ...[
+            if (pitNames.isNotEmpty || tags.isNotEmpty) ...[
               const SizedBox(height: 10),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  if (pitName != null) PitPill(name: pitName!),
+                  for (final n in pitNames) PitPill(name: n),
                   for (final tag in tags)
                     Container(
                       padding: const EdgeInsets.symmetric(

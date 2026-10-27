@@ -43,6 +43,45 @@ void main() {
     return id;
   }
 
+  test('目標坑多選（D-124）：幾個坑的數量加起來算，不在所選坑的不算；空＝任意坑', () async {
+    final third = await db.createPit(name: 'C');
+    await piece(pitId, DateTime(2026, 3, 1));
+    await piece(otherPit, DateTime(2026, 4, 1));
+    await piece(third, DateTime(2026, 5, 1));
+    Future<int> progress(List<String> ids) async {
+      await db.saveGoal(
+        period: GoalPeriod.year,
+        year: 2026,
+        kind: GoalKind.piece,
+        count: 5,
+        pitIds: ids,
+      );
+      final views = await db.watchGoalViews(GoalPeriod.year, 2026).first;
+      final v = views.firstWhere(
+        (v) => goalPitIds(v.goal).length == ids.length,
+      );
+      await db.deleteGoal(v.goal.id);
+      return v.progress;
+    }
+
+    expect(await progress([pitId, otherPit]), 2);
+    expect(await progress([pitId]), 1);
+    expect(await progress([]), 3);
+  });
+
+  test('舊資料只有 pitId：當作一個元素的坑清單', () async {
+    final id = await db.saveGoal(
+      period: GoalPeriod.year,
+      year: 2026,
+      kind: GoalKind.piece,
+      count: 1,
+      pitId: pitId,
+    );
+    await db.customStatement('UPDATE goals SET pit_ids = NULL');
+    final g = (await db.goalById(id))!;
+    expect(goalPitIds(g), [pitId]);
+  });
+
   test('自動名稱', () {
     Goal g(GoalKind k, {int? likes, String? name}) => Goal(
       id: '1',
@@ -99,7 +138,7 @@ void main() {
     final views = await db.watchGoalViews(GoalPeriod.year, 2026).first;
     // D-022：依進度百分比由高到低（0.6、0.4、0.4），同比例維持建立順序
     expect(views.map((v) => v.progress), [3, 4, 2]);
-    expect(views[0].pit!.name, 'A');
+    expect(views[0].pits.single.name, 'A');
   });
 
   test('月度目標與 tag（需同時符合）', () async {

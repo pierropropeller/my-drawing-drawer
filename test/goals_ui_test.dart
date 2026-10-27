@@ -142,19 +142,20 @@ void main() {
             progress: 3,
             target: 5,
             kind: GoalKind.piece,
-            pitName: '坑A',
+            pitNames: ['坑A', '坑B'],
             tags: ['#夏日企劃'],
           ),
         ),
       ),
     );
     expect(find.text('坑A'), findsOneWidget);
+    expect(find.text('坑B'), findsOneWidget); // D-124：每個坑一顆 pill
     expect(
       find.descendant(
         of: find.byType(PitPill),
         matching: find.byType(SvgPicture),
       ),
-      findsOneWidget,
+      findsNWidgets(2),
     );
     expect(find.byType(StoredImage), findsNothing);
     await unmount(tester);

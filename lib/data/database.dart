@@ -54,7 +54,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -116,8 +116,29 @@ class AppDatabase extends _$AppDatabase {
       if (from < 14) {
         await _migrateV14(m);
       }
+      if (from < 15) {
+        await _migrateV15(m);
+      }
     },
   );
+
+  /// v15：目標坑改多選（D-124）。goals 加 `pit_ids`，舊的單一 `pit_id` 轉成一個元素的清單。
+  /// 欄位先確認存在與否再加（可重複執行）。不動 updated_at：各裝置各自升級結果相同。
+  Future<void> _migrateV15(Migrator m) async {
+    final have = {
+      for (final r in await customSelect('PRAGMA table_info(goals)').get())
+        r.read<String>('name'),
+    };
+    if (have.isEmpty) {
+      await m.createTable(goals);
+      return;
+    }
+    if (!have.contains('pit_ids')) await m.addColumn(goals, goals.pitIds);
+    await customStatement(
+      'UPDATE goals SET pit_ids = pit_id '
+      'WHERE pit_ids IS NULL AND pit_id IS NOT NULL',
+    );
+  }
 
   /// v14：敏感內容標記（D-104）。坑加 `sensitive_enabled`，所有放圖的表（官方圖、同人圖、雜物、素材庫、
   /// 腦洞／草稿／成圖／推活圖）加 `sensitive`，預設都是 false。

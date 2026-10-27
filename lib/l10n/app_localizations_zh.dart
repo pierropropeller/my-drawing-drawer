@@ -1144,6 +1144,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get goalsPickPit => '選擇坑';
 
   @override
+  String goalsPitSheetDone(int count) {
+    return '完成（$count）';
+  }
+
+  @override
+  String goalsTagWithPit(String tag, String pit) {
+    return '$tag｜$pit';
+  }
+
+  @override
   String get goalsRemove => '移除';
 
   @override

@@ -316,7 +316,11 @@ class Goals extends Table with SyncColumns {
   TextColumn get name => text().nullable()();
   TextColumn get kind => textEnum<GoalKind>()();
   IntColumn get count => integer()();
+  /// 舊版的單一目標坑；D-124 起改看 [pitIds]，這欄只留第一個坑給舊版 App 讀。
   TextColumn get pitId => text().nullable()();
+
+  /// 目標坑（D-124，多選）：坑 id 以逗號串起；null／空＝任意坑。舊資料為 null 時改看 [pitId]。
+  TextColumn get pitIds => text().nullable()();
   IntColumn get requireLikes => integer().nullable()();
 }
 

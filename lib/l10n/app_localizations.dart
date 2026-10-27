@@ -2115,6 +2115,18 @@ abstract class AppLocalizations {
   /// **'選擇坑'**
   String get goalsPickPit;
 
+  /// No description provided for @goalsPitSheetDone.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成（{count}）'**
+  String goalsPitSheetDone(int count);
+
+  /// No description provided for @goalsTagWithPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'{tag}｜{pit}'**
+  String goalsTagWithPit(String tag, String pit);
+
   /// No description provided for @goalsRemove.
   ///
   /// In zh, this message translates to:

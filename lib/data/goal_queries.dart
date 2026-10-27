@@ -7,13 +7,15 @@ import 'media.dart';
 class GoalView {
   const GoalView({
     required this.goal,
-    required this.pit,
+    required this.pits,
     required this.tags,
     required this.progress,
   });
 
   final Goal goal;
-  final Pit? pit;
+
+  /// 目標坑（D-124，多選；空＝任意坑）。已刪除的坑不在內。
+  final List<Pit> pits;
   final List<Tag> tags;
   final int progress;
 
@@ -56,6 +58,16 @@ List<GoalView> sortGoalsByProgress(Iterable<GoalView> goals) {
     return order[a]!.compareTo(order[b]!);
   });
   return list;
+}
+
+/// 目標坑（D-124）：[Goal.pitIds] 拆成清單；舊資料（沒有 pitIds）用單一 [Goal.pitId]。空＝任意坑。
+List<String> goalPitIds(Goal g) {
+  final raw = g.pitIds;
+  if (raw == null) return [if (g.pitId != null) g.pitId!];
+  return [
+    for (final id in raw.split(','))
+      if (id.trim().isNotEmpty) id.trim(),
+  ];
 }
 
 /// 使用者填的目標名稱（去頭尾空白）；沒填為 null。
@@ -131,17 +143,23 @@ extension GoalQueries on AppDatabase {
     final end = g.period == GoalPeriod.year
         ? DateTime(g.year + 1)
         : monthEnd(g.year, g.month ?? 1);
-    final tagIds = goalTags.map((t) => t.id).toList();
+    final pitIds = goalPitIds(g);
 
-    Future<bool> hasAllTags(TagTarget type, String id) async {
-      if (tagIds.isEmpty) return true;
+    // 多坑時（D-124）tag 是各坑自己的：每一筆只要求有「自己坑裡」被選的 tag；
+    // 該坑沒有被選的 tag＝不限 tag。
+    Future<bool> hasAllTags(TagTarget type, String id, String pitId) async {
+      final need = [
+        for (final t in goalTags)
+          if (t.pitId == pitId) t.id,
+      ];
+      if (need.isEmpty) return true;
       final rows =
           await (select(tagLinks)..where(
                 (l) => l.targetType.equalsValue(type) & l.targetId.equals(id),
               ))
               .get();
       final have = rows.map((r) => r.tagId).toSet();
-      return tagIds.every(have.contains);
+      return need.every(have.contains);
     }
 
     // 封存坑的內容不計入目標（D-088）。
@@ -156,14 +174,14 @@ extension GoalQueries on AppDatabase {
                       i.deletedAt.isNull() &
                       i.date.isBiggerOrEqualValue(start) &
                       i.date.isSmallerThanValue(end) &
-                      (g.pitId == null
+                      (pitIds.isEmpty
                           ? const Constant(true)
-                          : i.pitId.equals(g.pitId!)),
+                          : i.pitId.isIn(pitIds)),
                 ))
                 .get();
         for (final r in rows) {
           if (archived.contains(r.pitId)) continue;
-          if (await hasAllTags(TagTarget.idea, r.id)) n++;
+          if (await hasAllTags(TagTarget.idea, r.id, r.pitId)) n++;
         }
       case GoalKind.draft:
         final rows =
@@ -172,14 +190,14 @@ extension GoalQueries on AppDatabase {
                       i.deletedAt.isNull() &
                       i.date.isBiggerOrEqualValue(start) &
                       i.date.isSmallerThanValue(end) &
-                      (g.pitId == null
+                      (pitIds.isEmpty
                           ? const Constant(true)
-                          : i.pitId.equals(g.pitId!)),
+                          : i.pitId.isIn(pitIds)),
                 ))
                 .get();
         for (final r in rows) {
           if (archived.contains(r.pitId)) continue;
-          if (await hasAllTags(TagTarget.draft, r.id)) n++;
+          if (await hasAllTags(TagTarget.draft, r.id, r.pitId)) n++;
         }
       case GoalKind.piece:
         final rows =
@@ -188,9 +206,9 @@ extension GoalQueries on AppDatabase {
                       i.deletedAt.isNull() &
                       i.finishedAt.isBiggerOrEqualValue(start) &
                       i.finishedAt.isSmallerThanValue(end) &
-                      (g.pitId == null
+                      (pitIds.isEmpty
                           ? const Constant(true)
-                          : i.pitId.equals(g.pitId!)) &
+                          : i.pitId.isIn(pitIds)) &
                       // 互動量門檻只計算已公開發佈的成圖（D-046）。
                       (g.requireLikes == null
                           ? const Constant(true)
@@ -202,7 +220,7 @@ extension GoalQueries on AppDatabase {
                 .get();
         for (final r in rows) {
           if (archived.contains(r.pitId)) continue;
-          if (await hasAllTags(TagTarget.piece, r.id)) n++;
+          if (await hasAllTags(TagTarget.piece, r.id, r.pitId)) n++;
         }
     }
     return n;
@@ -219,14 +237,19 @@ extension GoalQueries on AppDatabase {
               ))
             .get();
     final goalTags = tagRows.map((r) => r.readTable(tags)).toList();
-    final pit = g.pitId == null
-        ? null
-        : await (select(pits)
-                ..where((p) => p.id.equals(g.pitId!) & p.deletedAt.isNull()))
-              .getSingleOrNull();
+    final ids = goalPitIds(g);
+    final found = ids.isEmpty
+        ? const <Pit>[]
+        : await (select(
+            pits,
+          )..where((p) => p.id.isIn(ids) & p.deletedAt.isNull())).get();
+    final byId = {for (final p in found) p.id: p};
     return GoalView(
       goal: g,
-      pit: pit,
+      pits: [
+        for (final id in ids)
+          if (byId[id] != null) byId[id]!,
+      ],
       tags: goalTags,
       progress: await _progress(g, goalTags),
     );
@@ -293,9 +316,13 @@ extension GoalQueries on AppDatabase {
     required GoalKind kind,
     required int count,
     String? pitId,
+    List<String>? pitIds,
     List<String> tagIds = const [],
     int? requireLikes,
   }) {
+    final ids = pitIds ?? [?pitId];
+    final firstPit = ids.isEmpty ? null : ids.first;
+    final joined = ids.isEmpty ? null : ids.join(',');
     final cleanName = (name == null || name.trim().isEmpty)
         ? null
         : name.trim();
@@ -310,7 +337,8 @@ extension GoalQueries on AppDatabase {
             name: Value(cleanName),
             kind: kind,
             count: count,
-            pitId: Value(pitId),
+            pitId: Value(firstPit),
+            pitIds: Value(joined),
             requireLikes: Value(kind == GoalKind.piece ? requireLikes : null),
           ),
         );
@@ -322,7 +350,8 @@ extension GoalQueries on AppDatabase {
             name: Value(cleanName),
             kind: Value(kind),
             count: Value(count),
-            pitId: Value(pitId),
+            pitId: Value(firstPit),
+            pitIds: Value(joined),
             requireLikes: Value(kind == GoalKind.piece ? requireLikes : null),
             updatedAt: Value(DateTime.now()),
           ),
@@ -335,7 +364,7 @@ extension GoalQueries on AppDatabase {
                 l.targetId.equals(goalId),
           ))
           .go();
-      if (pitId != null) {
+      if (ids.isNotEmpty) {
         for (final t in tagIds) {
           await into(tagLinks).insert(
             TagLinksCompanion.insert(
