@@ -1,3 +1,4 @@
+import 'data/trash_queries.dart';
 import 'app_name.dart';
 import 'l10n/l10n.dart';
 
@@ -60,6 +61,11 @@ final profileBootProvider = FutureProvider<void>(
   (ref) => ref.read(settingsProvider.notifier).reloadProfile(),
 );
 
+/// 啟動時清掉最近刪除裡過期的項目。
+final trashStartupPurgeProvider = FutureProvider<void>(
+  (ref) async => ref.read(databaseProvider).purgeExpiredTrash(),
+);
+
 const appLocale = Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
 
 class HuaKengApp extends ConsumerWidget {
@@ -74,6 +80,8 @@ class HuaKengApp extends ConsumerWidget {
     ref.watch(shareInboxProvider);
     // 啟動時以平台實際啟用的桌面圖示校正設定（D-086）。
     ref.watch(appIconStartupSyncProvider);
+    // 啟動時清掉「最近刪除」裡過了 30 天的項目（D-120）。
+    ref.watch(trashStartupPurgeProvider);
     return RootOverlayHost(
       builder: (context, overlayTracker) => MaterialApp(
         navigatorObservers: [overlayTracker],

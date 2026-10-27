@@ -1,3 +1,5 @@
+import '../data/trash_queries.dart';
+
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -317,6 +319,8 @@ class SyncController extends Notifier<SyncState> {
     try {
       lastActivity = DateTime.now();
       Future<SyncResult> run() async {
+        // 最近刪除過了 30 天的先清掉，狀態再一起同步（D-120）。
+        await ref.read(databaseProvider).purgeExpiredTrash();
         final engine = SyncEngine(
           db: ref.read(databaseProvider),
           remote: remote,

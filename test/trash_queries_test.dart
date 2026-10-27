@@ -122,4 +122,40 @@ void main() {
     expect((await db.loadTrash()).count, 1);
     expect((await db.loadTrash(now: later)).count, 0);
   });
+
+  test('清理過期：超過 30 天的標成永久刪除，沒過期的留著；跑兩次不再動', () async {
+    final pit = await db.createPit(name: '坑A');
+    final old = await db.saveIdea(
+      pitId: pit,
+      title: '舊的',
+      body: '',
+      images: const [],
+      tagIds: const [],
+      draftIds: const [],
+      pieceIds: const [],
+    );
+    final fresh = await db.saveIdea(
+      pitId: pit,
+      title: '新的',
+      body: '',
+      images: const [],
+      tagIds: const [],
+      draftIds: const [],
+      pieceIds: const [],
+    );
+    await db.deleteIdeas([old, fresh]);
+    final longAgo = DateTime.now().subtract(const Duration(days: 31));
+    await (db.update(db.ideas)..where((x) => x.id.equals(old))).write(
+      IdeasCompanion(deletedAt: Value(longAgo)),
+    );
+    expect(await db.purgeExpiredTrash(), 1);
+    final rows = {
+      for (final r in await db.select(db.ideas).get()) r.id: r.deletedAt,
+    };
+    expect(rows[old]!.isAtSameMomentAs(kTrashPurgedAt), isTrue);
+    expect(rows[fresh]!.isAtSameMomentAs(kTrashPurgedAt), isFalse);
+    expect(await db.purgeExpiredTrash(), 0);
+    final t = await db.loadTrash();
+    expect(t.items.map((e) => e.id), [fresh]);
+  });
 }

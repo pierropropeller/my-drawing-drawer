@@ -583,4 +583,46 @@ extension TrashQueries on AppDatabase {
       }
     }
   });
+
+  /// 清掉過了保留期的項目（D-120）：deletedAt 早於 [trashCutoff] 的一律標成永久刪除
+  /// （坑連同坑內內容）。App 啟動和每次同步前各跑一次；狀態隨同步帶到另一台裝置。
+  /// 回傳清掉的列數。
+  Future<int> purgeExpiredTrash({DateTime? now}) => transaction(() async {
+    final at = now ?? DateTime.now();
+    final cutoff = trashCutoff(now: at);
+    final expiredPits =
+        await (select(pits)..where(
+              (p) =>
+                  p.deletedAt.isNotNull() &
+                  p.deletedAt.isBiggerThanValue(kTrashPurgedAt) &
+                  p.deletedAt.isSmallerOrEqualValue(cutoff),
+            ))
+            .get();
+    if (expiredPits.isNotEmpty) {
+      await purgeTrash(pitIds: [for (final p in expiredPits) p.id]);
+    }
+    var n = expiredPits.length;
+    for (final t in <TableInfo>[
+      officialImages,
+      fanArts,
+      junkImages,
+      materialImages,
+      ideas,
+      drafts,
+      pieces,
+      oshiRecords,
+    ]) {
+      n += await customUpdate(
+        'UPDATE ${t.actualTableName} SET deleted_at = ?1, updated_at = ?2 '
+        'WHERE deleted_at IS NOT NULL AND deleted_at > ?1 AND deleted_at <= ?3',
+        variables: [
+          Variable<DateTime>(kTrashPurgedAt),
+          Variable<DateTime>(at),
+          Variable<DateTime>(cutoff),
+        ],
+        updates: {t},
+      );
+    }
+    return n;
+  });
 }
