@@ -12,7 +12,7 @@ import '../common/app_icons.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
-import '../common/swipe_to_switch.dart';
+import '../common/swipe_pager.dart';
 import '../entity/entity_select.dart' show showEntityTagSheet;
 import '../album/album_icons.dart';
 import 'filter_pills.dart';
@@ -69,6 +69,9 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
   late String? _tagId = widget.tagId;
   late bool _untagged = widget.untagged;
   late SearchCategory _category = widget.category;
+
+  /// 左右滑的小數頁碼，相冊 pills 的深色底跟著它滑（D-118）。
+  final _progress = ValueNotifier<double>(0);
   int _ideaShown = PitSearchResultPage.ideaBatch;
 
   /// 多選（只有「未加 tag」結果支援，D-108）。
@@ -81,6 +84,7 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
   @override
   void dispose() {
     _controller.dispose();
+    _progress.dispose();
     super.dispose();
   }
 
@@ -213,23 +217,24 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
       );
     }
 
-    final Widget body;
-    if (res.isEmpty) {
-      body = Center(
-        child: Text(
-          l.searchNoResults,
-          style: TextStyle(color: t.text3, fontSize: 14),
-        ),
-      );
-    } else if (section != null) {
-      body = PitSearchResultTab(
-        section: section,
-        res: res,
-        opener: opener,
-        selection: selection,
-      );
-    } else {
-      body = _overview(res, opener, selection);
+    Widget bodyFor(SearchCategory c) {
+      final section = c.section;
+      if (res.isEmpty) {
+        return Center(
+          child: Text(
+            l.searchNoResults,
+            style: TextStyle(color: t.text3, fontSize: 14),
+          ),
+        );
+      } else if (section != null) {
+        return PitSearchResultTab(
+          section: section,
+          res: res,
+          opener: opener,
+          selection: selection,
+        );
+      }
+      return _overview(res, opener, selection);
     }
 
     final allSelectedInTab =
@@ -296,15 +301,18 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
                     selected: category,
                     onSelected: _select,
                     counts: counts,
+                    progress: _progress,
                   ),
                 ],
                 Expanded(
-                  child: SwipeToSwitch.among<SearchCategory>(
+                  // 左右滑切換相冊，內容跟著手指走（D-118）。
+                  child: SwipePager<SearchCategory>(
                     enabled: !_selecting,
                     order: visibleSearchCategories(counts),
                     current: category,
+                    progress: _progress,
                     onChanged: _select,
-                    child: body,
+                    itemBuilder: (context, c) => bodyFor(c),
                   ),
                 ),
               ],
@@ -338,26 +346,28 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
     final allSelected =
         pickable.isNotEmpty && pickable.every((x) => _selected.contains(x.key));
     final inset = _selecting ? WideSelectBar.height + 24 : 24.0;
-    final Widget body;
-    if (res.isEmpty) {
-      body = Center(
-        child: Text(
-          l.searchNoResults,
-          style: TextStyle(color: t.text3, fontSize: 14),
-        ),
-      );
-    } else if (section != null) {
-      body = PitSearchResultTab(
-        section: section,
-        res: res,
-        opener: opener,
-        selection: selection,
-        wide: true,
-        bottomInset: inset,
-      );
-    } else {
-      body = _wideOverview(res, opener, selection, inset);
+    Widget bodyFor(SearchCategory c) {
+      final section = c.section;
+      if (res.isEmpty) {
+        return Center(
+          child: Text(
+            l.searchNoResults,
+            style: TextStyle(color: t.text3, fontSize: 14),
+          ),
+        );
+      } else if (section != null) {
+        return PitSearchResultTab(
+          section: section,
+          res: res,
+          opener: opener,
+          selection: selection,
+          wide: true,
+          bottomInset: inset,
+        );
+      }
+      return _wideOverview(res, opener, selection, inset);
     }
+
     return PopScope(
       canPop: !_selecting,
       onPopInvokedWithResult: (didPop, _) {
@@ -410,12 +420,13 @@ class _PitSearchResultPageState extends ConsumerState<PitSearchResultPage>
                         child: Stack(
                           children: [
                             Positioned.fill(
-                              child: SwipeToSwitch.among<SearchCategory>(
+                              // 左右滑切換相冊，內容跟著手指走（D-118）。
+                              child: SwipePager<SearchCategory>(
                                 enabled: !_selecting,
                                 order: visibleSearchCategories(counts),
                                 current: category,
                                 onChanged: _select,
-                                child: body,
+                                itemBuilder: (context, c) => bodyFor(c),
                               ),
                             ),
                             if (_selecting)

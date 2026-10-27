@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:huakeng/ui/common/swipe_pager.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/image_store.dart';
 import 'package:huakeng/main.dart';
@@ -73,11 +74,11 @@ void main() {
   }
 
   int goalsIndex(WidgetTester tester) {
-    final stack = find.descendant(
+    final pager = find.descendant(
       of: find.byType(GoalsPage),
-      matching: find.byType(IndexedStack),
+      matching: find.byType(SwipePager<int>),
     );
-    return tester.widget<IndexedStack>(stack.first).index!;
+    return tester.widget<SwipePager<int>>(pager.first).current;
   }
 
   group('設定存取', () {

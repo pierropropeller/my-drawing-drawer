@@ -69,8 +69,9 @@ class SwipeToSwitch extends StatefulWidget {
 }
 
 /// 只負責「起點不在邊緣、enabled」的篩選；其餘交給 [HorizontalDragGestureRecognizer]。
-class _EdgeAwareHorizontalDrag extends HorizontalDragGestureRecognizer {
-  _EdgeAwareHorizontalDrag({super.debugOwner});
+/// [SwipePager] 也用這個。
+class SwipeEdgeAwareDrag extends HorizontalDragGestureRecognizer {
+  SwipeEdgeAwareDrag({super.debugOwner});
 
   bool enabled = true;
   double edgeInset = 24;
@@ -116,9 +117,9 @@ class _SwipeToSwitchState extends State<SwipeToSwitch> {
     return RawGestureDetector(
       behavior: HitTestBehavior.translucent,
       gestures: {
-        _EdgeAwareHorizontalDrag:
-            GestureRecognizerFactoryWithHandlers<_EdgeAwareHorizontalDrag>(
-              () => _EdgeAwareHorizontalDrag(debugOwner: this),
+        SwipeEdgeAwareDrag:
+            GestureRecognizerFactoryWithHandlers<SwipeEdgeAwareDrag>(
+              () => SwipeEdgeAwareDrag(debugOwner: this),
               (r) {
                 r
                   ..enabled = widget.enabled

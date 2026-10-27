@@ -16,7 +16,8 @@ import '../search/search_icons.dart';
 import '../search/tagged_list.dart';
 import '../sync/pit_sync.dart';
 import '../sync/sync_avatar.dart';
-import '../common/swipe_to_switch.dart';
+import '../common/sliding_pills.dart';
+import '../common/swipe_pager.dart';
 import 'pit_new_page.dart';
 import 'pit_page.dart';
 import 'pit_rows.dart';
@@ -36,6 +37,21 @@ void _openNewPit(BuildContext context, {PitStatus status = PitStatus.active}) =>
 class _PitsPageState extends ConsumerState<PitsPage> {
   // 上次停留的分頁（設定，啟動即還原，第一格就是它）。
   late PitStatus _tab = ref.read(settingsProvider).lastPitsTab;
+
+  static const _order = [
+    PitStatus.active,
+    PitStatus.shallow,
+    PitStatus.archived,
+  ];
+
+  /// 左右滑的小數頁碼，pills 的深色底跟著它滑（D-118）。
+  late final _progress = ValueNotifier<double>(_order.indexOf(_tab).toDouble());
+
+  @override
+  void dispose() {
+    _progress.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,27 +76,28 @@ class _PitsPageState extends ConsumerState<PitsPage> {
       ref.read(settingsProvider.notifier).setLastPitsTab(st);
     }
 
-    final pills = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final (i, st) in [
-          (0, PitStatus.active),
-          (1, PitStatus.shallow),
-          (2, PitStatus.archived),
-        ]) ...[
-          if (i > 0) const SizedBox(width: 8),
-          _FilterChip(
-            label: switch (st) {
-              PitStatus.active => context.l10n.pitsActive,
-              PitStatus.shallow => context.l10n.shallowName,
-              PitStatus.archived => context.l10n.pitsArchived,
-            },
-            selected: _tab == st,
-            big: tablet,
-            onTap: () => setTab(st),
-          ),
-        ],
-      ],
+    String label(PitStatus st) => switch (st) {
+      PitStatus.active => context.l10n.pitsActive,
+      PitStatus.shallow => context.l10n.shallowName,
+      PitStatus.archived => context.l10n.pitsArchived,
+    };
+    // 深色底跟著左右滑的進度滑（D-118）。
+    final pills = SlidingPillRow(
+      count: _order.length,
+      progress: _progress,
+      fill: context.tokens.surface,
+      border: context.tokens.border,
+      capsuleColor: context.tokens.ink,
+      capsuleBorder: context.tokens.border,
+      radius: Radii.chip,
+      pill: (context, i, mix, decorated) => _FilterChip(
+        label: label(_order[i]),
+        selected: mix >= 0.5,
+        mix: mix,
+        decorated: decorated,
+        big: tablet,
+        onTap: () => setTab(_order[i]),
+      ),
     );
     // 主頁右上的「搜尋全部坑」鍵（D-105，取代田字／瀑布切換）；三個分頁都有。
     final searchButton = _SearchAllButton(big: tablet);
@@ -153,36 +170,42 @@ class _PitsPageState extends ConsumerState<PitsPage> {
                 fontSize: tablet ? 13 : 12,
               ),
             Expanded(
-              // 左右滑動切換 現坑／淺坑／封存坑（不循環）。
-              child: SwipeToSwitch.among<PitStatus>(
+              // 左右滑動切換 現坑／淺坑／封存坑（不循環），內容跟著手指走（D-118）。
+              child: SwipePager<PitStatus>(
                 enabled: !nothingAtAll,
-                order: const [
-                  PitStatus.active,
-                  PitStatus.shallow,
-                  PitStatus.archived,
-                ],
+                order: _order,
                 current: _tab,
+                progress: _progress,
                 onChanged: setTab,
-                child: pits.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (e, _) =>
-                      Center(child: Text(context.l10n.pitsLoadFailed('$e'))),
-                  data: (list) => switch (_tab) {
-                    PitStatus.active =>
-                      list.isEmpty
-                          ? _Empty(tab: _tab)
-                          : _PitList(pits: list, tablet: tablet, wide: wide),
-                    PitStatus.shallow || PitStatus.archived =>
-                      list.isEmpty
-                          ? _Empty(tab: _tab)
-                          : PitRows(
-                              pits: list,
-                              status: _tab,
-                              tablet: tablet,
-                              wide: wide,
-                            ),
-                  },
+                itemBuilder: (context, st) => Consumer(
+                  builder: (context, ref, _) => ref
+                      .watch(pitsByStatusProvider(st))
+                      .when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => Center(
+                          child: Text(context.l10n.pitsLoadFailed('$e')),
+                        ),
+                        data: (list) => switch (st) {
+                          PitStatus.active =>
+                            list.isEmpty
+                                ? _Empty(tab: st)
+                                : _PitList(
+                                    pits: list,
+                                    tablet: tablet,
+                                    wide: wide,
+                                  ),
+                          PitStatus.shallow || PitStatus.archived =>
+                            list.isEmpty
+                                ? _Empty(tab: st)
+                                : PitRows(
+                                    pits: list,
+                                    status: st,
+                                    tablet: tablet,
+                                    wide: wide,
+                                  ),
+                        },
+                      ),
                 ),
               ),
             ),
@@ -276,11 +299,19 @@ class _FilterChip extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.big = false,
+    this.mix,
+    this.decorated = true,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+
+  /// [SlidingPillRow] 用：字色在未選（0）和選中（1）之間的位置。
+  final double? mix;
+
+  /// false＝底色和框透明（由 [SlidingPillRow] 畫），大小不變。
+  final bool decorated;
 
   /// iPad：高 40、字 14（Main 稿）；手機維持 13。
   final bool big;
@@ -298,14 +329,16 @@ class _FilterChip extends StatelessWidget {
           vertical: big ? 0 : 7,
         ),
         decoration: BoxDecoration(
-          color: selected ? t.ink : t.surface,
-          border: Border.all(color: t.border),
+          color: decorated ? (selected ? t.ink : t.surface) : null,
+          border: Border.all(color: decorated ? t.border : Colors.transparent),
           borderRadius: BorderRadius.circular(Radii.chip),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? t.surface : t.text2,
+            color: mix != null
+                ? Color.lerp(t.text2, t.surface, mix!)
+                : (selected ? t.surface : t.text2),
             fontSize: big ? 14 : 13,
             fontWeight: FontWeight.w500,
           ),

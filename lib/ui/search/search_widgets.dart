@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../common/swipe_to_switch.dart';
+import '../common/sliding_pills.dart';
 
 import '../../data/search_queries.dart';
 import '../../theme/tokens.dart';
@@ -180,6 +183,7 @@ class SearchCategoryChips extends StatelessWidget {
     required this.onSelected,
     this.counts,
     this.wide = false,
+    this.progress,
   });
   final SearchCategory selected;
   final ValueChanged<SearchCategory> onSelected;
@@ -188,12 +192,57 @@ class SearchCategoryChips extends StatelessWidget {
   /// iPad（PitSearch 稿）：高 38、字 14、左右內距 16、間距 8，沒有外圍邊距（由頁面給）。
   final bool wide;
 
+  /// 左右滑的小數頁碼（[SwipePager]）；null＝選中項目一變就自己滑過去（D-118）。
+  final ValueListenable<double>? progress;
+
   String _label(AppLocalizations l, SearchCategory c) =>
       counts == null ? c.label(l) : '${c.label(l)} ${counts![c] ?? 0}';
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final cats = visibleSearchCategories(counts);
+    Widget row(ValueListenable<double> p) => SlidingPillRow(
+      count: cats.length,
+      progress: p,
+      spacing: wide ? 8 : 6,
+      fill: t.surface,
+      border: t.border,
+      capsuleColor: t.ink,
+      capsuleBorder: t.ink,
+      pill: (context, i, mix, decorated) {
+        final c = cats[i];
+        final on = mix >= 0.5;
+        return GestureDetector(
+          onTap: () => onSelected(c),
+          child: Container(
+            key: ValueKey('searchCategory-${c.name}'),
+            height: wide ? 38 : null,
+            alignment: wide ? Alignment.center : null,
+            padding: EdgeInsets.symmetric(
+              horizontal: wide ? 16 : 13,
+              vertical: wide ? 0 : 6,
+            ),
+            decoration: BoxDecoration(
+              color: decorated ? (on ? t.ink : t.surface) : null,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: decorated ? (on ? t.ink : t.border) : Colors.transparent,
+              ),
+            ),
+            child: Text(
+              _label(context.l10n, c),
+              style: TextStyle(
+                color: Color.lerp(t.text2, t.surface, mix),
+                fontSize: wide ? 14 : 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    final p = progress;
     // 外層 Align：橫向 SingleChildScrollView 在 Column（預設置中）裡會縮成內容寬並置中，
     // 設計稿是靠左。
     return Align(
@@ -203,42 +252,12 @@ class SearchCategoryChips extends StatelessWidget {
         padding: wide
             ? EdgeInsets.zero
             : const EdgeInsets.fromLTRB(20, 4, 20, 10),
-        child: Row(
-          spacing: wide ? 8 : 6,
-          children: [
-            for (final c in visibleSearchCategories(counts))
-              EnsureVisibleWhenSelected(
-                selected: c == selected,
-                child: GestureDetector(
-                  onTap: () => onSelected(c),
-                  child: Container(
-                    key: ValueKey('searchCategory-${c.name}'),
-                    height: wide ? 38 : null,
-                    alignment: wide ? Alignment.center : null,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: wide ? 16 : 13,
-                      vertical: wide ? 0 : 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: c == selected ? t.ink : t.surface,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: c == selected ? t.ink : t.border,
-                      ),
-                    ),
-                    child: Text(
-                      _label(context.l10n, c),
-                      style: TextStyle(
-                        color: c == selected ? t.surface : t.text2,
-                        fontSize: wide ? 14 : 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
+        child: p != null
+            ? row(p)
+            : AnimatedPillProgress(
+                index: math.max(0, cats.indexOf(selected)),
+                builder: (context, p) => row(p),
               ),
-          ],
-        ),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,6 +13,8 @@ import '../common/app_icons.dart';
 import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/svg_icon.dart';
+import '../common/sliding_pills.dart';
+import '../common/swipe_pager.dart';
 import '../common/swipe_to_switch.dart';
 import '../common/window_class.dart';
 import '../reference/reference_viewer.dart';
@@ -62,7 +65,11 @@ class AlbumView extends ConsumerStatefulWidget {
     this.sectionTabs,
     this.onSwipePrev,
     this.onSwipeNext,
+    this.pages,
   });
+
+  /// 左右滑切換篩選、內容跟著手指走（D-118）；有給就不用 [onSwipePrev]／[onSwipeNext]。
+  final AlbumSwipePages? pages;
 
   /// 這個列表是哪一格；多選的「移動」要用。省略就沒有「移動」。
   final AlbumCell? cell;
@@ -114,6 +121,23 @@ class AlbumView extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<AlbumView> createState() => _AlbumViewState();
+}
+
+/// [AlbumView] 左右滑的各頁：[order] 是篩選值（null＝全部），[imagesOf] 取某一頁的圖
+/// （隔壁頁用；目前這頁用 [AlbumView.images]）。[progress] 給篩選 pills 畫深色底。
+class AlbumSwipePages {
+  const AlbumSwipePages({
+    required this.order,
+    required this.current,
+    required this.onChanged,
+    required this.imagesOf,
+    this.progress,
+  });
+  final List<String?> order;
+  final String? current;
+  final ValueChanged<String?> onChanged;
+  final List<AlbumImage> Function(WidgetRef ref, String? page) imagesOf;
+  final ValueNotifier<double>? progress;
 }
 
 class _AlbumViewState extends ConsumerState<AlbumView>
@@ -348,21 +372,27 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     _selecting = !finished || _selected.isNotEmpty;
   });
 
-  Widget _grid({bool wide = false, bool showPanel = false, WideSpec? spec}) =>
-      widget.squares
+  /// [active]＝目前這頁；左右滑時露出的隔壁頁只負責顯示（不能點、不能多選）。
+  Widget _grid({
+    required List<AlbumImage> images,
+    bool active = true,
+    bool wide = false,
+    bool showPanel = false,
+    WideSpec? spec,
+  }) => widget.squares
       ? SquareGrid(
-          images: widget.images,
-          selecting: _selecting,
-          selected: _selected,
-          onLongPress: _longPress,
-          onDragSelect: _dragSelect,
-          onTap: _open,
+          images: images,
+          selecting: active && _selecting,
+          selected: active ? _selected : const {},
+          onLongPress: active ? _longPress : (_) {},
+          onDragSelect: active ? _dragSelect : (_, _) {},
+          onTap: active ? _open : (_, _) {},
         )
       : ImageMasonry(
-          images: widget.images,
-          selecting: _selecting,
-          selected: _selected,
-          highlightId: showPanel ? _panelId : null,
+          images: images,
+          selecting: active && _selecting,
+          selected: active ? _selected : const {},
+          highlightId: showPanel && active ? _panelId : null,
           // iPad 多選：預覽面板收起，列表固定 4 欄（FanArtSelect）。
           columns: wide && _selecting ? 4 : null,
           padding: wide
@@ -373,9 +403,9 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                   96,
                 )
               : const EdgeInsets.fromLTRB(20, 2, 20, 96),
-          onLongPress: _longPress,
-          onDragSelect: _dragSelect,
-          onTap: _open,
+          onLongPress: active ? _longPress : (_) {},
+          onDragSelect: active ? _dragSelect : (_, _) {},
+          onTap: active ? _open : (_, _) {},
         );
 
   /// 寬版右側預覽面板：選了圖顯示該圖，沒選顯示提示。
@@ -633,11 +663,11 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                             child: widget.filter,
                           ),
                         Expanded(
-                          child: SwipeToSwitch(
-                            enabled: !_selecting,
-                            onPrev: widget.onSwipePrev,
-                            onNext: widget.onSwipeNext,
-                            child: widget.images.isEmpty
+                          child: () {
+                            Widget pageOf(
+                              List<AlbumImage> images, {
+                              bool active = true,
+                            }) => images.isEmpty
                                 ? EmptyState(
                                     icon: widget.emptyIcon,
                                     svg:
@@ -653,11 +683,39 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                                     onAction: widget.onAdd,
                                   )
                                 : _grid(
+                                    images: images,
+                                    active: active,
                                     wide: wide,
                                     showPanel: showPanel,
                                     spec: spec,
-                                  ),
-                          ),
+                                  );
+                            final pages = widget.pages;
+                            if (pages == null) {
+                              return SwipeToSwitch(
+                                enabled: !_selecting,
+                                onPrev: widget.onSwipePrev,
+                                onNext: widget.onSwipeNext,
+                                child: pageOf(widget.images),
+                              );
+                            }
+                            // 左右滑切換篩選，內容跟著手指走（D-118）。
+                            return SwipePager<String?>(
+                              enabled: !_selecting,
+                              order: pages.order,
+                              current: pages.current,
+                              progress: pages.progress,
+                              onChanged: pages.onChanged,
+                              itemBuilder: (context, page) =>
+                                  page == pages.current
+                                  ? pageOf(widget.images)
+                                  : Consumer(
+                                      builder: (context, ref, _) => pageOf(
+                                        pages.imagesOf(ref, page),
+                                        active: false,
+                                      ),
+                                    ),
+                            );
+                          }(),
                         ),
                       ],
                     ),
@@ -751,7 +809,12 @@ class ChipRow extends StatelessWidget {
     this.accentSelected = false,
     this.wrap = false,
     this.padding = const EdgeInsets.fromLTRB(20, 6, 0, 12),
+    this.progress,
   });
+
+  /// 左右滑的小數頁碼（[SwipePager]，0＝第一粒）。有給＝深色底跟著進度滑（D-118），
+  /// 不看 [selected] 畫選中樣式。只用在列表篩選樣式（橫向捲動、非 [wrap]）。
+  final ValueListenable<double>? progress;
 
   final List<(String, String)> options; // (id, label)
   final String? selected;
@@ -768,6 +831,44 @@ class ChipRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = this.progress;
+    if (progress != null && !wrap) {
+      final items = [
+        if (showAll) (null, context.l10n.commonAll),
+        for (final o in options) (o.$1, o.$2),
+      ];
+      final t = context.tokens;
+      return Padding(
+        padding: padding,
+        child: Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SlidingPillRow(
+                  count: items.length,
+                  progress: progress,
+                  fill: t.surface,
+                  border: t.border,
+                  capsuleColor: t.ink,
+                  capsuleBorder: t.ink,
+                  radius: Radii.chip,
+                  pill: (context, i, mix, decorated) => _Chip(
+                    items[i].$2,
+                    mix >= 0.5,
+                    () => onSelected(items[i].$1),
+                    false,
+                    mix: mix,
+                    decorated: decorated,
+                  ),
+                ),
+              ),
+            ),
+            ?trailing,
+          ],
+        ),
+      );
+    }
     final chips = [
       if (showAll)
         EnsureVisibleWhenSelected(
@@ -814,11 +915,24 @@ class ChipRow extends StatelessWidget {
 }
 
 class _Chip extends StatelessWidget {
-  const _Chip(this.label, this.selected, this.onTap, this.accentSelected);
+  const _Chip(
+    this.label,
+    this.selected,
+    this.onTap,
+    this.accentSelected, {
+    this.mix,
+    this.decorated = true,
+  });
   final String label;
   final bool selected;
   final VoidCallback onTap;
   final bool accentSelected;
+
+  /// [SlidingPillRow] 用：字色在未選（0）和選中（1）之間的位置。
+  final double? mix;
+
+  /// false＝底色和框透明（由 [SlidingPillRow] 畫），大小不變。
+  final bool decorated;
 
   @override
   Widget build(BuildContext context) {
@@ -834,14 +948,20 @@ class _Chip extends StatelessWidget {
             vertical: accentSelected ? 7 : 6,
           ),
           decoration: BoxDecoration(
-            color: selected ? onColor : t.surface,
+            color: decorated ? (selected ? onColor : t.surface) : null,
             borderRadius: BorderRadius.circular(Radii.chip),
-            border: Border.all(color: selected ? onColor : t.border),
+            border: Border.all(
+              color: decorated
+                  ? (selected ? onColor : t.border)
+                  : Colors.transparent,
+            ),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: selected
+              color: mix != null
+                  ? Color.lerp(t.text2, t.surface, mix!)
+                  : selected
                   ? (accentSelected ? Colors.white : t.surface)
                   : t.text2,
               fontSize: 13,

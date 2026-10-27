@@ -20,7 +20,7 @@ import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
-import '../common/swipe_to_switch.dart';
+import '../common/swipe_pager.dart';
 import '../common/timeline.dart';
 import '../common/window_class.dart';
 import '../album/wide_layout.dart';
@@ -62,6 +62,9 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
   // 寬版右側面板（分組、跳到月份；P-030：搜尋框與角色 tag 篩選已拿掉，搜尋改去坑內搜尋）。
   int? _jumpedMonth;
   final _scroll = ScrollController();
+
+  /// 左右滑的小數頁碼，分組 pills 的深色底跟著它滑（D-118）。
+  final _progress = ValueNotifier<double>(0);
   final _monthKeys = <int, GlobalKey>{};
   final _gridAreaKey = GlobalKey();
 
@@ -90,6 +93,7 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
   @override
   void dispose() {
     _scroll.dispose();
+    _progress.dispose();
     _sel.dispose();
     super.dispose();
   }
@@ -456,17 +460,11 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
         : context.l10n.albumTitleWithPit(pitName, context.l10n.oshiTitle);
     _sel.updateOrder([for (final v in views) v.record.id]);
     final selecting = _sel.active;
-    Widget swipe(Widget child) => SwipeToSwitch.among<String?>(
-      enabled: !selecting && !fullyEmpty,
-      order: [
-        null,
-        for (final g in groups) g.id,
-        if (showUngrouped) oshiUngroupedFilter,
-      ],
-      current: groupId,
-      onChanged: (v) => setState(() => _groupId = v),
-      child: child,
-    );
+    final order = <String?>[
+      null,
+      for (final g in groups) g.id,
+      if (showUngrouped) oshiUngroupedFilter,
+    ];
     setNavBarHidden(selecting);
     final picked = _picked(views);
     // 每個月份標題都要有 key，「跳到月份」才找得到。
@@ -474,52 +472,86 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
       _monthKeys.putIfAbsent(v.date.year * 100 + v.date.month, GlobalKey.new);
     }
     final showPanel = wide && !selecting;
-    final Widget content = views.isEmpty
-        ? EmptyState(
-            svg: OshiIcons.star,
-            text: context.l10n.oshiEmpty,
-            color: t.oshi,
-            actionLabel: context.l10n.oshiEmptyAction,
-            onAction: () => _add(groupId),
-          )
-        // 長按＋拖曳連續多選（D-081）：index ＝ views 的順序
-        // （時間軸分段攤平後與 views 同序；月份標題不是項目）。
-        : DragSelectArea(
-            itemCount: views.length,
-            isSelected: (i) => _sel.isSelected(views[i].record.id),
-            onChanged: (idx, finished) =>
-                _sel.applyIndices(idx, finished: finished),
-            child: _layout == OshiLayout.timeline
-                ? TimelineView(
-                    controller: _scroll,
-                    headerKeys: _monthKeys,
-                    padding: EdgeInsets.fromLTRB(
-                      wide ? spec.hpad : 20,
-                      4,
-                      wide ? 12 : 20,
-                      96,
-                    ),
-                    entries: [
-                      for (var i = 0; i < views.length; i++)
-                        oshiTimelineEntry(
-                          views[i],
-                          onTap: () => _tap(views[i]),
-                          selected: selecting
-                              ? _sel.isSelected(views[i].record.id)
-                              : null,
-                          dragIndex: i,
-                        ),
-                    ],
-                    countLabel: context.l10n.oshiCountRecords,
-                  )
-                : _OshiGrid(
-                    views: views,
-                    selection: _sel,
-                    onTap: _tap,
-                    controller: _scroll,
-                    wide: wide,
+    // 一頁分組的內容。[active]＝目前選中的那頁（有捲動控制、月份 key、拖曳多選）；
+    // 左右滑時露出的隔壁頁只負責顯示（D-118）。
+    Widget contentFor(
+      String? gid,
+      List<OshiRecordView> views, {
+      required bool active,
+    }) {
+      if (views.isEmpty) {
+        return EmptyState(
+          svg: OshiIcons.star,
+          text: context.l10n.oshiEmpty,
+          color: t.oshi,
+          actionLabel: context.l10n.oshiEmptyAction,
+          onAction: () => _add(gid),
+        );
+      }
+      final Widget list = _layout == OshiLayout.timeline
+          ? TimelineView(
+              controller: active ? _scroll : null,
+              headerKeys: active ? _monthKeys : null,
+              padding: EdgeInsets.fromLTRB(
+                wide ? spec.hpad : 20,
+                4,
+                wide ? 12 : 20,
+                96,
+              ),
+              entries: [
+                for (var i = 0; i < views.length; i++)
+                  oshiTimelineEntry(
+                    views[i],
+                    onTap: () => _tap(views[i]),
+                    selected: selecting && active
+                        ? _sel.isSelected(views[i].record.id)
+                        : null,
+                    dragIndex: i,
                   ),
-          );
+              ],
+              countLabel: context.l10n.oshiCountRecords,
+            )
+          : _OshiGrid(
+              views: views,
+              selection: _sel,
+              onTap: _tap,
+              controller: active ? _scroll : null,
+              wide: wide,
+            );
+      if (!active) return list;
+      // 長按＋拖曳連續多選（D-081）：index ＝ views 的順序
+      // （時間軸分段攤平後與 views 同序；月份標題不是項目）。
+      return DragSelectArea(
+        itemCount: views.length,
+        isSelected: (i) => _sel.isSelected(views[i].record.id),
+        onChanged: (idx, finished) =>
+            _sel.applyIndices(idx, finished: finished),
+        child: list,
+      );
+    }
+
+    // 左右滑動切換分組 pill／側欄分組（全部 → 各分組 →（無分組），不循環），
+    // 內容跟著手指走（D-118）。
+    final Widget content = SwipePager<String?>(
+      enabled: !selecting && !fullyEmpty,
+      order: order,
+      current: groupId,
+      progress: _progress,
+      onChanged: (v) => setState(() => _groupId = v),
+      itemBuilder: (context, gid) => gid == groupId
+          ? contentFor(gid, views, active: true)
+          : Consumer(
+              builder: (context, ref, _) => contentFor(
+                gid,
+                ref
+                        .watch(oshiRecordsProvider((widget.pitId, gid, null)))
+                        .value ??
+                    const [],
+                active: false,
+              ),
+            ),
+    );
+
     final Widget panel = _panel(
       spec: spec,
       groups: groups,
@@ -594,6 +626,7 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
                         (oshiUngroupedFilter, context.l10n.oshiPillUngrouped),
                     ],
                     selected: groupId,
+                    progress: _progress,
                     onSelected: (v) => setState(() => _groupId = v),
                     trailing: ChipRowManageButton(
                       onTap: () => Navigator.of(context).push(
@@ -609,9 +642,7 @@ class _OshiListPageState extends ConsumerState<OshiListPage>
               ],
               Expanded(
                 // 左右滑動切換分組 pill／側欄分組（全部 → 各分組 →（無分組），不循環）。
-                child: wide
-                    ? _wideBody(swipe(content), panel, showPanel)
-                    : swipe(content),
+                child: wide ? _wideBody(content, panel, showPanel) : content,
               ),
             ],
           ),

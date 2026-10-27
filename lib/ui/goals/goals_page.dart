@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,7 +9,7 @@ import '../../state/providers.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../nav/adaptive_nav.dart';
-import '../common/swipe_to_switch.dart';
+import '../common/swipe_pager.dart';
 import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/responsive.dart';
@@ -41,6 +42,15 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
   int _year = DateTime.now().year; // 年度視圖的年份
   final _years = [DateTime.now().year, DateTime.now().year]; // 月、日視圖目前顯示的年份
 
+  /// 左右滑的小數頁碼，年／月／日切換的白底跟著它滑（D-118）。
+  late final _progress = ValueNotifier<double>(_mode.toDouble());
+
+  @override
+  void dispose() {
+    _progress.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -61,7 +71,14 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
       _years[0] = _year;
     });
     ref.read(settingsProvider.notifier).setLastGoalsMode(1);
-    _monthKey.currentState?.jumpToMonth(_year, month);
+    // 月頁可能還沒建（左右滑的頁面用到才建）：建好後再跳。
+    final y = _year;
+    void jump() => _monthKey.currentState?.jumpToMonth(y, month);
+    if (_monthKey.currentState != null) {
+      jump();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => jump());
+    }
   }
 
   @override
@@ -109,7 +126,7 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
                 context.l10n.goalsModeMonth,
                 context.l10n.goalsModeDay,
               ],
-              selected: _mode,
+              progress: _progress,
               onChanged: setMode,
             );
             final titleStyle = Theme.of(context).textTheme.headlineMedium
@@ -154,50 +171,54 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
                     ),
                   ),
                   Expanded(
-                    // 左右滑動切換 年／月／日（不循環）。
-                    child: SwipeToSwitch.among<int>(
+                    // 左右滑動切換 年／月／日（不循環），內容跟著手指走（D-118）。
+                    child: SwipePager<int>(
                       order: const [0, 1, 2],
                       current: _mode,
+                      progress: _progress,
                       onChanged: setMode,
-                      child: IndexedStack(
-                        index: _mode,
-                        children: [
-                          YearView(
-                            year: _year,
-                            wide: wide,
-                            side: side,
-                            onMonthTap: _openMonth,
-                          ),
-                          MonthView(
-                            key: _monthKey,
-                            wide: wide,
-                            side: side,
-                            onYearChanged: (y) => setState(() => _years[0] = y),
-                            // 月頁點日曆：切到「日」並捲到該日（D-072）。
-                            onDayTap: (d) {
-                              setState(() => _mode = 2);
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .setLastGoalsMode(2);
-                              _dayKey.currentState?.jumpToDay(d);
-                            },
-                          ),
-                          // 日：時間軸在寬版置中限寬（稿沒畫，沿用手機時間軸）。
-                          Align(
-                            alignment: Alignment.topCenter,
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: wide ? 760 : double.infinity,
-                              ),
-                              child: DayView(
-                                timelineKey: _dayKey,
-                                onYearChanged: (y) =>
-                                    setState(() => _years[1] = y),
-                              ),
+                      itemBuilder: (context, mode) => switch (mode) {
+                        0 => YearView(
+                          year: _year,
+                          wide: wide,
+                          side: side,
+                          onMonthTap: _openMonth,
+                        ),
+                        1 => MonthView(
+                          key: _monthKey,
+                          wide: wide,
+                          side: side,
+                          onYearChanged: (y) => setState(() => _years[0] = y),
+                          // 月頁點日曆：切到「日」並捲到該日（D-072）。
+                          onDayTap: (d) {
+                            setState(() => _mode = 2);
+                            ref
+                                .read(settingsProvider.notifier)
+                                .setLastGoalsMode(2);
+                            if (_dayKey.currentState != null) {
+                              _dayKey.currentState!.jumpToDay(d);
+                            } else {
+                              WidgetsBinding.instance.addPostFrameCallback(
+                                (_) => _dayKey.currentState?.jumpToDay(d),
+                              );
+                            }
+                          },
+                        ),
+                        // 日：時間軸在寬版置中限寬（稿沒畫，沿用手機時間軸）。
+                        _ => Align(
+                          alignment: Alignment.topCenter,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: wide ? 760 : double.infinity,
+                            ),
+                            child: DayView(
+                              timelineKey: _dayKey,
+                              onYearChanged: (y) =>
+                                  setState(() => _years[1] = y),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      },
                     ),
                   ),
                 ],
@@ -241,68 +262,97 @@ class _YearStep extends StatelessWidget {
 }
 
 /// 年／月／日分段控制：#F1EADF 圓角 12 底、白色選中膠囊（圓角 9、淡陰影）。
+/// 年／月／日切換。白底跟著左右滑的進度 [progress]（小數頁碼）滑動（D-118）。
 class _Segmented extends StatelessWidget {
   const _Segmented({
     required this.labels,
-    required this.selected,
+    required this.progress,
     required this.onChanged,
   });
   final List<String> labels;
-  final int selected;
+  final ValueListenable<double> progress;
   final ValueChanged<int> onChanged;
+
+  static const _pad = 4.0;
+  static const _gap = 6.0;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(_pad),
       decoration: BoxDecoration(
         color: dark ? t.chipBg : const Color(0xFFF1EADF),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        spacing: 6,
-        children: [
-          for (var i = 0; i < labels.length; i++)
-            Expanded(
-              child: Semantics(
-                button: true,
-                selected: i == selected,
-                child: GestureDetector(
-                  onTap: () => onChanged(i),
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: i == selected ? t.surface : Colors.transparent,
-                      borderRadius: BorderRadius.circular(9),
-                      boxShadow: i == selected
-                          ? const [
-                              BoxShadow(
-                                color: Color(0x0F000000),
-                                blurRadius: 2,
-                                offset: Offset(0, 1),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Text(
-                      labels[i],
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: i == selected
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: i == selected ? t.ink : t.text3,
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final n = labels.length;
+          final segW = (box.maxWidth - _gap * (n - 1)) / n;
+          return ValueListenableBuilder<double>(
+            valueListenable: progress,
+            builder: (context, p, _) {
+              final pos = p.clamp(0.0, n - 1.0);
+              final selected = pos.round();
+              return Stack(
+                children: [
+                  Positioned(
+                    left: pos * (segW + _gap),
+                    top: 0,
+                    bottom: 0,
+                    width: segW,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: t.surface,
+                        borderRadius: BorderRadius.circular(9),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x0F000000),
+                            blurRadius: 2,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-              ),
-            ),
-        ],
+                  Row(
+                    spacing: _gap,
+                    children: [
+                      for (var i = 0; i < n; i++)
+                        Expanded(
+                          child: Semantics(
+                            button: true,
+                            selected: i == selected,
+                            child: GestureDetector(
+                              onTap: () => onChanged(i),
+                              behavior: HitTestBehavior.opaque,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  labels[i],
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: i == selected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: i == selected ? t.ink : t.text3,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }

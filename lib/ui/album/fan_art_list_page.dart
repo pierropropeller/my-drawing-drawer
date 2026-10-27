@@ -28,6 +28,15 @@ class FanArtListPage extends ConsumerStatefulWidget {
 class _FanArtListPageState extends ConsumerState<FanArtListPage> {
   String? _groupId;
 
+  /// 左右滑的小數頁碼，篩選 pills 的深色底跟著它滑（D-118）。
+  final _progress = ValueNotifier<double>(0);
+
+  @override
+  void dispose() {
+    _progress.dispose();
+    super.dispose();
+  }
+
   /// 新增：先打開相簿選圖，選好再進入新增頁。
   Future<void> _add(String? groupId) async {
     final picked = await ref.read(imagePickerProvider)(context);
@@ -58,13 +67,12 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
     final names = {for (final g in groups) g.id: g.name};
     // 標題列一律顯示全部張數。
     final total = ref.watch(pitStatsProvider(widget.pitId)).value?.fanArts;
-    final rows =
-        ref
-            .watch(fanArtsFilteredProvider((widget.pitId, groupId, null)))
-            .value ??
-        const [];
-    final images = [
-      for (final r in rows)
+    List<AlbumImage> imagesOf(WidgetRef ref, String? gid) => [
+      for (final r
+          in ref
+                  .watch(fanArtsFilteredProvider((widget.pitId, gid, null)))
+                  .value ??
+              const [])
         AlbumImage(
           id: r.id,
           file: r.imageFile,
@@ -80,17 +88,13 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
           posterFile: r.posterFile,
         ),
     ];
-    // 列表區左右滑動切換出處 chip（全部 → 各出處 →（無出處），不循環）。
+    final images = imagesOf(ref, groupId);
+    // 列表區左右滑動切換出處 chip（全部 → 各出處 →（無出處），不循環），內容跟著手指走（D-118）。
     final order = <String?>[
       null,
       for (final g in groups) g.id,
       if (showNoSource) fanArtNoSourceFilter,
     ];
-    VoidCallback? swipeTo(int delta) {
-      final i = order.indexOf(groupId) + delta;
-      if (i < 0 || i >= order.length) return null;
-      return () => setState(() => _groupId = order[i]);
-    }
 
     return AlbumView(
       pitId: widget.pitId,
@@ -105,8 +109,13 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
       emptySvg: AppIcons.pitFanArt,
       total: total,
       emptyColor: context.tokens.fanArt,
-      onSwipePrev: swipeTo(-1),
-      onSwipeNext: swipeTo(1),
+      pages: AlbumSwipePages(
+        order: order,
+        current: groupId,
+        progress: _progress,
+        onChanged: (v) => setState(() => _groupId = v),
+        imagesOf: imagesOf,
+      ),
       onAdd: () => _add(groupId),
       onDelete: (picked) => db.deleteFanArts(picked.map((e) => e.id)),
       previewBuilder: (items, i) => FanArtPreviewPage(
@@ -133,6 +142,7 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
                 (fanArtNoSourceFilter, context.l10n.albumPillNoSource),
             ],
             selected: groupId,
+            progress: _progress,
             onSelected: (v) => setState(() => _groupId = v),
             trailing: ChipRowManageButton(
               onTap: () => Navigator.of(context).push(

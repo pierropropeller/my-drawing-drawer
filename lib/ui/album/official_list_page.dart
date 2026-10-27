@@ -29,6 +29,15 @@ class OfficialListPage extends ConsumerStatefulWidget {
 class _OfficialListPageState extends ConsumerState<OfficialListPage> {
   String? _groupId;
 
+  /// 左右滑的小數頁碼，篩選 pills 的深色底跟著它滑（D-118）。
+  final _progress = ValueNotifier<double>(0);
+
+  @override
+  void dispose() {
+    _progress.dispose();
+    super.dispose();
+  }
+
   /// 新增：先打開相簿選圖，選好再進入新增頁。
   Future<void> _add(String? groupId) async {
     final picked = await ref.read(imagePickerProvider)(context);
@@ -57,13 +66,12 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
     final groupId = groups.any((g) => g.id == _groupId) ? _groupId : null;
     final names = {for (final g in groups) g.id: g.name};
     final total = ref.watch(pitStatsProvider(widget.pitId)).value?.official;
-    final rows =
-        ref
-            .watch(officialFilteredProvider((widget.pitId, groupId, null)))
-            .value ??
-        const [];
-    final images = [
-      for (final r in rows)
+    List<AlbumImage> imagesOf(WidgetRef ref, String? gid) => [
+      for (final r
+          in ref
+                  .watch(officialFilteredProvider((widget.pitId, gid, null)))
+                  .value ??
+              const [])
         AlbumImage(
           id: r.id,
           file: r.imageFile,
@@ -78,13 +86,9 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
           posterFile: r.posterFile,
         ),
     ];
-    // 列表區左右滑動切換分組 chip（全部 → 各分組，不循環）。
+    final images = imagesOf(ref, groupId);
+    // 列表區左右滑動切換分組 chip（全部 → 各分組，不循環），內容跟著手指走（D-118）。
     final order = <String?>[null, for (final g in groups) g.id];
-    VoidCallback? swipeTo(int delta) {
-      final i = order.indexOf(groupId) + delta;
-      if (i < 0 || i >= order.length) return null;
-      return () => setState(() => _groupId = order[i]);
-    }
 
     final view = AlbumView(
       pitId: widget.pitId,
@@ -99,8 +103,13 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
       emptySvg: AppIcons.pitOfficial,
       total: total,
       emptyColor: t.official,
-      onSwipePrev: swipeTo(-1),
-      onSwipeNext: swipeTo(1),
+      pages: AlbumSwipePages(
+        order: order,
+        current: groupId,
+        progress: _progress,
+        onChanged: (v) => setState(() => _groupId = v),
+        imagesOf: imagesOf,
+      ),
       onAdd: () => _add(groupId),
       onDelete: (picked) => db.deleteOfficial(picked.map((e) => e.id)),
       previewBuilder: (items, i) =>
@@ -119,6 +128,7 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
           ChipRow(
             options: [for (final g in groups) (g.id, g.name)],
             selected: groupId,
+            progress: _progress,
             onSelected: (v) => setState(() => _groupId = v),
             trailing: ChipRowManageButton(
               onTap: () => Navigator.of(context).push(

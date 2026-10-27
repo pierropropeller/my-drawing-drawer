@@ -8,7 +8,7 @@ import '../../data/material_queries.dart';
 import '../../data/sensitive_queries.dart';
 import '../../state/sensitive.dart';
 import '../common/sensitive_actions.dart';
-import '../common/swipe_to_switch.dart';
+import '../common/swipe_pager.dart';
 import '../../l10n/l10n.dart';
 import '../../media/media_import.dart';
 import '../../state/providers.dart';
@@ -67,6 +67,19 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
   bool get hidesNavBarOnOpen => false;
 
   late MaterialCategory? _category = widget.initialCategory;
+  static final _order = <MaterialCategory?>[null, ...MaterialCategory.values];
+
+  /// 左右滑的小數頁碼，分類 pills 的深色底跟著它滑（D-118）。
+  late final _progress = ValueNotifier<double>(
+    _order.indexOf(_category).toDouble(),
+  );
+
+  @override
+  void dispose() {
+    _progress.dispose();
+    super.dispose();
+  }
+
   late MaterialLayout _layout = _readLayout();
   bool _selecting = false;
   final Set<String> _selected = {};
@@ -451,6 +464,33 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
                   : (WindowClass.of(context).isCompact
                         ? null
                         : gridColumnsFor(box.maxWidth - 40));
+              Widget page(List<MaterialImage> rows) => rows.isEmpty
+                  ? EmptyState(
+                      svg: AppIcons.image,
+                      text: l.materialEmpty,
+                      color: t.official,
+                      actionLabel: l.albumAddImage,
+                      onAction: _add,
+                    )
+                  : _layout == MaterialLayout.grid
+                  ? SquareGrid(
+                      images: _asAlbum(rows),
+                      columns: columns,
+                      selecting: _selecting,
+                      selected: _selected,
+                      padding: const EdgeInsets.fromLTRB(0, 2, 0, 96),
+                      onLongPress: (im) => _longPress(im.id),
+                      onDragSelect: (idx, done) => _dragSelect(rows, idx, done),
+                      onTap: (im, i) => _open(rows, i),
+                    )
+                  : _Masonry(
+                      rows: rows,
+                      columns: columns,
+                      selecting: _selecting,
+                      selected: _selected,
+                      onDragSelect: (idx, done) => _dragSelect(rows, idx, done),
+                      onTap: (i) => _open(rows, i),
+                    );
               return Column(
                 children: [
                   if (!fullyEmpty)
@@ -460,6 +500,7 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
                           (c.name, c.label(l)),
                       ],
                       selected: _category?.name,
+                      progress: _progress,
                       onSelected: (id) => setState(
                         () => _category = id == null
                             ? null
@@ -468,39 +509,20 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
                       padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
                     ),
                   Expanded(
-                    child: SwipeToSwitch.among<MaterialCategory?>(
+                    // 左右滑動切換分類，內容跟著手指走（D-118）。
+                    child: SwipePager<MaterialCategory?>(
                       enabled: !_selecting && !fullyEmpty,
-                      order: [null, ...MaterialCategory.values],
+                      order: _order,
                       current: _category,
+                      progress: _progress,
                       onChanged: (c) => setState(() => _category = c),
-                      child: rows.isEmpty
-                          ? EmptyState(
-                              svg: AppIcons.image,
-                              text: l.materialEmpty,
-                              color: t.official,
-                              actionLabel: l.albumAddImage,
-                              onAction: _add,
-                            )
-                          : _layout == MaterialLayout.grid
-                          ? SquareGrid(
-                              images: _asAlbum(rows),
-                              columns: columns,
-                              selecting: _selecting,
-                              selected: _selected,
-                              padding: const EdgeInsets.fromLTRB(0, 2, 0, 96),
-                              onLongPress: (im) => _longPress(im.id),
-                              onDragSelect: (idx, done) =>
-                                  _dragSelect(rows, idx, done),
-                              onTap: (im, i) => _open(rows, i),
-                            )
-                          : _Masonry(
-                              rows: rows,
-                              columns: columns,
-                              selecting: _selecting,
-                              selected: _selected,
-                              onDragSelect: (idx, done) =>
-                                  _dragSelect(rows, idx, done),
-                              onTap: (i) => _open(rows, i),
+                      itemBuilder: (context, c) => c == _category
+                          ? page(rows)
+                          : Consumer(
+                              builder: (context, ref, _) => page(
+                                ref.watch(materialsProvider(c)).value ??
+                                    const [],
+                              ),
                             ),
                     ),
                   ),

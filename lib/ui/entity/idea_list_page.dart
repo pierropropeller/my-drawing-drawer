@@ -15,7 +15,7 @@ import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
-import '../common/swipe_to_switch.dart';
+import '../common/swipe_pager.dart';
 import '../common/window_class.dart';
 import '../album/wide_layout.dart';
 import '../search/tagged_list.dart';
@@ -45,6 +45,15 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
 
   bool _selecting = false;
   final Set<String> _selected = {};
+
+  /// 左右滑的小數頁碼，狀態 chips 的深色底跟著它滑（D-118）。
+  late final _progress = ValueNotifier<double>(0);
+
+  @override
+  void dispose() {
+    _progress.dispose();
+    super.dispose();
+  }
 
   // 瀏覽時有導覽列，進入多選才隱藏。
   @override
@@ -94,7 +103,10 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
   );
 
   /// 寬版：左邊列表（固定約 400，窄視窗縮一點）＋右邊詳情。
-  Widget _splitBody(List<IdeaView> views, Widget listArea) {
+  Widget _splitBody(
+    List<IdeaView> views,
+    Widget Function(IdeaStatus? status) listFor,
+  ) {
     final t = context.tokens;
     final w = MediaQuery.sizeOf(context).width;
     final listW = (w * 0.42).clamp(340.0, 400.0);
@@ -125,6 +137,7 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                       ),
                     ],
                     selected: _status?.name,
+                    progress: _progress,
                     onSelected: (v) => setState(
                       () => _status = v == null
                           ? null
@@ -133,8 +146,8 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                     padding: const EdgeInsets.fromLTRB(20, 14, 12, 8),
                   ),
                 Expanded(
-                  // 左右滑動切換狀態 chip（全部 → 各狀態，不循環）；多選中不作用。
-                  child: SwipeToSwitch.among<IdeaStatus?>(
+                  // 左右滑動切換狀態 chip（全部 → 各狀態，不循環），內容跟著手指走（D-118）；多選中不作用。
+                  child: SwipePager<IdeaStatus?>(
                     enabled: !_selecting,
                     order: const [
                       null,
@@ -143,8 +156,9 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                       IdeaStatus.hatched,
                     ],
                     current: _status,
+                    progress: _progress,
                     onChanged: (v) => setState(() => _status = v),
-                    child: listArea,
+                    itemBuilder: (context, st) => listFor(st),
                   ),
                 ),
               ],
@@ -184,7 +198,7 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
     final title = pitName == null
         ? context.l10n.pitsIdeas
         : context.l10n.albumTitleWithPit(pitName, context.l10n.pitsIdeas);
-    final Widget listArea = views.isEmpty
+    Widget listOf(List<IdeaView> views) => views.isEmpty
         ? EmptyState(
             svg: AppIcons.pitIdea,
             text: context.l10n.ideaListEmpty,
@@ -318,7 +332,18 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                   pitId: widget.pitId,
                   selected: PitSection.ideas,
                 ),
-              Expanded(child: wide ? _splitBody(views, listArea) : listArea),
+              Expanded(
+                child: wide
+                    ? _splitBody(
+                        views,
+                        (st) => listOf(
+                          st == null
+                              ? allViews
+                              : allViews.where((v) => v.status == st).toList(),
+                        ),
+                      )
+                    : listOf(views),
+              ),
             ],
           ),
         ),
