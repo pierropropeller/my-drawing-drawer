@@ -199,13 +199,22 @@ class DragSelectAreaState extends State<DragSelectArea>
   /// 拖曳途中捲動區可能被換掉（例如列表切成九宮格）：舊的失效就改抓現有項目所在的捲動區。
   ScrollPosition? _livePosition() {
     final p = _position;
-    if (p != null && p.context.storageContext.mounted) return p;
+    if (p != null && _alive(p)) return p;
     for (final item in _items.values) {
       if (item.box == null) continue;
       final next = Scrollable.maybeOf(item.context)?.position;
       if (next != null) return _position = next;
     }
     return null;
+  }
+
+  /// 捲動區的 State 卸載後再讀它的 context 會 assert（debug），所以先擋掉。
+  bool _alive(ScrollPosition p) {
+    try {
+      return p.context.storageContext.mounted;
+    } catch (_) {
+      return false;
+    }
   }
 
   void _onTick(Duration elapsed) {

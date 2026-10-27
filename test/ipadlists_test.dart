@@ -454,6 +454,8 @@ void main() {
     testWidgets('寬版：欄數 3，點成圖右側詳情面板出現互動量與關聯腦洞', (tester) async {
       await show(tester, FinishedListPage(pitId: pitId), land);
       final l = AppLocalizations.of(tester.element(find.byType(Scaffold)));
+      await tester.tap(find.bySemanticsLabel(l.pieceViewWaterfall));
+      await settle(tester);
       expect(masonryCols(tester), 3);
       expect(find.text(l.ipadListsPieceEmpty), findsOneWidget);
       await tester.tap(find.text('成圖0').first);
@@ -466,6 +468,8 @@ void main() {
 
     testWidgets('手機：2 欄；寬版切九宮格＝5 欄', (tester) async {
       await show(tester, FinishedListPage(pitId: pitId), phone);
+      await tester.tap(find.bySemanticsLabel('瀑布'));
+      await settle(tester);
       expect(masonryCols(tester), 2);
       await unmount(tester);
       await show(tester, FinishedListPage(pitId: pitId), land);

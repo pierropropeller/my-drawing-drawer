@@ -3759,12 +3759,6 @@ abstract class AppLocalizations {
   /// **'瀑布'**
   String get pieceViewWaterfall;
 
-  /// No description provided for @pieceViewGrid.
-  ///
-  /// In zh, this message translates to:
-  /// **'田字'**
-  String get pieceViewGrid;
-
   /// No description provided for @pieceViewNine.
   ///
   /// In zh, this message translates to:

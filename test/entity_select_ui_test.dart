@@ -445,7 +445,7 @@ void main() {
   });
 
   group('成圖', () {
-    for (final (mode, label) in [(0, '瀑布'), (1, '田字'), (2, '九宮格')]) {
+    for (final (mode, label) in [(0, '列表'), (1, '瀑布'), (2, '九宮格')]) {
       testWidgets('$label：在原佈局上選，標題已選 N 張、拖曳連選、全選、退出', (tester) async {
         await tester.runAsync(seedPieces);
         await show(tester, FinishedListPage(pitId: pitId));
@@ -456,8 +456,10 @@ void main() {
 
         await longPress(tester, tiles.first);
         expect(find.text('已選 1 張'), findsOneWidget);
-        // 佈局沒變
-        expect(tester.getTopLeft(find.byType(DragSelectItem).first), before);
+        // 佈局沒變（列表模式多選時換成九宮格，同摸魚列表，不比位置）
+        if (mode != 0) {
+          expect(tester.getTopLeft(find.byType(DragSelectItem).first), before);
+        }
         expect(find.byType(SelectMark), findsWidgets);
         expect(selectedMarks(), findsOneWidget);
         for (final s in ['分享', '下載', 'tag', '刪除']) {
@@ -496,6 +498,20 @@ void main() {
       });
     }
 
+    testWidgets('預設是列表（D-125）：標題、日期、沒公開發佈沒有愛心；切瀑布／九宮格', (tester) async {
+      await tester.runAsync(seedPieces);
+      await show(tester, FinishedListPage(pitId: pitId));
+      expect(find.text('P1'), findsOneWidget);
+      expect(find.text('10/1'), findsOneWidget);
+      expect(find.bySemanticsLabel('田字'), findsNothing);
+      await tapSemantic(tester, '瀑布');
+      expect(find.text('P1'), findsOneWidget);
+      expect(find.text('10/1'), findsNothing); // 瀑布沒有日期
+      await tapSemantic(tester, '列表');
+      expect(find.text('10/1'), findsOneWidget);
+      await unmount(tester);
+    });
+
     testWidgets('不在多選時點成圖仍開詳情；多選中點成圖是切換', (tester) async {
       await tester.runAsync(seedPieces);
       await show(tester, FinishedListPage(pitId: pitId));
@@ -509,6 +525,7 @@ void main() {
       final ids = (await tester.runAsync(seedPieces))!;
       final tag = (await tester.runAsync(() => db.createTag(pitId, '角色1')))!;
       await show(tester, FinishedListPage(pitId: pitId));
+      await tapSemantic(tester, '九宮格');
       // 成圖列表照建立順序：P1(1) P2(2) P3(1) P4(2) P5(1)；選 P1、P2
       await longPress(tester, find.byType(DragSelectItem).first);
       await tester.tap(find.byType(DragSelectItem).at(1));

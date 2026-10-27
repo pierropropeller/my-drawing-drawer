@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -15,6 +17,7 @@ import '../album/album_actions.dart';
 import '../album/image_masonry.dart' show SelectMark;
 import '../common/app_icons.dart';
 import '../common/drag_select.dart';
+import '../common/media_mini.dart';
 import '../common/media_widgets.dart';
 import '../common/nav_bar_hidden.dart';
 import '../oshi/oshi_selection.dart';
@@ -24,15 +27,17 @@ import '../common/window_class.dart';
 import '../album/wide_layout.dart';
 import '../search/tagged_list.dart';
 import 'detail_panes.dart';
+import 'draft_list_page.dart'
+    show draftImageLayout, kDraftImageGap, kDraftImageRadius;
 import 'entity_select.dart';
 import 'entity_widgets.dart';
 import 'piece_detail_page.dart';
 import 'piece_form_page.dart';
 import '../pits/pit_section_tabs.dart';
 
-enum _Mode { waterfall, grid, nine }
+enum _Mode { list, waterfall, nine }
 
-/// 成圖列表（Finished）：瀑布／田字／九宮格切換；顯示互動量；有導覽列。
+/// 成圖列表（Finished）：列表（預設）／瀑布／九宮格切換（D-125）；顯示互動量；有導覽列。
 /// D-043：頂部不放 tag chips，卡片不顯示 tag；詳情頁點 tag 進坑內搜尋結果頁（D-107）。
 class FinishedListPage extends ConsumerStatefulWidget {
   const FinishedListPage({super.key, required this.pitId});
@@ -48,7 +53,7 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
   @override
   bool get hidesNavBarOnOpen => false;
 
-  _Mode _mode = _Mode.waterfall;
+  _Mode _mode = _Mode.list;
 
   /// 多選（D-095）：在原本的佈局上選，三種佈局都一樣。
   final _sel = OshiSelection();
@@ -150,7 +155,8 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
     await openPieceForm(context, pitId: widget.pitId, initialImages: picked);
   }
 
-  /// 瀑布／田字／九宮格的內容。手機維持 2／2／3 欄；平板依可用闊度逐格增減（間距 16／16／8）。
+  /// 列表／瀑布／九宮格的內容。手機維持 2／3 欄（瀑布／九宮格）；平板依可用闊度逐格增減（間距 16／8）。
+  /// 多選一律用九宮格（列表模式長按時換過去，退出後回列表，同摸魚列表）。
   Widget _content(
     List<PieceView> views,
     EdgeInsets pad, {
@@ -176,7 +182,26 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
         Widget pick(int i, Widget tile) =>
             DragSelectItem(index: i, child: tile);
         bool picked(PieceView v) => _sel.isSelected(v.piece.id);
-        final layout = switch (_mode) {
+        final mode = (selecting && _mode == _Mode.list) ? _Mode.nine : _mode;
+        final layout = switch (mode) {
+          _Mode.list => ListView.builder(
+            padding: EdgeInsets.fromLTRB(
+              wide ? pad.left - 12 : 0,
+              0,
+              wide ? math.max(0, pad.right - 12) : 0,
+              pad.bottom,
+            ),
+            itemCount: views.length,
+            itemBuilder: (_, i) => pick(
+              i,
+              _PieceRow(
+                view: views[i],
+                wide: wide,
+                selected: sel(views[i]),
+                onTap: () => tap(views[i]),
+              ),
+            ),
+          ),
           _Mode.waterfall => MasonryGridView.count(
             padding: pad,
             crossAxisCount: wfCols,
@@ -194,36 +219,6 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
                 ratio: views[i].images.isEmpty
                     ? 1
                     : views[i].images.first.aspect.clamp(0.5, 2.0),
-              ),
-            ),
-          ),
-          _Mode.grid => GridView.builder(
-            padding: pad,
-            gridDelegate: compact
-                ? const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    // 方圖＋標題＋互動量
-                    childAspectRatio: 0.76,
-                  )
-                : SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: wfCols,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    // 方圖＋標題＋互動量（約 52px 文字）
-                    mainAxisExtent: (inner - 16 * (wfCols - 1)) / wfCols + 52,
-                  ),
-            itemCount: views.length,
-            itemBuilder: (_, i) => pick(
-              i,
-              _PieceTile(
-                view: views[i],
-                selected: sel(views[i]),
-                selecting: selecting,
-                picked: picked(views[i]),
-                onTap: () => tap(views[i]),
-                ratio: 1,
               ),
             ),
           ),
@@ -385,6 +380,10 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
                             ),
                       titleSize: 19,
                       trailing: [
+                        if (wide)
+                          HeaderCount(
+                            context.l10n.pitsCountPieces(views.length),
+                          ),
                         SearchIconButton(pitId: widget.pitId),
                         _ModeToggle(
                           mode: _mode,
@@ -429,7 +428,7 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
   }
 }
 
-/// 右上的版面切換：白底 1px 邊框、圓角 11、三顆 34×32 按鈕，選中＝主色底白圖。
+/// 右上的版面切換（列表／瀑布／九宮格）：白底 1px 邊框、圓角 11、三顆 34×32 按鈕，選中＝主色底白圖。
 class _ModeToggle extends StatelessWidget {
   const _ModeToggle({required this.mode, required this.onChanged});
   final _Mode mode;
@@ -477,13 +476,13 @@ class _ModeToggle extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         spacing: 3,
         children: [
+          btn(_Mode.list, context.l10n.draftViewList, AppIcons.listRows, 1.8),
           btn(
             _Mode.waterfall,
             context.l10n.pieceViewWaterfall,
             AppIcons.waterfallView,
             1.8,
           ),
-          btn(_Mode.grid, context.l10n.pieceViewGrid, AppIcons.gridView, 1.8),
           btn(_Mode.nine, context.l10n.pieceViewNine, AppIcons.grid3x3, 1.7),
         ],
       ),
@@ -504,6 +503,7 @@ Widget _pieceImage(
       MediaSource.fromImageRef(v.images.first),
       cacheWidth: 500,
       badgeInset: badgeInset,
+      count: v.images.length,
     );
   }
   return ColoredBox(
@@ -564,19 +564,28 @@ class _PieceTile extends StatelessWidget {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(2, 7, 2, 0),
-            child: Text(
-              p.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          if (p.title.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(2, 7, 2, 0),
+              child: Text(
+                p.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
             ),
-          ),
           // 沒公開發佈的成圖沒有互動量，不顯示愛心列。
           if (p.isPublished)
             Padding(
-              padding: const EdgeInsets.fromLTRB(2, 4, 2, 0),
+              padding: EdgeInsets.fromLTRB(
+                2,
+                p.title.trim().isEmpty ? 7 : 4,
+                2,
+                0,
+              ),
               child: Row(
                 children: [
                   SvgIcon(
@@ -737,4 +746,175 @@ class _PickMark extends StatelessWidget {
       ),
     ],
   );
+}
+
+/// 列表的一份成圖（D-125，同摸魚列表的版式）：標題＋愛心＋互動量／目標（沒公開發佈就沒有），
+/// 右邊固定是日期；下面一排圖（單張滿寬，多張橫排可左右捲）；再下面 tag；段與段之間細分隔線。
+/// 寬版（P-045）：選中那段是白底圓角，圖片最闊 400。
+class _PieceRow extends StatelessWidget {
+  const _PieceRow({
+    required this.view,
+    required this.onTap,
+    this.wide = false,
+    this.selected = false,
+  });
+  final PieceView view;
+  final VoidCallback onTap;
+  final bool wide;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final p = view.piece;
+    final pad = wide ? 12.0 : 20.0;
+    final reached = p.targetLikes > 0 && p.actualLikes >= p.targetLikes;
+    final title = p.title.trim();
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = math.min(c.maxWidth - pad * 2, wide ? 400.0 : 10000.0);
+        final lay = draftImageLayout([
+          for (final i in view.images) i.aspect,
+        ], w);
+        Widget tile(int i) => SizedBox(
+          width: lay.sizes[i].width,
+          height: lay.sizes[i].height,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(kDraftImageRadius),
+            child: ColoredBox(
+              color: t.chipBg,
+              child: MiniMediaThumb(
+                MediaSource.fromImageRef(view.images[i]),
+                cacheWidth: 900,
+                fit: BoxFit.contain,
+                inset: 6,
+              ),
+            ),
+          ),
+        );
+        final Widget images = lay.scrolls
+            ? SizedBox(
+                height: lay.sizes.first.height,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.only(left: pad),
+                  itemCount: lay.sizes.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(width: kDraftImageGap),
+                  itemBuilder: (_, i) => tile(i),
+                ),
+              )
+            : Padding(
+                padding: EdgeInsets.symmetric(horizontal: pad),
+                child: Row(
+                  children: [
+                    for (var i = 0; i < lay.sizes.length; i++) ...[
+                      if (i > 0) const SizedBox(width: kDraftImageGap),
+                      tile(i),
+                    ],
+                  ],
+                ),
+              );
+        return Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: t.border)),
+          ),
+          child: GestureDetector(
+            onTap: onTap,
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: selected ? t.surface : null,
+                borderRadius: selected ? BorderRadius.circular(14) : null,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: pad),
+                    child: Row(
+                      children: [
+                        if (title.isNotEmpty)
+                          Flexible(
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: wide ? 16 : 15.5,
+                                fontWeight: FontWeight.w700,
+                                color: t.ink,
+                              ),
+                            ),
+                          ),
+                        if (p.isPublished) ...[
+                          if (title.isNotEmpty) const SizedBox(width: 8),
+                          SvgIcon(
+                            AppIcons.heart,
+                            size: 15,
+                            strokeWidth: reached ? 0 : 1.8,
+                            color: t.accent,
+                            fill: reached ? _hex(t.accent) : 'none',
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${p.actualLikes}',
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (p.targetLikes > 0)
+                            Text(
+                              ' / ${p.targetLikes}',
+                              style: TextStyle(fontSize: 11.5, color: t.text2),
+                            ),
+                        ],
+                        const Spacer(),
+                        Text(
+                          fmtMd(p.finishedAt),
+                          style: TextStyle(fontSize: 13, color: t.text4),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (view.images.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: images,
+                    ),
+                  if (view.tags.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(pad, 10, pad, 0),
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final tag in view.tags)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: t.chipBg,
+                                borderRadius: BorderRadius.circular(Radii.chip),
+                              ),
+                              child: Text(
+                                '#${tag.name}',
+                                style: TextStyle(color: t.text2, fontSize: 12),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }

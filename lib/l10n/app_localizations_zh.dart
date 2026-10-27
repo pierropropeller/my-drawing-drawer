@@ -2092,9 +2092,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pieceViewWaterfall => '瀑布';
 
   @override
-  String get pieceViewGrid => '田字';
-
-  @override
   String get pieceViewNine => '九宮格';
 
   @override
