@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../data/database.dart' show GoalKind;
 import '../../data/entity_queries.dart';
+import 'entity_name.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../album/image_picker_field.dart';
@@ -210,7 +212,13 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
           for (final i in ideas)
             ConnectOption(
               id: i.idea.id,
-              title: i.idea.title,
+              title: entityDisplayName(
+                context.l10n,
+                title: i.idea.title,
+                body: i.idea.body,
+                date: i.idea.date,
+                kind: GoalKind.idea,
+              ),
               file: i.images.isEmpty ? null : i.images.first.staticFile,
               imageCount: i.images.length,
               date: i.idea.date,
@@ -227,7 +235,13 @@ class _DraftFormPageState extends ConsumerState<DraftFormPage>
           for (final p in pieces)
             ConnectOption(
               id: p.piece.id,
-              title: p.piece.title,
+              title: entityDisplayName(
+                context.l10n,
+                title: p.piece.title,
+                body: p.piece.body,
+                date: p.piece.finishedAt,
+                kind: GoalKind.piece,
+              ),
               file: p.images.isEmpty ? null : p.images.first.staticFile,
               imageCount: p.images.length,
               date: p.piece.finishedAt,

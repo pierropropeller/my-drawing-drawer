@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../data/database.dart' show GoalKind;
 import '../../data/entity_queries.dart';
+import 'entity_name.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../album/image_picker_field.dart';
@@ -84,6 +86,7 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
     super.initState();
     _images.addAll(widget.initialImages.map(ImageItem.picked));
     _title.addListener(_onRequiredChanged);
+    _body.addListener(_onRequiredChanged);
     _load();
   }
 
@@ -91,8 +94,11 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
     if (mounted) setState(() {});
   }
 
-  /// 標題填了才能儲存；沒填「儲存」變灰，不另加提示（D-121 ①）。
-  bool get _canSave => _title.text.trim().isNotEmpty;
+  /// 標題、內文、圖片至少要有一樣才能儲存；都沒有「儲存」變灰，不另加提示（D-121 ①、D-129）。
+  bool get _canSave =>
+      _title.text.trim().isNotEmpty ||
+      _body.text.trim().isNotEmpty ||
+      _images.isNotEmpty;
 
   Future<void> _load() async {
     final id = widget.ideaId;
@@ -201,7 +207,13 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
           for (final d in drafts)
             ConnectOption(
               id: d.draft.id,
-              title: d.draft.title ?? '',
+              title: entityDisplayName(
+                context.l10n,
+                title: d.draft.title,
+                body: d.draft.body,
+                date: d.draft.date,
+                kind: GoalKind.draft,
+              ),
               file: d.images.isEmpty ? null : d.images.first.staticFile,
               imageCount: d.images.length,
               date: d.draft.date,
@@ -218,7 +230,13 @@ class _IdeaFormPageState extends ConsumerState<IdeaFormPage>
           for (final p in pieces)
             ConnectOption(
               id: p.piece.id,
-              title: p.piece.title,
+              title: entityDisplayName(
+                context.l10n,
+                title: p.piece.title,
+                body: p.piece.body,
+                date: p.piece.finishedAt,
+                kind: GoalKind.piece,
+              ),
               file: p.images.isEmpty ? null : p.images.first.staticFile,
               imageCount: p.images.length,
               date: p.piece.finishedAt,

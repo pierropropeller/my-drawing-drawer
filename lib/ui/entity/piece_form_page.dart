@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../data/database.dart' show GoalKind;
 import '../../data/entity_queries.dart';
+import 'entity_name.dart';
 import '../../data/payment.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
@@ -133,12 +135,8 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
     if (mounted) setState(() {});
   }
 
-  /// 必填（圖、標題）都填了才能儲存；沒填完「儲存」變灰，不另加提示（D-121 ①）。
-  bool get _canSave =>
-      _images.isNotEmpty &&
-      _title.text.trim().isNotEmpty &&
-      !_amountBad &&
-      !_receivedBad;
+  /// 必填（至少一張圖；標題選填，D-129）都填了才能儲存；沒填完「儲存」變灰，不另加提示（D-121 ①）。
+  bool get _canSave => _images.isNotEmpty && !_amountBad && !_receivedBad;
 
   // 商稿金額格式錯：欄位下紅字（D-121 ①）。開關關掉時不檢查（資料保留但不送出檢查）。
   bool get _amountBad => _commission && isBadNumberText(_amount.text);
@@ -548,7 +546,13 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
         for (final i in ideas)
           ConnectOption(
             id: i.idea.id,
-            title: i.idea.title,
+            title: entityDisplayName(
+              context.l10n,
+              title: i.idea.title,
+              body: i.idea.body,
+              date: i.idea.date,
+              kind: GoalKind.idea,
+            ),
             file: i.images.isEmpty ? null : i.images.first.staticFile,
           ),
       ],
@@ -562,7 +566,13 @@ class _PieceFormPageState extends ConsumerState<PieceFormPage>
         for (final d in drafts)
           ConnectOption(
             id: d.draft.id,
-            title: d.draft.title ?? '',
+            title: entityDisplayName(
+              context.l10n,
+              title: d.draft.title,
+              body: d.draft.body,
+              date: d.draft.date,
+              kind: GoalKind.draft,
+            ),
             file: d.images.isEmpty ? null : d.images.first.staticFile,
             imageCount: d.images.length,
             date: d.draft.date,

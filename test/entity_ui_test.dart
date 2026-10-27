@@ -243,14 +243,17 @@ void main() {
       expect(find.text('選擇摸魚'), findsWidgets);
       expect(find.text('已選 0 份'), findsOneWidget);
       expect(find.text('天台煙花 · 構圖'), findsOneWidget);
-      expect(find.text('無標題'), findsOneWidget);
+      // 沒有標題、內文：用「日期＋類型」（D-129）
+      final now = DateTime.now();
+      final blankName = '${now.month}/${now.day} 摸魚';
+      expect(find.text(blankName), findsOneWidget);
       expect(find.text('完成'), findsOneWidget);
 
       await tester.tap(find.text('天台煙花 · 構圖'));
-      await tester.tap(find.text('無標題'));
+      await tester.tap(find.text(blankName));
       await settle(tester);
       expect(find.text('已選 2 份'), findsOneWidget);
-      await tester.tap(find.text('無標題')); // 再按一次＝取消
+      await tester.tap(find.text(blankName)); // 再按一次＝取消
       await settle(tester);
       expect(find.text('已選 1 份'), findsOneWidget);
       await tester.tap(find.text('完成'));

@@ -3,12 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/database.dart' show TagTarget;
+import '../../data/database.dart' show GoalKind, TagTarget;
 import '../../data/entity_queries.dart';
 import '../../data/sensitive_queries.dart';
 import '../../state/sensitive.dart';
 import '../common/sensitive_actions.dart';
 import '../../l10n/l10n.dart';
+import 'entity_name.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
@@ -302,7 +303,16 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
     final total = views.length;
     final ideas =
         ref.watch(ideaViewsProvider((widget.pitId, null))).value ?? const [];
-    final ideaTitle = {for (final i in ideas) i.idea.id: i.idea.title};
+    final ideaTitle = {
+      for (final i in ideas)
+        i.idea.id: entityDisplayName(
+          context.l10n,
+          title: i.idea.title,
+          body: i.idea.body,
+          date: i.idea.date,
+          kind: GoalKind.idea,
+        ),
+    };
     final wide = WindowClass.of(context).isWide;
     syncMasterDetail(wide, _pushDetail);
     _order = [for (final v in views) v.draft.id];

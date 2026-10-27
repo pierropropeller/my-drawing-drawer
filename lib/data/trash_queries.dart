@@ -34,6 +34,7 @@ class TrashItem {
     required this.images,
     this.title,
     this.body,
+    this.date,
   });
   final TrashKind kind;
   final String id;
@@ -48,6 +49,9 @@ class TrashItem {
   /// 腦洞／摸魚／成圖／推活的標題、內文（沒有圖時顯示文字格）。
   final String? title;
   final String? body;
+
+  /// 腦洞／摸魚／成圖自己的日期（沒有標題也沒有內文時，名稱用「日期＋類型」，D-129）。
+  final DateTime? date;
 
   /// 多選、還原用的鍵（種類＋id；不同表的 id 理論上不重複，保險起見帶種類）。
   String get key => '${kind.name}:$id';
@@ -247,6 +251,7 @@ extension TrashQueries on AppDatabase {
           images: await _ownerImages(OwnerType.idea, r.id),
           title: r.title,
           body: r.body,
+          date: r.date,
         ),
       );
     }
@@ -263,6 +268,7 @@ extension TrashQueries on AppDatabase {
           images: await _ownerImages(OwnerType.draft, r.id),
           title: r.title,
           body: r.body,
+          date: r.date,
         ),
       );
     }
@@ -279,6 +285,7 @@ extension TrashQueries on AppDatabase {
           images: await _ownerImages(OwnerType.piece, r.id),
           title: r.title,
           body: r.body,
+          date: r.finishedAt,
         ),
       );
     }

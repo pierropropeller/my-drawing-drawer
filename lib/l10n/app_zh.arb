@@ -584,6 +584,17 @@
       }
     }
   },
+  "entityUntitledName": "{date} {kind}",
+  "@entityUntitledName": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
   "entityConnectSelectedPiece": "已選 {count} 份",
   "@entityConnectSelectedPiece": {
     "placeholders": {
@@ -765,7 +776,6 @@
   "goalsKindIdea": "腦洞",
   "goalsKindDraft": "摸魚",
   "goalsKindPiece": "成圖",
-  "goalsUntitled": "（無標題）",
   "goalsPickPit": "選擇坑",
   "goalsPitSheetDone": "完成（{count}）",
   "@goalsPitSheetDone": {
@@ -867,7 +877,6 @@
   "goalsEditMonthGoal": "編輯月度目標",
   "goalsDeleteConfirm": "刪除這個目標？",
   "goalsFieldName": "目標名稱",
-  "goalsNameHint": "留空將自動命名",
   "goalsFieldKind": "目標種類",
   "goalsFieldCount": "目標數量",
   "goalsFieldPit": "目標坑",
@@ -975,7 +984,6 @@
   "ipadListsIdeaEmpty": "選擇一個腦洞以查看詳情",
   "ipadListsDraftEmpty": "選擇一份摸魚以查看詳情",
   "ipadListsPieceEmpty": "選擇一份成圖以查看詳情",
-  "ipadListsDraftUntitled": "未命名摸魚",
   "ipadListsDraftImageN": "第 {n} 張",
   "@ipadListsDraftImageN": {
     "placeholders": {

@@ -225,6 +225,8 @@ void main() {
       await piece('乙', video);
     });
     await show(tester, FinishedListPage(pitId: pitId));
+    await tester.tap(find.bySemanticsLabel('瀑布')); // 預設是列表（D-125）
+    await tester.pump(const Duration(milliseconds: 300));
     expect(badgeGif, findsOneWidget);
     expect(badgeVideo, findsOneWidget);
     await unmount(tester);

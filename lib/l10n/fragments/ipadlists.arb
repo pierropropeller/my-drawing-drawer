@@ -5,7 +5,6 @@
   "ipadListsIdeaEmpty": "選擇一個腦洞以查看詳情",
   "ipadListsDraftEmpty": "選擇一份摸魚以查看詳情",
   "ipadListsPieceEmpty": "選擇一份成圖以查看詳情",
-  "ipadListsDraftUntitled": "未命名摸魚",
   "ipadListsDraftImageN": "第 {n} 張",
   "@ipadListsDraftImageN": { "placeholders": { "n": { "type": "int" } } },
   "ipadListsDraftIdeaLink": "腦洞：{title}",

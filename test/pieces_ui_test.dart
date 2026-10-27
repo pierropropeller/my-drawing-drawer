@@ -227,6 +227,10 @@ void main() {
     });
     await openFinished(tester);
     expect(find.text('時間軸'), findsOneWidget);
+    // 預設是列表（D-125），列表會顯示 tag；瀑布不顯示（D-043）。
+    expect(find.text('#角色1'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('瀑布'));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('#角色1'), findsNothing);
     expect(find.text('全部'), findsNothing);
 

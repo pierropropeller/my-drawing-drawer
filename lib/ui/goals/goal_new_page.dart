@@ -284,7 +284,7 @@ class _GoalNewPageState extends ConsumerState<GoalNewPage> with HidesNavBar {
         controller: _name,
         style: fieldStyle,
         onChanged: (_) => setState(() {}),
-        decoration: entityFieldDecoration(context, l.goalsNameHint),
+        decoration: entityFieldDecoration(context, ''),
       ),
     ];
     final kindW = <Widget>[

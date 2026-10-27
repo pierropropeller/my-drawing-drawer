@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/database.dart' show GoalKind;
 import '../../data/trash_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
@@ -13,6 +14,7 @@ import '../common/nav_bar_hidden.dart';
 import '../common/sensitive_gate.dart';
 import '../common/svg_icon.dart';
 import '../common/top_toast.dart';
+import '../entity/entity_name.dart';
 import '../entity/entity_widgets.dart';
 import 'trash_preview_page.dart';
 
@@ -839,8 +841,25 @@ class _ItemTile extends StatelessWidget {
   }
 }
 
-/// 文字格／預覽用的標題：標題，沒有標題就用內文前 12 字（同 D-129）。
+/// 文字格／預覽用的標題：標題 → 內文前 12 字 → 日期＋類型（同 D-129，`entityDisplayName`）。
+/// 沒有圖的文字項目都至少有其中一樣；沒有日期（推活）就用空字串。
 String trashItemTitle(TrashItem it) {
+  final kind = switch (it.kind) {
+    TrashKind.idea => GoalKind.idea,
+    TrashKind.draft => GoalKind.draft,
+    TrashKind.piece => GoalKind.piece,
+    _ => null,
+  };
+  final date = it.date;
+  if (kind != null && date != null) {
+    return entityDisplayName(
+      l10nStatic,
+      title: it.title,
+      body: it.body,
+      date: date,
+      kind: kind,
+    );
+  }
   final title = it.title?.trim() ?? '';
   if (title.isNotEmpty) return title;
   final body = (it.body ?? '').trim().replaceAll('\n', ' ');

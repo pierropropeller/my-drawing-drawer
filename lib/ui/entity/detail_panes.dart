@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../data/database.dart' show GoalKind;
 import '../../data/entity_queries.dart';
 import '../../l10n/l10n.dart';
+import 'entity_name.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
@@ -122,12 +124,21 @@ class IdeaDetailPane extends ConsumerWidget {
             ],
             Row(
               children: [
+                // 沒有標題（D-129）：不顯示大標題，日期接在左邊，右邊照舊是狀態與動作。
                 Expanded(
-                  child: Text(
-                    v.idea.title,
-                    style: Theme.of(context).textTheme.headlineSmall
-                        ?.copyWith(fontSize: 28, fontWeight: FontWeight.w700),
-                  ),
+                  child: v.idea.title.trim().isEmpty
+                      ? Text(
+                          l.ideaDetailCreatedAt(fmtSlash(v.idea.date)),
+                          style: TextStyle(color: t.text3, fontSize: 12.5),
+                        )
+                      : Text(
+                          v.idea.title,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
                 ),
                 const SizedBox(width: 12),
                 IdeaStatusChip(v, short: true, fontSize: 12),
@@ -148,11 +159,13 @@ class IdeaDetailPane extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              l.ideaDetailCreatedAt(fmtSlash(v.idea.date)),
-              style: TextStyle(color: t.text3, fontSize: 12.5),
-            ),
+            if (v.idea.title.trim().isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                l.ideaDetailCreatedAt(fmtSlash(v.idea.date)),
+                style: TextStyle(color: t.text3, fontSize: 12.5),
+              ),
+            ],
             if (v.idea.body.isNotEmpty) ...[
               const SizedBox(height: 18),
               ConstrainedBox(
@@ -301,7 +314,13 @@ class IdeaDetailPane extends ConsumerWidget {
                   for (final p in myPieces)
                     Semantics(
                       button: true,
-                      label: p.piece.title,
+                      label: entityDisplayName(
+                        context.l10n,
+                        title: p.piece.title,
+                        body: p.piece.body,
+                        date: p.piece.finishedAt,
+                        kind: GoalKind.piece,
+                      ),
                       child: ThumbSquare(
                         images: p.images,
                         size: 80,
@@ -557,17 +576,21 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
               const SizedBox(height: 20),
               Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      title.isEmpty ? l.ipadListsDraftUntitled : title,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            color: title.isEmpty ? t.text3 : t.ink,
-                          ),
-                    ),
-                  ),
+                  // 沒有標題（P-046）：不顯示大標題，日期直接接在圖下面。
+                  if (title.isNotEmpty)
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: t.ink,
+                            ),
+                      ),
+                    )
+                  else
+                    const Spacer(),
                   const SizedBox(width: 10),
                   Text(
                     fmtSlash(d.date),
@@ -635,7 +658,15 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                     for (final i in mine)
                       RelationChip(
                         kind: ConnectKind.idea,
-                        title: l.ipadListsDraftIdeaLink(i.idea.title),
+                        title: l.ipadListsDraftIdeaLink(
+                          entityDisplayName(
+                            context.l10n,
+                            title: i.idea.title,
+                            body: i.idea.body,
+                            date: i.idea.date,
+                            kind: GoalKind.idea,
+                          ),
+                        ),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => IdeaDetailPage(
@@ -657,7 +688,13 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                     for (final p in myPieces)
                       Semantics(
                         button: true,
-                        label: p.piece.title,
+                        label: entityDisplayName(
+                          context.l10n,
+                          title: p.piece.title,
+                          body: p.piece.body,
+                          date: p.piece.finishedAt,
+                          kind: GoalKind.piece,
+                        ),
                         child: ThumbSquare(
                           images: p.images,
                           size: 80,
@@ -719,7 +756,13 @@ class PieceDetailPanel extends ConsumerWidget {
             children: [
               Semantics(
                 button: true,
-                label: p.title,
+                label: entityDisplayName(
+                  context.l10n,
+                  title: p.title,
+                  body: p.body,
+                  date: p.finishedAt,
+                  kind: GoalKind.piece,
+                ),
                 child: GestureDetector(
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -754,13 +797,19 @@ class PieceDetailPanel extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Expanded(
-                    child: Text(
-                      p.title,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontSize: 21, fontWeight: FontWeight.w700),
-                    ),
-                  ),
+                  if (p.title.trim().isNotEmpty)
+                    Expanded(
+                      child: Text(
+                        p.title,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              fontSize: 21,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    )
+                  else
+                    const Spacer(),
                   const SizedBox(width: 10),
                   Text(
                     fmtSlash(p.finishedAt),
@@ -883,7 +932,13 @@ class PieceDetailPanel extends ConsumerWidget {
                             ),
                             Expanded(
                               child: Text(
-                                i.idea.title,
+                                entityDisplayName(
+                                  context.l10n,
+                                  title: i.idea.title,
+                                  body: i.idea.body,
+                                  date: i.idea.date,
+                                  kind: GoalKind.idea,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/batch_tag_queries.dart';
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
+import '../entity/entity_name.dart';
 import '../../data/entity_queries.dart';
 import '../../data/search_queries.dart';
 import '../../state/providers.dart';
@@ -360,7 +362,13 @@ class IdeaResultCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    view.idea.title,
+                    entityDisplayName(
+                      context.l10n,
+                      title: view.idea.title,
+                      body: view.idea.body,
+                      date: view.idea.date,
+                      kind: GoalKind.idea,
+                    ),
                     style: TextStyle(
                       fontSize: wide ? 15 : 14.5,
                       fontWeight: FontWeight.w700,

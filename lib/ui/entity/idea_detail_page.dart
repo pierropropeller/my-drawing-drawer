@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/database.dart' show GoalKind;
 import '../../data/entity_queries.dart';
 import '../../l10n/l10n.dart';
+import 'entity_name.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
@@ -118,27 +120,44 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          v.idea.title,
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                fontSize: 23,
-                                fontWeight: FontWeight.w700,
-                              ),
+                  // 沒有標題（D-129）：不顯示大標題，狀態 pill 和日期同一行。
+                  if (v.idea.title.trim().isNotEmpty) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            v.idea.title,
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontSize: 23,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      IdeaStatusChip(v, short: true, fontSize: 11),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    context.l10n.ideaDetailCreatedAt(fmtSlash(v.idea.date)),
-                    style: TextStyle(color: t.text4, fontSize: 12),
-                  ),
+                        const SizedBox(width: 10),
+                        IdeaStatusChip(v, short: true, fontSize: 11),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.l10n.ideaDetailCreatedAt(fmtSlash(v.idea.date)),
+                      style: TextStyle(color: t.text4, fontSize: 12),
+                    ),
+                  ] else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            context.l10n.ideaDetailCreatedAt(
+                              fmtSlash(v.idea.date),
+                            ),
+                            style: TextStyle(color: t.text4, fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        IdeaStatusChip(v, short: true, fontSize: 11),
+                      ],
+                    ),
                   if (v.idea.body.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     Text(
@@ -193,7 +212,13 @@ class _IdeaDetailPageState extends ConsumerState<IdeaDetailPage>
                         for (final p in myPieces)
                           Semantics(
                             button: true,
-                            label: p.piece.title,
+                            label: entityDisplayName(
+                              context.l10n,
+                              title: p.piece.title,
+                              body: p.piece.body,
+                              date: p.piece.finishedAt,
+                              kind: GoalKind.piece,
+                            ),
                             child: ThumbSquare(
                               images: p.images,
                               size: 80,

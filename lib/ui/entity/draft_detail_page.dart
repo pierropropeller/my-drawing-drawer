@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/database.dart' show GoalKind;
 import '../../data/entity_queries.dart';
 import '../../l10n/l10n.dart';
+import 'entity_name.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
@@ -187,7 +189,13 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
                           for (final i in mine)
                             RelationChip(
                               kind: ConnectKind.idea,
-                              title: i.idea.title,
+                              title: entityDisplayName(
+                                context.l10n,
+                                title: i.idea.title,
+                                body: i.idea.body,
+                                date: i.idea.date,
+                                kind: GoalKind.idea,
+                              ),
                               onTap: () => Navigator.of(context).push(
                                 MaterialPageRoute<void>(
                                   builder: (_) => IdeaDetailPage(
@@ -218,7 +226,13 @@ class _DraftDetailPageState extends ConsumerState<DraftDetailPage>
                           for (final p in myPieces)
                             Semantics(
                               button: true,
-                              label: p.piece.title,
+                              label: entityDisplayName(
+                                context.l10n,
+                                title: p.piece.title,
+                                body: p.piece.body,
+                                date: p.piece.finishedAt,
+                                kind: GoalKind.piece,
+                              ),
                               child: ThumbSquare(
                                 images: p.images,
                                 size: 80,

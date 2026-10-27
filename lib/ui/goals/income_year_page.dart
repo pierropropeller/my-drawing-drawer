@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/income_queries.dart';
 import '../../data/payment.dart';
+import '../../data/database.dart' show GoalKind;
 import '../../l10n/l10n.dart';
+import '../entity/entity_name.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../album/album_image.dart';
@@ -282,7 +284,13 @@ class _EntryRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    p.title.isEmpty ? context.l10n.goalsUntitled : p.title,
+                    entityDisplayName(
+                      context.l10n,
+                      title: p.title,
+                      body: p.body,
+                      date: p.finishedAt,
+                      kind: GoalKind.piece,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

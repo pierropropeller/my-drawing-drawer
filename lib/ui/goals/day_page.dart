@@ -143,7 +143,7 @@ class _DayPageState extends ConsumerState<DayPage> {
       kindColor: color,
       timeText:
           '${tm.hour.toString().padLeft(2, '0')}:${tm.minute.toString().padLeft(2, '0')}',
-      title: item.title.isEmpty ? context.l10n.goalsUntitled : item.title,
+      title: item.title,
       description: item.text,
       imageFile: item.file,
       media: _firstMedia(item),

@@ -788,6 +788,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String entityUntitledName(String date, String kind) {
+    return '$date $kind';
+  }
+
+  @override
   String entityConnectSelectedPiece(int count) {
     return '已選 $count 份';
   }
@@ -1138,9 +1143,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get goalsKindPiece => '成圖';
 
   @override
-  String get goalsUntitled => '（無標題）';
-
-  @override
   String get goalsPickPit => '選擇坑';
 
   @override
@@ -1263,9 +1265,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get goalsFieldName => '目標名稱';
-
-  @override
-  String get goalsNameHint => '留空將自動命名';
 
   @override
   String get goalsFieldKind => '目標種類';
@@ -1401,9 +1400,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get ipadListsPieceEmpty => '選擇一份成圖以查看詳情';
-
-  @override
-  String get ipadListsDraftUntitled => '未命名摸魚';
 
   @override
   String ipadListsDraftImageN(int n) {

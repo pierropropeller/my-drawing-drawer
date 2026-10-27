@@ -437,21 +437,32 @@ class _IdeaCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 沒有標題（D-129）：內文頂上標題的位置，普通字重 14、最多兩行，下面不再重複內文。
               Expanded(
-                child: Text(
-                  idea.title,
-                  style: TextStyle(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w700,
-                    color: t.ink,
-                  ),
-                ),
+                child: idea.title.trim().isNotEmpty
+                    ? Text(
+                        idea.title,
+                        style: TextStyle(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          color: t.ink,
+                        ),
+                      )
+                    : ClampedText(
+                        idea.body,
+                        maxLines: 2,
+                        style: TextStyle(
+                          color: t.ink,
+                          fontSize: 14,
+                          height: 1.55,
+                        ),
+                      ),
               ),
               const SizedBox(width: 10),
               IdeaStatusChip(view),
             ],
           ),
-          if (idea.body.isNotEmpty) ...[
+          if (idea.title.trim().isNotEmpty && idea.body.isNotEmpty) ...[
             const SizedBox(height: 5),
             ClampedText(
               idea.body,

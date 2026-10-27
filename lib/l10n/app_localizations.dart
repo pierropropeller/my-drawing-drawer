@@ -1473,6 +1473,12 @@ abstract class AppLocalizations {
   /// **'已選 {count} 份'**
   String entityConnectSelectedDraft(int count);
 
+  /// No description provided for @entityUntitledName.
+  ///
+  /// In zh, this message translates to:
+  /// **'{date} {kind}'**
+  String entityUntitledName(String date, String kind);
+
   /// No description provided for @entityConnectSelectedPiece.
   ///
   /// In zh, this message translates to:
@@ -2103,12 +2109,6 @@ abstract class AppLocalizations {
   /// **'成圖'**
   String get goalsKindPiece;
 
-  /// No description provided for @goalsUntitled.
-  ///
-  /// In zh, this message translates to:
-  /// **'（無標題）'**
-  String get goalsUntitled;
-
   /// No description provided for @goalsPickPit.
   ///
   /// In zh, this message translates to:
@@ -2325,12 +2325,6 @@ abstract class AppLocalizations {
   /// **'目標名稱'**
   String get goalsFieldName;
 
-  /// No description provided for @goalsNameHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'留空將自動命名'**
-  String get goalsNameHint;
-
   /// No description provided for @goalsFieldKind.
   ///
   /// In zh, this message translates to:
@@ -2540,12 +2534,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'選擇一份成圖以查看詳情'**
   String get ipadListsPieceEmpty;
-
-  /// No description provided for @ipadListsDraftUntitled.
-  ///
-  /// In zh, this message translates to:
-  /// **'未命名摸魚'**
-  String get ipadListsDraftUntitled;
 
   /// No description provided for @ipadListsDraftImageN.
   ///

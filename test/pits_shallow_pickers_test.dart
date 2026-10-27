@@ -203,9 +203,10 @@ void main() {
     await tester.ensureVisible(chip.first);
     await tester.tap(chip.first);
     await settle(tester);
-    expect(find.widgetWithText(ListTile, '現坑甲'), findsOneWidget);
-    expect(find.widgetWithText(ListTile, '淺坑乙'), findsOneWidget);
-    expect(find.widgetWithText(ListTile, '封存丙'), findsNothing);
+    // D-124：選擇坑面板（可多選）
+    expect(find.text('現坑甲'), findsOneWidget);
+    expect(find.textContaining('淺坑乙'), findsOneWidget);
+    expect(find.textContaining('封存丙'), findsNothing);
     await unmount(tester);
   });
 }

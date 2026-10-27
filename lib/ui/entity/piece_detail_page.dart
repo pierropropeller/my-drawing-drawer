@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../data/database.dart';
 import '../../data/entity_queries.dart';
 import '../../l10n/l10n.dart';
+import 'entity_name.dart';
 import '../../data/payment.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
@@ -147,16 +148,20 @@ class PieceDetailPage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Expanded(
-                        child: Text(
-                          p.title,
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                fontSize: 23,
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                      ),
+                      // 沒有標題（D-129）：不顯示大標題，日期直接接在圖下面。
+                      if (p.title.trim().isNotEmpty)
+                        Expanded(
+                          child: Text(
+                            p.title,
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontSize: 23,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        )
+                      else
+                        const Spacer(),
                       const SizedBox(width: 10),
                       Text(
                         '${p.finishedAt.year} / ${p.finishedAt.month.toString().padLeft(2, '0')} / ${p.finishedAt.day.toString().padLeft(2, '0')}',
@@ -272,7 +277,13 @@ class PieceDetailPage extends ConsumerWidget {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    i.idea.title,
+                                    entityDisplayName(
+                                      context.l10n,
+                                      title: i.idea.title,
+                                      body: i.idea.body,
+                                      date: i.idea.date,
+                                      kind: GoalKind.idea,
+                                    ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
