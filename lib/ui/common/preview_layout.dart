@@ -202,6 +202,8 @@ class PreviewMediaPage extends StatelessWidget {
       active: active,
       start: start,
       onFullscreen: onFullscreen,
+      // 點進預覽頁的影片直接播放（不用再點播放鍵）。
+      autoPlay: true,
     );
     if (media.isVideo) {
       return Padding(

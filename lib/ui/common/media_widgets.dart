@@ -253,6 +253,7 @@ class MediaViewer extends StatefulWidget {
     this.onFullscreen,
     this.start,
     this.badgeInset = 12,
+    this.autoPlay = false,
   });
 
   final MediaSource media;
@@ -267,6 +268,9 @@ class MediaViewer extends StatefulWidget {
   final VideoFullscreenCallback? onFullscreen;
   final VideoStart? start;
   final double badgeInset;
+
+  /// 影片：輪到這一頁就直接播放（預覽頁用）。
+  final bool autoPlay;
 
   @override
   State<MediaViewer> createState() => _MediaViewerState();
@@ -323,6 +327,7 @@ class _MediaViewerState extends State<MediaViewer> {
         onFullscreen: widget.onFullscreen,
         start: widget.start,
         badgeInset: widget.badgeInset,
+        autoPlay: widget.autoPlay,
       );
     }
     final image = StoredImage(

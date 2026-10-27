@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
+import '../../media/audio_focus.dart';
 
 /// 影片參考檢視需要的播放介面（比 `MediaPlayback` 多了速度、循環）。
 ///
@@ -37,8 +38,24 @@ abstract class RefVideoPlayback implements Listenable {
 }
 
 class VideoPlayerRefPlayback implements RefVideoPlayback {
-  VideoPlayerRefPlayback(File file) : _c = VideoPlayerController.file(file);
+  VideoPlayerRefPlayback(File file)
+    : _c = VideoPlayerController.file(
+        file,
+        // 音訊焦點改由 [VideoAudioFocus] 暫時借用，播完讓其他 App 恢復。
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+      ) {
+    _c.addListener(_syncFocus);
+  }
   final VideoPlayerController _c;
+  bool _focused = false;
+
+  void _syncFocus() {
+    final v = _c.value;
+    final want = v.isPlaying && v.volume > 0;
+    if (want == _focused) return;
+    _focused = want;
+    want ? VideoAudioFocus.instance.acquire() : VideoAudioFocus.instance.release();
+  }
 
   @override
   bool get isInitialized => _c.value.isInitialized;
@@ -79,7 +96,12 @@ class VideoPlayerRefPlayback implements RefVideoPlayback {
   @override
   void removeListener(VoidCallback listener) => _c.removeListener(listener);
   @override
-  void dispose() => _c.dispose();
+  void dispose() {
+    _c.removeListener(_syncFocus);
+    if (_focused) VideoAudioFocus.instance.release();
+    _focused = false;
+    _c.dispose();
+  }
 }
 
 typedef RefPlaybackFactory = RefVideoPlayback Function(File file);

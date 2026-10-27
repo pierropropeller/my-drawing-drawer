@@ -18,6 +18,7 @@ import 'theme/app_theme.dart';
 import 'ui/common/root_overlay_guard.dart';
 import 'ui/common/window_top_inset.dart';
 import 'ui/shell.dart';
+import 'ui/common/tap_outside_unfocus.dart';
 
 Future<void> main() async {
   if (kDebugMode) {
@@ -95,8 +96,12 @@ class HuaKengApp extends ConsumerWidget {
         themeMode: ref.watch(themeModeProvider),
         // iPad：頁面頂部讓開視窗控制點／狀態列（見 TabletTopInsetGuard）；其他裝置原樣。
         builder: (context, child) => ImeShiftKeyBridge(
-          child: TabletTopInsetGuard(
-            child: kDebugMode ? InputDiagnosticsOverlay(child: child!) : child!,
+          child: TapOutsideUnfocus(
+            child: TabletTopInsetGuard(
+              child: kDebugMode
+                  ? InputDiagnosticsOverlay(child: child!)
+                  : child!,
+            ),
           ),
         ),
         home: const AppShell(),

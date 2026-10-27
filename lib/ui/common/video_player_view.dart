@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../l10n/l10n.dart';
+import '../../media/audio_focus.dart';
 import '../../media/video_playback_gate.dart';
 import '../../state/providers.dart';
 import '../../state/settings.dart';
@@ -60,11 +61,25 @@ class VideoPlayerPlayback implements MediaPlayback {
   VideoPlayerPlayback(File file, {bool platformView = false})
     : _c = VideoPlayerController.file(
         file,
+        // 不讓播放器自己搶永久音訊焦點；改用 [VideoAudioFocus] 暫時借用，播完還回去。
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
         viewType: platformView && Platform.isAndroid
             ? VideoViewType.platformView
             : VideoViewType.textureView,
-      );
+      ) {
+    _c.addListener(_syncFocus);
+  }
   final VideoPlayerController _c;
+  bool _focused = false;
+
+  /// 播放中（而且有聲音）借用音訊焦點；暫停、播完就還回去，讓其他 App 恢復播放。
+  void _syncFocus() {
+    final v = _c.value;
+    final want = v.isPlaying && v.volume > 0;
+    if (want == _focused) return;
+    _focused = want;
+    want ? VideoAudioFocus.instance.acquire() : VideoAudioFocus.instance.release();
+  }
 
   @override
   bool get isInitialized => _c.value.isInitialized;
@@ -108,7 +123,12 @@ class VideoPlayerPlayback implements MediaPlayback {
   @override
   void removeListener(VoidCallback listener) => _c.removeListener(listener);
   @override
-  void dispose() => _c.dispose();
+  void dispose() {
+    _c.removeListener(_syncFocus);
+    if (_focused) VideoAudioFocus.instance.release();
+    _focused = false;
+    _c.dispose();
+  }
 }
 
 /// [platformView]：要求用平台視圖（SurfaceView）顯示；只有詳情／全螢幕播放會傳 true。
@@ -674,7 +694,11 @@ class VideoPlayerView extends ConsumerStatefulWidget {
     this.start,
     this.badgeInset = 12,
     this.hideDelay = const Duration(seconds: 2),
+    this.autoPlay = false,
   });
+
+  /// 預覽頁：輪到這一頁（[active]）就直接開始播放，不用再點播放鍵。
+  final bool autoPlay;
 
   final String file;
   final String? poster;
@@ -718,6 +742,10 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _start(from: s.position, autoPlay: s.autoPlay);
       });
+    } else if (widget.autoPlay && widget.active) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _start();
+      });
     }
   }
 
@@ -726,6 +754,11 @@ class _VideoPlayerViewState extends ConsumerState<VideoPlayerView>
     super.didUpdateWidget(old);
     // 滑到別頁／被蓋住：直接釋放播放器（回到截圖），同時只留一個 ExoPlayer 在用。
     if (old.active && !widget.active) _deactivate();
+    if (!old.active && widget.active && widget.autoPlay && _playback == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.active) _start();
+      });
+    }
     if (old.file != widget.file) {
       _release();
       setState(() {
