@@ -8,7 +8,6 @@ import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/media_widgets.dart';
-import '../common/sensitive_gate.dart';
 import '../common/sensitive_reveal.dart';
 import '../common/svg_icon.dart';
 import 'album_actions.dart';
@@ -44,35 +43,25 @@ class AlbumPreviewPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final media = image.media;
-    return LayoutBuilder(
-      builder: (context, c) {
-        final coverH = (c.maxHeight * 0.5).clamp(200.0, 420.0);
-        // 影片／GIF（MediaVideo）：影片在面板裡點播放鈕才播（控制列的全螢幕鍵＝參考檢視），
-        // GIF 預覽時自動循環；圖片仍是靜態圖＋右下角「參考檢視」。
-        final Widget cover;
-        if (media.isVideo) {
-          // D-113 ①：已標記的影片在安全模式開時只顯示模糊的 poster，不建立播放器；
-          // 撳面板左上角的眼睛鈕（P-038）只顯示這一張。
-          cover = SizedBox(
-            height: coverH,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: ColoredBox(
-                color: const Color(0xFF1E1B18),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    SensitiveMotionGate(
-                      file: media.file,
-                      badgeInset: 10,
-                      circleSize: 52,
-                      showBadge: false,
-                      still: (_) => StaticMediaImage(
-                        media,
-                        cacheWidth: 900,
-                        fit: BoxFit.contain,
-                      ),
-                      live: (_) => VideoPlayerView(
+    return SensitivePanelScope(
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final coverH = (c.maxHeight * 0.5).clamp(200.0, 420.0);
+          // 影片／GIF（MediaVideo）：影片在面板裡點播放鈕才播（控制列的全螢幕鍵＝參考檢視），
+          // GIF 預覽時自動循環；圖片仍是靜態圖＋右下角「參考檢視」。
+          final Widget cover;
+          if (media.isVideo) {
+            // P-043：預覽面板一律不模糊、沒有眼睛按鈕（同手機預覽頁，D-110）。
+            cover = SizedBox(
+              height: coverH,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: ColoredBox(
+                  color: const Color(0xFF1E1B18),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      VideoPlayerView(
                         key: ValueKey('panel-video-${image.id}'),
                         file: media.file,
                         poster: media.poster,
@@ -80,80 +69,63 @@ class AlbumPreviewPanel extends StatelessWidget {
                         badgeInset: 10,
                         onFullscreen: (_, _) => onReference(),
                       ),
-                    ),
-                    const SensitiveRevealOverlayButton(),
-                  ],
-                ),
-              ),
-            ),
-          );
-        } else {
-          cover = Semantics(
-            button: true,
-            label: context.l10n.ipadListsReferenceView,
-            child: GestureDetector(
-              onTap: onReference,
-              child: SizedBox(
-                height: coverH,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      ColoredBox(color: t.chipBg),
-                      if (media.isGif)
-                        // 已標記的 GIF 在安全模式開時只畫模糊的第一格（D-113 ①）。
-                        SensitiveMotionGate(
-                          file: media.file,
-                          badgeInset: 10,
-                          circleSize: 52,
-                          still: (_) => StaticMediaImage(
-                            media,
-                            cacheWidth: 900,
-                            fit: BoxFit.contain,
-                          ),
-                          live: (_) => MediaViewer(media, cacheWidth: 900),
-                        )
-                      else
-                        MediaThumb(
-                          media,
-                          cacheWidth: 900,
-                          fit: BoxFit.contain,
-                          badgeInset: 10,
-                          sensitiveCircle: 52,
-                        ),
-                      if (media.isGif)
-                        Positioned(
-                          left: 10,
-                          bottom: 10,
-                          child: _PanelBadge(context.l10n.ipadauditGifLoop),
-                        ),
-                      Positioned(
-                        right: 10,
-                        bottom: 10,
-                        child: _ReferencePill(
-                          context.l10n.ipadListsReferenceView,
-                        ),
-                      ),
-                      // P-038：面板沒有標題列，眼睛鈕在圖片左上角（只顯示這一張）。
-                      const SensitiveRevealOverlayButton(),
                     ],
                   ),
                 ),
               ),
-            ),
-          );
-        }
-        final meta = media.isVideo
-            ? context.l10n.ipadauditVideoMeta(
-                formatMediaDuration(media.durationMs),
-              )
-            : media.isGif
-            ? context.l10n.ipadauditGifMeta
-            : null;
-        return SensitiveReveal(
-          current: media.file,
-          child: Column(
+            );
+          } else {
+            cover = Semantics(
+              button: true,
+              label: context.l10n.ipadListsReferenceView,
+              child: GestureDetector(
+                onTap: onReference,
+                child: SizedBox(
+                  height: coverH,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ColoredBox(color: t.chipBg),
+                        if (media.isGif)
+                          MediaViewer(media, cacheWidth: 900)
+                        else
+                          MediaThumb(
+                            media,
+                            cacheWidth: 900,
+                            fit: BoxFit.contain,
+                            badgeInset: 10,
+                            protectSensitive: false,
+                          ),
+                        if (media.isGif)
+                          Positioned(
+                            left: 10,
+                            bottom: 10,
+                            child: _PanelBadge(context.l10n.ipadauditGifLoop),
+                          ),
+                        Positioned(
+                          right: 10,
+                          bottom: 10,
+                          child: _ReferencePill(
+                            context.l10n.ipadListsReferenceView,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+          final meta = media.isVideo
+              ? context.l10n.ipadauditVideoMeta(
+                  formatMediaDuration(media.durationMs),
+                )
+              : media.isGif
+              ? context.l10n.ipadauditGifMeta
+              : null;
+          return Column(
             children: [
               Expanded(
                 child: SingleChildScrollView(
@@ -179,9 +151,9 @@ class AlbumPreviewPanel extends StatelessWidget {
               ),
               PanelActionBar(actions: actions),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

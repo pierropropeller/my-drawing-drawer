@@ -63,7 +63,6 @@ class SensitiveGate extends ConsumerWidget {
 /// [file] 現在該怎麼畫（[SensitiveGate]、[SensitiveMotionGate] 共用）。
 ///
 /// - [showBadge] false：安全模式關時不加左上角小標（詳情／預覽頁）。
-/// - iPad 預覽／詳情面板（P-038 [SensitiveReveal]）：安全模式關時不加小標；安全模式開時，撳了眼睛鈕的那一張清晰。
 SensitiveDisplay resolveSensitiveMode(
   BuildContext context,
   WidgetRef ref,
@@ -74,12 +73,8 @@ SensitiveDisplay resolveSensitiveMode(
   if (!showBadge && mode == SensitiveDisplay.badge) {
     mode = SensitiveDisplay.none;
   }
-  final reveal = SensitiveReveal.maybeOf(context);
-  if (reveal != null) {
-    if (mode == SensitiveDisplay.badge) mode = SensitiveDisplay.none;
-    if (mode == SensitiveDisplay.blur && reveal.isRevealed(file)) {
-      mode = SensitiveDisplay.none;
-    }
+  if (mode == SensitiveDisplay.badge && SensitivePanelScope.of(context)) {
+    mode = SensitiveDisplay.none;
   }
   return mode;
 }

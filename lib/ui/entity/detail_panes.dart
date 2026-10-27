@@ -17,6 +17,7 @@ import '../common/detail_carousel.dart';
 import '../common/media_mini.dart';
 import '../common/media_widgets.dart';
 import '../common/sensitive_reveal.dart';
+import '../common/sensitive_safe_button.dart';
 import '../common/svg_icon.dart';
 import 'connect_field.dart';
 import 'draft_detail_page.dart';
@@ -34,8 +35,14 @@ import 'piece_platform.dart';
 
 /// 標題列右側的「編輯」「刪除」44×44 方形鈕。
 class _PaneActions extends StatelessWidget {
-  const _PaneActions({required this.onEdit, required this.onDelete});
+  const _PaneActions({
+    required this.files,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
+  /// 這一篇的所有圖檔名：有已標記的才多一顆安全模式鈕（P-043）。
+  final Iterable<String> files;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -45,8 +52,8 @@ class _PaneActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // P-038：這張圖有模糊時才多一顆眼睛鈕（只顯示這一張），次序＝眼睛、編輯、刪除。
-        const SensitiveRevealTitleButton(gap: 8),
+        // P-043：這一篇有已標記的圖才多一顆眼睛鈕（一鍵開關安全模式），次序＝眼睛、編輯、刪除。
+        SensitiveSafeWideButton(files: files, gap: 8),
         WideIconButton(
           svg: AppIcons.edit,
           label: context.l10n.commonEdit,
@@ -104,11 +111,10 @@ class IdeaDetailPane extends ConsumerWidget {
       l.ipadListsStageDraft,
       l.ipadListsStagePiece,
     ];
-    return _IndexHolder(
-      key: ValueKey(ideaId),
-      builder: (context, index, onIndex) => SensitiveReveal(
-        current: _revealFile(v.images, index),
-        child: ListView(
+    return SensitivePanelScope(
+      child: _IndexHolder(
+        key: ValueKey(ideaId),
+        builder: (context, index, onIndex) => ListView(
           padding: const EdgeInsets.fromLTRB(36, 26, 36, 32),
           children: [
             // 有圖時圖片放最上面（D-092，同摸魚詳情版型）。
@@ -144,6 +150,7 @@ class IdeaDetailPane extends ConsumerWidget {
                 IdeaStatusChip(v, short: true, fontSize: 12),
                 const SizedBox(width: 12),
                 _PaneActions(
+                  files: flaggableFiles(v.images),
                   onEdit: () =>
                       openIdeaForm(context, pitId: pitId, ideaId: ideaId),
                   onDelete: () async {
@@ -345,12 +352,6 @@ class IdeaDetailPane extends ConsumerWidget {
   }
 }
 
-/// 面板現在顯示的那張圖的檔名（沒圖＝null）。影片、GIF 也算（D-113 ①：模糊時只顯示第一格）。
-String? _revealFile(List<ImageRef> images, int index) {
-  if (images.isEmpty) return null;
-  return images[index.clamp(0, images.length - 1)].file;
-}
-
 /// 腦洞面板記住輪播現在翻到第幾張（換腦洞時用 key 重置）。
 class _IndexHolder extends StatefulWidget {
   const _IndexHolder({super.key, required this.builder});
@@ -425,8 +426,7 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
     final refTitle = pitName == null
         ? l.pitsDrafts
         : l.albumTitleWithPit(pitName, l.pitsDrafts);
-    return SensitiveReveal(
-      current: _revealFile(imgs, index),
+    return SensitivePanelScope(
       child: LayoutBuilder(
         builder: (context, c) {
           final stageH = (c.maxHeight * 0.52).clamp(240.0, 420.0);
@@ -598,6 +598,7 @@ class _DraftDetailPaneState extends ConsumerState<DraftDetailPane> {
                   ),
                   const SizedBox(width: 10),
                   _PaneActions(
+                    files: flaggableFiles(imgs),
                     onEdit: () => openDraftForm(
                       context,
                       pitId: widget.pitId,
@@ -746,14 +747,15 @@ class PieceDetailPanel extends ConsumerWidget {
     final pct = p.targetLikes > 0
         ? (p.actualLikes / p.targetLikes).clamp(0.0, 1.0)
         : 0.0;
-    return SensitiveReveal(
-      current: _revealFile(v.images, 0),
+    return SensitivePanelScope(
       child: LayoutBuilder(
         builder: (context, c) {
           final coverH = (c.maxHeight * 0.34).clamp(160.0, 230.0);
           return ListView(
             padding: const EdgeInsets.only(bottom: 24),
             children: [
+              // P-043：成圖面板沒有標題列，有已標記的圖才多一列放安全模式鈕。
+              SensitiveSafePanelBar(files: flaggableFiles(v.images)),
               Semantics(
                 button: true,
                 label: entityDisplayName(
@@ -784,8 +786,6 @@ class PieceDetailPanel extends ConsumerWidget {
                                   cacheWidth: 900,
                                   sensitiveCircle: 52,
                                 ),
-                                // P-038：成圖面板沒有標題列，眼睛鈕在封面左上角。
-                                const SensitiveRevealOverlayButton(),
                               ],
                             ),
                     ),

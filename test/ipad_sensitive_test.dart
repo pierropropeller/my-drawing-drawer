@@ -127,7 +127,7 @@ void main() {
   const blur = ValueKey('sensitiveBlur');
   const circle = ValueKey('sensitiveCircle');
   const badge = ValueKey('sensitiveBadge');
-  const reveal = ValueKey('sensitiveRevealButton');
+  const safeBtn = ValueKey('sensitiveSafeButton');
 
   Finder inPanel(Finder f) =>
       find.descendant(of: find.byType(SidePanelFrame), matching: f);
@@ -135,7 +135,7 @@ void main() {
       find.descendant(of: find.byType(MasonryGridView), matching: f);
 
   group('好看同人圖：列表＋預覽並排', () {
-    testWidgets('安全模式開：列表模糊＋34px 眼睛圓；點開後右邊預覽面板同一張也模糊（詳情照安全模式）', (tester) async {
+    testWidgets('安全模式開：列表模糊＋34px 眼睛圓；點開後右邊預覽面板不模糊（P-043）', (tester) async {
       await show(tester, FanArtListPage(pitId: pitId));
       expect(inList(find.byKey(blur)), findsOneWidget);
       expect(tester.getSize(inList(find.byKey(circle))).width, 34);
@@ -143,10 +143,12 @@ void main() {
 
       await tester.tap(inList(find.byKey(circle)), warnIfMissed: false);
       await settle(tester);
-      // 面板出現；詳情（預覽面板）照安全模式也模糊，只有點進全螢幕預覽才正常。
+      // P-043：預覽面板一律不模糊、沒有眼睛按鈕。
       expect(find.byType(SidePanelFrame), findsOneWidget);
-      expect(inPanel(find.byKey(blur)), findsOneWidget);
+      expect(inPanel(find.byKey(blur)), findsNothing);
+      expect(inPanel(find.byKey(circle)), findsNothing);
       expect(inPanel(find.byKey(badge)), findsNothing);
+      expect(inPanel(find.byKey(safeBtn)), findsNothing);
       // 列表那張仍然是模糊的。
       expect(inList(find.byKey(blur)), findsOneWidget);
       await unmount(tester);
@@ -164,64 +166,28 @@ void main() {
       // P-038：預覽面板不加小標（小標只在列表類出現），也沒有眼睛鈕。
       expect(inPanel(find.byKey(badge)), findsNothing);
       expect(inPanel(find.byKey(blur)), findsNothing);
-      expect(inPanel(find.byKey(reveal)), findsNothing);
+      expect(inPanel(find.byKey(safeBtn)), findsNothing);
       expect(inList(find.byKey(badge)), findsOneWidget);
       await unmount(tester);
     });
 
-    testWidgets('P-038：預覽面板左上 40px 眼睛鈕只顯示這一張（不是安全模式總開關）；換一張再回來又模糊', (
-      tester,
-    ) async {
+    testWidgets('P-043：預覽面板沒有眼睛鈕、不模糊；換一張再回來也一樣；安全模式沒被動到', (tester) async {
       await show(tester, FanArtListPage(pitId: pitId));
-      // 列表上沒有這顆鈕。
-      expect(find.byKey(reveal), findsNothing);
-      expect(find.byKey(const ValueKey('sensitiveSafeButton')), findsNothing);
+      expect(find.byKey(safeBtn), findsNothing);
       await tester.tap(inList(find.byKey(circle)), warnIfMissed: false);
       await settle(tester);
-      // 面板的封面是 52px 圓。
-      expect(tester.getSize(inPanel(find.byKey(circle))).width, 52);
-      final btn = inPanel(find.byKey(reveal));
-      expect(btn, findsOneWidget);
-      expect(tester.getSize(btn), const Size(40, 40));
-      // 在圖片左上角（離面板內緣 10），沒有另開一排。
-      final img = tester.getRect(
-        find
-            .descendant(
-              of: find.byType(SidePanelFrame),
-              matching: find.byType(ClipRRect),
-            )
-            .first,
-      );
-      expect(tester.getTopLeft(btn) - img.topLeft, const Offset(10, 10));
-      expect(find.byKey(const ValueKey('sensitiveSafeButton')), findsNothing);
-      expect(find.byTooltip('顯示這張'), findsOneWidget);
-
-      await tester.tap(btn);
-      await settle(tester);
-      // 只有面板這張清晰；列表那張仍然模糊；安全模式沒被關掉。
       expect(inPanel(find.byKey(blur)), findsNothing);
-      expect(inList(find.byKey(blur)), findsOneWidget);
-      expect(find.byTooltip('重新模糊'), findsOneWidget);
+      expect(inPanel(find.byKey(circle)), findsNothing);
+      expect(find.byKey(safeBtn), findsNothing);
+      expect(find.byTooltip('顯示這張'), findsNothing);
+      await tester.tap(inList(find.byType(Image)).at(1), warnIfMissed: false);
+      await settle(tester);
+      expect(inPanel(find.byKey(blur)), findsNothing);
       final container = ProviderScope.containerOf(
         tester.element(find.byType(SidePanelFrame)),
       );
       expect(container.read(settingsProvider).safeMode, isTrue);
-
-      await tester.tap(btn);
-      await settle(tester);
-      expect(inPanel(find.byKey(blur)), findsOneWidget);
-
-      // 再撳開後換到別張（沒標記）：鈕消失；回到這張自動重新模糊。
-      await tester.tap(btn);
-      await settle(tester);
-      expect(inPanel(find.byKey(blur)), findsNothing);
-      await tester.tap(inList(find.byType(Image)).at(1), warnIfMissed: false);
-      await settle(tester);
-      expect(inPanel(find.byKey(reveal)), findsNothing);
-      await tester.tap(inList(find.byKey(circle)), warnIfMissed: false);
-      await settle(tester);
-      expect(inPanel(find.byKey(blur)), findsOneWidget);
-      expect(find.byTooltip('顯示這張'), findsOneWidget);
+      expect(inList(find.byKey(blur)), findsOneWidget); // 列表照舊模糊
       await unmount(tester);
     });
 
@@ -232,7 +198,7 @@ void main() {
       await tester.tap(plain, warnIfMissed: false);
       await settle(tester);
       expect(find.byType(SidePanelFrame), findsOneWidget);
-      expect(find.byKey(reveal), findsNothing);
+      expect(find.byKey(safeBtn), findsNothing);
       await unmount(tester);
     });
 
@@ -300,7 +266,7 @@ void main() {
     });
   });
 
-  group('P-038 有標題列的詳情面板（摸魚／腦洞／成圖）', () {
+  group('P-043 詳情面板（摸魚／腦洞／成圖）：一鍵開關安全模式', () {
     late String draftId;
     late String ideaId;
     late String pieceId;
@@ -346,7 +312,7 @@ void main() {
       });
     }
 
-    testWidgets('摸魚：眼睛鈕在標題列、編輯左邊（眼睛、編輯、刪除）；只顯示這張，換圖重新模糊', (tester) async {
+    testWidgets('摸魚：眼睛斜線鈕在標題列、編輯左邊（眼睛、編輯、刪除）；點一下關閉安全模式，整頁清晰', (tester) async {
       await seed(tester);
       await show(
         tester,
@@ -355,7 +321,7 @@ void main() {
       final l = AppLocalizations.of(
         tester.element(find.byType(DraftDetailPane)),
       );
-      final btn = find.byKey(reveal);
+      final btn = find.byKey(safeBtn);
       expect(btn, findsOneWidget);
       expect(tester.getSize(btn), const Size(44, 44));
       final eyeX = tester.getCenter(btn).dx;
@@ -364,55 +330,49 @@ void main() {
       expect(eyeX, lessThan(editX));
       expect(editX, lessThan(delX));
       expect(find.byKey(circle), findsWidgets);
-      // 沒有另開一排「安全模式」鈕。
-      expect(find.byKey(const ValueKey('sensitiveSafeButton')), findsNothing);
+      expect(find.byTooltip(l.sensitiveSafeTurnOff), findsWidgets);
 
-      final mainBlur = find.byKey(blur);
-      final before = mainBlur.evaluate().length;
       await tester.tap(btn);
       await settle(tester);
-      expect(mainBlur.evaluate().length, lessThan(before));
-      expect(find.byTooltip('重新模糊'), findsOneWidget);
+      // 同設定的開關：全 App 生效、整頁清晰、鈕變成睜開的眼睛。
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(DraftDetailPane)),
+      );
+      expect(container.read(settingsProvider).safeMode, isFalse);
+      expect(find.byKey(blur), findsNothing);
+      expect(find.byTooltip(l.sensitiveSafeTurnOn), findsWidgets);
 
-      // 換到第二張（沒標記）：鈕消失；回來又模糊。
-      await tester.tap(find.bySemanticsLabel(l.ipadListsDraftImageN(2)));
+      await tester.tap(btn);
       await settle(tester);
-      expect(find.byKey(reveal), findsNothing);
-      await tester.tap(find.bySemanticsLabel(l.ipadListsDraftImageN(1)));
-      await settle(tester);
-      expect(find.byKey(reveal), findsOneWidget);
-      expect(find.byTooltip('顯示這張'), findsOneWidget);
-      expect(mainBlur.evaluate().length, before);
+      expect(container.read(settingsProvider).safeMode, isTrue);
+      expect(find.byKey(blur), findsWidgets);
       await unmount(tester);
     });
 
-    testWidgets('摸魚：安全模式關＝沒有眼睛鈕、沒有小標', (tester) async {
+    testWidgets('摸魚：安全模式關＝眼睛鈕（睜開）還在，沒有小標、不模糊', (tester) async {
       await seed(tester);
       await show(
         tester,
         DraftDetailPane(pitId: pitId, draftId: draftId, onDeleted: () {}),
         safe: false,
       );
-      expect(find.byKey(reveal), findsNothing);
+      expect(find.byKey(safeBtn), findsOneWidget);
       expect(find.byKey(badge), findsNothing);
       expect(find.byKey(blur), findsNothing);
       await unmount(tester);
     });
 
-    testWidgets('腦洞：第一張沒標記→沒有鈕；翻到有標記的第二張才出現', (tester) async {
+    testWidgets('腦洞：只要有一張已標記，標題列就有眼睛鈕（不管現在翻到哪一張）', (tester) async {
       await seed(tester);
       await show(
         tester,
         IdeaDetailPane(pitId: pitId, ideaId: ideaId, onDeleted: () {}),
       );
-      expect(find.byKey(reveal), findsNothing);
-      await tester.drag(find.byType(PageView), const Offset(-600, 0));
-      await settle(tester);
-      expect(find.byKey(reveal), findsOneWidget);
+      expect(find.byKey(safeBtn), findsOneWidget);
       await unmount(tester);
     });
 
-    testWidgets('成圖：面板沒有標題列→眼睛鈕在封面左上角 40px', (tester) async {
+    testWidgets('成圖：面板沒有標題列→圖上方多一列，右邊 44px 眼睛鈕；點一下關閉安全模式', (tester) async {
       await seed(tester);
       await show(
         tester,
@@ -421,9 +381,9 @@ void main() {
           child: PieceDetailPanel(pitId: pitId, pieceId: pieceId),
         ),
       );
-      final btn = find.byKey(reveal);
+      final btn = find.byKey(safeBtn);
       expect(btn, findsOneWidget);
-      expect(tester.getSize(btn), const Size(40, 40));
+      expect(tester.getSize(btn), const Size(44, 44));
       expect(find.byKey(circle), findsOneWidget);
       await tester.tap(btn);
       await settle(tester);

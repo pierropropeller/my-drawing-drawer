@@ -19,7 +19,6 @@ import 'package:huakeng/ui/common/detail_carousel.dart';
 import 'package:huakeng/ui/common/media_mini.dart';
 import 'package:huakeng/ui/common/media_widgets.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
-import 'package:huakeng/ui/common/sensitive_reveal.dart';
 import 'package:huakeng/ui/common/sensitive_safe_button.dart';
 import 'package:huakeng/ui/entity/image_gallery_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -331,42 +330,6 @@ void main() {
         ]),
         ['v.mp4', 'g.gif', 'a.png'],
       );
-    });
-  });
-
-  group('iPad 面板的單張顯示（SensitiveReveal，P-038）', () {
-    testWidgets('影片：模糊時不建立播放器；撳開這一張才出現播放器，不影響安全模式', (tester) async {
-      await pump(
-        tester,
-        Scaffold(
-          body: SensitiveReveal(
-            current: 'v.mp4',
-            child: Stack(
-              children: const [
-                SizedBox(
-                  width: 300,
-                  height: 300,
-                  child: SensitiveMediaViewer(video, showBadge: false),
-                ),
-                SensitiveRevealOverlayButton(),
-              ],
-            ),
-          ),
-        ),
-      );
-      expect(find.byKey(blur), findsOneWidget);
-      expect(find.byType(VideoPlayerView), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('sensitiveRevealButton')));
-      await settle(tester);
-      expect(find.byKey(blur), findsNothing);
-      expect(find.byType(VideoPlayerView), findsOneWidget);
-      expect(safeMode(tester), isTrue);
-      // 再按一次又模糊，播放器拆掉。
-      await tester.tap(find.byKey(const ValueKey('sensitiveRevealButton')));
-      await settle(tester);
-      expect(find.byKey(blur), findsOneWidget);
-      expect(find.byType(VideoPlayerView), findsNothing);
-      await unmount(tester);
     });
   });
 }
