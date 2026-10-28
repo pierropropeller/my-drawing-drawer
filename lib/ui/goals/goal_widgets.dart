@@ -58,6 +58,7 @@ class GoalCardBody extends StatelessWidget {
   /// 目標類型：數字後面加上「腦洞」「成圖」「摸魚」（D-123）。
   final GoalKind kind;
   final VoidCallback? onTap;
+
   /// 目標坑（D-124，多選）：每個坑一顆 pill 並排。
   final List<String> pitNames;
   final List<String> tags;

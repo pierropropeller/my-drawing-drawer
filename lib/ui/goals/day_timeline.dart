@@ -31,7 +31,12 @@ class DayTimeline extends ConsumerStatefulWidget {
   });
 
   /// 把一筆項目組成共用時間軸的一筆。
-  final TimelineEntry Function(BuildContext context, TimelineItem item) entryOf;
+  final TimelineEntry Function(
+    BuildContext context,
+    TimelineItem item,
+    List<TimelineItem> all,
+  )
+  entryOf;
 
   /// 一開始要捲到的日子；null＝從今天開始。
   final DateTime? initialDay;
@@ -186,7 +191,9 @@ class DayTimelineState extends ConsumerState<DayTimeline> {
   }
 
   List<_Row> _rows(BuildContext context) {
-    final entries = [for (final i in _items) widget.entryOf(context, i)];
+    final entries = [
+      for (final i in _items) widget.entryOf(context, i, _items),
+    ];
     bool sameMonth(DateTime a, DateTime b) =>
         a.year == b.year && a.month == b.month;
     final rows = <_Row>[];

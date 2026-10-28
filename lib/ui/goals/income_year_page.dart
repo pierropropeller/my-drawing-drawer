@@ -120,7 +120,13 @@ class _Body extends StatelessWidget {
               ],
             ),
           ),
-          _MonthCard(entries: m.entries),
+          _MonthCard(
+            entries: m.entries,
+            order: [
+              for (final x in income.months)
+                for (final e in x.entries) e.piece.id,
+            ],
+          ),
         ],
       ],
     );
@@ -204,8 +210,11 @@ class _OwingBanner extends StatelessWidget {
 }
 
 class _MonthCard extends StatelessWidget {
-  const _MonthCard({required this.entries});
+  const _MonthCard({required this.entries, required this.order});
   final List<IncomeEntry> entries;
+
+  /// 整年所有成圖的次序（詳情頁左右滑換上／下篇，D-122）。
+  final List<String> order;
 
   @override
   Widget build(BuildContext context) {
@@ -217,14 +226,17 @@ class _MonthCard extends StatelessWidget {
         border: Border.all(color: t.borderCard),
         borderRadius: BorderRadius.circular(Radii.card),
       ),
-      child: Column(children: [for (final e in entries) _EntryRow(entry: e)]),
+      child: Column(
+        children: [for (final e in entries) _EntryRow(entry: e, order: order)],
+      ),
     );
   }
 }
 
 class _EntryRow extends StatelessWidget {
-  const _EntryRow({required this.entry});
+  const _EntryRow({required this.entry, required this.order});
   final IncomeEntry entry;
+  final List<String> order;
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +249,8 @@ class _EntryRow extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => PieceDetailPage(pieceId: p.id, pitId: p.pitId),
+          builder: (_) =>
+              PieceDetailPage(pieceId: p.id, pitId: p.pitId, order: order),
         ),
       ),
       child: Container(

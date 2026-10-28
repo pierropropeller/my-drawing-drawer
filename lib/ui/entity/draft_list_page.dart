@@ -1,3 +1,5 @@
+import 'scroll_back.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -223,21 +225,29 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
   List<String> _order = const [];
 
   /// 開詳情頁（手機／600–839，或由寬變窄時停在詳情）。
-  void _pushDetail(String id) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => PopWhenWide(
-        child: DraftDetailPage(
-          draftId: id,
-          pitId: widget.pitId,
-          order: _order,
-          // 記住最後看的那一篇（拉寬後右邊顯示它）。
-          onShown: (id) {
-            if (mounted) setState(() => selectedId = id);
-          },
+  void _pushDetail(String id) => Navigator.of(context)
+      .push(
+        MaterialPageRoute<void>(
+          builder: (_) => PopWhenWide(
+            child: DraftDetailPage(
+              draftId: id,
+              pitId: widget.pitId,
+              order: _order,
+              // 記住最後看的那一篇（拉寬後右邊顯示它）。
+              onShown: (id) {
+                if (mounted) setState(() => selectedId = id);
+              },
+            ),
+          ),
         ),
-      ),
-    ),
-  );
+      )
+      .then((_) {
+        // 返回列表時捲到最後看的那一篇（D-122）。
+        final last = selectedId;
+        if (mounted && last != null) _anchors.reveal(last, _order);
+      });
+
+  final _anchors = ScrollBackAnchors();
 
   /// 並排時：選中該項（右側顯示詳情）；否則開詳情頁（並記住它，之後拉寬可還原）。
   void _open(DraftView d, {bool wide = false}) {
@@ -333,13 +343,16 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
                 final d = views[i];
                 return DragSelectItem(
                   index: i,
-                  child: DraftRow(
-                    view: d,
-                    onTap: () => _open(d),
-                    ideaTitles: [
-                      for (final id in d.ideaIds)
-                        if (ideaTitle[id] != null) ideaTitle[id]!,
-                    ],
+                  child: _anchors.wrap(
+                    d.draft.id,
+                    DraftRow(
+                      view: d,
+                      onTap: () => _open(d),
+                      ideaTitles: [
+                        for (final id in d.ideaIds)
+                          if (ideaTitle[id] != null) ideaTitle[id]!,
+                      ],
+                    ),
                   ),
                 );
               },

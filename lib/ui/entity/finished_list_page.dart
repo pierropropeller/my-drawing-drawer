@@ -1,3 +1,5 @@
+import 'scroll_back.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -179,8 +181,10 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
         bool sel(PieceView v) => highlight && _selectedId == v.piece.id;
         final selecting = _sel.active;
         // 多選的狀態（長按＋拖曳連續多選用 index ＝ views 的順序）。
-        Widget pick(int i, Widget tile) =>
-            DragSelectItem(index: i, child: tile);
+        Widget pick(int i, Widget tile) => DragSelectItem(
+          index: i,
+          child: _anchors.wrap(views[i].piece.id, tile),
+        );
         bool picked(PieceView v) => _sel.isSelected(v.piece.id);
         final mode = (selecting && _mode == _Mode.list) ? _Mode.nine : _mode;
         final layout = switch (mode) {
@@ -314,18 +318,26 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
     _openDetail(v);
   }
 
-  void _openDetail(PieceView v) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => PieceDetailPage(
-        pieceId: v.piece.id,
-        pitId: widget.pitId,
-        order: _order,
-        onShown: (id) {
-          if (mounted) setState(() => _selectedId = id);
-        },
-      ),
-    ),
-  );
+  void _openDetail(PieceView v) => Navigator.of(context)
+      .push(
+        MaterialPageRoute<void>(
+          builder: (_) => PieceDetailPage(
+            pieceId: v.piece.id,
+            pitId: widget.pitId,
+            order: _order,
+            onShown: (id) {
+              if (mounted) setState(() => _selectedId = id);
+            },
+          ),
+        ),
+      )
+      .then((_) {
+        // 返回列表時捲到最後看的那一篇（D-122）。
+        final last = _selectedId;
+        if (mounted && last != null) _anchors.reveal(last, _order ?? const []);
+      });
+
+  final _anchors = ScrollBackAnchors();
 
   @override
   Widget build(BuildContext context) {

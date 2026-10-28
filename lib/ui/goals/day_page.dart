@@ -109,11 +109,28 @@ class _DayPageState extends ConsumerState<DayPage> {
     };
   }
 
-  void _open(TimelineItem it) {
+  void _open(TimelineItem it, List<TimelineItem> all) {
+    // 上／下篇次序＝時間軸上同一種類的次序（D-122）。
+    final order = [
+      for (final x in all)
+        if (x.kind == it.kind) x.id,
+    ];
     final page = switch (it.kind) {
-      GoalKind.idea => IdeaDetailPage(ideaId: it.id, pitId: it.pitId),
-      GoalKind.draft => DraftDetailPage(draftId: it.id, pitId: it.pitId),
-      GoalKind.piece => PieceDetailPage(pieceId: it.id, pitId: it.pitId),
+      GoalKind.idea => IdeaDetailPage(
+        ideaId: it.id,
+        pitId: it.pitId,
+        order: order,
+      ),
+      GoalKind.draft => DraftDetailPage(
+        draftId: it.id,
+        pitId: it.pitId,
+        order: order,
+      ),
+      GoalKind.piece => PieceDetailPage(
+        pieceId: it.id,
+        pitId: it.pitId,
+        order: order,
+      ),
     };
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
   }
@@ -127,7 +144,11 @@ class _DayPageState extends ConsumerState<DayPage> {
   }
 
   /// 共用時間軸的一筆（D-063）：分類標籤＋時間、標題、內文、tag；成圖多一個紅心互動量。
-  TimelineEntry _entryOf(BuildContext context, TimelineItem item) {
+  TimelineEntry _entryOf(
+    BuildContext context,
+    TimelineItem item,
+    List<TimelineItem> all,
+  ) {
     final t = context.tokens;
     final (label, color) = switch (item.kind) {
       GoalKind.idea => (context.l10n.goalsKindIdea, t.idea),
@@ -138,7 +159,7 @@ class _DayPageState extends ConsumerState<DayPage> {
     return TimelineEntry(
       id: '${item.kind.name}-${item.id}',
       date: tm,
-      onTap: () => _open(item),
+      onTap: () => _open(item, all),
       kindLabel: label,
       kindColor: color,
       timeText:

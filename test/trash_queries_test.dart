@@ -158,4 +158,47 @@ void main() {
     final t = await db.loadTrash();
     expect(t.items.map((e) => e.id), [fresh]);
   });
+
+  test('刪除腦洞後還原：跟摸魚、成圖的連結接得回來；刪除期間對方不顯示它', () async {
+    final pit = await db.createPit(name: '坑A');
+    final draftId = await db.saveDraft(
+      pitId: pit,
+      title: '稿',
+      images: const [],
+      tagIds: const [],
+      ideaIds: const [],
+    );
+    final pieceId = await db.savePiece(
+      pitId: pit,
+      title: '圖',
+      body: '',
+      images: const [],
+      tagIds: const [],
+      links: const [],
+      targetLikes: 0,
+      finishedAt: DateTime(2026, 5, 1),
+      ideaIds: const [],
+      draftIds: const [],
+    );
+    final ideaId = await db.saveIdea(
+      pitId: pit,
+      title: '洞',
+      body: '',
+      images: const [],
+      tagIds: const [],
+      draftIds: [draftId],
+      pieceIds: [pieceId],
+    );
+    expect((await db.watchDraftView(draftId).first)!.ideaIds, [ideaId]);
+
+    await db.deleteIdeas([ideaId]);
+    expect((await db.watchDraftView(draftId).first)!.ideaIds, isEmpty);
+    expect((await db.watchPieceView(pieceId).first)!.ideaIds, isEmpty);
+
+    await db.restoreItems((await db.loadTrash()).items);
+    final idea = (await db.watchIdeaView(ideaId).first)!;
+    expect(idea.draftIds, [draftId]);
+    expect(idea.pieceIds, [pieceId]);
+    expect((await db.watchDraftView(draftId).first)!.ideaIds, [ideaId]);
+  });
 }

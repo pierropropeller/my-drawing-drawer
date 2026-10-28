@@ -403,15 +403,39 @@ extension EntityQueries on AppDatabase {
     idea: i,
     images: await _imagesOf(OwnerType.idea, i.id),
     tags: await _tagsOf(TagTarget.idea, i.id),
-    draftIds:
-        (await (select(ideaDrafts)..where((x) => x.ideaId.equals(i.id))).get())
-            .map((r) => r.draftId)
-            .toList(),
-    pieceIds:
-        (await (select(ideaPieces)..where((x) => x.ideaId.equals(i.id))).get())
-            .map((r) => r.pieceId)
-            .toList(),
+    draftIds: await _liveIds(
+      drafts,
+      (await (select(
+        ideaDrafts,
+      )..where((x) => x.ideaId.equals(i.id))).get()).map((r) => r.draftId),
+    ),
+    pieceIds: await _liveIds(
+      pieces,
+      (await (select(
+        ideaPieces,
+      )..where((x) => x.ideaId.equals(i.id))).get()).map((r) => r.pieceId),
+    ),
   );
+
+  /// 只留下還沒刪除（不在最近刪除裡）的 id，維持原本次序。
+  Future<List<String>> _liveIds(
+    TableInfo<Table, dynamic> table,
+    Iterable<String> ids,
+  ) async {
+    final list = ids.toList();
+    if (list.isEmpty) return list;
+    final rows = await customSelect(
+      'SELECT id FROM ${table.actualTableName} WHERE deleted_at IS NULL '
+      'AND id IN (${List.filled(list.length, '?').join(',')})',
+      variables: [for (final id in list) Variable<String>(id)],
+      readsFrom: {table},
+    ).get();
+    final live = {for (final r in rows) r.read<String>('id')};
+    return [
+      for (final id in list)
+        if (live.contains(id)) id,
+    ];
+  }
 
   Stream<List<IdeaView>> watchIdeaViews(String pitId, {String? tagId}) {
     return watchAssembled(this, _ideaTables, () async {
@@ -508,8 +532,7 @@ extension EntityQueries on AppDatabase {
       await (update(ideas)..where((i) => i.id.isIn(ids))).write(
         IdeasCompanion(deletedAt: Value(now), updatedAt: Value(now)),
       );
-      await (delete(ideaDrafts)..where((x) => x.ideaId.isIn(ids))).go();
-      await (delete(ideaPieces)..where((x) => x.ideaId.isIn(ids))).go();
+      // 關聯留著（D-120）：從最近刪除還原後連結還在；顯示時略過已刪除的那一端。
     });
   }
 
@@ -520,12 +543,12 @@ extension EntityQueries on AppDatabase {
       draft: d,
       images: await _imagesOf(OwnerType.draft, d.id),
       tags: await _tagsOf(TagTarget.draft, d.id),
-      ideaIds:
-          (await (select(
-                ideaDrafts,
-              )..where((x) => x.draftId.equals(d.id))).get())
-              .map((r) => r.ideaId)
-              .toList(),
+      ideaIds: await _liveIds(
+        ideas,
+        (await (select(
+          ideaDrafts,
+        )..where((x) => x.draftId.equals(d.id))).get()).map((r) => r.ideaId),
+      ),
       pieceIds: [for (final p in pieceLinks) p.id],
       linkedPieces: pieceLinks,
     );
@@ -711,19 +734,7 @@ extension EntityQueries on AppDatabase {
       await (update(drafts)..where((d) => d.id.isIn(ids))).write(
         DraftsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
       );
-      // 關係由腦洞／成圖擁有：它們的文件裡還記著這份草稿，要一併更新才會同步出去。
-      await _touchIdeas(
-        (await (select(
-          ideaDrafts,
-        )..where((x) => x.draftId.isIn(ids))).get()).map((r) => r.ideaId),
-      );
-      await _touchPieces(
-        (await (select(
-          draftPieces,
-        )..where((x) => x.draftId.isIn(ids))).get()).map((r) => r.pieceId),
-      );
-      await (delete(ideaDrafts)..where((x) => x.draftId.isIn(ids))).go();
-      await (delete(draftPieces)..where((x) => x.draftId.isIn(ids))).go();
+      // 關聯留著（D-120）：從最近刪除還原後連結還在；顯示時略過已刪除的那一端。
     });
   }
 
@@ -741,12 +752,12 @@ extension EntityQueries on AppDatabase {
                   .get())
               .map((l) => SocialLink(l.platform, l.url))
               .toList(),
-      ideaIds:
-          (await (select(
-                ideaPieces,
-              )..where((x) => x.pieceId.equals(p.id))).get())
-              .map((r) => r.ideaId)
-              .toList(),
+      ideaIds: await _liveIds(
+        ideas,
+        (await (select(
+          ideaPieces,
+        )..where((x) => x.pieceId.equals(p.id))).get()).map((r) => r.ideaId),
+      ),
       draftIds: [for (final d in draftLinks) d.id],
       linkedDrafts: draftLinks,
     );
@@ -925,13 +936,7 @@ extension EntityQueries on AppDatabase {
       await (update(pieces)..where((p) => p.id.isIn(ids))).write(
         PiecesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
       );
-      await _touchIdeas(
-        (await (select(
-          ideaPieces,
-        )..where((x) => x.pieceId.isIn(ids))).get()).map((r) => r.ideaId),
-      );
-      await (delete(ideaPieces)..where((x) => x.pieceId.isIn(ids))).go();
-      await (delete(draftPieces)..where((x) => x.pieceId.isIn(ids))).go();
+      // 關聯留著（D-120）：從最近刪除還原後連結還在；顯示時略過已刪除的那一端。
     });
   }
 }

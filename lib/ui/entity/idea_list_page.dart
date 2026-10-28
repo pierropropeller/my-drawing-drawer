@@ -1,3 +1,4 @@
+import 'scroll_back.dart';
 import '../common/clamped_text.dart';
 
 import 'package:flutter/material.dart';
@@ -99,21 +100,29 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
   List<String>? _order;
 
   /// 開詳情頁（手機／600–839，或由寬變窄時停在詳情）。
-  void _pushDetail(String id) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => PopWhenWide(
-        child: IdeaDetailPage(
-          ideaId: id,
-          pitId: widget.pitId,
-          order: _order,
-          // 記住最後看的那一篇（拉寬後右邊顯示它）。
-          onShown: (id) {
-            if (mounted) setState(() => selectedId = id);
-          },
+  void _pushDetail(String id) => Navigator.of(context)
+      .push(
+        MaterialPageRoute<void>(
+          builder: (_) => PopWhenWide(
+            child: IdeaDetailPage(
+              ideaId: id,
+              pitId: widget.pitId,
+              order: _order,
+              // 記住最後看的那一篇（拉寬後右邊顯示它）。
+              onShown: (id) {
+                if (mounted) setState(() => selectedId = id);
+              },
+            ),
+          ),
         ),
-      ),
-    ),
-  );
+      )
+      .then((_) {
+        // 返回列表時捲到最後看的那一篇（D-122）。
+        final last = selectedId;
+        if (mounted && last != null) _anchors.reveal(last, _order ?? const []);
+      });
+
+  final _anchors = ScrollBackAnchors();
 
   /// 寬版：左邊列表（固定約 400，窄視窗縮一點）＋右邊詳情。
   Widget _splitBody(
@@ -227,13 +236,16 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
               itemBuilder: (_, i) {
                 final v = views[i];
                 final isSel = _selected.contains(v.idea.id);
-                final card = _IdeaCard(
-                  view: v,
-                  selected: _selecting
-                      ? isSel
-                      : (wide && selectedId == v.idea.id),
-                  selecting: _selecting,
-                  onTagTap: _selecting ? null : _tagTap,
+                final card = _anchors.wrap(
+                  v.idea.id,
+                  _IdeaCard(
+                    view: v,
+                    selected: _selecting
+                        ? isSel
+                        : (wide && selectedId == v.idea.id),
+                    selecting: _selecting,
+                    onTagTap: _selecting ? null : _tagTap,
+                  ),
                 );
                 if (!_selecting) {
                   return GestureDetector(

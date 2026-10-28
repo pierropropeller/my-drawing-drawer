@@ -129,7 +129,11 @@ void main() {
     });
     tearDown(() async => db.close());
 
-    TimelineEntry entryOf(BuildContext c, TimelineItem it) => TimelineEntry(
+    TimelineEntry entryOf(
+      BuildContext c,
+      TimelineItem it,
+      List<TimelineItem> _,
+    ) => TimelineEntry(
       id: '${it.kind.name}-${it.id}',
       date: it.time,
       onTap: () {},

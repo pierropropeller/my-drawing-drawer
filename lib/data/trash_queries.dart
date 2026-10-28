@@ -542,14 +542,28 @@ extension TrashQueries on AppDatabase {
           await (update(ideas)..where((x) => x.id.equals(it.id))).write(
             IdeasCompanion(deletedAt: gone, updatedAt: Value(now)),
           );
+          await (delete(ideaDrafts)..where((x) => x.ideaId.equals(it.id))).go();
+          await (delete(ideaPieces)..where((x) => x.ideaId.equals(it.id))).go();
         case TrashKind.draft:
           await (update(drafts)..where((x) => x.id.equals(it.id))).write(
             DraftsCompanion(deletedAt: gone, updatedAt: Value(now)),
           );
+          await (delete(
+            ideaDrafts,
+          )..where((x) => x.draftId.equals(it.id))).go();
+          await (delete(
+            draftPieces,
+          )..where((x) => x.draftId.equals(it.id))).go();
         case TrashKind.piece:
           await (update(pieces)..where((x) => x.id.equals(it.id))).write(
             PiecesCompanion(deletedAt: gone, updatedAt: Value(now)),
           );
+          await (delete(
+            ideaPieces,
+          )..where((x) => x.pieceId.equals(it.id))).go();
+          await (delete(
+            draftPieces,
+          )..where((x) => x.pieceId.equals(it.id))).go();
         case TrashKind.oshi:
           await (update(oshiRecords)..where((x) => x.id.equals(it.id))).write(
             OshiRecordsCompanion(deletedAt: gone, updatedAt: Value(now)),
