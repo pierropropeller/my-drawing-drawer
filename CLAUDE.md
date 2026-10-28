@@ -1,7 +1,8 @@
 # 給程程的工作守則（每次開 session 都會自動讀到）
 
 這是 Molly 的自用 App（畫匣／Drawer）。設計稿在 Claude Design canvas：
-https://claude.ai/code/artifact/c37d0721-7399-4183-b54c-aef4faf8ebc4
+- 手機版：https://claude.ai/artifact/GGmibGZx57mN1pMC9fMQkv
+- iPad 版：https://claude.ai/artifact/TyULkJcP8HHKwC321dWPBm
 （用 Artifact 工具的 `read` 讀 `project/` 底下的檔案；每個畫面是一個 `project/<名稱>.dc.html`）
 
 ## 每次開工
