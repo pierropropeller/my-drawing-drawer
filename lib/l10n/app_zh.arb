@@ -744,14 +744,7 @@
     }
   },
   "moveTagDrop": "不保留 tag",
-  "moveTagCreate": "在「{pit}」新增 tag",
-  "@moveTagCreate": {
-    "placeholders": {
-      "pit": {
-        "type": "String"
-      }
-    }
-  },
+  "moveTagCreate": "新增 tag",
   "formNumberInvalid": "請輸入數字",
   "authLinkFailedFriendly": "連結失敗，請稍後再試",
   "authOfflineFriendly": "連不上網絡，請檢查網絡後再試",

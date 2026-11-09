@@ -1878,8 +1878,8 @@ abstract class AppLocalizations {
   /// No description provided for @moveTagCreate.
   ///
   /// In zh, this message translates to:
-  /// **'在「{pit}」新增 tag'**
-  String moveTagCreate(String pit);
+  /// **'新增 tag'**
+  String get moveTagCreate;
 
   /// No description provided for @formNumberInvalid.
   ///

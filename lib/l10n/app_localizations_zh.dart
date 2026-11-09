@@ -1013,9 +1013,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get moveTagDrop => '不保留 tag';
 
   @override
-  String moveTagCreate(String pit) {
-    return '在「$pit」新增 tag';
-  }
+  String get moveTagCreate => '新增 tag';
 
   @override
   String get formNumberInvalid => '請輸入數字';

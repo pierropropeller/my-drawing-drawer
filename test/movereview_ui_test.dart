@@ -134,7 +134,7 @@ void main() {
     // 坑乙沒有「夏日」：先問（MoveTagConfirm，D-131），選新增。
     expect(find.text('「坑乙」沒有這些 tag'), findsOneWidget);
     expect(find.text('#夏日'), findsOneWidget);
-    await tester.tap(find.text('在「坑乙」新增 tag'));
+    await tester.tap(find.text('新增 tag'));
     await settle(tester);
 
     final inA = await tester.runAsync(() => db.watchFanArts(a).first);

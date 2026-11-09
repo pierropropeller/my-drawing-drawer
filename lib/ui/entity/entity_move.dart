@@ -435,7 +435,7 @@ class _LinkRow extends StatelessWidget {
   }
 }
 
-/// ③ 目標坑缺 tag（`MoveTagConfirm`）：「取消」靠左，「不保留 tag」「在「坑B」新增 tag」靠右。
+/// ③ 目標坑缺 tag（`MoveTagConfirm`）：「取消」靠左，「不保留 tag」「新增 tag」靠右（坑名已在標題）。
 /// 回傳 null＝取消、false＝不保留、true＝新增。圖片跨坑移動也用這個。
 Future<bool?> showMoveTagConfirm(
   BuildContext context, {
@@ -481,21 +481,28 @@ Future<bool?> showMoveTagConfirm(
         label: ctx.l10n.commonCancel,
         onTap: () => Navigator.pop(ctx),
       ),
-      const Spacer(),
-      _dialogButton(
-        ctx,
-        key: const ValueKey('moveTagDrop'),
-        label: ctx.l10n.moveTagDrop,
-        onTap: () => Navigator.pop(ctx, false),
-      ),
-      const SizedBox(width: 4),
-      Flexible(
-        child: _dialogButton(
-          ctx,
-          key: const ValueKey('moveTagCreate'),
-          label: ctx.l10n.moveTagCreate(pitName),
-          primary: true,
-          onTap: () => Navigator.pop(ctx, true),
+      const SizedBox(width: 8),
+      // 右邊兩顆：放不下（坑名很長、字放大）就疊成兩行靠右，不把字擠成直排。
+      Expanded(
+        child: OverflowBar(
+          alignment: MainAxisAlignment.end,
+          overflowAlignment: OverflowBarAlignment.end,
+          spacing: 4,
+          children: [
+            _dialogButton(
+              ctx,
+              key: const ValueKey('moveTagDrop'),
+              label: ctx.l10n.moveTagDrop,
+              onTap: () => Navigator.pop(ctx, false),
+            ),
+            _dialogButton(
+              ctx,
+              key: const ValueKey('moveTagCreate'),
+              label: ctx.l10n.moveTagCreate,
+              primary: true,
+              onTap: () => Navigator.pop(ctx, true),
+            ),
+          ],
         ),
       ),
     ],
