@@ -34,6 +34,29 @@ String previewDate(DateTime d, [AppLocalizations? l10n]) =>
       d.day.toString().padLeft(2, '0'),
     );
 
+/// 預覽頁的 tag chip（白 12% 底、圓角膠囊），點了照呼叫端處理（D-089／D-107）。
+class PreviewTagChip extends StatelessWidget {
+  const PreviewTagChip(this.name, {super.key, required this.onTap});
+  final String name;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: PreviewPalette.tagBg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '#$name',
+        style: const TextStyle(color: PreviewPalette.tagText, fontSize: 12),
+      ),
+    ),
+  );
+}
+
 class PreviewAction {
   const PreviewAction(this.svg, this.label, this.onTap, {this.color});
   final String svg;
@@ -104,8 +127,12 @@ class PreviewShell extends StatelessWidget {
                     // 圖片與 GIF 可縮放；影片用自己的控制列（同詳情頁），不縮放。
                     // 預覽頁沒有安全模式：一律正常顯示（Molly：預覽頁就不要安全模式了）。
                     // 長圖（高 > 寬）寬度鋪滿、貼齊最上面、垂直捲動（見 [PreviewMediaPage]）。
-                    itemBuilder: (_, i) =>
-                        PreviewMediaPage(media[i], active: i == currentIndex),
+                    // 同一頁換成組內另一張（D-136）時重建，縮放狀態不帶過去。
+                    itemBuilder: (_, i) => PreviewMediaPage(
+                      media[i],
+                      key: ValueKey(media[i].file),
+                      active: i == currentIndex,
+                    ),
                   ),
                 ),
           // 資訊區一律靠左（設計稿 ImagePreview／FanArtPreview：padding 8/24/14，左對齊）。

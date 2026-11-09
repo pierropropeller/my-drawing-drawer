@@ -210,20 +210,24 @@ extension AlbumQueries on AppDatabase {
   }
 
   /// [tagIds]：同一批圖都掛上這些 tag（分享進來／批次新增，D-059；D-060 起官方圖可以有 tag）。
-  Future<void> addOfficial(
+  /// 回傳新列的 id（依 [images] 次序）。
+  Future<List<String>> addOfficial(
     String pitId,
     String groupId,
     List<NewImage> images, {
     List<String> tagIds = const [],
   }) {
     return transaction(() async {
+      final ids = <String>[];
       for (final im in images) {
         final row = _newOfficial(pitId, groupId, im);
         await into(officialImages).insert(row);
+        ids.add(row.id.value);
         if (tagIds.isNotEmpty) {
           await setTags(TagTarget.official, row.id.value, tagIds);
         }
       }
+      return ids;
     });
   }
 
@@ -345,7 +349,8 @@ extension AlbumQueries on AppDatabase {
     return q.watch();
   }
 
-  Future<void> addFanArts(
+  /// 回傳新列的 id（依 [images] 次序）。
+  Future<List<String>> addFanArts(
     String pitId,
     List<NewImage> images, {
     required String author,
@@ -353,6 +358,7 @@ extension AlbumQueries on AppDatabase {
     List<String> tagIds = const [],
   }) {
     return transaction(() async {
+      final ids = <String>[];
       for (final im in images) {
         final id = uuid.v4();
         final row = await into(fanArts).insertReturning(
@@ -372,7 +378,9 @@ extension AlbumQueries on AppDatabase {
           ),
         );
         await setTags(TagTarget.fanArt, row.id, tagIds);
+        ids.add(row.id);
       }
+      return ids;
     });
   }
 

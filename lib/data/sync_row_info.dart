@@ -185,6 +185,7 @@ extension SyncRowInfoQueries on AppDatabase {
           )..where((p) => p.id.isIn(ids) & p.deletedAt.isNull())).get())
             o.id: (pitId: o.pitId, title: o.title),
         },
+        OwnerType.album => <String, ({String pitId, String? title})>{},
       };
       for (final e in rows) {
         final owner = map[e.ownerId];

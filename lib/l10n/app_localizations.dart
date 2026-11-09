@@ -628,6 +628,60 @@ abstract class AppLocalizations {
   /// **'{year} / {month} / {day} 加入'**
   String albumPreviewDateAdded(int year, String month, String day);
 
+  /// 多圖（D-136）列表小標的讀屏文字
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張'**
+  String albumSetCount(int count);
+
+  /// 預覽頁縮圖條的一格（讀屏）
+  ///
+  /// In zh, this message translates to:
+  /// **'第 {index} 張'**
+  String albumSetThumb(int index);
+
+  /// No description provided for @albumSetMerge.
+  ///
+  /// In zh, this message translates to:
+  /// **'合併'**
+  String get albumSetMerge;
+
+  /// No description provided for @albumSetMergeNeedTwo.
+  ///
+  /// In zh, this message translates to:
+  /// **'至少選兩項才能合併'**
+  String get albumSetMergeNeedTwo;
+
+  /// No description provided for @albumSetMerged.
+  ///
+  /// In zh, this message translates to:
+  /// **'已合併成一組，共 {count} 張'**
+  String albumSetMerged(int count);
+
+  /// No description provided for @albumSetCombine.
+  ///
+  /// In zh, this message translates to:
+  /// **'合成一組'**
+  String get albumSetCombine;
+
+  /// No description provided for @albumSetSplit.
+  ///
+  /// In zh, this message translates to:
+  /// **'拆開'**
+  String get albumSetSplit;
+
+  /// No description provided for @albumSetSplitTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'拆開這一組？'**
+  String get albumSetSplitTitle;
+
+  /// No description provided for @albumSetSplitBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張圖會各自變成獨立一項，分組和 tag 照舊。'**
+  String albumSetSplitBody(int count);
+
   /// No description provided for @shellTabPits.
   ///
   /// In zh, this message translates to:

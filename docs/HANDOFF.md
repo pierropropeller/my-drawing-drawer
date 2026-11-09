@@ -65,7 +65,8 @@
 | 欄位 | 型別 | 備註 |
 |---|---|---|
 | pitId | id | |
-| imageFile | file | 一張圖一筆；新增頁可一次加多張 |
+| imageFile | file | 第 1 張；新增頁可一次加多張（每張一筆，或開「合成一組」存成一筆，D-139） |
+| （額外圖） | `entity_images` | 第 2 張起（D-136）：ownerType＝`album`、ownerId＝imageKey、依 sortOrder；同步放在文件的 `extras` |
 | groupId | id | 分組（＝類型） |
 | tags | Tag[] | D-089 起官方圖也可以加 tag |
 
@@ -75,7 +76,7 @@
 | 欄位 | 型別 | 備註 |
 |---|---|---|
 | pitId | id | |
-| imageFile | file | |
+| imageFile | file | 第 1 張；第 2 張起同官方圖（D-136） |
 | author | string | 例：@illust_ka |
 | source | enum/string | 推特、小紅書、lofter、朋友發的、網上搜的 |
 | tags | Tag[] | |
@@ -278,6 +279,9 @@ Drive/App 專用資料夾/
 | `OfficialNew` | 新增官方圖 | 圖片、分組、tag（D-089）；亦作編輯頁 |
 | `FormImagePreview` | 表單內圖片預覽 | 所有新增／編輯頁點小圖進入；黑底、×、「1 / N」、左右滑，沒有動作列（D-102） |
 | `OfficialSelect` | 多選 | **長按**進入；下載、移動、tag、刪除 |
+| `OfficialSelectMerge` | 多選（合併） | 底欄：下載、移動、**合併**、tag、刪除（D-138）；同人圖同 |
+| `OfficialListMulti` | 官方圖冊（多圖） | 多圖那一格右上角「⧉ N」（D-137） |
+| `ImagePreviewMulti` | 圖片預覽（多圖） | tag 下面縮圖條（「n / N」＋40×40 縮圖），點縮圖換張；日期左、分組右下（D-137） |
 | `FanArtTagSheet` | 多選 · tag | 同人圖／官方圖多選後批量加減 tag（D-060） |
 | `MoveSheet` | 移動到 | 可選坑（跨坑，D-054）＋官方圖冊／好看同人圖／雜物；選官方圖冊時展開分組。獨有欄位移動時保留但隱藏。目標坑缺 tag 時先出 `MoveTagConfirm`（D-131） |
 | `EntityMoveSheet` | 移動到（腦洞／摸魚／成圖） | 只選坑（D-130）；有關聯先出 `MoveUnlinkConfirm`（斷開確認），缺 tag 出 `MoveTagConfirm` |

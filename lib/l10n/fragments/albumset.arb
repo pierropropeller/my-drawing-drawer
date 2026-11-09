@@ -1,0 +1,42 @@
+{
+  "@@locale": "zh",
+  "albumSetCount": "{count} 張",
+  "@albumSetCount": {
+    "description": "多圖（D-136）列表小標的讀屏文字",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumSetThumb": "第 {index} 張",
+  "@albumSetThumb": {
+    "description": "預覽頁縮圖條的一格（讀屏）",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "albumSetMerge": "合併",
+  "albumSetMergeNeedTwo": "至少選兩項才能合併",
+  "albumSetMerged": "已合併成一組，共 {count} 張",
+  "@albumSetMerged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumSetCombine": "合成一組",
+  "albumSetSplit": "拆開",
+  "albumSetSplitTitle": "拆開這一組？",
+  "albumSetSplitBody": "{count} 張圖會各自變成獨立一項，分組和 tag 照舊。",
+  "@albumSetSplitBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+}

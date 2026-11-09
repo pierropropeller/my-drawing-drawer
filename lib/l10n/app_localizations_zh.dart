@@ -315,6 +315,41 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String albumSetCount(int count) {
+    return '$count 張';
+  }
+
+  @override
+  String albumSetThumb(int index) {
+    return '第 $index 張';
+  }
+
+  @override
+  String get albumSetMerge => '合併';
+
+  @override
+  String get albumSetMergeNeedTwo => '至少選兩項才能合併';
+
+  @override
+  String albumSetMerged(int count) {
+    return '已合併成一組，共 $count 張';
+  }
+
+  @override
+  String get albumSetCombine => '合成一組';
+
+  @override
+  String get albumSetSplit => '拆開';
+
+  @override
+  String get albumSetSplitTitle => '拆開這一組？';
+
+  @override
+  String albumSetSplitBody(int count) {
+    return '$count 張圖會各自變成獨立一項，分組和 tag 照舊。';
+  }
+
+  @override
   String get shellTabPits => '坑';
 
   @override

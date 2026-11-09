@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../data/album_queries.dart';
+import '../data/album_set_queries.dart';
 import '../data/batch_tag_queries.dart';
 import '../data/database.dart';
 import '../data/entity_queries.dart';
@@ -207,6 +208,16 @@ final officialProvider =
     );
 
 /// 官方圖冊，可按分組、tag 篩選（D-089）。key＝(坑 id, 分組 id, tag id)。
+/// 多圖的官方圖／同人圖（D-136）：imageKey → 額外幾張（不含第 1 張）。列表右上「⧉ N」用。
+final albumExtraCountsProvider = StreamProvider<Map<String, int>>(
+  (ref) => ref.watch(databaseProvider).watchAlbumExtraCounts(),
+);
+
+/// 一組圖的第 2 張起（依次序）。
+final albumExtrasProvider = StreamProvider.family<List<EntityImage>, String>(
+  (ref, imageKey) => ref.watch(databaseProvider).watchAlbumExtras(imageKey),
+);
+
 final officialFilteredProvider =
     StreamProvider.family<List<OfficialImage>, (String, String?, String?)>(
       (ref, key) => ref

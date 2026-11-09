@@ -34,9 +34,15 @@ class AlbumImage {
     this.mediaKind = MediaKind.image,
     this.durationMs,
     this.posterFile,
-  });
+    String? imageKey,
+  }) : _imageKey = imageKey; // ignore: prefer_initializing_formals
 
   final String id;
+
+  /// 整張圖（一組圖）的身分（D-044）；多圖的其他張用它找（D-136）。沒帶就當作 [id]。
+  final String? _imageKey;
+  String get imageKey =>
+      (_imageKey == null || _imageKey.isEmpty) ? id : _imageKey;
   final String file;
   final int width;
   final int height;

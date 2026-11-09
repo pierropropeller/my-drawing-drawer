@@ -223,7 +223,16 @@ String sniffImageExtension(List<int> head) {
   // HEIC／HEIF：第 4～8 位元組 `ftyp`，第 8～12 位元組是 brand。
   if (at(4, const [0x66, 0x74, 0x79, 0x70]) && head.length >= 12) {
     final brand = String.fromCharCodes(head.sublist(8, 12)).toLowerCase();
-    const heic = {'heic', 'heix', 'heim', 'heis', 'hevc', 'hevx', 'mif1', 'msf1'};
+    const heic = {
+      'heic',
+      'heix',
+      'heim',
+      'heis',
+      'hevc',
+      'hevx',
+      'mif1',
+      'msf1',
+    };
     if (heic.contains(brand)) return 'heic';
   }
   if (at(0, const [0x52, 0x49, 0x46, 0x46]) &&

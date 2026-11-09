@@ -37,6 +37,7 @@ TagTarget tagTargetOf(OwnerType t) => switch (t) {
   OwnerType.draft => TagTarget.draft,
   OwnerType.piece => TagTarget.piece,
   OwnerType.oshi => TagTarget.oshi,
+  OwnerType.album => throw ArgumentError.value(t, 't', '多圖相簿不是獨立實體'),
 };
 
 extension EntityMoveQueries on AppDatabase {
@@ -231,6 +232,7 @@ extension EntityMoveQueries on AppDatabase {
             if (r.pitId != targetPitId) from[r.id] = r.pitId;
           }
         case OwnerType.oshi:
+        case OwnerType.album:
           throw ArgumentError.value(type, 'type', '推活不在跨坑移動範圍');
       }
       if (from.isEmpty) return;
@@ -275,6 +277,7 @@ extension EntityMoveQueries on AppDatabase {
           await (delete(ideaPieces)..where((x) => x.pieceId.isIn(moved))).go();
           await (delete(draftPieces)..where((x) => x.pieceId.isIn(moved))).go();
         case OwnerType.oshi:
+        case OwnerType.album:
           break;
       }
 
@@ -315,6 +318,7 @@ extension EntityMoveQueries on AppDatabase {
             PiecesCompanion(pitId: Value(targetPitId), updatedAt: Value(now)),
           );
         case OwnerType.oshi:
+        case OwnerType.album:
           break;
       }
       if (touchIdeas.isNotEmpty) {
@@ -352,7 +356,7 @@ extension EntityMoveQueries on AppDatabase {
           OwnerType.idea => p.ideaCoverFile,
           OwnerType.draft => p.draftCoverFile,
           OwnerType.piece => p.pieceCoverFile,
-          OwnerType.oshi => null,
+          OwnerType.oshi || OwnerType.album => null,
         };
         final clearCell = cellFile != null && files.contains(cellFile);
         if (!clearCover && !clearCell) continue;

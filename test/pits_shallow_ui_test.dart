@@ -575,7 +575,10 @@ void main() {
 
       await tapSwitch(tester, '官方圖冊');
       expect(find.text('關閉「官方圖冊」？'), findsOneWidget);
-      expect(find.text('格子裡的 3 張圖會移到「最近刪除」，30 天內可以還原；還原時這個格子會自動重新開啟。'), findsOneWidget);
+      expect(
+        find.text('格子裡的 3 張圖會移到「最近刪除」，30 天內可以還原；還原時這個格子會自動重新開啟。'),
+        findsOneWidget,
+      );
       expect(find.text('取消'), findsOneWidget);
       expect(find.text('關閉'), findsOneWidget);
       await tester.tap(find.text('取消'));
@@ -624,7 +627,10 @@ void main() {
       await openEdit(tester, active);
       await tapSeg(tester, '淺坑');
       await tapSwitch(tester, '我的腦洞');
-      expect(find.text('格子裡的 2 個腦洞會移到「最近刪除」，30 天內可以還原；還原時這個格子會自動重新開啟。'), findsOneWidget);
+      expect(
+        find.text('格子裡的 2 個腦洞會移到「最近刪除」，30 天內可以還原；還原時這個格子會自動重新開啟。'),
+        findsOneWidget,
+      );
       await tester.tap(find.text('取消'));
       await settle(tester);
       await unmount(tester);

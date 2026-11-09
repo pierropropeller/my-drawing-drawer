@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
+import '../../data/junk_queries.dart' show AlbumCell;
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/app_icons.dart';
@@ -12,6 +13,7 @@ import '../common/window_class.dart';
 import '../reference/reference_viewer.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
+import 'album_set_strip.dart';
 import 'fan_art_edit_page.dart';
 import '../search/tagged_list.dart';
 import 'preview_shell.dart';
@@ -39,7 +41,7 @@ class FanArtPreviewPage extends ConsumerStatefulWidget {
 }
 
 class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
-    with HidesNavBar<FanArtPreviewPage> {
+    with HidesNavBar<FanArtPreviewPage>, AlbumSetPreview<FanArtPreviewPage> {
   /// 點 tag：預設進該坑的搜尋結果頁並帶上這個 tag（D-107）。
   void _tagTap(String id) => widget.onTagTap != null
       ? widget.onTagTap!(id)
@@ -58,7 +60,7 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
   }
 
   Future<void> _download() async {
-    final n = await downloadImages(ref, [_current]);
+    final n = await downloadImages(ref, [currentPage(_current)]);
     if (!mounted) return;
     showSnack(
       context,
@@ -77,7 +79,16 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
       pitId: widget.pitId,
       imageId: _current.id,
     );
-    if (deleted == true && mounted) _removeCurrent();
+    if (!mounted) return;
+    if (deleted == true) {
+      _removeCurrent();
+      return;
+    }
+    final i = _index;
+    final fresh = await reloadAlbumSetFirst(ref, AlbumCell.fan, _items[i]);
+    if (mounted && i < _items.length && _items[i].id == fresh.id) {
+      replaceEntry(_items, i, fresh);
+    }
   }
 
   Future<void> _delete() async {
@@ -150,6 +161,8 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
         tag.id: tag.name,
     };
     final date = cur.createdAt;
+    // 多圖（D-136）：tag 下面多一條縮圖條。
+    final pages = albumSetPages(ref, cur);
     final title = pitName == null
         ? context.l10n.pitsFanArt
         : context.l10n.albumTitleWithPit(pitName, context.l10n.pitsFanArt);
@@ -169,56 +182,62 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
           : RefEntryChip(onTap: () => _openReference(title)),
       counter: '${_index + 1} / ${_items.length}',
       controller: _controller,
-      media: [for (final i in _items) i.media],
+      media: pageMedia(_items, _index),
       currentIndex: _index,
       onPageChanged: (i) => setState(() => _index = i),
       info: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 14),
+        padding: EdgeInsets.fromLTRB(24, 8, pages.length > 1 ? 0 : 24, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             if (author.isNotEmpty || group.isNotEmpty)
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      author,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: PreviewPalette.text,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  if (group.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: PreviewPalette.pillFan,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
+              Padding(
+                padding: EdgeInsets.only(right: pages.length > 1 ? 24 : 0),
+                child: Row(
+                  children: [
+                    Expanded(
                       child: Text(
-                        group,
+                        author,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: PreviewPalette.bg,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
+                          color: PreviewPalette.text,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
+                    if (group.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: PreviewPalette.pillFan,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          group,
+                          style: const TextStyle(
+                            color: PreviewPalette.bg,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             if (tagIds.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 10),
+                padding: EdgeInsets.only(
+                  top: 10,
+                  right: pages.length > 1 ? 24 : 0,
+                ),
                 child: Wrap(
                   spacing: 6,
                   runSpacing: 6,
@@ -248,6 +267,15 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
                   ],
                 ),
               ),
+            if (pages.length > 1)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: AlbumSetStrip(
+                  pages: pages,
+                  selected: subIndexOf(cur, pages.length),
+                  onSelected: (i) => selectSub(cur, i),
+                ),
+              ),
             if (date != null)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
@@ -266,7 +294,7 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
         PreviewAction(
           AppIcons.share,
           context.l10n.commonShare,
-          () => shareImage(ref, _current),
+          () => shareImage(ref, currentPage(_current)),
         ),
         PreviewAction(
           AppIcons.download,

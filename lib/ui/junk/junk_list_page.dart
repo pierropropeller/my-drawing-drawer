@@ -46,6 +46,7 @@ class JunkListPage extends ConsumerWidget {
           mediaKind: r.kind,
           durationMs: r.durationMs,
           posterFile: r.posterFile,
+          imageKey: r.imageKey,
         ),
     ];
     return AlbumView(

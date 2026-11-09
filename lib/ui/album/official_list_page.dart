@@ -84,6 +84,7 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
           mediaKind: r.kind,
           durationMs: r.durationMs,
           posterFile: r.posterFile,
+          imageKey: r.imageKey,
         ),
     ];
     final images = imagesOf(ref, groupId);

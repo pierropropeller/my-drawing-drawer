@@ -628,6 +628,27 @@ class SyncEngine {
     return needed;
   }
 
+  /// 所有列都已永久刪除的 imageKey（多圖相簿的其他張跟著它們走，D-136）。
+  Future<Set<String>> _goneAlbumKeys(bool Function(DateTime?) gone) async {
+    final alive = <String>{};
+    final dead = <String>{};
+    void add(String key, String id, DateTime? deletedAt) {
+      final k = key.isEmpty ? id : key;
+      (gone(deletedAt) ? dead : alive).add(k);
+    }
+
+    for (final r in await db.select(db.officialImages).get()) {
+      add(r.imageKey, r.id, r.deletedAt);
+    }
+    for (final r in await db.select(db.fanArts).get()) {
+      add(r.imageKey, r.id, r.deletedAt);
+    }
+    for (final r in await db.select(db.junkImages).get()) {
+      add(r.imageKey, r.id, r.deletedAt);
+    }
+    return dead.difference(alive);
+  }
+
   /// 最近刪除永久刪除（含過期）的項目：把它們的原圖、縮圖從雲端和本機刪掉（D-120）。
   /// 只刪「已永久刪除的列引用、而且沒有任何還在（含最近刪除裡）的列引用」的檔案，
   /// 同一個檔案還被別處用到就留著。
@@ -674,7 +695,8 @@ class SyncEngine {
       OwnerType.oshi: {
         for (final r in await db.select(db.oshiRecords).get())
           if (gone(r.deletedAt)) r.id,
-      },
+      }, // 多圖的其他張（D-136）：同一個 imageKey 的官方／同人圖／雜物列全部永久刪除，才算沒人用。
+      OwnerType.album: await _goneAlbumKeys(gone),
     };
     for (final r in await db.select(db.entityImages).get()) {
       final ownerGone = goneOwners[r.ownerType]!.contains(r.ownerId);

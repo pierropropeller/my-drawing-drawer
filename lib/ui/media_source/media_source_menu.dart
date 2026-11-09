@@ -733,12 +733,7 @@ class MediaSourceMenu extends StatelessWidget {
           ],
         ),
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ...rows,
-            ],
-          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [...rows]),
         ),
       ),
     );

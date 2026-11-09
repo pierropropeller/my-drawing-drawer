@@ -14,6 +14,7 @@ import '../data/profile_queries.dart';
 /// - 推活文件：tagIds、images
 /// - 素材庫（v8 起）：只有圖檔與分類，沒有附屬資料
 /// - 官方圖（v7 起）／同人圖／目標文件：tagIds
+/// - 官方圖／同人圖／雜物（D-136 起）：extras（多圖的第 2 張起，依 imageKey；見 album_set_queries.dart）
 abstract class SyncKind {
   const SyncKind();
   String get name;
@@ -87,6 +88,30 @@ Set<String> _mediaFiles(Map<String, dynamic> data) => {
   if ((data['posterFile'] as String?)?.isNotEmpty ?? false)
     data['posterFile'] as String,
 };
+
+/// 官方圖／同人圖／雜物文件：本身的圖＋多圖的其他張（D-136）。
+Set<String> _albumFiles(Map<String, dynamic> data) => {
+  ..._mediaFiles(data),
+  ..._entityImageFiles({'images': data['extras']}),
+};
+
+/// 多圖的其他張（D-136）：按 imageKey 存，同一張圖在各格的列共用。
+Future<List<Map<String, dynamic>>> _albumExtrasOf(
+  AppDatabase db,
+  String imageKey,
+) => _imagesOf(db, OwnerType.album, imageKey);
+
+/// 套用文件裡的 extras：只有「看得見」的那一列說了算（被移走而隱藏的分身、舊版 App 寫的文件沒有 extras 都不動）。
+/// 已刪除（在最近刪除）的列照樣套用，還原時整組回來。
+Future<void> _applyAlbumExtras(
+  AppDatabase db,
+  Map<String, dynamic> data,
+  String imageKey,
+) async {
+  final raw = data['extras'];
+  if (raw is! List || data['hidden'] == true) return;
+  await db.replaceEntityImages(OwnerType.album, imageKey, _newImages(raw));
+}
 
 const _albumImageDefaults = <String, Object?>{'hidden': false};
 
@@ -250,12 +275,14 @@ class OfficialKind extends SyncKind {
       db.officialImages,
     )..where((t) => t.id.equals(id))).getSingle()).toJson(),
     'tagIds': await _tagIdsOf(db, TagTarget.official, id),
+    'extras': await _albumExtrasOf(db, await _officialKey(db, id)),
   };
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
     final row = OfficialImage.fromJson(_albumImageJson(data));
     await db.transaction(() async {
       await db.into(db.officialImages).upsertFull(row);
+      await _applyAlbumExtras(db, data, row.imageKey);
       // 舊版（v6 以前）寫出的官方圖文件沒有 tagIds：不動本機已有的 tag。
       final raw = data['tagIds'];
       if (raw is List) {
@@ -267,7 +294,7 @@ class OfficialKind extends SyncKind {
   }
 
   @override
-  Set<String> imageFiles(Map<String, dynamic> data) => _mediaFiles(data);
+  Set<String> imageFiles(Map<String, dynamic> data) => _albumFiles(data);
 }
 
 class FanArtKind extends SyncKind {
@@ -285,18 +312,25 @@ class FanArtKind extends SyncKind {
       db.fanArts,
     )..where((t) => t.id.equals(id))).getSingle()).toJson(),
     'tagIds': await _tagIdsOf(db, TagTarget.fanArt, id),
+    'extras': await _albumExtrasOf(
+      db,
+      (await (db.select(
+        db.fanArts,
+      )..where((t) => t.id.equals(id))).getSingle()).imageKey,
+    ),
   };
   @override
   Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
     final row = FanArt.fromJson(_albumImageJson(data));
     await db.into(db.fanArts).upsertFull(row);
+    await _applyAlbumExtras(db, data, row.imageKey);
     await db.setTags(TagTarget.fanArt, row.id, [
       for (final t in data['tagIds'] as List<dynamic>) t as String,
     ]);
   }
 
   @override
-  Set<String> imageFiles(Map<String, dynamic> data) => _mediaFiles(data);
+  Set<String> imageFiles(Map<String, dynamic> data) => _albumFiles(data);
 }
 
 /// 雜物（D-034）。
@@ -310,16 +344,22 @@ class JunkKind extends SyncKind {
       r.id: r.updatedAt.millisecondsSinceEpoch,
   };
   @override
-  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>
-      (await (db.select(
-        db.junkImages,
-      )..where((t) => t.id.equals(id))).getSingle()).toJson();
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async {
+    final row = await (db.select(
+      db.junkImages,
+    )..where((t) => t.id.equals(id))).getSingle();
+    return {...row.toJson(), 'extras': await _albumExtrasOf(db, row.imageKey)};
+  }
+
   @override
-  Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
-      .into(db.junkImages)
-      .upsertFull(JunkImage.fromJson(_albumImageJson(data)));
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
+    final row = JunkImage.fromJson(_albumImageJson(data));
+    await db.into(db.junkImages).upsertFull(row);
+    await _applyAlbumExtras(db, data, row.imageKey);
+  }
+
   @override
-  Set<String> imageFiles(Map<String, dynamic> data) => _mediaFiles(data);
+  Set<String> imageFiles(Map<String, dynamic> data) => _albumFiles(data);
 }
 
 /// 素材庫（D-071）：一張圖一份文件；沒有 tag、沒有關聯。
@@ -705,3 +745,8 @@ const allSyncKinds = <SyncKind>[
   ReviewSettingsKind(),
   ProfileKind(),
 ];
+
+Future<String> _officialKey(AppDatabase db, String id) async =>
+    (await (db.select(
+      db.officialImages,
+    )..where((t) => t.id.equals(id))).getSingle()).imageKey;
