@@ -368,6 +368,8 @@ class MaterialKind extends SyncKind {
   Set<String> imageFiles(Map<String, dynamic> data) => _mediaFiles(data);
 }
 
+final _seedCutoff = DateTime.utc(2000, 1, 3);
+
 /// 靈感廣場的自訂分類（D-143）。
 class InspoCategoryKind extends SyncKind {
   const InspoCategoryKind();
@@ -375,8 +377,10 @@ class InspoCategoryKind extends SyncKind {
   String get name => 'inspocat';
   @override
   Future<Map<String, int>> versions(AppDatabase db) async => {
+    // 沒動過的預設分類（seed 時間）每台都有一樣的，不用上傳。
     for (final r in await db.select(db.materialCategories).get())
-      r.id: r.updatedAt.millisecondsSinceEpoch,
+      if (r.updatedAt.isAfter(_seedCutoff))
+        r.id: r.updatedAt.millisecondsSinceEpoch,
   };
   @override
   Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>

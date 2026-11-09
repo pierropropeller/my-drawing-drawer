@@ -100,14 +100,8 @@ void main() {
 
   test('預設分組：參考圖沒有「自定義」，有「圖透」「官方周邊」；同人圖有各出處', () async {
     final official = await db.watchGroups(pitId).first;
-    expect(official.map((g) => g.name), [
-      '設定圖',
-      '海報宣傳',
-      '素材',
-      '自用截圖',
-      '圖透',
-      '官方周邊',
-    ]);
+    expect(official.map((g) => g.name), AppDatabase.defaultGroups);
+    expect(official.map((g) => g.name), containsAll(['圖透', '官方周邊']));
     expect(official.any((g) => g.name == '自定義'), isFalse);
     final fan = await db.watchGroups(pitId, kind: 'fan').first;
     expect(fan.map((g) => g.name), ['推特', '小紅書', 'lofter', '朋友發的', '網上搜的']);
@@ -120,13 +114,16 @@ void main() {
     final art = (await db.watchFanArts(pitId).first).single;
     expect(art.groupId, fan[1].id);
     final official = await db.watchGroups(pitId).first;
-    expect(official.length, 6);
+    expect(official.length, AppDatabase.defaultGroups.length);
   });
 
   test('同人圖分組可以自己新增，不影響官方分組', () async {
     await db.addGroup(pitId, '自己的分組', kind: 'fan');
     expect((await db.watchGroups(pitId, kind: 'fan').first).last.name, '自己的分組');
-    expect((await db.watchGroups(pitId).first).length, 6);
+    expect(
+      (await db.watchGroups(pitId).first).length,
+      AppDatabase.defaultGroups.length,
+    );
   });
 
   test('「設為封面」設的是這一格的封面，不是主頁坑的封面', () async {

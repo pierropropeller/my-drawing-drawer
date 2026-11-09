@@ -481,7 +481,7 @@ void main() {
       expect(r['v.mp4']!.posterFile, 'v_poster.jpg');
       expect(r['v_poster.jpg']!.kind, SyncRowKind.draft);
       expect(r['m.png']!.kind, SyncRowKind.material);
-      expect(r['m.png']!.materialCategory, MaterialCategory.pose);
+      expect(r['m.png']!.materialCategory, '姿勢');
       expect(r['m.png']!.pitName, isNull);
       expect(await db.syncRowInfos(const []), isEmpty);
     });

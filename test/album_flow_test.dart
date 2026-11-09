@@ -82,7 +82,7 @@ void main() {
     );
     expect(find.text('還沒有參考圖'), findsNothing);
     // 有圖後出現分組 chips 與「管理分組」。
-    expect(find.text('設定圖'), findsWidgets);
+    expect(find.text('海報宣傳'), findsWidgets);
     expect(find.byTooltip('管理分組'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());

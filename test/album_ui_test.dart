@@ -680,7 +680,7 @@ void main() {
     await pumpPage(tester, GroupManagePage(pitId: pitId));
     expect(navBarHiddenCount.value, 1);
     expect(find.text('自定義'), findsNothing);
-    expect(find.text('設定圖'), findsOneWidget);
+    expect(find.text('海報宣傳'), findsOneWidget);
     await unmount(tester);
     expect(navBarHiddenCount.value, 0);
   });

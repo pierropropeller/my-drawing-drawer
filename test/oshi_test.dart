@@ -44,7 +44,10 @@ void main() {
   test('新坑有三個預設推活分組，且不影響參考圖／同人圖分組', () async {
     expect(groups.map((g) => g.name), ['線下照片', '遊戲截圖', '對話記錄']);
     expect(groups.map((g) => g.sortOrder), [0, 1, 2]);
-    expect((await db.watchGroups(pitId).first).length, 6);
+    expect(
+      (await db.watchGroups(pitId).first).length,
+      AppDatabase.defaultGroups.length,
+    );
     expect((await db.watchGroups(pitId, kind: 'fan').first).length, 5);
   });
 
@@ -240,7 +243,10 @@ void main() {
     }
     expect(await db.watchGroups(pitId, kind: 'oshi').first, isEmpty);
     // 參考圖／同人圖分組不受影響
-    expect((await db.watchGroups(pitId).first).length, 6);
+    expect(
+      (await db.watchGroups(pitId).first).length,
+      AppDatabase.defaultGroups.length,
+    );
     // 沒有被刪過分組的紀錄之外，刪光後 ensureOshiGroups 不會把預設補回來
     await db.ensureOshiGroups(pitId);
     expect(await db.watchGroups(pitId, kind: 'oshi').first, isEmpty);

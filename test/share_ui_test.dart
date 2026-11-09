@@ -155,9 +155,9 @@ void main() {
     expect(inSheet(find.text('成圖')), findsOneWidget);
     // 參考圖選中時展開分組。
     expect(inSheet(find.text('分組')), findsOneWidget);
-    expect(inSheet(find.text('設定圖')), findsOneWidget);
+    expect(inSheet(find.text('海報宣傳')), findsOneWidget);
 
-    await tapIn(tester, '素材');
+    await tapIn(tester, '建模');
     await tapIn(tester, '加入');
     await settleLong(tester);
 
@@ -169,7 +169,7 @@ void main() {
       () => db.select(db.officialGroups).get(),
     ))!;
     final material = groups.firstWhere(
-      (g) => g.name == '素材' && g.pitId == pitA,
+      (g) => g.name == '建模' && g.pitId == pitA,
     );
     expect(
       rows.every((r) => r.pitId == pitA && r.groupId == material.id),

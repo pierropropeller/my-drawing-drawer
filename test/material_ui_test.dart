@@ -18,7 +18,8 @@ import 'package:huakeng/state/settings.dart';
 import 'package:huakeng/theme/app_theme.dart';
 import 'package:huakeng/ui/album/album_image.dart' show StoredImage;
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
-import 'package:huakeng/ui/entity/image_gallery_page.dart';
+import 'package:huakeng/ui/entity/entity_widgets.dart' show EntityFab;
+import 'package:huakeng/ui/material/inspo_preview_page.dart';
 import 'package:huakeng/ui/material/material_library_page.dart';
 import 'package:huakeng/ui/share/share_sheet.dart';
 import 'package:image_picker/image_picker.dart';
@@ -133,7 +134,7 @@ void main() {
     expect(find.text('還沒有靈感圖'), findsOneWidget);
     expect(find.text('加圖'), findsOneWidget);
     expect(find.text('服裝'), findsNothing);
-    expect(find.bySemanticsLabel('加圖'), findsNothing);
+    expect(find.byType(EntityFab), findsNothing);
     await unmount(tester);
   });
 
@@ -201,12 +202,12 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('點圖開預覽（ImageGalleryPage）', (tester) async {
+  testWidgets('點圖開預覽（InspoPreviewPage）', (tester) async {
     await tester.runAsync(() => seed(MaterialCategory.pose, 3));
     await showPage(tester, const MaterialLibraryPage());
     await tester.tap(tiles().first);
     await settle(tester);
-    expect(find.byType(ImageGalleryPage), findsOneWidget);
+    expect(find.byType(InspoPreviewPage), findsOneWidget);
     await unmount(tester);
   });
 
@@ -220,7 +221,7 @@ void main() {
     expect(find.text('已選 1 張'), findsOneWidget);
     expect(navBarHiddenCount.value, 1);
     // 底部四個動作。
-    for (final a in ['分享', '下載', '移動', '刪除']) {
+    for (final a in ['放進坑', '分享', '下載', '移動', '刪除']) {
       expect(find.text(a), findsOneWidget);
     }
     // 沒有右下加號。
@@ -260,17 +261,20 @@ void main() {
     expect(find.text('移動到'), findsOneWidget);
     expect(find.text('3 張'), findsWidgets);
     for (final c in MaterialCategory.values) {
-      expect(find.byKey(ValueKey('materialCat-${c.name}')), findsOneWidget);
+      expect(
+        find.byKey(ValueKey('materialCat-mcat-${c.name}')),
+        findsOneWidget,
+      );
     }
     // 服裝 2 張、姿勢 3 張。
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey('materialCat-clothing')),
+        of: find.byKey(const ValueKey('materialCat-mcat-clothing')),
         matching: find.text('2 張'),
       ),
       findsOneWidget,
     );
-    await tester.tap(find.byKey(const ValueKey('materialCat-scene')));
+    await tester.tap(find.byKey(const ValueKey('materialCat-mcat-scene')));
     await settle(tester);
     // 按鈕「移動」（sheet 內）。
     await tester.tap(
@@ -359,7 +363,7 @@ void main() {
 
     await tester.tap(find.bySemanticsLabel('加圖'));
     await settle(tester);
-    await tester.tap(find.byKey(const ValueKey('materialCat-sticker')));
+    await tester.tap(find.byKey(const ValueKey('materialCat-mcat-sticker')));
     await settle(tester);
     await tester.tap(
       find.descendant(of: find.byType(BottomSheet), matching: find.text('加入')),

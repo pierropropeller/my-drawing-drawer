@@ -314,7 +314,10 @@ void main() {
       (await db.watchGroups(pitId, kind: 'oshi').first).map((g) => g.name),
       ['線下照片', '遊戲截圖', '對話記錄'],
     );
-    expect((await db.watchGroups(pitId).first).length, AppDatabase.defaultGroups.length);
+    expect(
+      (await db.watchGroups(pitId).first).length,
+      AppDatabase.defaultGroups.length,
+    );
     expect(await db.watchOshiRecords(pitId).first, isEmpty);
     await db.close();
     await dir.delete(recursive: true);
@@ -738,20 +741,28 @@ void main() {
     expect((await db.select(db.officialImages).getSingle()).note, isNull);
     expect((await db.select(db.fanArts).getSingle()).note, isNull);
     final m = await db.select(db.materialImages).getSingle();
-    expect((m.category, m.categoryId, m.note), (MaterialCategory.pose, null, null));
+    expect(
+      (m.category, m.categoryId, m.note),
+      (MaterialCategory.pose, null, null),
+    );
     expect(m.categoryKey, materialCategoryIdOf(MaterialCategory.pose));
     final cats = await db.loadInspoCategories();
     expect(cats.map((c) => c.name), AppDatabase.defaultMaterialCategoryNames);
     expect(
-      (await db.watchMaterials(
-        category: materialCategoryIdOf(MaterialCategory.pose),
-      ).first).single.id,
+      (await db
+              .watchMaterials(
+                category: materialCategoryIdOf(MaterialCategory.pose),
+              )
+              .first)
+          .single
+          .id,
       m.id,
     );
     await db.placeMaterials([m.id], pitId, g);
     expect(
-      (await db.select(db.officialImages).get())
-          .where((o) => o.materialId == m.id),
+      (await db.select(db.officialImages).get()).where(
+        (o) => o.materialId == m.id,
+      ),
       hasLength(1),
     );
     // 再跑一次 v17 遷移不出錯、不重複補分類。

@@ -25,10 +25,9 @@ void main() {
   Future<String> firstGroup(String pitId) async =>
       (await db.watchGroups(pitId).first).first.id;
 
-  Future<List<OfficialImage>> liveOfficial(String pitId) =>
-      (db.select(db.officialImages)
-            ..where((o) => o.pitId.equals(pitId) & o.deletedAt.isNull()))
-          .get();
+  Future<List<OfficialImage>> liveOfficial(String pitId) => (db.select(
+    db.officialImages,
+  )..where((o) => o.pitId.equals(pitId) & o.deletedAt.isNull())).get();
 
   test('新坑的參考圖預設分組是新的 11 個', () async {
     final pit = await db.createPit(name: '坑A');
@@ -40,7 +39,9 @@ void main() {
 
   test('預設 7 個廣場分類；可新增、改名、排序；刪除時圖移到第一個、至少留一個', () async {
     final cats = await db.loadInspoCategories();
-    expect([for (final c in cats) c.name], AppDatabase.defaultMaterialCategoryNames);
+    expect([
+      for (final c in cats) c.name,
+    ], AppDatabase.defaultMaterialCategoryNames);
     expect(cats.first.id, materialCategoryIdOf(MaterialCategory.clothing));
 
     final id = await db.addInspoCategory('手部');
@@ -146,10 +147,10 @@ void main() {
 
     expect(await liveOfficial(a), isEmpty);
     final mats = await db.watchMaterials().first;
-    expect({for (final m in mats) m.imageFile: m.note}, {
-      'o.png': '看背面',
-      'f.png': '線條',
-    });
+    expect(
+      {for (final m in mats) m.imageFile: m.note},
+      {'o.png': '看背面', 'f.png': '線條'},
+    );
     expect((await db.watchTrash().first).items, isEmpty);
   });
 
