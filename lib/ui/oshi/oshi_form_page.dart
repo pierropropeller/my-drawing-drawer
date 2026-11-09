@@ -419,7 +419,6 @@ class _DateField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final dark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -428,7 +427,7 @@ class _DateField extends StatelessWidget {
         decoration: BoxDecoration(
           color: t.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: dark ? t.border : const Color(0xFFE3D8C9)),
+          border: Border.all(color: t.field),
         ),
         child: Row(
           children: [

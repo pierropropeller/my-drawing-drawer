@@ -516,9 +516,7 @@ class FormLabel extends StatelessWidget {
 /// 表單輸入框外觀（設計稿 `.fld`：白底、1px 邊框、圓角 12、內距 12×14、15px）。
 InputDecoration entityFieldDecoration(BuildContext context, String hint) {
   final t = context.tokens;
-  final line = Theme.of(context).brightness == Brightness.dark
-      ? t.border
-      : const Color(0xFFE3D8C9);
+  final line = t.field;
   OutlineInputBorder b(Color c) => OutlineInputBorder(
     borderRadius: BorderRadius.circular(12),
     borderSide: BorderSide(color: c),

@@ -435,7 +435,10 @@ void main() {
       await open(tester, split, dark: false);
       await shot(tester, 'media_sheet_light');
       final sheet = find.byKey(const Key('media-source-sheet'));
-      expect(backgrounds(sheet).first, AppTokens.light.ground);
+      expect(
+        backgrounds(sheet).first,
+        AppTokens.light.withAccent(AccentPreset.rose, Brightness.light).ground,
+      );
       await unmount(tester);
     });
 

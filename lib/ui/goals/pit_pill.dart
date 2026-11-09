@@ -5,11 +5,8 @@ import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 
-/// 設計稿 #E3D8C9（輸入框／pill 邊線；沒有 token，深色用 border）。
-Color mockLine(BuildContext context) =>
-    Theme.of(context).brightness == Brightness.dark
-    ? context.tokens.border
-    : const Color(0xFFE3D8C9);
+/// 輸入框／pill 邊線（field token，會跟主題色微調）。
+Color mockLine(BuildContext context) => context.tokens.field;
 
 /// 坑的小 pill（D-004）：白底、1px 邊、導覽列同款資料夾 icon ＋ 坑名。
 /// 目標卡（GoalYear／Month）用小尺寸；新增目標的「目標坑」用大尺寸並可移除。

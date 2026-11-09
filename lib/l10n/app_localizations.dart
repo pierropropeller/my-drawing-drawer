@@ -667,13 +667,13 @@ abstract class AppLocalizations {
   /// No description provided for @themeAccentCoral.
   ///
   /// In zh, this message translates to:
-  /// **'珊瑚'**
+  /// **'柿子'**
   String get themeAccentCoral;
 
   /// No description provided for @themeAccentSlate.
   ///
   /// In zh, this message translates to:
-  /// **'霧藍'**
+  /// **'牛奶'**
   String get themeAccentSlate;
 
   /// No description provided for @themeAccentRose.

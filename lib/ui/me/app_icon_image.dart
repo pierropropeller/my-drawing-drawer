@@ -22,8 +22,7 @@ class AppIconImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final ring = dark ? t.border : const Color(0xFFEAE1D5);
+    final ring = t.border;
     return Container(
       width: size,
       height: size,

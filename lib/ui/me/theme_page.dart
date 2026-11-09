@@ -257,9 +257,7 @@ class ThemePage extends ConsumerWidget {
                             child: Container(
                               height: 8,
                               decoration: BoxDecoration(
-                                color: dark
-                                    ? t.border
-                                    : const Color(0xFFE3D8C9),
+                                color: t.field,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),

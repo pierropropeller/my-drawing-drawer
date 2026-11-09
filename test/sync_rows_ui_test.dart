@@ -262,7 +262,10 @@ void main() {
       'mat.png': ('material', (t) => CategoryColor(t.chipBg, t.text3)),
     };
     final files = cases.keys.toList();
-    final tokens = AppTokens.light;
+    final tokens = AppTokens.light.withAccent(
+      AccentPreset.rose,
+      Brightness.light,
+    ); // 預設玫瑰，中性色帶玫瑰色調（D-133）
     for (var i = 0; i < files.length; i += 4) {
       final batch = files.skip(i).take(4).toList();
       fake(c).set(_syncing([for (final f in batch) _t(f)]));

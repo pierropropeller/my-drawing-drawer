@@ -6,11 +6,8 @@ import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import '../common/adaptive_modal.dart' show disabledButtonBg, disabledButtonFg;
 
-/// 設計稿輸入框外框色 #E3D8C9（深色沿用 border token）。
-Color fieldBorderColor(BuildContext context) =>
-    Theme.of(context).brightness == Brightness.dark
-    ? context.tokens.border
-    : const Color(0xFFE3D8C9);
+/// 輸入框外框色（field token）。
+Color fieldBorderColor(BuildContext context) => context.tokens.field;
 
 /// 設計稿 `.fld`：白底、1px 邊、圓角 12、內距 12×14、字 15。
 InputDecoration pitInputDecoration(BuildContext context, {String? label}) {

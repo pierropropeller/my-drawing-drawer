@@ -177,12 +177,12 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('主題色順序：玫瑰、霧藍、珊瑚、抹茶（沒有橄欖）', (tester) async {
+    testWidgets('主題色順序：玫瑰、牛奶、柿子、抹茶（沒有橄欖）', (tester) async {
       await show(tester, const ProfilePage());
       await tester.tap(find.text('主題色'));
       await settle(tester);
       final xs = [
-        for (final n in ['玫瑰', '霧藍', '珊瑚', '抹茶'])
+        for (final n in ['玫瑰', '牛奶', '柿子', '抹茶'])
           tester.getTopLeft(find.text(n)).dx,
       ];
       expect(xs, orderedEquals([...xs]..sort()));

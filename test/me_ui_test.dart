@@ -132,8 +132,8 @@ void main() {
         0xFF9AAB79, 0xFFADBD8C, 0xFF2D3324,
       ],
     };
-    // D-067：次序為 玫瑰、霧藍、珊瑚、抹茶，預設玫瑰。
-    expect(AccentPreset.values.map((p) => p.label), ['玫瑰', '霧藍', '珊瑚', '抹茶']);
+    // D-067：次序為 玫瑰、牛奶、柿子、抹茶，預設玫瑰。
+    expect(AccentPreset.values.map((p) => p.label), ['玫瑰', '牛奶', '柿子', '抹茶']);
     expect(AccentPreset.fromKey(null), AccentPreset.rose);
     expect(const AppSettings().accent, AccentPreset.rose);
     for (final e in expected.entries) {
@@ -145,10 +145,15 @@ void main() {
         expect(t.accent, Color(e.value[off]), reason: '${e.key} $b accent');
         expect(t.accentStrong, Color(e.value[off + 1]), reason: 'strong');
         expect(t.accentSoft, Color(e.value[off + 2]), reason: 'soft');
-        // 分類色、文字色、底色、danger 不隨主題改變。
+        // 分類色、danger 不隨主題改變；底色只有柿子維持原值，其他主題帶一點色調（D-133）。
         expect(t.piece.fg, base.piece.fg);
-        expect(t.ground, base.ground);
         expect(t.danger, base.danger);
+        if (e.key == AccentPreset.coral) {
+          expect(t.ground, base.ground);
+        } else {
+          expect(t.ground, isNot(base.ground));
+          expect(t.ground, e.key.neutrals(b)!.ground);
+        }
       }
     }
   });

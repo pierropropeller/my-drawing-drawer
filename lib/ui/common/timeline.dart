@@ -333,7 +333,7 @@ class TimelineRowTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final lineColor = dark ? t.border : const Color(0xFFE3D8C9);
+    final lineColor = t.field;
     final dotColor = dark ? t.dashed : const Color(0xFFD8CFC3);
     final d = entry.date;
     return IntrinsicHeight(

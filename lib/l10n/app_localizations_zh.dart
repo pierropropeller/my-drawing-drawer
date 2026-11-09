@@ -333,10 +333,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeModeSystem => '跟隨系統';
 
   @override
-  String get themeAccentCoral => '珊瑚';
+  String get themeAccentCoral => '柿子';
 
   @override
-  String get themeAccentSlate => '霧藍';
+  String get themeAccentSlate => '牛奶';
 
   @override
   String get themeAccentRose => '玫瑰';

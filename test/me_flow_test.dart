@@ -120,7 +120,7 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('主題色'));
     await settle(tester);
-    await tester.tap(find.text('霧藍'));
+    await tester.tap(find.text('牛奶'));
     await settle(tester);
     expect(c.read(settingsProvider).accent, AccentPreset.slate);
     expect(
