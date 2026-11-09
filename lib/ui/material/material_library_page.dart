@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../data/database.dart';
-import '../../data/entity_queries.dart' show ImageRef;
 import '../../data/material_queries.dart';
 import '../../data/sensitive_queries.dart';
 import '../../state/sensitive.dart';
@@ -28,11 +27,15 @@ import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import '../common/window_class.dart';
 import '../entity/entity_widgets.dart' show EntityFab;
-import '../entity/image_gallery_page.dart';
-import 'material_category.dart';
+import 'inspo_category_manage_page.dart';
+import 'inspo_pit_sheet.dart';
+import 'inspo_preview_page.dart';
 import 'material_category_sheet.dart';
 import 'material_icons.dart';
 import '../common/top_toast.dart' show BottomInsetAnchor;
+import '../picker/inspo_picker_source.dart';
+
+import 'package:image_picker/image_picker.dart' show XFile;
 
 /// 素材庫的兩種版面，記在本機設定（跟裝置走）。
 enum MaterialLayout { waterfall, grid }
@@ -50,7 +53,9 @@ class MaterialLibraryPage extends ConsumerStatefulWidget {
     this.initialCategory,
     this.embedded = false,
   });
-  final MaterialCategory? initialCategory;
+
+  /// 分類 id。
+  final String? initialCategory;
 
   /// 在 iPad「我的」右側內容面板裡顯示（Profile 稿）：沒有返回鍵，標題旁顯示張數，欄數依面板闊度。
   final bool embedded;
@@ -66,12 +71,20 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
   @override
   bool get hidesNavBarOnOpen => false;
 
-  late MaterialCategory? _category = widget.initialCategory;
-  static final _order = <MaterialCategory?>[null, ...MaterialCategory.values];
+  late String? _category = widget.initialCategory;
+
+  /// 「全部」＋自訂分類（D-143）。
+  List<String?> _orderOf(List<InspoCategory> cats) => [
+    null,
+    for (final c in cats) c.id,
+  ];
 
   /// 左右滑的小數頁碼，分類 pills 的深色底跟著它滑（D-118）。
   late final _progress = ValueNotifier<double>(
-    _order.indexOf(_category).toDouble(),
+    _orderOf(ref.read(inspoCategoriesProvider).value ?? const [])
+        .indexOf(_category)
+        .clamp(0, 999)
+        .toDouble(),
   );
 
   @override
@@ -150,23 +163,10 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
       _toggle(rows[i].id);
       return;
     }
-    // 預覽沿用 ImageGalleryPage（自己會隱藏導覽列），走「我的」分頁的 Navigator。
+    // 預覽（InspoPreview，自己會隱藏導覽列），走「我的」分頁的 Navigator。
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ImageGalleryPage(
-          images: [
-            for (final r in rows)
-              ImageRef(
-                r.imageFile,
-                r.width,
-                r.height,
-                kind: r.kind,
-                durationMs: r.durationMs,
-                poster: r.posterFile,
-              ),
-          ],
-          initialIndex: i,
-        ),
+        builder: (_) => InspoPreviewPage(images: rows, initialIndex: i),
       ),
     );
   }
@@ -174,7 +174,14 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
   /// 加圖：開相簿選圖；在分類下預設歸該分類，在「全部」下先選分類。
   Future<void> _add() async {
     // 素材庫自己的加圖：直接開相簿，不彈「從素材庫選取」的來源選單。
-    final picked = await ref.read(photoPickerProvider)(context);
+    // 靈感廣場自己的加圖：選圖 sheet 不列「靈感廣場」那段。
+    InspoPickerSource.suppressed = true;
+    final List<XFile> picked;
+    try {
+      picked = await ref.read(photoPickerProvider)(context);
+    } finally {
+      InspoPickerSource.suppressed = false;
+    }
     if (picked.isEmpty || !mounted) return;
     var category = _category;
     if (category == null) {
@@ -213,7 +220,7 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
   Future<void> _move(List<MaterialImage> picked) async {
     if (picked.isEmpty) return;
     // 所選圖都在同一個分類時預選它。
-    final cats = {for (final p in picked) p.category};
+    final cats = {for (final p in picked) p.categoryKey};
     final target = await showMaterialCategorySheet(
       context,
       title: context.l10n.albumMoveTo,
@@ -228,10 +235,24 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
     if (!mounted) return;
     showSnack(
       context,
-      context.l10n.albumMovedCount(picked.length, target.label(context.l10n)),
+      context.l10n.albumMovedCount(
+        picked.length,
+        (ref.read(inspoCategoriesProvider).value ?? const [])
+                .where((c) => c.id == target)
+                .firstOrNull
+                ?.name ??
+            '',
+      ),
       success: true,
     );
     _exit();
+  }
+
+  /// 放進坑（InspoPitSheet，D-142）。
+  Future<void> _place(List<MaterialImage> picked) async {
+    if (picked.isEmpty) return;
+    final ok = await placeInPit(context, ref, [for (final p in picked) p.id]);
+    if (ok && mounted) _exit();
   }
 
   /// 「敏感」動作（D-104）：素材庫不屬於任何坑，只看總開關。
@@ -265,7 +286,25 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
     final t = context.tokens;
     final l = context.l10n;
     setNavBarHidden(_selecting);
+    final cats = ref.watch(inspoCategoriesProvider).value ?? const [];
+    // 停在的分類被刪了（別台裝置）就回「全部」。
+    if (_category != null &&
+        cats.isNotEmpty &&
+        !cats.any((c) => c.id == _category)) {
+      _category = null;
+    }
+    final order = _orderOf(cats);
     final rows = ref.watch(materialsProvider(_category)).value ?? const [];
+    final notes = {
+      for (final r in rows)
+        if ((r.note ?? '').isNotEmpty) r.id: r.note!,
+    };
+    final placed = ref.watch(placedPitsProvider).value ?? const {};
+    String? pitsLine(String id) {
+      final names = [for (final p in placed[id] ?? const []) p.name];
+      return names.isEmpty ? null : names.join(l.inspoPitsSeparator);
+    }
+
     final total = ref.watch(materialCountsProvider).value?.total ?? 0;
     final fullyEmpty = total == 0 && rows.isEmpty;
     final picked = _picked(rows);
@@ -399,6 +438,16 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
                       children: [
                         Expanded(
                           child: _BarAction(
+                            l.inspoPlaceInPit,
+                            MaterialLibIcons.placeInPit,
+                            t.ink,
+                            iconSize: 22,
+                            strokeWidth: 1.7,
+                            onTap: () => _place(picked),
+                          ),
+                        ),
+                        Expanded(
+                          child: _BarAction(
                             l.commonShare,
                             AppIcons.share,
                             t.ink,
@@ -486,6 +535,8 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
                     )
                   : _Masonry(
                       rows: rows,
+                      notes: notes,
+                      pitsLine: pitsLine,
                       columns: columns,
                       selecting: _selecting,
                       selected: _selected,
@@ -495,25 +546,52 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
               return Column(
                 children: [
                   if (!fullyEmpty)
-                    ChipRow(
-                      options: [
-                        for (final c in MaterialCategory.values)
-                          (c.name, c.label(l)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChipRow(
+                            options: [for (final c in cats) (c.id, c.name)],
+                            selected: _category,
+                            progress: _progress,
+                            onSelected: (id) => setState(() => _category = id),
+                            padding: const EdgeInsets.fromLTRB(20, 6, 4, 12),
+                          ),
+                        ),
+                        // 管理分類（InspoList 篩選列最右，D-143）。
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 0, 8, 6),
+                          child: Container(
+                            width: 44,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              border: Border(left: BorderSide(color: t.border)),
+                            ),
+                            child: IconButton(
+                              key: const ValueKey('inspoManageCategories'),
+                              tooltip: l.inspoManageCategories,
+                              padding: EdgeInsets.zero,
+                              icon: SvgIcon(
+                                AppIcons.sliders,
+                                size: 20,
+                                color: t.text2,
+                                strokeWidth: 1.8,
+                              ),
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) =>
+                                      const InspoCategoryManagePage(),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
-                      selected: _category?.name,
-                      progress: _progress,
-                      onSelected: (id) => setState(
-                        () => _category = id == null
-                            ? null
-                            : MaterialCategory.values.byName(id),
-                      ),
-                      padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
                     ),
                   Expanded(
                     // 左右滑動切換分類，內容跟著手指走（D-118）。
-                    child: SwipePager<MaterialCategory?>(
+                    child: SwipePager<String?>(
                       enabled: !_selecting && !fullyEmpty,
-                      order: _order,
+                      order: order,
                       current: _category,
                       progress: _progress,
                       onChanged: (c) => setState(() => _category = c),
@@ -541,6 +619,8 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
 class _Masonry extends StatelessWidget {
   const _Masonry({
     required this.rows,
+    required this.notes,
+    required this.pitsLine,
     this.columns,
     required this.selecting,
     required this.selected,
@@ -548,6 +628,12 @@ class _Masonry extends StatelessWidget {
     required this.onTap,
   });
   final List<MaterialImage> rows;
+
+  /// 有說明的圖：id → 說明（縮圖下兩行）。
+  final Map<String, String> notes;
+
+  /// 放進了哪些坑（「坑A、坑B」）；沒放進任何坑＝null。
+  final String? Function(String id) pitsLine;
 
   /// 欄數；null＝沿用手機的 [columnsForWidth]。
   final int? columns;
@@ -570,44 +656,91 @@ class _Masonry extends StatelessWidget {
         final r = rows[i];
         final isSelected = selected.contains(r.id);
         final aspect = (r.width > 0 && r.height > 0) ? r.width / r.height : 1.0;
+        final note = notes[r.id];
+        final inPits = pitsLine(r.id);
+        final image = AspectRatio(
+          aspectRatio: aspect.clamp(0.4, 2.5),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(Radii.image),
+                child: MediaThumb(
+                  MediaSource.row(
+                    file: r.imageFile,
+                    kind: r.kind,
+                    durationMs: r.durationMs,
+                    posterFile: r.posterFile,
+                    width: r.width,
+                    height: r.height,
+                  ),
+                  cacheWidth: 500,
+                  badgeInset: 7,
+                ),
+              ),
+              if (isSelected)
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(Radii.image),
+                    border: Border.all(color: t.accent, width: 2),
+                  ),
+                ),
+              if (selecting)
+                Positioned(
+                  top: 7,
+                  right: 7,
+                  child: SelectMark(selected: isSelected),
+                ),
+            ],
+          ),
+        );
+        // 縮圖下：說明（兩行）、放進了哪些坑（InspoList）。
         final tile = GestureDetector(
           key: ValueKey('material-${r.id}'),
           onTap: () => onTap(i),
-          child: AspectRatio(
-            aspectRatio: aspect.clamp(0.4, 2.5),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(Radii.image),
-                  child: MediaThumb(
-                    MediaSource.row(
-                      file: r.imageFile,
-                      kind: r.kind,
-                      durationMs: r.durationMs,
-                      posterFile: r.posterFile,
-                      width: r.width,
-                      height: r.height,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              image,
+              if (note != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    note,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.45,
+                      color: t.text2,
                     ),
-                    cacheWidth: 500,
-                    badgeInset: 7,
                   ),
                 ),
-                if (isSelected)
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(Radii.image),
-                      border: Border.all(color: t.accent, width: 2),
-                    ),
+              if (inPits != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 5),
+                  child: Row(
+                    children: [
+                      SvgIcon(
+                        AppIcons.folder,
+                        size: 12,
+                        color: t.text3,
+                        strokeWidth: 1.8,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          inPits,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 11, color: t.text3),
+                        ),
+                      ),
+                    ],
                   ),
-                if (selecting)
-                  Positioned(
-                    top: 7,
-                    right: 7,
-                    child: SelectMark(selected: isSelected),
-                  ),
-              ],
-            ),
+                ),
+            ],
           ),
         );
         return DragSelectItem(index: i, child: tile);

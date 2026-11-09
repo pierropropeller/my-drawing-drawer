@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart' show TagTarget;
+import '../../data/inspo_queries.dart';
 import '../../data/entity_move_queries.dart';
 import '../../data/junk_queries.dart';
 import '../entity/entity_move.dart' show showMoveTagConfirm;
@@ -218,6 +219,18 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     if (target == null || !mounted) return;
     final db = ref.read(databaseProvider);
     final ids = [for (final p in picked) p.id];
+    if (target.toInspo) {
+      // 移到靈感廣場（D-144）：廣場多一張，坑裡這張拿走。
+      await db.moveToInspo(cell, ids, target.inspoCategoryId!);
+      if (!mounted) return;
+      showSnack(
+        context,
+        context.l10n.albumMovedCount(ids.length, context.l10n.materialTitle),
+        success: true,
+      );
+      _exit();
+      return;
+    }
     // 同種格跨坑才會帶 tag；目標坑缺的 tag 先問（MoveTagConfirm，CR 2026-11-09）。
     var createTags = true;
     final tagTarget = switch (cell) {

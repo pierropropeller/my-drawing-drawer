@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
+import '../../data/inspo_queries.dart';
 import '../../data/sensitive_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
@@ -12,6 +13,7 @@ import '../common/modal_form_layout.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/sensitive_dialogs.dart';
 import '../media_source/drop_zone.dart';
+import '../picker/inspo_picker_source.dart' show pickedFromInspo;
 import '../../theme/tokens.dart';
 import 'album_actions.dart';
 import 'album_form.dart';
@@ -89,7 +91,14 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
       .toList();
   String? _groupId;
   List<String> _tagIds = [];
+  final _note = TextEditingController();
   bool _saving = false;
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
 
   // 編輯模式：載入的那一張。
   NewImage? _editImage;
@@ -109,7 +118,10 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
       db.officialImages,
     )..where((f) => f.id.equals(widget.editImageId!))).getSingle();
     final ids = await db.watchTagIds(TagTarget.official, row.id).first;
+    // 從靈感廣場放進來的圖：說明讀廣場那張（共用一份）。
+    final note = await db.watchOfficialNote(row.id).first;
     if (!mounted) return;
+    _note.text = note ?? '';
     setState(() {
       _groupId = row.groupId;
       _tagIds = ids;
@@ -165,6 +177,7 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
         tagIds: _tagIds,
         sensitive: sensitive,
       );
+      await db.setOfficialNote(widget.editImageId!, _note.text);
       if (mounted) Navigator.of(context).pop();
       return;
     }
@@ -173,13 +186,36 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
     }
     setState(() => _saving = true);
     final store = await ref.read(imageStoreProvider.future);
+    final db = ref.read(databaseProvider);
     final imported = <NewImage>[];
+    // 從靈感廣場選的圖：放進坑（連結，D-145），不另存一份。
+    final linked = <String>[];
     for (final f in _files) {
+      final mid = f.picked == null ? null : pickedFromInspo[f.picked!.path];
+      if (mid != null) {
+        linked.add(mid);
+        continue;
+      }
       imported.add(await f.resolve(store));
     }
-    await ref
-        .read(databaseProvider)
-        .addOfficial(widget.pitId, groupId, imported, tagIds: _tagIds);
+    if (linked.isNotEmpty) {
+      await db.placeMaterials(linked, widget.pitId, groupId, tagIds: _tagIds);
+      // 說明共用：有填才寫進廣場那張。
+      if (_note.text.trim().isNotEmpty) {
+        for (final id in linked) {
+          await db.setMaterialNote(id, _note.text);
+        }
+      }
+    }
+    if (imported.isNotEmpty) {
+      await db.addOfficial(
+        widget.pitId,
+        groupId,
+        imported,
+        tagIds: _tagIds,
+        note: _note.text,
+      );
+    }
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -274,6 +310,8 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
               groupField,
               const SizedBox(height: 18),
               tagField,
+              const SizedBox(height: 18),
+              NoteField(controller: _note),
               if (!_editing && name != null && _files.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -294,7 +332,9 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
           groupField,
           const SizedBox(height: 16),
           tagField,
-          const SizedBox(height: 26),
+          const SizedBox(height: 16),
+          NoteField(controller: _note),
+          const SizedBox(height: 24),
           AlbumSubmitButton(
             label: _editing
                 ? context.l10n.commonSave

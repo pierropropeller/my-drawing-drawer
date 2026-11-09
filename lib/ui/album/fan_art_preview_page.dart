@@ -15,6 +15,7 @@ import 'album_image.dart';
 import 'fan_art_edit_page.dart';
 import '../search/tagged_list.dart';
 import 'preview_shell.dart';
+import '../material/material_icons.dart';
 
 /// 同人圖預覽（FanArtPreview，D-045）：與官方圖冊預覽分開。
 /// 作者、出處、全部 tag（可點）、加入日期；底部動作與官方預覽相同。沒有底部導覽列。
@@ -141,6 +142,7 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
         (live == null ? cur.groupName : null) ??
         '';
     final author = live?.author ?? cur.author ?? '';
+    final note = live == null ? (cur.note ?? '') : (live.note ?? '');
     final tagIds =
         ref.watch(tagIdsProvider((TagTarget.fanArt, cur.id))).value ??
         const <String>[];
@@ -247,6 +249,11 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
                         ),
                   ],
                 ),
+              ),
+            if (note.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: PreviewNote(note, icon: MaterialLibIcons.note),
               ),
             if (date != null)
               Padding(

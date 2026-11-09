@@ -12,6 +12,10 @@ import '../../state/providers.dart';
 import '../common/device_class.dart';
 import '../common/window_class.dart';
 import 'material_pick_sheet.dart';
+import '../../data/inspo_queries.dart';
+import '../../data/material_queries.dart';
+import '../common/media_widgets.dart';
+import '../picker/inspo_picker_source.dart';
 import 'media_menu_anchor.dart';
 import 'media_source_menu.dart';
 import 'media_source_services.dart';
@@ -138,7 +142,44 @@ Future<List<XFile>> copyMaterialsToTemp(
     final ext = p.extension(rows[i].imageFile);
     final dest = File(p.join(dir.path, 'material_${stamp}_$i$ext'));
     await src.copy(dest.path);
+    pickedFromInspo[dest.path] = rows[i].id;
     out.add(XFile(dest.path));
   }
   return out;
+}
+
+/// 選圖 sheet「相簿｜靈感廣場」的廣場那段（D-145）。廣場沒有圖、或在靈感廣場自己的加圖時回傳 null
+/// （不顯示切換）。讀取失敗也回傳 null，選圖照常只有相簿。
+Future<InspoPickerSource?> loadInspoPickerSource(ProviderReader read) async {
+  if (InspoPickerSource.suppressed) return null;
+  try {
+    final db = read(databaseProvider);
+    final images = await db.watchMaterials().first;
+    if (images.isEmpty) return null;
+    final cats = await db.loadInspoCategories();
+    return InspoPickerSource(
+      categories: cats,
+      images: images,
+      thumb: (m) => MediaThumb(
+        MediaSource.row(
+          file: m.imageFile,
+          kind: m.kind,
+          durationMs: m.durationMs,
+          posterFile: m.posterFile,
+          width: m.width,
+          height: m.height,
+        ),
+        cacheWidth: 300,
+        animate: false,
+      ),
+      export: (m) async {
+        final store = await read(imageStoreProvider.future);
+        final dir = await read(mediaSourceServicesProvider).tempDir();
+        final out = await copyMaterialsToTemp(store, [m], dir);
+        return out.firstOrNull;
+      },
+    );
+  } catch (_) {
+    return null;
+  }
 }

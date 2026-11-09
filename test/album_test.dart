@@ -98,7 +98,7 @@ void main() {
     expect(s.imageCount, 3);
   });
 
-  test('預設分組：官方圖冊沒有「自定義」，有「圖透」「官方周邊」；同人圖有各出處', () async {
+  test('預設分組：參考圖沒有「自定義」，有「圖透」「官方周邊」；同人圖有各出處', () async {
     final official = await db.watchGroups(pitId).first;
     expect(official.map((g) => g.name), [
       '設定圖',

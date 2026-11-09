@@ -241,7 +241,7 @@ void main() {
       expect(find.bySemanticsLabel('搜尋'), findsOneWidget);
       expect(find.text('原作動畫'), findsOneWidget);
       expect(find.text('我的坑'), findsNothing); // 沒有返回連結
-      final o = tester.getTopLeft(find.text('官方圖冊'));
+      final o = tester.getTopLeft(find.text('參考圖'));
       final f = tester.getTopLeft(find.text('好看同人圖'));
       final i = tester.getTopLeft(find.text('我的腦洞'));
       final d = tester.getTopLeft(find.text('我的摸魚'));
@@ -266,7 +266,7 @@ void main() {
       await pumpHome(tester, PitPage(pitId: pitId), navWidth: 84);
       expect(find.text('我的坑'), findsOneWidget);
       expect(find.text('換封面'), findsOneWidget);
-      final o = tester.getTopLeft(find.text('官方圖冊'));
+      final o = tester.getTopLeft(find.text('參考圖'));
       final f = tester.getTopLeft(find.text('好看同人圖'));
       final i = tester.getTopLeft(find.text('我的腦洞'));
       expect(o.dy, f.dy);
@@ -318,7 +318,7 @@ void main() {
     testWidgets('1366×1024：同橫向版面，3 欄', (tester) async {
       setView(tester, 1366, 1024);
       await pumpHome(tester, PitPage(pitId: pitId), navWidth: 260);
-      final o = tester.getTopLeft(find.text('官方圖冊'));
+      final o = tester.getTopLeft(find.text('參考圖'));
       final i = tester.getTopLeft(find.text('我的腦洞'));
       final f = tester.getTopLeft(find.text('好看同人圖'));
       expect(o.dy, f.dy);
@@ -350,7 +350,7 @@ void main() {
       expect(size.width, 860);
       expect(size.height, 690);
       expect(find.text('從坑內選圖'), findsOneWidget);
-      for (final t in ['全部', '官方圖冊', '同人圖', '成圖']) {
+      for (final t in ['全部', '參考圖', '同人圖', '成圖']) {
         expect(find.text(t), findsWidgets);
       }
       // PitEdit 稿：雜物開關沒有副標。
@@ -521,7 +521,7 @@ void main() {
           ),
         ),
       );
-      for (final t in ['官方圖冊', '好看同人圖', '我的腦洞', '我的摸魚', '我的成圖', '推活']) {
+      for (final t in ['參考圖', '好看同人圖', '我的腦洞', '我的摸魚', '我的成圖', '推活']) {
         expect(find.text(t), findsOneWidget);
         expect(tester.getSize(find.text(t)).height <= 44, isTrue);
       }
@@ -535,10 +535,10 @@ void main() {
     testWidgets('預設：取代目前分區頁，返回堆疊不變深', (tester) async {
       setView(tester, 834, 1194);
       await pumpHome(tester, PitPage(pitId: pitId));
-      await tester.tap(find.text('官方圖冊'));
+      await tester.tap(find.text('參考圖'));
       await settle(tester);
       expect(find.byType(OfficialListPage), findsOneWidget);
-      // 官方圖冊頁本身還沒放 tab bar（其他工程師接入）；用同一個 context 呼叫取代。
+      // 參考圖頁本身還沒放 tab bar（其他工程師接入）；用同一個 context 呼叫取代。
       PitSectionTabBar.replaceWith(
         tester.element(find.byType(OfficialListPage)),
         pitId,
@@ -547,7 +547,7 @@ void main() {
       await settle(tester);
       expect(find.byType(OfficialListPage), findsNothing);
       expect(find.byType(FanArtListPage), findsOneWidget);
-      // 返回一次就回到坑內頁（不是官方圖冊）。
+      // 返回一次就回到坑內頁（不是參考圖）。
       Navigator.of(tester.element(find.byType(FanArtListPage))).pop();
       await settle(tester);
       expect(find.byType(PitPage), findsOneWidget);

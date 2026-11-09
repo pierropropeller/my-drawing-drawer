@@ -224,7 +224,7 @@ void main() {
       await settle(tester);
       expect(navBarHiddenCount.value, 0, reason: '$row 返回後');
     }
-    // D-106：「我的」只剩 素材庫、個人化、備份與同步、關於 App；其餘收進個人化。
+    // D-106：「我的」只剩 靈感廣場、個人化、備份與同步、關於 App；其餘收進個人化。
     for (final gone in ['主題色', 'App 圖示', '語言', '敏感內容']) {
       expect(find.text(gone), findsNothing, reason: '$gone 不在我的');
     }
@@ -238,7 +238,7 @@ void main() {
       await tester.tap(find.byTooltip('返回'));
       await settle(tester);
       expect(find.text('個人化'), findsOneWidget, reason: '$row 返回個人化');
-      expect(find.text('素材庫'), findsNothing, reason: '$row 返回的不是我的');
+      expect(find.text('靈感廣場'), findsNothing, reason: '$row 返回的不是我的');
     }
     await tester.tap(find.byTooltip('返回'));
     await settle(tester);

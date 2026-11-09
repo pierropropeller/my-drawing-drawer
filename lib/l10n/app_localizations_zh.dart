@@ -52,7 +52,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pitsCreate => '建立';
 
   @override
-  String get pitsOfficial => '官方圖冊';
+  String get pitsOfficial => '參考圖';
 
   @override
   String get pitsFanArt => '好看同人圖';
@@ -264,7 +264,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get albumGroupHintFan => '分組只用於好看同人圖，拖曳可調整次序';
 
   @override
-  String get albumGroupHintOfficial => '分組只用於官方圖冊，拖曳可調整次序';
+  String get albumGroupHintOfficial => '分組只用於參考圖，拖曳可調整次序';
 
   @override
   String albumGroupRename(String name) {
@@ -295,19 +295,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get albumGroupChanged => '已更換分組';
 
   @override
-  String get albumCoverSetOfficial => '已設為官方圖冊封面';
+  String get albumCoverSetOfficial => '已設為參考圖封面';
 
   @override
   String get albumMoveTo => '移動到';
 
   @override
-  String get albumOfficialEmpty => '還沒有官方圖';
+  String get albumOfficialEmpty => '還沒有參考圖';
 
   @override
-  String get albumOfficialNewTitle => '新增官方圖';
+  String get albumOfficialNewTitle => '新增參考圖';
 
   @override
-  String get albumOfficialAdd => '加入官方圖冊';
+  String get albumOfficialAdd => '加入參考圖';
 
   @override
   String albumPreviewDateAdded(int year, String month, String day) {
@@ -1392,6 +1392,82 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get inspoPitsSeparator => '、';
+
+  @override
+  String get inspoPlaceInPit => '放進坑';
+
+  @override
+  String get inspoManageCategories => '管理分類';
+
+  @override
+  String get inspoCategoryHint => '分類只用於靈感廣場，拖曳可調整次序';
+
+  @override
+  String get inspoCategoryAdd => '新增分類';
+
+  @override
+  String get inspoCategoryNameTitle => '分類名稱';
+
+  @override
+  String inspoCategoryDeleteTitle(String name) {
+    return '刪除分類「$name」？';
+  }
+
+  @override
+  String get inspoCategoryDeleteBody => '分類裡的圖會移到其他分類。';
+
+  @override
+  String get inspoCategoryKeepOne => '至少要保留一個分類';
+
+  @override
+  String get inspoPlacedIn => '已放進';
+
+  @override
+  String inspoPlacedToast(String pit) {
+    return '已放進「$pit」';
+  }
+
+  @override
+  String inspoAlreadyInPit(String pit) {
+    return '這些圖已經在「$pit」裡了';
+  }
+
+  @override
+  String get inspoFromInspo => '來自靈感廣場';
+
+  @override
+  String get inspoRemoveFromPit => '移出';
+
+  @override
+  String get inspoRemovedToast => '已移出，靈感廣場裡的圖還在';
+
+  @override
+  String inspoPlacedDate(int year, String month, String day) {
+    return '$year / $month / $day 放進';
+  }
+
+  @override
+  String inspoAlsoIn(String pits) {
+    return '也在 $pits';
+  }
+
+  @override
+  String get inspoEditTitle => '編輯靈感圖';
+
+  @override
+  String get inspoDeletePlacedNote => '已放進坑的也會一起移除';
+
+  @override
+  String get noteLabel => '說明';
+
+  @override
+  String get notePlaceholder => '怎麼用、看哪裡（可留空）';
+
+  @override
+  String get pickerSourceAlbum => '相簿';
+
+  @override
   String get ipadauditGifLoop => 'GIF · 自動循環';
 
   @override
@@ -1515,7 +1591,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ipadmediaTileFiles => '檔案';
 
   @override
-  String get ipadmediaTileMaterials => '素材庫';
+  String get ipadmediaTileMaterials => '靈感廣場';
 
   @override
   String get ipadmediaTileCamera => '拍照';
@@ -1539,10 +1615,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ipadmediaFilesSub => 'iCloud Drive、CSP 匯出的 PNG／JPG';
 
   @override
-  String get ipadmediaMaterials => '從素材庫選取';
+  String get ipadmediaMaterials => '從靈感廣場選取';
 
   @override
-  String get ipadmediaMaterialsSub => '畫匣內已收藏的素材';
+  String get ipadmediaMaterialsSub => '畫匣內已收藏的靈感圖';
 
   @override
   String get ipadmediaCamera => '拍照';
@@ -1563,7 +1639,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ipadmediaCameraFailed => '無法開啟相機';
 
   @override
-  String get ipadmediaMaterialsEmpty => '素材庫還沒有素材';
+  String get ipadmediaMaterialsEmpty => '靈感廣場還沒有圖';
 
   @override
   String ipadmediaMaterialsAdd(int count) {
@@ -1571,7 +1647,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get ipadmediaMaterialsFailed => '無法讀取所選素材';
+  String get ipadmediaMaterialsFailed => '無法讀取所選的圖';
 
   @override
   String ipadmediaDropTitle(String target) {
@@ -1674,7 +1750,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get materialTitle => '素材庫';
+  String get materialTitle => '靈感廣場';
 
   @override
   String get materialLayoutWaterfall => '瀑布';
@@ -1683,31 +1759,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get materialLayoutGrid => '九宮格';
 
   @override
-  String get materialAddLabel => '加素材';
+  String get materialAddLabel => '加圖';
 
   @override
-  String get materialEmpty => '還沒有素材';
-
-  @override
-  String get materialCatClothing => '服裝';
-
-  @override
-  String get materialCatPose => '姿勢';
-
-  @override
-  String get materialCatBody => '人體';
-
-  @override
-  String get materialCatPalette => '色盤';
-
-  @override
-  String get materialCatScene => '場景';
-
-  @override
-  String get materialCatStyle => '畫風';
-
-  @override
-  String get materialCatSticker => '貼圖';
+  String get materialEmpty => '還沒有靈感圖';
 
   @override
   String get materialFieldCategory => '分類';
@@ -1764,10 +1819,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get officialtagEditTitle => '編輯官方圖';
+  String get officialtagEditTitle => '編輯參考圖';
 
   @override
-  String get searchCategoryOfficial => '官方圖';
+  String get searchCategoryOfficial => '參考圖';
 
   @override
   String get oshiTitle => '推活';

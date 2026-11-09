@@ -191,7 +191,7 @@ void main() {
       );
     }
     expect(inSheet('雜物'), findsOneWidget); // 本坑開了雜物
-    await tester.tap(inSheet('官方圖冊'));
+    await tester.tap(inSheet('參考圖'));
     await settle(tester);
     expect(inSheet('乙專屬分組'), findsNothing);
     await tester.tap(inSheet('坑乙'));

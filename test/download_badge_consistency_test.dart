@@ -139,7 +139,7 @@ void main() {
         await unmount(tester);
       });
 
-      testWidgets('坑內頁、官方圖冊、同人圖：有角標；沒連結則沒有', (tester) async {
+      testWidgets('坑內頁、參考圖、同人圖：有角標；沒連結則沒有', (tester) async {
         setView(tester, w, h, w < 600 ? 3 : 1);
         for (final page in [
           PitPage(pitId: pitId),

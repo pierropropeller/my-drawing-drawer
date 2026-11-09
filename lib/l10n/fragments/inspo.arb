@@ -1,0 +1,65 @@
+{
+  "inspoPitsSeparator": "、",
+  "inspoPlaceInPit": "放進坑",
+  "inspoManageCategories": "管理分類",
+  "inspoCategoryHint": "分類只用於靈感廣場，拖曳可調整次序",
+  "inspoCategoryAdd": "新增分類",
+  "inspoCategoryNameTitle": "分類名稱",
+  "inspoCategoryDeleteTitle": "刪除分類「{name}」？",
+  "@inspoCategoryDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inspoCategoryDeleteBody": "分類裡的圖會移到其他分類。",
+  "inspoCategoryKeepOne": "至少要保留一個分類",
+  "inspoPlacedIn": "已放進",
+  "inspoPlacedToast": "已放進「{pit}」",
+  "@inspoPlacedToast": {
+    "placeholders": {
+      "pit": {
+        "type": "String"
+      }
+    }
+  },
+  "inspoAlreadyInPit": "這些圖已經在「{pit}」裡了",
+  "@inspoAlreadyInPit": {
+    "placeholders": {
+      "pit": {
+        "type": "String"
+      }
+    }
+  },
+  "inspoFromInspo": "來自靈感廣場",
+  "inspoRemoveFromPit": "移出",
+  "inspoRemovedToast": "已移出，靈感廣場裡的圖還在",
+  "inspoPlacedDate": "{year} / {month} / {day} 放進",
+  "@inspoPlacedDate": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "inspoAlsoIn": "也在 {pits}",
+  "@inspoAlsoIn": {
+    "placeholders": {
+      "pits": {
+        "type": "String"
+      }
+    }
+  },
+  "inspoEditTitle": "編輯靈感圖",
+  "inspoDeletePlacedNote": "已放進坑的也會一起移除",
+  "noteLabel": "說明",
+  "notePlaceholder": "怎麼用、看哪裡（可留空）",
+  "pickerSourceAlbum": "相簿"
+}

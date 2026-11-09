@@ -181,14 +181,14 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('iPad 400：官方圖冊同樣', (tester) async {
+    testWidgets('iPad 400：參考圖同樣', (tester) async {
       debugTabletDeviceOverride = true;
       await show(tester, OfficialListPage(pitId: pitId), split);
       await tester.tap(firstThumb());
       await settle(tester);
       expect(find.byType(ImagePreviewPage), findsOneWidget);
       expect(find.byType(ReferenceViewer), findsOneWidget);
-      expect(find.text('坑A · 官方圖冊'), findsOneWidget);
+      expect(find.text('坑A · 參考圖'), findsOneWidget);
       await unmount(tester);
     });
 
@@ -429,7 +429,7 @@ void main() {
     }
 
     double cellWidth(WidgetTester tester) =>
-        tester.getSize(find.text('官方圖冊').last).width;
+        tester.getSize(find.text('參考圖').last).width;
 
     testWidgets('1194：置中 720×760 對話框', (tester) async {
       await openShare(tester, land);
@@ -456,7 +456,7 @@ void main() {
       expect(find.byKey(const ValueKey('form-sheet-peek')), findsNothing);
       expect(find.text('加入到畫匣'), findsOneWidget);
       // 4 欄：第一格和第五格不同一排。
-      final first = tester.getTopLeft(find.text('官方圖冊').last);
+      final first = tester.getTopLeft(find.text('參考圖').last);
       expect(cellWidth(tester), greaterThan(0));
       expect(first.dx, greaterThan(0));
       await unmount(tester);
@@ -479,7 +479,7 @@ void main() {
           '新增摸魚': ((c) => openDraftForm(c, pitId: pitId), '建立摸魚', '建立'),
           '新增成圖': ((c) => openPieceForm(c, pitId: pitId), '建立成圖', '建立'),
           '新增推活紀錄': ((c) => openOshiFormPage(c, pitId: pitId), '建立紀錄', '建立'),
-          '新增官方圖': ((c) => openOfficialNew(c, pitId: pitId), '加入官方圖冊', '加入'),
+          '新增參考圖': ((c) => openOfficialNew(c, pitId: pitId), '加入參考圖', '加入'),
           '加收藏': ((c) => openFanArtNew(c, pitId: pitId), '加入同人圖', '加入'),
           '新增年度目標': (
             (c) => GoalNewPage.open(

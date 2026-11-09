@@ -34,7 +34,7 @@ void main() {
     }
   }
 
-  testWidgets('官方圖冊：連加三張，每次存完列表立刻出現新圖（真檔案 IO，不重建 provider／DB）', (tester) async {
+  testWidgets('參考圖：連加三張，每次存完列表立刻出現新圖（真檔案 IO，不重建 provider／DB）', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -57,14 +57,14 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('測試坑'));
     await settle(tester);
-    await tester.tap(find.text('官方圖冊'));
+    await tester.tap(find.text('參考圖'));
     await settle(tester);
     for (var round = 1; round <= 3; round++) {
       await tester.tap(
         round == 1 ? find.text('加圖') : find.byType(FloatingActionButton),
       );
       await settle(tester);
-      await tester.tap(find.text('加入官方圖冊'));
+      await tester.tap(find.text('加入參考圖'));
       await settle(tester);
       await settle(tester);
       final rows = await tester.runAsync(() => db.watchOfficial(pitId).first);

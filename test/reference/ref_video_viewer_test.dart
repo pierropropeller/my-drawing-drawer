@@ -336,7 +336,7 @@ void main() {
           durationMs: 24000,
         ),
         pitId: pitId,
-        title: '坑A · 官方圖冊',
+        title: '坑A · 參考圖',
       );
     }
 

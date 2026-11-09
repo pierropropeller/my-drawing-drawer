@@ -368,6 +368,27 @@ class MaterialKind extends SyncKind {
   Set<String> imageFiles(Map<String, dynamic> data) => _mediaFiles(data);
 }
 
+/// 靈感廣場的自訂分類（D-143）。
+class InspoCategoryKind extends SyncKind {
+  const InspoCategoryKind();
+  @override
+  String get name => 'inspocat';
+  @override
+  Future<Map<String, int>> versions(AppDatabase db) async => {
+    for (final r in await db.select(db.materialCategories).get())
+      r.id: r.updatedAt.millisecondsSinceEpoch,
+  };
+  @override
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>
+      (await (db.select(
+        db.materialCategories,
+      )..where((t) => t.id.equals(id))).getSingle()).toJson();
+  @override
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) => db
+      .into(db.materialCategories)
+      .upsertFull(InspoCategory.fromJson(withDefaults(data, {'sortOrder': 0})));
+}
+
 class TagsKind extends SyncKind {
   const TagsKind();
   @override
@@ -727,6 +748,7 @@ const allSyncKinds = <SyncKind>[
   OfficialKind(),
   FanArtKind(),
   JunkKind(),
+  InspoCategoryKind(),
   MaterialKind(),
   IdeasKind(),
   DraftsKind(),

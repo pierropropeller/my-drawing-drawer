@@ -132,12 +132,12 @@ void main() {
     expect(downloadAlbumName, 'Drawer');
   });
 
-  testWidgets('官方圖冊：多選隱藏導覽列，底部是 下載／移動／tag／刪除；移動到好看同人圖', (tester) async {
+  testWidgets('參考圖：多選隱藏導覽列，底部是 下載／移動／tag／刪除；移動到好看同人圖', (tester) async {
     await tester.runAsync(() => seedOfficial(2));
     await pumpApp(tester);
     await tester.tap(find.text('測試坑'));
     await settle(tester);
-    await tester.tap(find.text('官方圖冊'));
+    await tester.tap(find.text('參考圖'));
     await settle(tester);
     expect(find.text('時間軸'), findsOneWidget); // 瀏覽時有導覽列
 
@@ -176,13 +176,13 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('移動 sheet：官方圖冊內換分組（展開分組 chips）', (tester) async {
+  testWidgets('移動 sheet：參考圖內換分組（展開分組 chips）', (tester) async {
     await tester.runAsync(() => seedOfficial(1));
     final groups = await tester.runAsync(() => db.watchGroups(pitId).first);
     await pumpApp(tester);
     await tester.tap(find.text('測試坑'));
     await settle(tester);
-    await tester.tap(find.text('官方圖冊'));
+    await tester.tap(find.text('參考圖'));
     await settle(tester);
     await tester.longPress(find.byType(Image).first);
     await settle(tester);
@@ -204,7 +204,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('雜物：3 欄純圖、長按多選 分享／下載／移動／刪除、移動到官方圖冊', (tester) async {
+  testWidgets('雜物：3 欄純圖、長按多選 分享／下載／移動／刪除、移動到參考圖', (tester) async {
     await tester.runAsync(() async {
       await db.updatePit(
         pitId,
@@ -237,14 +237,14 @@ void main() {
     await tester.tap(find.text('移動'));
     await settle(tester);
     // 從雜物移動：三格都列出，目前所在的雜物預選。
-    for (final s in ['官方圖冊', '好看同人圖', '雜物']) {
+    for (final s in ['參考圖', '好看同人圖', '雜物']) {
       expect(
         find.descendant(of: find.byType(MoveSheet), matching: find.text(s)),
         findsOneWidget,
       );
     }
     await tester.tap(
-      find.descendant(of: find.byType(MoveSheet), matching: find.text('官方圖冊')),
+      find.descendant(of: find.byType(MoveSheet), matching: find.text('參考圖')),
     );
     await settle(tester);
     await tester.tap(find.text('完成'));
@@ -424,11 +424,11 @@ void main() {
     for (final s in ['下載', '移動', 'tag', '刪除']) {
       expect(find.text(s), findsOneWidget);
     }
-    // 同人圖移到官方圖冊：兩邊的數量都對。
+    // 同人圖移到參考圖：兩邊的數量都對。
     await tester.tap(find.text('移動'));
     await settle(tester);
     await tester.tap(
-      find.descendant(of: find.byType(MoveSheet), matching: find.text('官方圖冊')),
+      find.descendant(of: find.byType(MoveSheet), matching: find.text('參考圖')),
     );
     await settle(tester);
     await tester.tap(find.text('完成'));
@@ -444,7 +444,7 @@ void main() {
   Finder tagChip(String name, TagCoverage state) =>
       find.byKey(ValueKey('batchTag-$name-${state.name}'));
 
-  /// 官方圖冊兩張圖：T1 兩張都有、T2 只有第一張、T3 都沒有。回傳圖片 id 與 tag id。
+  /// 參考圖兩張圖：T1 兩張都有、T2 只有第一張、T3 都沒有。回傳圖片 id 與 tag id。
   Future<({List<String> images, Map<String, String> tags})> seedTagged() async {
     await seedOfficial(2);
     final rows = await db.watchOfficial(pitId).first;
@@ -468,7 +468,7 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('官方圖冊多選 tag：三種狀態，點一下部分/沒有→全加、全有→全移除，完成才套用', (tester) async {
+  testWidgets('參考圖多選 tag：三種狀態，點一下部分/沒有→全加、全有→全移除，完成才套用', (tester) async {
     final seeded = (await tester.runAsync(seedTagged))!;
     await pumpPage(tester, OfficialListPage(pitId: pitId));
     await openTagSheet(tester);
@@ -623,7 +623,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('新增官方圖：已加入的圖片右上角有「×」可移除；表單沒有導覽列', (tester) async {
+  testWidgets('新增參考圖：已加入的圖片右上角有「×」可移除；表單沒有導覽列', (tester) async {
     await pumpPage(
       tester,
       OfficialNewPage(
@@ -669,7 +669,7 @@ void main() {
   testWidgets('選擇封面：沒有說明小字、沒有導覽列', (tester) async {
     await tester.runAsync(() => seedOfficial(1));
     await pumpPage(tester, CoverPickPage(pitId: pitId, kind: 'official'));
-    expect(find.text('長按中：官方圖冊 封面'), findsOneWidget);
+    expect(find.text('長按中：參考圖 封面'), findsOneWidget);
     expect(find.text('選擇封面圖'), findsOneWidget);
     expect(find.textContaining('點選即設為封面'), findsNothing);
     expect(navBarHiddenCount.value, 1);
@@ -739,7 +739,7 @@ void main() {
     }
   }
 
-  testWidgets('D-089 新增官方圖：分組下面有 tag 區（管理、新增），選了 tag 存進圖片', (tester) async {
+  testWidgets('D-089 新增參考圖：分組下面有 tag 區（管理、新增），選了 tag 存進圖片', (tester) async {
     final tag = await tester.runAsync(() => db.createTag(pitId, '角色1'));
     await tester.runAsync(() => db.createTag(pitId, '夏日'));
     await openFromHost(
@@ -763,7 +763,7 @@ void main() {
     );
     await tester.tap(find.text('#角色1'));
     await tester.pump();
-    await tester.tap(find.text('加入官方圖冊'));
+    await tester.tap(find.text('加入參考圖'));
     await settleLong(tester);
     final rows = (await tester.runAsync(
       () => db.watchOfficial(pitId, tagId: tag).first,
@@ -772,7 +772,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('D-089 編輯官方圖：載入分組與 tag，存檔後更新；沒有導覽列', (tester) async {
+  testWidgets('D-089 編輯參考圖：載入分組與 tag，存檔後更新；沒有導覽列', (tester) async {
     final tagA = await tester.runAsync(() => db.createTag(pitId, '角色1'));
     final tagB = await tester.runAsync(() => db.createTag(pitId, '夏日'));
     await tester.runAsync(() => seedOfficial(1));
@@ -785,7 +785,7 @@ void main() {
       [],
     );
     expect(navBarHiddenCount.value, 1);
-    expect(find.text('編輯官方圖'), findsOneWidget);
+    expect(find.text('編輯參考圖'), findsOneWidget);
     expect(find.byType(Image), findsOneWidget);
     expect(find.bySemanticsLabel('加圖'), findsNothing);
     await tester.tap(find.text('#角色1')); // 取消
@@ -801,7 +801,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('D-089 編輯官方圖：按 × 確認後刪除並回傳 true', (tester) async {
+  testWidgets('D-089 編輯參考圖：按 × 確認後刪除並回傳 true', (tester) async {
     await tester.runAsync(() => seedOfficial(1));
     final row = (await tester.runAsync(() => db.watchOfficial(pitId).first))!
         .single;

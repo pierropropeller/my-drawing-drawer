@@ -66,7 +66,7 @@ void main() {
   }
 
   group('每種內容都保存 poster／長度／種類', () {
-    testWidgets('官方圖、同人圖、雜物、素材庫、腦洞、草稿、成圖、推活', (tester) async {
+    testWidgets('官方圖、同人圖、雜物、靈感廣場、腦洞、草稿、成圖、推活', (tester) async {
       await tester.runAsync(() async {
         final pit = await db.createPit(name: '坑');
         final group = (await db.watchGroups(pit).first).first.id;
@@ -79,7 +79,10 @@ void main() {
         await db.addOfficial(pit, group, [v]);
         await db.addFanArts(pit, [v], author: 'x');
         await db.addJunk(pit, [v]);
-        await db.addMaterials(MaterialCategory.values.first, [v]);
+        await db.addMaterials(
+          materialCategoryIdOf(MaterialCategory.values.first),
+          [v],
+        );
         await db.saveIdea(
           pitId: pit,
           title: 't',

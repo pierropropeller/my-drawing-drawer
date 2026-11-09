@@ -1,6 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+
+import '../../data/database.dart' show MaterialImage;
+import 'inspo_picker_source.dart';
+
 import 'package:image_picker/image_picker.dart' show XFile;
 
 import '../../media/gallery_repository.dart';
@@ -30,6 +34,36 @@ class PickerController extends ChangeNotifier {
   }) : now = now ?? DateTime.now;
 
   final GalleryRepository repo;
+
+  /// 「相簿｜靈感廣場」的廣場那段（D-145）；null＝只有相簿（頭像、淺坑封面…）。
+  InspoPickerSource? inspo;
+
+  /// 目前停在廣場那段；[inspoCategory]＝廣場的分類篩選（null＝全部）。
+  bool inspoTab = false;
+  String? inspoCategory;
+
+  void showInspo(bool v) {
+    if (inspoTab == v) return;
+    inspoTab = v;
+    notifyListeners();
+  }
+
+  void selectInspoCategory(String? id) {
+    inspoCategory = id;
+    notifyListeners();
+  }
+
+  /// 廣場那段目前列出的圖（依分類篩選）。
+  List<MaterialImage> get inspoImages {
+    final src = inspo;
+    if (src == null) return const [];
+    final cat = inspoCategory;
+    if (cat == null) return src.images;
+    return [
+      for (final m in src.images)
+        if ((m.categoryId ?? 'mcat-${m.category.name}') == cat) m,
+    ];
+  }
 
   /// 單選（頭像）：撳一張＝取代已選。
   final bool single;
@@ -313,11 +347,33 @@ class PickerController extends ChangeNotifier {
     try {
       final ids = List<String>.of(_selected);
       final results = List<XFile?>.filled(ids.length, null);
+      // 廣場圖（id 有前綴）不走相簿，交給 [inspo] 一次匯出，再放回原本的位置。
+      final src = inspo;
+      final inspoAt = <int>[
+        for (var i = 0; i < ids.length; i++)
+          if (ids[i].startsWith(InspoPickerSource.idPrefix)) i,
+      ];
+      if (src != null && inspoAt.isNotEmpty) {
+        final rows = [
+          for (final i in inspoAt)
+            src.byId[ids[i].substring(InspoPickerSource.idPrefix.length)],
+        ];
+        for (var j = 0; j < inspoAt.length; j++) {
+          final row = rows[j];
+          if (row == null) continue;
+          try {
+            results[inspoAt[j]] = await src.export(row);
+          } catch (e) {
+            _log('export inspo ${row.id} failed: $e');
+          }
+        }
+      }
       var next = 0;
       Future<void> worker() async {
         while (true) {
           final i = next++;
           if (i >= ids.length) return;
+          if (ids[i].startsWith(InspoPickerSource.idPrefix)) continue;
           final sw = Stopwatch()..start();
           try {
             results[i] = await repo.export(ids[i]);

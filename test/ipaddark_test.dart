@@ -375,7 +375,7 @@ void main() {
               SizedBox.expand(),
               Positioned.fill(
                 child: DropHighlightBanner(
-                  title: '放開即可加入「官方圖冊」',
+                  title: '放開即可加入「參考圖」',
                   subtitle: '3 張',
                 ),
               ),
@@ -465,7 +465,7 @@ void main() {
           )
           .toList();
       expect(colors[0], d.accentSoft); // 照片
-      expect(colors[2], d.accentSoft); // 素材庫
+      expect(colors[2], d.accentSoft); // 靈感廣場
       expect(colors[4], d.chipBg); // 貼上
       for (final c in colors) {
         expect(c.computeLuminance(), lessThan(.1));

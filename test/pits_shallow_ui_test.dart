@@ -242,7 +242,7 @@ void main() {
       expect(find.text('第 3 集再決定要不要入'), findsOneWidget);
       expect(find.text('坑G'), findsOneWidget);
       // 沒有描述：列出開啟格子的張數
-      expect(find.text('官方圖冊 2 張 · 好看同人圖 0 張'), findsOneWidget);
+      expect(find.text('參考圖 2 張 · 好看同人圖 0 張'), findsOneWidget);
       // 沒封面＝坑名第一個字
       expect(find.text('星'), findsOneWidget);
       expect(find.text('開新淺坑'), findsOneWidget);
@@ -297,7 +297,7 @@ void main() {
       );
       // 有描述／有開格子的列照舊有副標。
       expect(find.text('第 3 集再決定要不要入'), findsOneWidget);
-      expect(find.textContaining('官方圖冊'), findsWidgets);
+      expect(find.textContaining('參考圖'), findsWidgets);
       await unmount(tester);
     });
 
@@ -366,7 +366,7 @@ void main() {
       await pumpPage(tester, PitPage(pitId: id!));
       expect(find.text('好看同人圖'), findsOneWidget);
       expect(find.text('我的腦洞'), findsOneWidget);
-      for (final gone in ['官方圖冊', '我的摸魚', '我的成圖', '推活', '雜物']) {
+      for (final gone in ['參考圖', '我的摸魚', '我的成圖', '推活', '雜物']) {
         expect(find.text(gone), findsNothing);
       }
       expect(find.text('淺坑'), findsOneWidget);
@@ -389,7 +389,7 @@ void main() {
         ),
       );
       await pumpPage(tester, PitPage(pitId: id!));
-      expect(find.text('官方圖冊'), findsOneWidget);
+      expect(find.text('參考圖'), findsOneWidget);
       expect(find.text('雜物'), findsOneWidget);
       await unmount(tester);
     });
@@ -404,7 +404,7 @@ void main() {
       expect(find.text('開啟格子'), findsOneWidget);
       expect(find.text('空淺坑'), findsOneWidget); // 標題列照舊
       expect(find.text('淺坑'), findsOneWidget);
-      expect(find.text('官方圖冊'), findsNothing);
+      expect(find.text('參考圖'), findsNothing);
       await tester.tap(find.text('開啟格子'));
       await settle(tester);
       expect(find.byType(PitEditPage), findsOneWidget);
@@ -416,7 +416,7 @@ void main() {
       phoneView(tester);
       await pumpPage(tester, PitPage(pitId: active));
       expect(find.byType(ShallowBadge), findsNothing);
-      for (final k in ['官方圖冊', '好看同人圖', '我的腦洞', '我的摸魚', '我的成圖', '推活']) {
+      for (final k in ['參考圖', '好看同人圖', '我的腦洞', '我的摸魚', '我的成圖', '推活']) {
         expect(find.text(k), findsOneWidget);
       }
       await unmount(tester);
@@ -448,7 +448,7 @@ void main() {
       await tapSeg(tester, '淺坑');
       expect(find.text('開啟的格子'), findsOneWidget);
       expect(find.byType(AppSwitch), findsNWidgets(7));
-      for (final l in ['官方圖冊', '好看同人圖', '我的腦洞', '我的摸魚', '我的成圖', '推活', '雜物']) {
+      for (final l in ['參考圖', '好看同人圖', '我的腦洞', '我的摸魚', '我的成圖', '推活', '雜物']) {
         expect(switchOn(tester, l), isFalse, reason: l);
       }
       await unmount(tester);
@@ -461,9 +461,9 @@ void main() {
       expect(find.byType(PitCoverPickTile), findsNothing); // 淺坑沒有封面欄
       await tester.enterText(find.byKey(const ValueKey('pit-name')), '新淺坑');
       await tester.enterText(find.byKey(const ValueKey('pit-desc')), '先看看');
-      await tapSwitch(tester, '官方圖冊');
+      await tapSwitch(tester, '參考圖');
       await tapSwitch(tester, '雜物');
-      expect(switchOn(tester, '官方圖冊'), isTrue);
+      expect(switchOn(tester, '參考圖'), isTrue);
       await tester.scrollUntilVisible(
         find.text('建立'),
         200,
@@ -552,7 +552,7 @@ void main() {
       await openEdit(tester, active);
       await tapSeg(tester, '淺坑');
       expect(find.text('開啟的格子'), findsOneWidget);
-      expect(switchOn(tester, '官方圖冊'), isTrue);
+      expect(switchOn(tester, '參考圖'), isTrue);
       expect(switchOn(tester, '我的腦洞'), isTrue);
       expect(switchOn(tester, '好看同人圖'), isFalse);
       expect(switchOn(tester, '雜物'), isFalse);
@@ -573,19 +573,19 @@ void main() {
       await openEdit(tester, active);
       await tapSeg(tester, '淺坑');
 
-      await tapSwitch(tester, '官方圖冊');
-      expect(find.text('關閉「官方圖冊」？'), findsOneWidget);
+      await tapSwitch(tester, '參考圖');
+      expect(find.text('關閉「參考圖」？'), findsOneWidget);
       expect(find.text('格子裡的 3 張圖會移到「最近刪除」，30 天內可以還原；還原時這個格子會自動重新開啟。'), findsOneWidget);
       expect(find.text('取消'), findsOneWidget);
       expect(find.text('關閉'), findsOneWidget);
       await tester.tap(find.text('取消'));
       await settle(tester);
-      expect(switchOn(tester, '官方圖冊'), isTrue);
+      expect(switchOn(tester, '參考圖'), isTrue);
 
-      await tapSwitch(tester, '官方圖冊');
+      await tapSwitch(tester, '參考圖');
       await tester.tap(find.text('關閉'));
       await settle(tester);
-      expect(switchOn(tester, '官方圖冊'), isFalse);
+      expect(switchOn(tester, '參考圖'), isFalse);
       // 還沒存檔：資料還在
       expect(
         await tester.runAsync(
@@ -641,7 +641,7 @@ void main() {
         return id;
       }))!;
       await openEdit(tester, id);
-      expect(switchOn(tester, '官方圖冊'), isTrue);
+      expect(switchOn(tester, '參考圖'), isTrue);
       await tapSeg(tester, '坑');
       expect(find.text('開啟的格子'), findsNothing);
       await tester.ensureVisible(find.text('儲存'));
@@ -746,7 +746,7 @@ void main() {
       }))!;
       phoneView(tester);
       await pumpPage(tester, PitPage(pitId: id));
-      await tester.longPress(find.text('官方圖冊'));
+      await tester.longPress(find.text('參考圖'));
       await settle(tester);
       expect(find.byType(CoverPickPage), findsOneWidget);
       await unmount(tester);
@@ -817,7 +817,7 @@ void main() {
           );
           expect(find.text('好看同人圖'), findsOneWidget);
           expect(find.text('推活'), findsOneWidget);
-          expect(find.text('官方圖冊'), findsNothing);
+          expect(find.text('參考圖'), findsNothing);
           expect(find.text('我的成圖'), findsNothing);
           expect(find.byType(ShallowBadge), findsOneWidget);
           await unmount(tester);
@@ -882,8 +882,8 @@ void main() {
       expect(find.byType(PitJunkSwitchCard), findsOneWidget);
       await tapSeg(tester, '淺坑');
       expect(find.text('開啟的格子'), findsOneWidget);
-      await tapSwitch(tester, '官方圖冊');
-      expect(find.text('關閉「官方圖冊」？'), findsOneWidget);
+      await tapSwitch(tester, '參考圖');
+      expect(find.text('關閉「參考圖」？'), findsOneWidget);
       await tester.tap(find.widgetWithText(TextButton, '取消').last);
       await settle(tester);
       expect(tester.takeException(), isNull);

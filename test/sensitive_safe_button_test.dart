@@ -290,7 +290,7 @@ void main() {
   });
 
   group('列表頁', () {
-    testWidgets('官方圖冊列表：只模糊、沒有安全模式鈕', (tester) async {
+    testWidgets('參考圖列表：只模糊、沒有安全模式鈕', (tester) async {
       await pump(tester, OfficialListPage(pitId: pitId));
       expect(find.byKey(blur), findsOneWidget);
       expect(tester.getSize(find.byKey(circle)).width, lessThan(52));

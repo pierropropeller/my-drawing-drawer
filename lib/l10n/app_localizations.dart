@@ -181,7 +181,7 @@ abstract class AppLocalizations {
   /// No description provided for @pitsOfficial.
   ///
   /// In zh, this message translates to:
-  /// **'官方圖冊'**
+  /// **'參考圖'**
   String get pitsOfficial;
 
   /// No description provided for @pitsFanArt.
@@ -541,7 +541,7 @@ abstract class AppLocalizations {
   /// No description provided for @albumGroupHintOfficial.
   ///
   /// In zh, this message translates to:
-  /// **'分組只用於官方圖冊，拖曳可調整次序'**
+  /// **'分組只用於參考圖，拖曳可調整次序'**
   String get albumGroupHintOfficial;
 
   /// No description provided for @albumGroupRename.
@@ -595,7 +595,7 @@ abstract class AppLocalizations {
   /// No description provided for @albumCoverSetOfficial.
   ///
   /// In zh, this message translates to:
-  /// **'已設為官方圖冊封面'**
+  /// **'已設為參考圖封面'**
   String get albumCoverSetOfficial;
 
   /// No description provided for @albumMoveTo.
@@ -607,19 +607,19 @@ abstract class AppLocalizations {
   /// No description provided for @albumOfficialEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'還沒有官方圖'**
+  /// **'還沒有參考圖'**
   String get albumOfficialEmpty;
 
   /// No description provided for @albumOfficialNewTitle.
   ///
   /// In zh, this message translates to:
-  /// **'新增官方圖'**
+  /// **'新增參考圖'**
   String get albumOfficialNewTitle;
 
   /// No description provided for @albumOfficialAdd.
   ///
   /// In zh, this message translates to:
-  /// **'加入官方圖冊'**
+  /// **'加入參考圖'**
   String get albumOfficialAdd;
 
   /// No description provided for @albumPreviewDateAdded.
@@ -2499,6 +2499,138 @@ abstract class AppLocalizations {
   /// **'{code, select, CNY{人民幣} HKD{港幣} TWD{新台幣} USD{美元} JPY{日圓} EUR{歐元} GBP{英鎊} KRW{韓元} SGD{新加坡幣} other{{code}}}'**
   String goalsCurrencyName(String code);
 
+  /// No description provided for @inspoPitsSeparator.
+  ///
+  /// In zh, this message translates to:
+  /// **'、'**
+  String get inspoPitsSeparator;
+
+  /// No description provided for @inspoPlaceInPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'放進坑'**
+  String get inspoPlaceInPit;
+
+  /// No description provided for @inspoManageCategories.
+  ///
+  /// In zh, this message translates to:
+  /// **'管理分類'**
+  String get inspoManageCategories;
+
+  /// No description provided for @inspoCategoryHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'分類只用於靈感廣場，拖曳可調整次序'**
+  String get inspoCategoryHint;
+
+  /// No description provided for @inspoCategoryAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增分類'**
+  String get inspoCategoryAdd;
+
+  /// No description provided for @inspoCategoryNameTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'分類名稱'**
+  String get inspoCategoryNameTitle;
+
+  /// No description provided for @inspoCategoryDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除分類「{name}」？'**
+  String inspoCategoryDeleteTitle(String name);
+
+  /// No description provided for @inspoCategoryDeleteBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'分類裡的圖會移到其他分類。'**
+  String get inspoCategoryDeleteBody;
+
+  /// No description provided for @inspoCategoryKeepOne.
+  ///
+  /// In zh, this message translates to:
+  /// **'至少要保留一個分類'**
+  String get inspoCategoryKeepOne;
+
+  /// No description provided for @inspoPlacedIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'已放進'**
+  String get inspoPlacedIn;
+
+  /// No description provided for @inspoPlacedToast.
+  ///
+  /// In zh, this message translates to:
+  /// **'已放進「{pit}」'**
+  String inspoPlacedToast(String pit);
+
+  /// No description provided for @inspoAlreadyInPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'這些圖已經在「{pit}」裡了'**
+  String inspoAlreadyInPit(String pit);
+
+  /// No description provided for @inspoFromInspo.
+  ///
+  /// In zh, this message translates to:
+  /// **'來自靈感廣場'**
+  String get inspoFromInspo;
+
+  /// No description provided for @inspoRemoveFromPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'移出'**
+  String get inspoRemoveFromPit;
+
+  /// No description provided for @inspoRemovedToast.
+  ///
+  /// In zh, this message translates to:
+  /// **'已移出，靈感廣場裡的圖還在'**
+  String get inspoRemovedToast;
+
+  /// No description provided for @inspoPlacedDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'{year} / {month} / {day} 放進'**
+  String inspoPlacedDate(int year, String month, String day);
+
+  /// No description provided for @inspoAlsoIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'也在 {pits}'**
+  String inspoAlsoIn(String pits);
+
+  /// No description provided for @inspoEditTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯靈感圖'**
+  String get inspoEditTitle;
+
+  /// No description provided for @inspoDeletePlacedNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'已放進坑的也會一起移除'**
+  String get inspoDeletePlacedNote;
+
+  /// No description provided for @noteLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'說明'**
+  String get noteLabel;
+
+  /// No description provided for @notePlaceholder.
+  ///
+  /// In zh, this message translates to:
+  /// **'怎麼用、看哪裡（可留空）'**
+  String get notePlaceholder;
+
+  /// No description provided for @pickerSourceAlbum.
+  ///
+  /// In zh, this message translates to:
+  /// **'相簿'**
+  String get pickerSourceAlbum;
+
   /// No description provided for @ipadauditGifLoop.
   ///
   /// In zh, this message translates to:
@@ -2724,7 +2856,7 @@ abstract class AppLocalizations {
   /// No description provided for @ipadmediaTileMaterials.
   ///
   /// In zh, this message translates to:
-  /// **'素材庫'**
+  /// **'靈感廣場'**
   String get ipadmediaTileMaterials;
 
   /// No description provided for @ipadmediaTileCamera.
@@ -2772,13 +2904,13 @@ abstract class AppLocalizations {
   /// No description provided for @ipadmediaMaterials.
   ///
   /// In zh, this message translates to:
-  /// **'從素材庫選取'**
+  /// **'從靈感廣場選取'**
   String get ipadmediaMaterials;
 
   /// No description provided for @ipadmediaMaterialsSub.
   ///
   /// In zh, this message translates to:
-  /// **'畫匣內已收藏的素材'**
+  /// **'畫匣內已收藏的靈感圖'**
   String get ipadmediaMaterialsSub;
 
   /// No description provided for @ipadmediaCamera.
@@ -2820,7 +2952,7 @@ abstract class AppLocalizations {
   /// No description provided for @ipadmediaMaterialsEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'素材庫還沒有素材'**
+  /// **'靈感廣場還沒有圖'**
   String get ipadmediaMaterialsEmpty;
 
   /// No description provided for @ipadmediaMaterialsAdd.
@@ -2832,7 +2964,7 @@ abstract class AppLocalizations {
   /// No description provided for @ipadmediaMaterialsFailed.
   ///
   /// In zh, this message translates to:
-  /// **'無法讀取所選素材'**
+  /// **'無法讀取所選的圖'**
   String get ipadmediaMaterialsFailed;
 
   /// No description provided for @ipadmediaDropTitle.
@@ -3006,7 +3138,7 @@ abstract class AppLocalizations {
   /// No description provided for @materialTitle.
   ///
   /// In zh, this message translates to:
-  /// **'素材庫'**
+  /// **'靈感廣場'**
   String get materialTitle;
 
   /// No description provided for @materialLayoutWaterfall.
@@ -3024,56 +3156,14 @@ abstract class AppLocalizations {
   /// No description provided for @materialAddLabel.
   ///
   /// In zh, this message translates to:
-  /// **'加素材'**
+  /// **'加圖'**
   String get materialAddLabel;
 
   /// No description provided for @materialEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'還沒有素材'**
+  /// **'還沒有靈感圖'**
   String get materialEmpty;
-
-  /// No description provided for @materialCatClothing.
-  ///
-  /// In zh, this message translates to:
-  /// **'服裝'**
-  String get materialCatClothing;
-
-  /// No description provided for @materialCatPose.
-  ///
-  /// In zh, this message translates to:
-  /// **'姿勢'**
-  String get materialCatPose;
-
-  /// No description provided for @materialCatBody.
-  ///
-  /// In zh, this message translates to:
-  /// **'人體'**
-  String get materialCatBody;
-
-  /// No description provided for @materialCatPalette.
-  ///
-  /// In zh, this message translates to:
-  /// **'色盤'**
-  String get materialCatPalette;
-
-  /// No description provided for @materialCatScene.
-  ///
-  /// In zh, this message translates to:
-  /// **'場景'**
-  String get materialCatScene;
-
-  /// No description provided for @materialCatStyle.
-  ///
-  /// In zh, this message translates to:
-  /// **'畫風'**
-  String get materialCatStyle;
-
-  /// No description provided for @materialCatSticker.
-  ///
-  /// In zh, this message translates to:
-  /// **'貼圖'**
-  String get materialCatSticker;
 
   /// No description provided for @materialFieldCategory.
   ///
@@ -3174,13 +3264,13 @@ abstract class AppLocalizations {
   /// No description provided for @officialtagEditTitle.
   ///
   /// In zh, this message translates to:
-  /// **'編輯官方圖'**
+  /// **'編輯參考圖'**
   String get officialtagEditTitle;
 
   /// No description provided for @searchCategoryOfficial.
   ///
   /// In zh, this message translates to:
-  /// **'官方圖'**
+  /// **'參考圖'**
   String get searchCategoryOfficial;
 
   /// No description provided for @oshiTitle.

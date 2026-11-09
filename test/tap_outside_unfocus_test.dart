@@ -13,10 +13,7 @@ void main() {
           body: Column(
             children: [
               const TextField(key: Key('f')),
-              TextButton(
-                onPressed: () => pressed++,
-                child: const Text('btn'),
-              ),
+              TextButton(onPressed: () => pressed++, child: const Text('btn')),
               const Expanded(child: SizedBox.expand(key: Key('blank'))),
             ],
           ),

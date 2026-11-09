@@ -8,6 +8,8 @@ import '../../media/gallery_repository.dart';
 import '../../media/photo_manager_gallery.dart';
 import '../../theme/tokens.dart';
 import '../common/svg_icon.dart';
+import '../common/segment_toggle.dart';
+import 'inspo_picker_source.dart';
 import 'picker_controller.dart';
 import 'picker_grid.dart';
 import 'picker_icons.dart';
@@ -27,6 +29,7 @@ Future<List<XFile>?> showAppImagePicker(
   bool single = false,
   bool imagesOnly = false,
   DateTime Function()? now,
+  InspoPickerSource? inspo,
 }) {
   // showModalBottomSheet 會把 sheet 內的 MediaQuery 頂部 padding 清成 0（useSafeArea:false），
   // 所以狀態列高度要在 route 外面（根 Navigator 的 context）先量好再傳進去。
@@ -53,6 +56,7 @@ Future<List<XFile>?> showAppImagePicker(
       imagesOnly: imagesOnly,
       now: now,
       statusBarHeight: statusBar,
+      inspo: inspo,
     ),
   );
 }
@@ -66,7 +70,11 @@ class ImagePickerSheet extends StatefulWidget {
     this.imagesOnly = false,
     this.now,
     this.statusBarHeight,
+    this.inspo,
   });
+
+  /// 頂部「相簿｜靈感廣場」的廣場那段（D-145）；null＝沒有切換，只有相簿。
+  final InspoPickerSource? inspo;
 
   final GalleryRepository repository;
   final bool single;
@@ -89,7 +97,7 @@ class _ImagePickerSheetState extends State<ImagePickerSheet>
     single: widget.single,
     imagesOnly: widget.imagesOnly,
     now: widget.now,
-  );
+  )..inspo = widget.inspo;
   late final ThumbLoader _loader = ThumbLoader(widget.repository);
   final DraggableScrollableController _sheet = DraggableScrollableController();
   final ValueNotifier<double> _extent = ValueNotifier(_half);
@@ -254,6 +262,7 @@ class _SheetBody extends StatelessWidget {
 
   Widget _content(BuildContext context) {
     final denied = controller.isDenied;
+    final inspo = controller.inspo;
     // sheet 上緣若進到狀態列範圍，內容要往下讓出重疊的部分：半開 = 0，
     // 越拉越高越大，全螢幕 = 狀態列高度。背景仍延伸到狀態列後面。
     final screenH = MediaQuery.sizeOf(context).height;
@@ -269,23 +278,53 @@ class _SheetBody extends StatelessWidget {
             child: full ? _FullHeader(onClose: onClose) : const _HalfHeader(),
           ),
         ),
-        if (!denied && controller.albums.isNotEmpty)
-          _Pills(controller: controller),
-        if (controller.isLimited)
-          _LimitedBanner(onManage: controller.manageLimited),
-        Expanded(
-          child: denied
-              ? _DeniedPage(
-                  scroll: scroll,
-                  onOpenSettings: controller.openSettings,
-                )
-              : PickerGrid(
-                  controller: controller,
-                  loader: loader,
-                  scroll: scroll,
-                  accent: accent,
-                ),
-        ),
+        // 「相簿｜靈感廣場」（ImagePickerInspo，D-145）：兩邊可以混著選，編號照點選次序。
+        if (inspo != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: SegmentToggle(
+              labels: [
+                context.l10n.pickerSourceAlbum,
+                context.l10n.materialTitle,
+              ],
+              selected: controller.inspoTab ? 1 : 0,
+              onChanged: (i) => controller.showInspo(i == 1),
+              segmentKeys: const [
+                ValueKey('picker-src-album'),
+                ValueKey('picker-src-inspo'),
+              ],
+              dark: true,
+            ),
+          ),
+        if (inspo != null && controller.inspoTab) ...[
+          _InspoPills(controller: controller, source: inspo),
+          Expanded(
+            child: _InspoGrid(
+              controller: controller,
+              source: inspo,
+              scroll: scroll,
+              accent: accent,
+            ),
+          ),
+        ] else ...[
+          if (!denied && controller.albums.isNotEmpty)
+            _Pills(controller: controller),
+          if (controller.isLimited)
+            _LimitedBanner(onManage: controller.manageLimited),
+          Expanded(
+            child: denied
+                ? _DeniedPage(
+                    scroll: scroll,
+                    onOpenSettings: controller.openSettings,
+                  )
+                : PickerGrid(
+                    controller: controller,
+                    loader: loader,
+                    scroll: scroll,
+                    accent: accent,
+                  ),
+          ),
+        ],
         _BottomBar(
           controller: controller,
           loader: loader,
@@ -644,6 +683,7 @@ class _BarContent extends StatelessWidget {
                 number: i + 1,
                 loader: loader,
                 accent: accent,
+                inspo: controller.inspo,
                 onTap: () => controller.deselect(ids[i]),
               ),
             ),
@@ -705,6 +745,7 @@ class _BarThumb extends StatelessWidget {
     required this.loader,
     required this.accent,
     required this.onTap,
+    this.inspo,
   });
 
   final String id;
@@ -712,6 +753,14 @@ class _BarThumb extends StatelessWidget {
   final ThumbLoader loader;
   final Color accent;
   final VoidCallback onTap;
+  final InspoPickerSource? inspo;
+
+  Widget _inspoThumb(BuildContext context) {
+    final row = inspo?.byId[id.substring(InspoPickerSource.idPrefix.length)];
+    return row == null
+        ? const ColoredBox(color: Color(0xFF2A2522))
+        : inspo!.thumb(row);
+  }
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -727,7 +776,12 @@ class _BarThumb extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
-              child: PickerThumb(id: id, loader: loader, radius: 9),
+              child: id.startsWith(InspoPickerSource.idPrefix)
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(9),
+                      child: _inspoThumb(context),
+                    )
+                  : PickerThumb(id: id, loader: loader, radius: 9),
             ),
             Positioned(
               left: -5,
@@ -757,4 +811,130 @@ class _BarThumb extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// 廣場那段的分類 pills（全部＋自訂分類；樣式同相簿 pills）。
+class _InspoPills extends StatelessWidget {
+  const _InspoPills({required this.controller, required this.source});
+  final PickerController controller;
+  final InspoPickerSource source;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+    child: Row(
+      children: [
+        _Pill(
+          key: const ValueKey('picker-inspo-all'),
+          label: context.l10n.pickerAlbumAll,
+          selected: controller.inspoCategory == null,
+          onTap: () => controller.selectInspoCategory(null),
+        ),
+        for (final c in source.categories) ...[
+          const SizedBox(width: 8),
+          _Pill(
+            key: ValueKey('picker-inspo-cat-${c.id}'),
+            label: c.name,
+            selected: controller.inspoCategory == c.id,
+            onTap: () => controller.selectInspoCategory(c.id),
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
+/// 廣場那段的格子（4 欄正方形、間距 2；左上角圓圈＝點選次序，同相簿格子）。
+class _InspoGrid extends StatelessWidget {
+  const _InspoGrid({
+    required this.controller,
+    required this.source,
+    required this.scroll,
+    required this.accent,
+  });
+  final PickerController controller;
+  final InspoPickerSource source;
+  final ScrollController scroll;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = controller.inspoImages;
+    if (rows.isEmpty) {
+      return ListView(
+        controller: scroll,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 60),
+            child: Center(
+              child: Text(
+                context.l10n.ipadmediaMaterialsEmpty,
+                key: const ValueKey('picker-inspo-empty'),
+                style: const TextStyle(color: Color(0xFF8C8378), fontSize: 14),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    final cols = MediaQuery.sizeOf(context).width >= 600 ? 6 : 4;
+    return GridView.builder(
+      controller: scroll,
+      padding: const EdgeInsets.only(top: 4, bottom: 12),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: cols,
+        mainAxisSpacing: 2,
+        crossAxisSpacing: 2,
+      ),
+      itemCount: rows.length,
+      itemBuilder: (context, i) {
+        final m = rows[i];
+        final id = '${InspoPickerSource.idPrefix}${m.id}';
+        final number = controller.numberOf(id);
+        final selected = number != null;
+        return GestureDetector(
+          key: ValueKey('picker-inspo-cell-${m.id}'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => controller.toggle(id),
+          child: Container(
+            foregroundDecoration: selected
+                ? BoxDecoration(border: Border.all(color: accent, width: 3))
+                : null,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                source.thumb(m),
+                Positioned(
+                  left: 5,
+                  top: 5,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: selected ? accent : const Color(0x40000000),
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: selected
+                        ? Text(
+                            '$number',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              height: 1,
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
