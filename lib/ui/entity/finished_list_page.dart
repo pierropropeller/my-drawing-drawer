@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
-import '../../data/database.dart' show TagTarget;
+import '../../data/database.dart' show OwnerType, TagTarget;
 import '../../data/entity_queries.dart';
 import '../../data/sensitive_queries.dart';
 import '../../state/sensitive.dart';
@@ -31,6 +31,7 @@ import '../search/tagged_list.dart';
 import 'detail_panes.dart';
 import 'draft_list_page.dart'
     show draftImageLayout, kDraftImageGap, kDraftImageRadius;
+import 'entity_move.dart';
 import 'entity_select.dart';
 import 'entity_widgets.dart';
 import 'piece_detail_page.dart';
@@ -128,6 +129,19 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
       [for (final v in picked) v.piece.id],
     );
     if (done && mounted) _sel.exit();
+  }
+
+  /// 跨坑移動（CR 2026-11-09）。
+  Future<void> _move(List<PieceView> picked) async {
+    if (picked.isEmpty) return;
+    final moved = await moveEntitiesToOtherPit(
+      context,
+      ref,
+      type: OwnerType.piece,
+      pitId: widget.pitId,
+      ids: [for (final v in picked) v.piece.id],
+    );
+    if (moved && mounted) _sel.exit();
   }
 
   Future<void> _delete(List<PieceView> picked) async {
@@ -361,6 +375,7 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
             ? EntitySelectBar(
                 onShare: () => _share(picked),
                 onDownload: () => _download(picked),
+                onMove: () => _move(picked),
                 onTag: () => _tag(picked),
                 onDelete: () => _delete(picked),
                 onSensitive: ref.watch(sensitiveMarkingProvider(widget.pitId))

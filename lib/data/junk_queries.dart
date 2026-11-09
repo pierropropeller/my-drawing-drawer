@@ -160,7 +160,8 @@ extension JunkQueries on AppDatabase {
   ///   用目標坑第一個官方分組、同人圖列沒有出處。
   /// - tag 按坑獨立：同人圖跨坑移到好看同人圖格時，來源的 tag 按**名稱**對應目標坑已有的 tag，
   ///   目標坑沒有的自動新增同名 tag（作者、舊版出處文字也一併帶過去）。取消隱藏的列保留它自己的
-  ///   tag，不重新對應。
+  ///   tag，不重新對應。目標坑沒有的 tag：[createMissingTags]＝true 就新增同名 tag，false 就不帶過去
+  ///   （CR 2026-11-09：UI 先用 `missingTagNamesForMove` 問使用者，`MoveTagConfirm`）。
   /// - 封面：被移動的圖若是來源坑的坑封面且目標是同一個坑的官方／同人圖→改指向新列；
   ///   其餘（移到雜物、跨坑）清成 null。各格封面一律清掉。移進目標坑**不會**設定任何封面。
   Future<void> moveAlbumImages({
@@ -169,6 +170,7 @@ extension JunkQueries on AppDatabase {
     required AlbumCell to,
     String? groupId,
     String? targetPitId,
+    bool createMissingTags = true,
   }) {
     return transaction(() async {
       final now = DateTime.now();
@@ -210,9 +212,21 @@ extension JunkQueries on AppDatabase {
           // 同一種格（官方→官方、同人圖→同人圖）跨坑：新列帶著按名稱對應的 tag。
           // 官方↔同人圖之間不轉換 tag：各格的 tag 屬於各格的列，留在隱藏列上（D-044）。
           if (from == AlbumCell.fan && to == AlbumCell.fan) {
-            await _copyTags(TagTarget.fanArt, src.id, targetId, pit);
+            await _copyTags(
+              TagTarget.fanArt,
+              src.id,
+              targetId,
+              pit,
+              createMissingTags,
+            );
           } else if (from == AlbumCell.official && to == AlbumCell.official) {
-            await _copyTags(TagTarget.official, src.id, targetId, pit);
+            await _copyTags(
+              TagTarget.official,
+              src.id,
+              targetId,
+              pit,
+              createMissingTags,
+            );
           }
         }
         await _hide(from, src.id, now);
@@ -239,12 +253,13 @@ extension JunkQueries on AppDatabase {
     }
   }
 
-  /// 同種格跨坑：把來源的 tag 按名稱對應到目標坑（沒有就新增同名 tag），掛到新列上。
+  /// 同種格跨坑：把來源的 tag 按名稱對應到目標坑（沒有的看 [createMissing]：新增同名 tag 或不帶），掛到新列上。
   Future<void> _copyTags(
     TagTarget target,
     String srcId,
     String newId,
     String pitId,
+    bool createMissing,
   ) async {
     final links =
         await (select(tagLinks)..where(
@@ -263,7 +278,19 @@ extension JunkQueries on AppDatabase {
     srcTags.sort((a, b) => a.name.compareTo(b.name));
     final mapped = <String>{};
     for (final t in srcTags) {
-      mapped.add(await createTag(pitId, t.name));
+      if (createMissing) {
+        mapped.add(await createTag(pitId, t.name));
+        continue;
+      }
+      final existing =
+          await (select(tags)..where(
+                (x) =>
+                    x.pitId.equals(pitId) &
+                    x.name.equals(t.name) &
+                    x.deletedAt.isNull(),
+              ))
+              .getSingleOrNull();
+      if (existing != null) mapped.add(existing.id);
     }
     await setTags(target, newId, mapped.toList());
   }

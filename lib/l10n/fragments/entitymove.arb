@@ -1,0 +1,73 @@
+{
+  "entityMoveCountIdea": "{count} 個",
+  "@entityMoveCountIdea": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "entityMoveCountDraft": "{count} 份",
+  "@entityMoveCountDraft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "entityMoveUnlinkTitle": "移動到「{pit}」？",
+  "@entityMoveUnlinkTitle": {
+    "placeholders": {
+      "pit": {
+        "type": "String"
+      }
+    }
+  },
+  "entityMoveUnlinkBody": "這些關聯留在「{pit}」，移動後會斷開：",
+  "@entityMoveUnlinkBody": {
+    "placeholders": {
+      "pit": {
+        "type": "String"
+      }
+    }
+  },
+  "entityMovedToPit": "已移動 {count} 項到「{pit}」",
+  "@entityMovedToPit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "pit": {
+        "type": "String"
+      }
+    }
+  },
+  "moveTagMissingTitle": "「{pit}」沒有這些 tag",
+  "@moveTagMissingTitle": {
+    "placeholders": {
+      "pit": {
+        "type": "String"
+      }
+    }
+  },
+  "moveTagMissingBody": "移動的項目帶有下面 {count} 個 tag，但「{pit}」還沒有。",
+  "@moveTagMissingBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "pit": {
+        "type": "String"
+      }
+    }
+  },
+  "moveTagDrop": "不保留 tag",
+  "moveTagCreate": "在「{pit}」新增 tag",
+  "@moveTagCreate": {
+    "placeholders": {
+      "pit": {
+        "type": "String"
+      }
+    }
+  }
+}

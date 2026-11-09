@@ -1827,6 +1827,60 @@ abstract class AppLocalizations {
   /// **'IG'**
   String get entityPlatformMarkInstagram;
 
+  /// No description provided for @entityMoveCountIdea.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 個'**
+  String entityMoveCountIdea(int count);
+
+  /// No description provided for @entityMoveCountDraft.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 份'**
+  String entityMoveCountDraft(int count);
+
+  /// No description provided for @entityMoveUnlinkTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'移動到「{pit}」？'**
+  String entityMoveUnlinkTitle(String pit);
+
+  /// No description provided for @entityMoveUnlinkBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'這些關聯留在「{pit}」，移動後會斷開：'**
+  String entityMoveUnlinkBody(String pit);
+
+  /// No description provided for @entityMovedToPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'已移動 {count} 項到「{pit}」'**
+  String entityMovedToPit(int count, String pit);
+
+  /// No description provided for @moveTagMissingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{pit}」沒有這些 tag'**
+  String moveTagMissingTitle(String pit);
+
+  /// No description provided for @moveTagMissingBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'移動的項目帶有下面 {count} 個 tag，但「{pit}」還沒有。'**
+  String moveTagMissingBody(int count, String pit);
+
+  /// No description provided for @moveTagDrop.
+  ///
+  /// In zh, this message translates to:
+  /// **'不保留 tag'**
+  String get moveTagDrop;
+
+  /// No description provided for @moveTagCreate.
+  ///
+  /// In zh, this message translates to:
+  /// **'在「{pit}」新增 tag'**
+  String moveTagCreate(String pit);
+
   /// No description provided for @formNumberInvalid.
   ///
   /// In zh, this message translates to:

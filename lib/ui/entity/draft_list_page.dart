@@ -5,7 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/database.dart' show GoalKind, TagTarget;
+import '../../data/database.dart' show GoalKind, OwnerType, TagTarget;
 import '../../data/entity_queries.dart';
 import '../../data/sensitive_queries.dart';
 import '../../state/sensitive.dart';
@@ -33,6 +33,7 @@ import 'draft_form_page.dart';
 import 'image_gallery_page.dart';
 import 'master_detail.dart';
 import '../search/tagged_list.dart';
+import 'entity_move.dart';
 import 'entity_select.dart';
 import 'entity_widgets.dart';
 import '../pits/pit_section_tabs.dart';
@@ -154,6 +155,19 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
       [for (final v in picked) v.draft.id],
     );
     if (done && mounted) _sel.exit();
+  }
+
+  /// 跨坑移動（CR 2026-11-09）。
+  Future<void> _move(List<DraftView> picked) async {
+    if (picked.isEmpty) return;
+    final moved = await moveEntitiesToOtherPit(
+      context,
+      ref,
+      type: OwnerType.draft,
+      pitId: widget.pitId,
+      ids: [for (final v in picked) v.draft.id],
+    );
+    if (moved && mounted) _sel.exit();
   }
 
   Future<void> _delete(List<DraftView> picked) async {
@@ -371,6 +385,7 @@ class _DraftListPageState extends ConsumerState<DraftListPage>
             ? EntitySelectBar(
                 onShare: () => _share(picked),
                 onDownload: () => _download(picked),
+                onMove: () => _move(picked),
                 onTag: () => _tag(picked),
                 onDelete: () => _delete(picked),
                 onSensitive: ref.watch(sensitiveMarkingProvider(widget.pitId))

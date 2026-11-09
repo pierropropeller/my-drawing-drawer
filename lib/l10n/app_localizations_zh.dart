@@ -975,6 +975,49 @@ class AppLocalizationsZh extends AppLocalizations {
   String get entityPlatformMarkInstagram => 'IG';
 
   @override
+  String entityMoveCountIdea(int count) {
+    return '$count 個';
+  }
+
+  @override
+  String entityMoveCountDraft(int count) {
+    return '$count 份';
+  }
+
+  @override
+  String entityMoveUnlinkTitle(String pit) {
+    return '移動到「$pit」？';
+  }
+
+  @override
+  String entityMoveUnlinkBody(String pit) {
+    return '這些關聯留在「$pit」，移動後會斷開：';
+  }
+
+  @override
+  String entityMovedToPit(int count, String pit) {
+    return '已移動 $count 項到「$pit」';
+  }
+
+  @override
+  String moveTagMissingTitle(String pit) {
+    return '「$pit」沒有這些 tag';
+  }
+
+  @override
+  String moveTagMissingBody(int count, String pit) {
+    return '移動的項目帶有下面 $count 個 tag，但「$pit」還沒有。';
+  }
+
+  @override
+  String get moveTagDrop => '不保留 tag';
+
+  @override
+  String moveTagCreate(String pit) {
+    return '在「$pit」新增 tag';
+  }
+
+  @override
   String get formNumberInvalid => '請輸入數字';
 
   @override

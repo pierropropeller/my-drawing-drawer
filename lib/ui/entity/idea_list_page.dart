@@ -4,7 +4,10 @@ import '../common/clamped_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/database.dart' show OwnerType;
 import '../../data/entity_queries.dart';
+import '../album/album_icons.dart';
+import 'entity_move.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
@@ -66,6 +69,18 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
       _selecting = false;
       _selected.clear();
     });
+  }
+
+  /// 跨坑移動（CR 2026-11-09）。
+  Future<void> _move() async {
+    final moved = await moveEntitiesToOtherPit(
+      context,
+      ref,
+      type: OwnerType.idea,
+      pitId: widget.pitId,
+      ids: _selected.toList(),
+    );
+    if (moved && mounted) _exit();
   }
 
   Future<void> _delete() async {
@@ -294,7 +309,11 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
                 onPressed: _openNew,
               ),
         bottomNavigationBar: _selecting
-            ? _SelectBar(enabled: _selected.isNotEmpty, onDelete: _delete)
+            ? _SelectBar(
+                enabled: _selected.isNotEmpty,
+                onMove: _move,
+                onDelete: _delete,
+              )
             : null,
         body: SafeArea(
           bottom: false,
@@ -379,16 +398,46 @@ class _IdeaListPageState extends ConsumerState<IdeaListPage>
   }
 }
 
-/// 選取模式底部：只有「刪除」。
+/// 選取模式底部（IdeaSelect）：「移動」（跨坑，CR 2026-11-09）、「刪除」。
 class _SelectBar extends StatelessWidget {
-  const _SelectBar({required this.enabled, required this.onDelete});
+  const _SelectBar({
+    required this.enabled,
+    required this.onMove,
+    required this.onDelete,
+  });
   final bool enabled;
+  final VoidCallback onMove;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final color = enabled ? t.danger : t.danger.withValues(alpha: 0.4);
+    Color dim(Color c) => enabled ? c : c.withValues(alpha: 0.4);
+    Widget action(
+      Key key,
+      String svg,
+      String label,
+      Color color,
+      VoidCallback f,
+    ) => Expanded(
+      child: GestureDetector(
+        key: key,
+        onTap: enabled ? f : null,
+        behavior: HitTestBehavior.opaque,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 52),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SvgIcon(svg, size: 22, color: color),
+              const SizedBox(height: 4),
+              Text(label, style: TextStyle(color: color, fontSize: 11.5)),
+            ],
+          ),
+        ),
+      ),
+    );
     return BottomInsetAnchor(
       child: Container(
         decoration: BoxDecoration(
@@ -398,24 +447,23 @@ class _SelectBar extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
         child: SafeArea(
           top: false,
-          child: GestureDetector(
-            onTap: enabled ? onDelete : null,
-            behavior: HitTestBehavior.opaque,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 52),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SvgIcon(AppIcons.trash, size: 22, color: color),
-                  const SizedBox(height: 4),
-                  Text(
-                    context.l10n.commonDelete,
-                    style: TextStyle(color: color, fontSize: 11.5),
-                  ),
-                ],
+          child: Row(
+            children: [
+              action(
+                const ValueKey('ideaSelectMove'),
+                AlbumIcons.moveFolder,
+                context.l10n.commonMove,
+                dim(t.ink),
+                onMove,
               ),
-            ),
+              action(
+                const ValueKey('ideaSelectDelete'),
+                AppIcons.trash,
+                context.l10n.commonDelete,
+                dim(t.danger),
+                onDelete,
+              ),
+            ],
           ),
         ),
       ),

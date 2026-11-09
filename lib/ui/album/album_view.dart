@@ -2,7 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/database.dart' show TagTarget;
+import '../../data/entity_move_queries.dart';
 import '../../data/junk_queries.dart';
+import '../entity/entity_move.dart' show showMoveTagConfirm;
 import '../../data/sensitive_queries.dart';
 import '../../state/sensitive.dart';
 import '../common/sensitive_actions.dart';
@@ -213,15 +216,40 @@ class _AlbumViewState extends ConsumerState<AlbumView>
       initialGroupId: groups.length == 1 ? groups.first : null,
     );
     if (target == null || !mounted) return;
-    await ref
-        .read(databaseProvider)
-        .moveAlbumImages(
-          from: cell,
-          ids: [for (final p in picked) p.id],
-          to: target.cell,
-          groupId: target.groupId,
-          targetPitId: target.pitId,
+    final db = ref.read(databaseProvider);
+    final ids = [for (final p in picked) p.id];
+    // 同種格跨坑才會帶 tag；目標坑缺的 tag 先問（MoveTagConfirm，CR 2026-11-09）。
+    var createTags = true;
+    final tagTarget = switch (cell) {
+      AlbumCell.official => TagTarget.official,
+      AlbumCell.fan => TagTarget.fanArt,
+      AlbumCell.junk => null,
+    };
+    if (target.crossPit && target.cell == cell && tagTarget != null) {
+      final missing = await db.missingTagNamesForMove(
+        tagTarget,
+        ids,
+        target.pitId!,
+      );
+      if (!mounted) return;
+      if (missing.isNotEmpty) {
+        final choice = await showMoveTagConfirm(
+          context,
+          pitName: target.pitName ?? '',
+          names: missing,
         );
+        if (choice == null || !mounted) return;
+        createTags = choice;
+      }
+    }
+    await db.moveAlbumImages(
+      from: cell,
+      ids: ids,
+      to: target.cell,
+      groupId: target.groupId,
+      targetPitId: target.pitId,
+      createMissingTags: createTags,
+    );
     if (!mounted) return;
     final cellLabel = albumCellLabel(context.l10n, target.cell);
     showSnack(

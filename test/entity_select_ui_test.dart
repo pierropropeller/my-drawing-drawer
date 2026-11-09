@@ -26,7 +26,7 @@ import 'package:huakeng/ui/entity/piece_detail_page.dart';
 import 'package:share_plus_platform_interface/share_plus_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 摸魚、成圖列表的多選（D-095）：長按進入、拖曳連選、全選、四個動作、
+/// 摸魚、成圖列表的多選（D-095）：長按進入、拖曳連選、全選、底欄動作（D-130 加了移動）、
 /// 列表→九宮格切換、成圖三種佈局、平板版面。
 class _FakeShare extends SharePlatform {
   final shared = <List<String>>[];
@@ -201,7 +201,7 @@ void main() {
   }
 
   group('摸魚', () {
-    testWidgets('列表長按：換成多選九宮格、標題已選 N 份、四個動作、沒有移動、導覽列隱藏', (tester) async {
+    testWidgets('列表長按：換成多選九宮格、標題已選 N 份、五個動作（含移動）、導覽列隱藏', (tester) async {
       await tester.runAsync(seedDrafts);
       await show(tester, DraftListPage(pitId: pitId));
       expect(find.byType(DraftRow), findsWidgets);
@@ -216,7 +216,7 @@ void main() {
       for (final s in ['分享', '下載', 'tag', '刪除']) {
         expect(find.text(s), findsOneWidget, reason: s);
       }
-      expect(find.text('移動'), findsNothing);
+      expect(find.text('移動'), findsOneWidget); // 跨坑移動（D-130）
       // 標題列換成「× 已選 N 份」＋全選；沒有分段列、沒有新增按鈕
       expect(find.text('全選'), findsOneWidget);
       expect(find.text('我的摸魚'), findsNothing);
@@ -430,7 +430,7 @@ void main() {
       expect(find.byType(DraftRow), findsNothing);
       expect(find.text('已選 1 份'), findsOneWidget);
       expect(find.byType(SelectMark), findsNWidgets(6));
-      expect(find.text('移動'), findsNothing);
+      expect(find.text('移動'), findsOneWidget); // 跨坑移動（D-130）
       // 欄數依可用闊度（>3 欄）：6 格都在第一排
       final tops = {
         for (final e in find.byType(DragSelectItem).evaluate())
@@ -465,7 +465,7 @@ void main() {
         for (final s in ['分享', '下載', 'tag', '刪除']) {
           expect(find.text(s), findsOneWidget, reason: s);
         }
-        expect(find.text('移動'), findsNothing);
+        expect(find.text('移動'), findsOneWidget); // 跨坑移動（D-130）
         await tester.pump();
         await tester.pump();
         expect(navBarHiddenCount.value, greaterThan(0));

@@ -94,7 +94,7 @@ class EntitySelectHeader extends StatelessWidget {
   }
 }
 
-/// 底部四個動作：分享、下載、tag、刪除（沒有「移動」，也沒有導覽列）。
+/// 底部動作：分享、下載、（移動）、tag、刪除（沒有導覽列）。「移動」＝跨坑（CR 2026-11-09，DraftSelect）。
 class EntitySelectBar extends StatelessWidget {
   const EntitySelectBar({
     super.key,
@@ -103,6 +103,7 @@ class EntitySelectBar extends StatelessWidget {
     required this.onTag,
     required this.onDelete,
     this.onSensitive,
+    this.onMove,
   });
   final VoidCallback onShare;
   final VoidCallback onDownload;
@@ -111,6 +112,9 @@ class EntitySelectBar extends StatelessWidget {
 
   /// 「敏感」動作（D-104）；null＝不顯示（總開關或這個坑的敏感內容沒開）。
   final VoidCallback? onSensitive;
+
+  /// 「移動」（跨坑）；null＝不顯示。
+  final VoidCallback? onMove;
 
   @override
   Widget build(BuildContext context) {
@@ -146,6 +150,16 @@ class EntitySelectBar extends StatelessWidget {
                   onTap: onDownload,
                 ),
               ),
+              if (onMove != null)
+                Expanded(
+                  child: _BarAction(
+                    key: const ValueKey('entitySelectMove'),
+                    label: l.commonMove,
+                    svg: AlbumIcons.moveFolder,
+                    color: t.ink,
+                    onTap: onMove!,
+                  ),
+                ),
               if (onSensitive != null)
                 Expanded(
                   child: _BarAction(

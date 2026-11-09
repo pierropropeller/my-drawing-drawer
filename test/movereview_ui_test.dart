@@ -92,7 +92,7 @@ void main() {
   Finder inSheet(String text) =>
       find.descendant(of: find.byType(MoveSheet), matching: find.text(text));
 
-  testWidgets('跨坑移動：tag 按名稱對應到目標坑，移動後在目標坑的同人圖列表看得到', (tester) async {
+  testWidgets('跨坑移動：目標坑缺 tag 先問、選新增，移動後在目標坑的同人圖列表看得到', (tester) async {
     await tester.runAsync(() async {
       final t = await db.createTag(a, '夏日');
       await db.addFanArts(
@@ -130,6 +130,11 @@ void main() {
     await tester.tap(inSheet('好看同人圖'));
     await settle(tester);
     await tester.tap(find.text('完成').last);
+    await settle(tester);
+    // 坑乙沒有「夏日」：先問（MoveTagConfirm，D-131），選新增。
+    expect(find.text('「坑乙」沒有這些 tag'), findsOneWidget);
+    expect(find.text('#夏日'), findsOneWidget);
+    await tester.tap(find.text('在「坑乙」新增 tag'));
     await settle(tester);
 
     final inA = await tester.runAsync(() => db.watchFanArts(a).first);
