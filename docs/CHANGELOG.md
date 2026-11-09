@@ -11,7 +11,7 @@
 
 ## 批次 27（2026-11-09，主題色：底色跟著微調、改名）
 
-- **D-133** **主題色不只換 accent，中性色也帶一點主題色調**；主題改名：霧藍→**牛奶**、珊瑚→**柿子**（accent 色值不變，設定的 key 沿用 `slate`／`coral`）。Artboard：`ColorSystem`、`Theme`。
+- **D-133** **主題色不只換 accent，中性色也帶一點主題色調**；主題改名：霧藍→**牛奶**、珊瑚→**柿子**（accent 色值不變，設定的 key 沿用 `slate`／`coral`）。Artboard：`ColorSystem`、`Theme`。 ✅ commit 7fe206b
   - 底色、導覽列底、主文字、灰字（text-2/3/4）、border、border-card、chip-bg、虛線、虛線字、輸入框邊線，都從柿子那套米白轉色相：玫瑰偏粉、牛奶偏冷灰藍、抹茶偏黃綠；亮度與彩度維持，所以對比不變。柿子＝原本那套，不動。
   - 淺色模式卡片（surface）維持純白；分類色、danger 不隨主題改變。
   - 新增 token `field`（輸入框／pill 外框，原本寫死 `#E3D8C9`），也跟主題走。
