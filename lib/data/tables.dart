@@ -124,6 +124,26 @@ class Pits extends Table with SyncColumns {
   /// （就算圖片資料裡有標記），重新開啟後標記自動恢復。還要搭配裝置的總開關才生效。
   BoolColumn get sensitiveEnabled =>
       boolean().withDefault(const Constant(false))();
+
+  /// 主頁「手動」排序的位置（D-132）：小的排前面；null＝還沒排過（新坑、剛從別的分頁轉過來），
+  /// 排在最前面（彼此按建立時間新→舊）。轉換坑的類型時清成 null。
+  IntColumn get sortOrder => integer().nullable()();
+
+  /// 最後一次「只改排序」的時間（D-132）。等於 [updatedAt] 時，表示坑本身最後一次寫入只是排序，
+  /// 「更新日期」排序改看 [activityAt]（排序前坑本身的最後更新）——排序不算更新。
+  DateTimeColumn get sortTouchedAt => dateTime().nullable()();
+  DateTimeColumn get activityAt => dateTime().nullable()();
+}
+
+/// 主頁每個分頁（現坑／淺坑／封存坑）各自的排序方式（D-132；同步）。
+/// [mode]：`manual`／`created_desc`／`created_asc`／`updated_desc`／`updated_asc`；沒有這列＝`updated_desc`。
+class PitSortSettings extends Table {
+  TextColumn get status => text()();
+  TextColumn get mode => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {status};
 }
 
 /// 分組：官方圖冊的分組（kind=official）、好看同人圖的分組（kind=fan，預設是各出處）
@@ -316,6 +336,7 @@ class Goals extends Table with SyncColumns {
   TextColumn get name => text().nullable()();
   TextColumn get kind => textEnum<GoalKind>()();
   IntColumn get count => integer()();
+
   /// 舊版的單一目標坑；D-124 起改看 [pitIds]，這欄只留第一個坑給舊版 App 讀。
   TextColumn get pitId => text().nullable()();
 

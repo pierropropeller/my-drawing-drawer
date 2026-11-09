@@ -13,6 +13,8 @@ import '../common/dashed_box.dart';
 import '../common/svg_icon.dart';
 import 'pit_new_page.dart';
 import 'pit_page.dart';
+import 'pit_reorder_grid.dart';
+import 'pits_icons.dart';
 import 'pit_type_widgets.dart';
 
 /// iPad 淺坑／封存坑卡片的欄數（P-040）：內容區闊度（扣掉 sidebar／icon rail）≥ 640 兩欄，否則一欄。
@@ -28,47 +30,71 @@ class PitRows extends StatelessWidget {
     required this.status,
     this.tablet = false,
     this.wide = false,
+    this.editing = false,
+    this.onEnterEdit,
+    this.onReorder,
+    this.onCoverTap,
   });
   final List<Pit> pits;
   final PitStatus status;
   final bool tablet;
   final bool wide;
 
+  /// 編輯排序（D-132，MainShallowSortEdit）：右箭頭換成拖動把手、點小封面＝[onCoverTap]，
+  /// 「開新淺坑」先隱藏。長按任何一列＝[onEnterEdit] 並開始拖。
+  final bool editing;
+  final VoidCallback? onEnterEdit;
+  final void Function(int from, int to)? onReorder;
+  final void Function(Pit pit)? onCoverTap;
+
   @override
   Widget build(BuildContext context) {
     final padH = tablet ? (wide ? 40.0 : 32.0) : 20.0;
-    final withNew = status == PitStatus.shallow;
-    if (tablet) {
-      // iPad（MainShallow／MainArchived，P-027／P-040）：卡片列表，淺坑最後一格虛線「開新淺坑」。
-      // 欄數看內容區（扣掉 sidebar／icon rail 之後）的闊度：≥ 640 兩欄，否則一欄。
-      final count = pits.length + (withNew ? 1 : 0);
-      return LayoutBuilder(
-        builder: (context, box) => GridView.builder(
-          key: const ValueKey('pitCardGrid'),
-          padding: EdgeInsets.fromLTRB(padH, 22, padH, 24),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: pitCardColumns(box.maxWidth),
-            mainAxisSpacing: 14,
-            crossAxisSpacing: 16,
-            mainAxisExtent:
-                90 * math.max(1.0, MediaQuery.textScalerOf(context).scale(1)),
+    final withNew = status == PitStatus.shallow && !editing;
+    final scale = math.max(1.0, MediaQuery.textScalerOf(context).scale(1));
+    return LayoutBuilder(
+      builder: (context, box) {
+        // iPad（MainShallow／MainArchived，P-027／P-040）：卡片列表，淺坑最後一格虛線「開新淺坑」。
+        // 欄數看內容區（扣掉 sidebar／icon rail 之後）的闊度：≥ 640 兩欄，否則一欄。
+        final pad = tablet
+            ? EdgeInsets.fromLTRB(padH, 22, padH, 24)
+            : EdgeInsets.fromLTRB(padH, 4, padH, 24);
+        final cols = tablet ? pitCardColumns(box.maxWidth) : 1;
+        final gapX = tablet ? 16.0 : 0.0;
+        final cellW =
+            (box.maxWidth - pad.horizontal - gapX * (cols - 1)) / cols;
+        final cellH = (tablet ? 90.0 : 80.0) * scale;
+        return SingleChildScrollView(
+          key: tablet ? const ValueKey('pitCardGrid') : null,
+          padding: pad,
+          child: PitReorderGrid(
+            count: pits.length,
+            columns: cols,
+            cellWidth: cellW,
+            cellHeight: cellH,
+            gapX: gapX,
+            gapY: tablet ? 14 : 0,
+            placeholderRadius: tablet ? 18 : 14,
+            liftScale: 1.03,
+            onDragStart: onEnterEdit,
+            onReorder: (from, to) => onReorder?.call(from, to),
+            trailing: withNew
+                ? (tablet ? const _NewShallowCard() : const _NewShallowRow())
+                : null,
+            itemBuilder: (_, i, dragging, lifted) => PitRow(
+              pit: pits[i],
+              index: i,
+              status: status,
+              card: tablet,
+              editing: editing || dragging,
+              dragging: dragging,
+              lifted: lifted,
+              onCoverTap: () => onCoverTap?.call(pits[i]),
+            ),
           ),
-          itemCount: count,
-          itemBuilder: (_, i) => i == pits.length
-              ? const _NewShallowCard()
-              : PitRow(pit: pits[i], index: i, status: status, card: true),
-        ),
-      );
-    }
-    final list = ListView(
-      padding: EdgeInsets.fromLTRB(padH, 4, padH, 24),
-      children: [
-        for (var i = 0; i < pits.length; i++)
-          PitRow(pit: pits[i], index: i, status: status),
-        if (withNew) const _NewShallowRow(),
-      ],
+        );
+      },
     );
-    return list;
   }
 }
 
@@ -91,10 +117,20 @@ class PitRow extends ConsumerWidget {
     required this.index,
     required this.status,
     this.card = false,
+    this.editing = false,
+    this.dragging = false,
+    this.lifted = false,
+    this.onCoverTap,
   });
   final Pit pit;
   final int index;
   final PitStatus status;
+
+  /// 編輯排序（D-132）：見 [PitRows.editing]。[lifted]＝浮起的那列（白底圓角＋陰影）。
+  final bool editing;
+  final bool dragging;
+  final bool lifted;
+  final VoidCallback? onCoverTap;
 
   /// iPad 卡片版（P-027）：白底圓角卡、64px 封面（圓角 14）、坑名 16、副標 13。
   final bool card;
@@ -174,30 +210,91 @@ class PitRow extends ConsumerWidget {
         ),
       ),
     );
+    Widget coverArea = cover;
+    if (editing && !dragging) {
+      final badge = card ? 26.0 : 24.0;
+      coverArea = Semantics(
+        button: true,
+        label: context.l10n.pitsortCoverEdit,
+        child: GestureDetector(
+          key: ValueKey('pitCoverEdit-${pit.id}'),
+          behavior: HitTestBehavior.opaque,
+          onTap: onCoverTap,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              cover,
+              Positioned(
+                right: -5,
+                bottom: -5,
+                width: badge,
+                height: badge,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: t.surface,
+                    shape: BoxShape.circle,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x332B2622),
+                        offset: Offset(0, 1),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: SvgIcon(
+                      AppIcons.image,
+                      size: 13,
+                      strokeWidth: 2,
+                      color: t.ink,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    final BoxDecoration decoration;
+    if (lifted) {
+      decoration = BoxDecoration(
+        color: t.surface,
+        borderRadius: BorderRadius.circular(card ? 18 : 14),
+        boxShadow: pitLiftShadow,
+      );
+    } else if (card) {
+      decoration = BoxDecoration(
+        color: t.surface,
+        border: Border.all(color: t.borderCard),
+        borderRadius: BorderRadius.circular(18),
+      );
+    } else {
+      decoration = BoxDecoration(
+        border: Border(bottom: BorderSide(color: t.chipBg)),
+      );
+    }
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pit.id))),
+      // 編輯排序時點列的其他地方不做事（也不算「點空白處」）。
+      onTap: editing
+          ? () {}
+          : () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pit.id)),
+            ),
       child: Container(
-        padding: card
-            ? const EdgeInsets.fromLTRB(12, 12, 14, 12)
+        padding: card || lifted
+            ? EdgeInsets.fromLTRB(card ? 12 : 8, 12, 14, 12)
             : const EdgeInsets.symmetric(vertical: 12),
-        decoration: card
-            ? BoxDecoration(
-                color: t.surface,
-                border: Border.all(color: t.borderCard),
-                borderRadius: BorderRadius.circular(18),
-              )
-            : BoxDecoration(
-                border: Border(bottom: BorderSide(color: t.chipBg)),
-              ),
+        decoration: decoration,
         child: Row(
           children: [
-            cover,
+            coverArea,
             const SizedBox(width: 14),
             Expanded(
               child: Column(
+                // 卡片（iPad）文字靠上；列表（手機）整組垂直置中。
+                mainAxisSize: card ? MainAxisSize.max : MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -221,12 +318,23 @@ class PitRow extends ConsumerWidget {
                 ],
               ),
             ),
-            SvgIcon(
-              AppIcons.chevronRight,
-              size: 18,
-              strokeWidth: 2,
-              color: t.text4,
-            ),
+            if (editing)
+              Semantics(
+                label: context.l10n.pitsortDragHandle,
+                child: SvgIcon(
+                  PitsIcons.dragHandle,
+                  size: 20,
+                  strokeWidth: 2,
+                  color: lifted ? t.ink : t.text3,
+                ),
+              )
+            else
+              SvgIcon(
+                AppIcons.chevronRight,
+                size: 18,
+                strokeWidth: 2,
+                color: t.text4,
+              ),
           ],
         ),
       ),

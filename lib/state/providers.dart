@@ -46,6 +46,11 @@ final pitsByStatusProvider = StreamProvider.family<List<Pit>, PitStatus>(
   (ref, status) => ref.watch(databaseProvider).watchPitsByStatus({status}),
 );
 
+/// 主頁分頁的排序方式（D-132）。
+final pitSortModeProvider = StreamProvider.family<PitSortMode, PitStatus>(
+  (ref, status) => ref.watch(databaseProvider).watchPitSortMode(status),
+);
+
 /// 選擇清單用的坑（分享匯入、圖片移動、新增目標、日頁新增）：現坑＋淺坑，**不含封存坑**。
 final selectablePitsProvider = StreamProvider<List<Pit>>(
   (ref) => ref.watch(databaseProvider).watchSelectablePits(),

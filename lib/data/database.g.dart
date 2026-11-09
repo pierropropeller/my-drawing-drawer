@@ -223,6 +223,40 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortTouchedAtMeta = const VerificationMeta(
+    'sortTouchedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> sortTouchedAt =
+      GeneratedColumn<DateTime>(
+        'sort_touched_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _activityAtMeta = const VerificationMeta(
+    'activityAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> activityAt = GeneratedColumn<DateTime>(
+    'activity_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -244,6 +278,9 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
     coverFile,
     junkEnabled,
     sensitiveEnabled,
+    sortOrder,
+    sortTouchedAt,
+    activityAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -388,6 +425,27 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
         ),
       );
     }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('sort_touched_at')) {
+      context.handle(
+        _sortTouchedAtMeta,
+        sortTouchedAt.isAcceptableOrUnknown(
+          data['sort_touched_at']!,
+          _sortTouchedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('activity_at')) {
+      context.handle(
+        _activityAtMeta,
+        activityAt.isAcceptableOrUnknown(data['activity_at']!, _activityAtMeta),
+      );
+    }
     return context;
   }
 
@@ -477,6 +535,18 @@ class $PitsTable extends Pits with TableInfo<$PitsTable, Pit> {
         DriftSqlType.bool,
         data['${effectivePrefix}sensitive_enabled'],
       )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      ),
+      sortTouchedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}sort_touched_at'],
+      ),
+      activityAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}activity_at'],
+      ),
     );
   }
 
@@ -534,6 +604,15 @@ class Pit extends DataClass implements Insertable<Pit> {
   /// 這個坑開了敏感內容標記（D-104）；預設關。關閉時坑內完全沒有標記入口、也不模糊
   /// （就算圖片資料裡有標記），重新開啟後標記自動恢復。還要搭配裝置的總開關才生效。
   final bool sensitiveEnabled;
+
+  /// 主頁「手動」排序的位置（D-132）：小的排前面；null＝還沒排過（新坑、剛從別的分頁轉過來），
+  /// 排在最前面（彼此按建立時間新→舊）。轉換坑的類型時清成 null。
+  final int? sortOrder;
+
+  /// 最後一次「只改排序」的時間（D-132）。等於 [updatedAt] 時，表示坑本身最後一次寫入只是排序，
+  /// 「更新日期」排序改看 [activityAt]（排序前坑本身的最後更新）——排序不算更新。
+  final DateTime? sortTouchedAt;
+  final DateTime? activityAt;
   const Pit({
     required this.id,
     required this.createdAt,
@@ -554,6 +633,9 @@ class Pit extends DataClass implements Insertable<Pit> {
     this.coverFile,
     required this.junkEnabled,
     required this.sensitiveEnabled,
+    this.sortOrder,
+    this.sortTouchedAt,
+    this.activityAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -605,6 +687,15 @@ class Pit extends DataClass implements Insertable<Pit> {
     }
     map['junk_enabled'] = Variable<bool>(junkEnabled);
     map['sensitive_enabled'] = Variable<bool>(sensitiveEnabled);
+    if (!nullToAbsent || sortOrder != null) {
+      map['sort_order'] = Variable<int>(sortOrder);
+    }
+    if (!nullToAbsent || sortTouchedAt != null) {
+      map['sort_touched_at'] = Variable<DateTime>(sortTouchedAt);
+    }
+    if (!nullToAbsent || activityAt != null) {
+      map['activity_at'] = Variable<DateTime>(activityAt);
+    }
     return map;
   }
 
@@ -649,6 +740,15 @@ class Pit extends DataClass implements Insertable<Pit> {
           : Value(coverFile),
       junkEnabled: Value(junkEnabled),
       sensitiveEnabled: Value(sensitiveEnabled),
+      sortOrder: sortOrder == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sortOrder),
+      sortTouchedAt: sortTouchedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sortTouchedAt),
+      activityAt: activityAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(activityAt),
     );
   }
 
@@ -681,6 +781,9 @@ class Pit extends DataClass implements Insertable<Pit> {
       coverFile: serializer.fromJson<String?>(json['coverFile']),
       junkEnabled: serializer.fromJson<bool>(json['junkEnabled']),
       sensitiveEnabled: serializer.fromJson<bool>(json['sensitiveEnabled']),
+      sortOrder: serializer.fromJson<int?>(json['sortOrder']),
+      sortTouchedAt: serializer.fromJson<DateTime?>(json['sortTouchedAt']),
+      activityAt: serializer.fromJson<DateTime?>(json['activityAt']),
     );
   }
   @override
@@ -710,6 +813,9 @@ class Pit extends DataClass implements Insertable<Pit> {
       'coverFile': serializer.toJson<String?>(coverFile),
       'junkEnabled': serializer.toJson<bool>(junkEnabled),
       'sensitiveEnabled': serializer.toJson<bool>(sensitiveEnabled),
+      'sortOrder': serializer.toJson<int?>(sortOrder),
+      'sortTouchedAt': serializer.toJson<DateTime?>(sortTouchedAt),
+      'activityAt': serializer.toJson<DateTime?>(activityAt),
     };
   }
 
@@ -733,6 +839,9 @@ class Pit extends DataClass implements Insertable<Pit> {
     Value<String?> coverFile = const Value.absent(),
     bool? junkEnabled,
     bool? sensitiveEnabled,
+    Value<int?> sortOrder = const Value.absent(),
+    Value<DateTime?> sortTouchedAt = const Value.absent(),
+    Value<DateTime?> activityAt = const Value.absent(),
   }) => Pit(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -765,6 +874,11 @@ class Pit extends DataClass implements Insertable<Pit> {
     coverFile: coverFile.present ? coverFile.value : this.coverFile,
     junkEnabled: junkEnabled ?? this.junkEnabled,
     sensitiveEnabled: sensitiveEnabled ?? this.sensitiveEnabled,
+    sortOrder: sortOrder.present ? sortOrder.value : this.sortOrder,
+    sortTouchedAt: sortTouchedAt.present
+        ? sortTouchedAt.value
+        : this.sortTouchedAt,
+    activityAt: activityAt.present ? activityAt.value : this.activityAt,
   );
   Pit copyWithCompanion(PitsCompanion data) {
     return Pit(
@@ -809,6 +923,13 @@ class Pit extends DataClass implements Insertable<Pit> {
       sensitiveEnabled: data.sensitiveEnabled.present
           ? data.sensitiveEnabled.value
           : this.sensitiveEnabled,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      sortTouchedAt: data.sortTouchedAt.present
+          ? data.sortTouchedAt.value
+          : this.sortTouchedAt,
+      activityAt: data.activityAt.present
+          ? data.activityAt.value
+          : this.activityAt,
     );
   }
 
@@ -833,13 +954,16 @@ class Pit extends DataClass implements Insertable<Pit> {
           ..write('enabledSections: $enabledSections, ')
           ..write('coverFile: $coverFile, ')
           ..write('junkEnabled: $junkEnabled, ')
-          ..write('sensitiveEnabled: $sensitiveEnabled')
+          ..write('sensitiveEnabled: $sensitiveEnabled, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('sortTouchedAt: $sortTouchedAt, ')
+          ..write('activityAt: $activityAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     createdAt,
     updatedAt,
@@ -859,7 +983,10 @@ class Pit extends DataClass implements Insertable<Pit> {
     coverFile,
     junkEnabled,
     sensitiveEnabled,
-  );
+    sortOrder,
+    sortTouchedAt,
+    activityAt,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -882,7 +1009,10 @@ class Pit extends DataClass implements Insertable<Pit> {
           other.enabledSections == this.enabledSections &&
           other.coverFile == this.coverFile &&
           other.junkEnabled == this.junkEnabled &&
-          other.sensitiveEnabled == this.sensitiveEnabled);
+          other.sensitiveEnabled == this.sensitiveEnabled &&
+          other.sortOrder == this.sortOrder &&
+          other.sortTouchedAt == this.sortTouchedAt &&
+          other.activityAt == this.activityAt);
 }
 
 class PitsCompanion extends UpdateCompanion<Pit> {
@@ -905,6 +1035,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
   final Value<String?> coverFile;
   final Value<bool> junkEnabled;
   final Value<bool> sensitiveEnabled;
+  final Value<int?> sortOrder;
+  final Value<DateTime?> sortTouchedAt;
+  final Value<DateTime?> activityAt;
   final Value<int> rowid;
   const PitsCompanion({
     this.id = const Value.absent(),
@@ -926,6 +1059,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     this.coverFile = const Value.absent(),
     this.junkEnabled = const Value.absent(),
     this.sensitiveEnabled = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.sortTouchedAt = const Value.absent(),
+    this.activityAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PitsCompanion.insert({
@@ -948,6 +1084,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     this.coverFile = const Value.absent(),
     this.junkEnabled = const Value.absent(),
     this.sensitiveEnabled = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.sortTouchedAt = const Value.absent(),
+    this.activityAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Pit> custom({
@@ -970,6 +1109,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     Expression<String>? coverFile,
     Expression<bool>? junkEnabled,
     Expression<bool>? sensitiveEnabled,
+    Expression<int>? sortOrder,
+    Expression<DateTime>? sortTouchedAt,
+    Expression<DateTime>? activityAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -992,6 +1134,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
       if (coverFile != null) 'cover_file': coverFile,
       if (junkEnabled != null) 'junk_enabled': junkEnabled,
       if (sensitiveEnabled != null) 'sensitive_enabled': sensitiveEnabled,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (sortTouchedAt != null) 'sort_touched_at': sortTouchedAt,
+      if (activityAt != null) 'activity_at': activityAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1016,6 +1161,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     Value<String?>? coverFile,
     Value<bool>? junkEnabled,
     Value<bool>? sensitiveEnabled,
+    Value<int?>? sortOrder,
+    Value<DateTime?>? sortTouchedAt,
+    Value<DateTime?>? activityAt,
     Value<int>? rowid,
   }) {
     return PitsCompanion(
@@ -1038,6 +1186,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
       coverFile: coverFile ?? this.coverFile,
       junkEnabled: junkEnabled ?? this.junkEnabled,
       sensitiveEnabled: sensitiveEnabled ?? this.sensitiveEnabled,
+      sortOrder: sortOrder ?? this.sortOrder,
+      sortTouchedAt: sortTouchedAt ?? this.sortTouchedAt,
+      activityAt: activityAt ?? this.activityAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1106,6 +1257,15 @@ class PitsCompanion extends UpdateCompanion<Pit> {
     if (sensitiveEnabled.present) {
       map['sensitive_enabled'] = Variable<bool>(sensitiveEnabled.value);
     }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (sortTouchedAt.present) {
+      map['sort_touched_at'] = Variable<DateTime>(sortTouchedAt.value);
+    }
+    if (activityAt.present) {
+      map['activity_at'] = Variable<DateTime>(activityAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1134,6 +1294,9 @@ class PitsCompanion extends UpdateCompanion<Pit> {
           ..write('coverFile: $coverFile, ')
           ..write('junkEnabled: $junkEnabled, ')
           ..write('sensitiveEnabled: $sensitiveEnabled, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('sortTouchedAt: $sortTouchedAt, ')
+          ..write('activityAt: $activityAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -13999,6 +14162,271 @@ class RefViewStatesCompanion extends UpdateCompanion<RefViewState> {
   }
 }
 
+class $PitSortSettingsTable extends PitSortSettings
+    with TableInfo<$PitSortSettingsTable, PitSortSetting> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PitSortSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modeMeta = const VerificationMeta('mode');
+  @override
+  late final GeneratedColumn<String> mode = GeneratedColumn<String>(
+    'mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [status, mode, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pit_sort_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PitSortSetting> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('mode')) {
+      context.handle(
+        _modeMeta,
+        mode.isAcceptableOrUnknown(data['mode']!, _modeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modeMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {status};
+  @override
+  PitSortSetting map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PitSortSetting(
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      mode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mode'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PitSortSettingsTable createAlias(String alias) {
+    return $PitSortSettingsTable(attachedDatabase, alias);
+  }
+}
+
+class PitSortSetting extends DataClass implements Insertable<PitSortSetting> {
+  final String status;
+  final String mode;
+  final DateTime updatedAt;
+  const PitSortSetting({
+    required this.status,
+    required this.mode,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['status'] = Variable<String>(status);
+    map['mode'] = Variable<String>(mode);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  PitSortSettingsCompanion toCompanion(bool nullToAbsent) {
+    return PitSortSettingsCompanion(
+      status: Value(status),
+      mode: Value(mode),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory PitSortSetting.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PitSortSetting(
+      status: serializer.fromJson<String>(json['status']),
+      mode: serializer.fromJson<String>(json['mode']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'status': serializer.toJson<String>(status),
+      'mode': serializer.toJson<String>(mode),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  PitSortSetting copyWith({
+    String? status,
+    String? mode,
+    DateTime? updatedAt,
+  }) => PitSortSetting(
+    status: status ?? this.status,
+    mode: mode ?? this.mode,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  PitSortSetting copyWithCompanion(PitSortSettingsCompanion data) {
+    return PitSortSetting(
+      status: data.status.present ? data.status.value : this.status,
+      mode: data.mode.present ? data.mode.value : this.mode,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PitSortSetting(')
+          ..write('status: $status, ')
+          ..write('mode: $mode, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(status, mode, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PitSortSetting &&
+          other.status == this.status &&
+          other.mode == this.mode &&
+          other.updatedAt == this.updatedAt);
+}
+
+class PitSortSettingsCompanion extends UpdateCompanion<PitSortSetting> {
+  final Value<String> status;
+  final Value<String> mode;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const PitSortSettingsCompanion({
+    this.status = const Value.absent(),
+    this.mode = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PitSortSettingsCompanion.insert({
+    required String status,
+    required String mode,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : status = Value(status),
+       mode = Value(mode),
+       updatedAt = Value(updatedAt);
+  static Insertable<PitSortSetting> custom({
+    Expression<String>? status,
+    Expression<String>? mode,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (status != null) 'status': status,
+      if (mode != null) 'mode': mode,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PitSortSettingsCompanion copyWith({
+    Value<String>? status,
+    Value<String>? mode,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return PitSortSettingsCompanion(
+      status: status ?? this.status,
+      mode: mode ?? this.mode,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (mode.present) {
+      map['mode'] = Variable<String>(mode.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PitSortSettingsCompanion(')
+          ..write('status: $status, ')
+          ..write('mode: $mode, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -14031,6 +14459,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $UserProfilesTable userProfiles = $UserProfilesTable(this);
   late final $RefViewStatesTable refViewStates = $RefViewStatesTable(this);
+  late final $PitSortSettingsTable pitSortSettings = $PitSortSettingsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -14061,6 +14492,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     remoteFileSizes,
     userProfiles,
     refViewStates,
+    pitSortSettings,
   ];
 }
 
@@ -14084,6 +14516,9 @@ typedef $$PitsTableCreateCompanionBuilder = PitsCompanion Function({
   Value<String?> coverFile,
   Value<bool> junkEnabled,
   Value<bool> sensitiveEnabled,
+  Value<int?> sortOrder,
+  Value<DateTime?> sortTouchedAt,
+  Value<DateTime?> activityAt,
   Value<int> rowid,
 });
 typedef $$PitsTableUpdateCompanionBuilder = PitsCompanion Function({
@@ -14106,6 +14541,9 @@ typedef $$PitsTableUpdateCompanionBuilder = PitsCompanion Function({
   Value<String?> coverFile,
   Value<bool> junkEnabled,
   Value<bool> sensitiveEnabled,
+  Value<int?> sortOrder,
+  Value<DateTime?> sortTouchedAt,
+  Value<DateTime?> activityAt,
   Value<int> rowid,
 });
 
@@ -14213,6 +14651,21 @@ class $$PitsTableFilterComposer extends Composer<_$AppDatabase, $PitsTable> {
     column: $table.sensitiveEnabled,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get sortTouchedAt => $composableBuilder(
+    column: $table.sortTouchedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get activityAt => $composableBuilder(
+    column: $table.activityAt,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$PitsTableOrderingComposer extends Composer<_$AppDatabase, $PitsTable> {
@@ -14317,6 +14770,21 @@ class $$PitsTableOrderingComposer extends Composer<_$AppDatabase, $PitsTable> {
     column: $table.sensitiveEnabled,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get sortTouchedAt => $composableBuilder(
+    column: $table.sortTouchedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get activityAt => $composableBuilder(
+    column: $table.activityAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PitsTableAnnotationComposer
@@ -14407,6 +14875,19 @@ class $$PitsTableAnnotationComposer
     column: $table.sensitiveEnabled,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get sortTouchedAt => $composableBuilder(
+    column: $table.sortTouchedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get activityAt => $composableBuilder(
+    column: $table.activityAt,
+    builder: (column) => column,
+  );
 }
 
 class $$PitsTableTableManager
@@ -14457,6 +14938,9 @@ class $$PitsTableTableManager
                 Value<String?> coverFile = const Value.absent(),
                 Value<bool> junkEnabled = const Value.absent(),
                 Value<bool> sensitiveEnabled = const Value.absent(),
+                Value<int?> sortOrder = const Value.absent(),
+                Value<DateTime?> sortTouchedAt = const Value.absent(),
+                Value<DateTime?> activityAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PitsCompanion(
                 id: id,
@@ -14478,6 +14962,9 @@ class $$PitsTableTableManager
                 coverFile: coverFile,
                 junkEnabled: junkEnabled,
                 sensitiveEnabled: sensitiveEnabled,
+                sortOrder: sortOrder,
+                sortTouchedAt: sortTouchedAt,
+                activityAt: activityAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -14502,6 +14989,9 @@ class $$PitsTableTableManager
                 Value<String?> coverFile = const Value.absent(),
                 Value<bool> junkEnabled = const Value.absent(),
                 Value<bool> sensitiveEnabled = const Value.absent(),
+                Value<int?> sortOrder = const Value.absent(),
+                Value<DateTime?> sortTouchedAt = const Value.absent(),
+                Value<DateTime?> activityAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PitsCompanion.insert(
                 id: id,
@@ -14523,6 +15013,9 @@ class $$PitsTableTableManager
                 coverFile: coverFile,
                 junkEnabled: junkEnabled,
                 sensitiveEnabled: sensitiveEnabled,
+                sortOrder: sortOrder,
+                sortTouchedAt: sortTouchedAt,
+                activityAt: activityAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -21187,6 +21680,183 @@ typedef $$RefViewStatesTableProcessedTableManager =
       RefViewState,
       PrefetchHooks Function()
     >;
+typedef $$PitSortSettingsTableCreateCompanionBuilder =
+    PitSortSettingsCompanion Function({
+      required String status,
+      required String mode,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$PitSortSettingsTableUpdateCompanionBuilder =
+    PitSortSettingsCompanion Function({
+      Value<String> status,
+      Value<String> mode,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$PitSortSettingsTableFilterComposer
+    extends Composer<_$AppDatabase, $PitSortSettingsTable> {
+  $$PitSortSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mode => $composableBuilder(
+    column: $table.mode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PitSortSettingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PitSortSettingsTable> {
+  $$PitSortSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mode => $composableBuilder(
+    column: $table.mode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PitSortSettingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PitSortSettingsTable> {
+  $$PitSortSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get mode =>
+      $composableBuilder(column: $table.mode, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$PitSortSettingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PitSortSettingsTable,
+          PitSortSetting,
+          $$PitSortSettingsTableFilterComposer,
+          $$PitSortSettingsTableOrderingComposer,
+          $$PitSortSettingsTableAnnotationComposer,
+          $$PitSortSettingsTableCreateCompanionBuilder,
+          $$PitSortSettingsTableUpdateCompanionBuilder,
+          (
+            PitSortSetting,
+            BaseReferences<
+              _$AppDatabase,
+              $PitSortSettingsTable,
+              PitSortSetting
+            >,
+          ),
+          PitSortSetting,
+          PrefetchHooks Function()
+        > {
+  $$PitSortSettingsTableTableManager(
+    _$AppDatabase db,
+    $PitSortSettingsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PitSortSettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PitSortSettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PitSortSettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> status = const Value.absent(),
+                Value<String> mode = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PitSortSettingsCompanion(
+                status: status,
+                mode: mode,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String status,
+                required String mode,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => PitSortSettingsCompanion.insert(
+                status: status,
+                mode: mode,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$PitSortSettingsTable, PitSortSetting>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $PitSortSettingsTable,
+                    PitSortSetting
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PitSortSettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PitSortSettingsTable,
+      PitSortSetting,
+      $$PitSortSettingsTableFilterComposer,
+      $$PitSortSettingsTableOrderingComposer,
+      $$PitSortSettingsTableAnnotationComposer,
+      $$PitSortSettingsTableCreateCompanionBuilder,
+      $$PitSortSettingsTableUpdateCompanionBuilder,
+      (
+        PitSortSetting,
+        BaseReferences<_$AppDatabase, $PitSortSettingsTable, PitSortSetting>,
+      ),
+      PitSortSetting,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -21239,4 +21909,6 @@ class $AppDatabaseManager {
       $$UserProfilesTableTableManager(_db, _db.userProfiles);
   $$RefViewStatesTableTableManager get refViewStates =>
       $$RefViewStatesTableTableManager(_db, _db.refViewStates);
+  $$PitSortSettingsTableTableManager get pitSortSettings =>
+      $$PitSortSettingsTableTableManager(_db, _db.pitSortSettings);
 }

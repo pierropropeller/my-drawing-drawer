@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:huakeng/ui/pits/pit_reorder_grid.dart';
 import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/image_store.dart';
@@ -179,7 +180,7 @@ void main() {
       await tester.tap(find.text('現坑'));
       await settle(tester);
       expect(find.byType(MasonryGridView), findsNothing);
-      expect(find.byType(GridView), findsOneWidget);
+      expect(find.byType(PitReorderGrid), findsOneWidget);
       await unmount(tester);
     });
 

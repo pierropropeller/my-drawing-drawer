@@ -157,11 +157,14 @@ void main() {
     await pumpApp(tester);
     await settle(tester);
 
-    // 主頁長按坑卡片：不會開選封面（D-093）。
+    // 主頁長按坑卡片：不會開選封面（D-093）；改為進入編輯排序（D-132），按「完成」離開。
     await tester.longPress(find.text('測試坑'));
     await settle(tester);
     expect(find.byType(CoverPickPage), findsNothing);
     expect(find.text('選擇坑的封面'), findsNothing);
+    expect(find.text('編輯排序'), findsOneWidget);
+    await tester.tap(find.text('完成'));
+    await settle(tester);
 
     await tester.tap(find.text('測試坑'));
     await settle(tester);

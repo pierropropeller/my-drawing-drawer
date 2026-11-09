@@ -200,6 +200,17 @@ class PitsKind extends SyncKind {
         doc['status'] = (archived ? PitStatus.archived : PitStatus.active).name;
       }
     }
+    // 手動排序（D-132）：舊版 App 寫的文件沒有這三個欄位，保留本機的值，免得排序被洗掉。
+    if (!doc.containsKey('sortOrder')) {
+      final local = await (db.select(
+        db.pits,
+      )..where((t) => t.id.equals(data['id'] as String))).getSingleOrNull();
+      if (local != null) {
+        doc['sortOrder'] = local.sortOrder;
+        doc['sortTouchedAt'] = local.sortTouchedAt?.millisecondsSinceEpoch;
+        doc['activityAt'] = local.activityAt?.millisecondsSinceEpoch;
+      }
+    }
     doc = withDefaults(doc, {
       'junkEnabled': false,
       'enabledSections': '',
@@ -688,6 +699,27 @@ class ProfileKind extends SyncKind {
   };
 }
 
+/// 主頁各分頁的排序方式（D-132；id＝分頁名稱 active／shallow／archived）。
+/// 舊版 App 不認得這個種類，直接忽略。
+class PitSortKind extends SyncKind {
+  const PitSortKind();
+  @override
+  String get name => 'pitsort';
+  @override
+  Future<Map<String, int>> versions(AppDatabase db) async => {
+    for (final r in await db.select(db.pitSortSettings).get())
+      r.status: r.updatedAt.millisecondsSinceEpoch,
+  };
+  @override
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>
+      (await (db.select(
+        db.pitSortSettings,
+      )..where((t) => t.status.equals(id))).getSingle()).toJson();
+  @override
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) =>
+      db.into(db.pitSortSettings).upsertFull(PitSortSetting.fromJson(data));
+}
+
 const allSyncKinds = <SyncKind>[
   PitsKind(),
   GroupsKind(),
@@ -704,4 +736,5 @@ const allSyncKinds = <SyncKind>[
   ReviewMonthsKind(),
   ReviewSettingsKind(),
   ProfileKind(),
+  PitSortKind(),
 ];

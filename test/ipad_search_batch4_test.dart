@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:huakeng/ui/pits/pit_reorder_grid.dart';
 import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/batch_tag_queries.dart';
 import 'package:huakeng/data/database.dart';
@@ -169,14 +170,13 @@ void main() {
       await tester.tap(find.text(l.shallowName));
       await settle(tester);
       await expectSearchButton();
-      final grid = tester.widget<GridView>(
-        find.byKey(const ValueKey('pitCardGrid')),
+      final grid = tester.widget<PitReorderGrid>(
+        find.descendant(
+          of: find.byKey(const ValueKey('pitCardGrid')),
+          matching: find.byType(PitReorderGrid),
+        ),
       );
-      expect(
-        (grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
-            .crossAxisCount,
-        2,
-      );
+      expect(grid.columns, 2);
       // 兩張卡並排（同一列），沒封面＝坑名第一個字。
       final a = tester.getTopLeft(find.text('星之彼端'));
       final b = tester.getTopLeft(find.text('夏日偵探社'));
@@ -226,14 +226,13 @@ void main() {
       );
       await tester.tap(find.text(l.shallowName));
       await settle(tester);
-      final grid = tester.widget<GridView>(
-        find.byKey(const ValueKey('pitCardGrid')),
+      final grid = tester.widget<PitReorderGrid>(
+        find.descendant(
+          of: find.byKey(const ValueKey('pitCardGrid')),
+          matching: find.byType(PitReorderGrid),
+        ),
       );
-      expect(
-        (grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
-            .crossAxisCount,
-        2,
-      );
+      expect(grid.columns, 2);
       expect(
         tester.getSize(find.byKey(const ValueKey('mainSearchButton'))),
         const Size(44, 44),
@@ -266,12 +265,13 @@ void main() {
           find.text(tab == 'shallow' ? l.shallowName : l.pitsArchived),
         );
         await settle(tester);
-        final grid = tester.widget<GridView>(
-          find.byKey(const ValueKey('pitCardGrid')),
+        final grid = tester.widget<PitReorderGrid>(
+          find.descendant(
+            of: find.byKey(const ValueKey('pitCardGrid')),
+            matching: find.byType(PitReorderGrid),
+          ),
         );
-        final n =
-            (grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
-                .crossAxisCount;
+        final n = grid.columns;
         await unmount(tester);
         return n;
       }
@@ -318,7 +318,10 @@ void main() {
       await tester.tap(find.text(l.shallowName));
       await settle(tester);
       expect(find.byKey(const ValueKey('pitCardGrid')), findsNothing);
-      expect(find.byType(ListView), findsWidgets);
+      expect(
+        tester.widget<PitReorderGrid>(find.byType(PitReorderGrid)).columns,
+        1,
+      );
       expect(
         tester.getSize(find.byKey(const ValueKey('mainSearchButton'))),
         const Size(42, 42),

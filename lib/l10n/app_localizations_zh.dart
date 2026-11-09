@@ -1953,6 +1953,45 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pitSearchCategoryOshi => '推活';
 
   @override
+  String get pitsortTitle => '編輯排序';
+
+  @override
+  String get pitsortHint => '長按拖動可自訂順序・點封面更換封面';
+
+  @override
+  String get pitsortLabel => '排序';
+
+  @override
+  String get pitsortManual => '手動';
+
+  @override
+  String get pitsortCreated => '建立日期';
+
+  @override
+  String get pitsortUpdated => '更新日期';
+
+  @override
+  String get pitsortNewToOld => '新→舊';
+
+  @override
+  String get pitsortOldToNew => '舊→新';
+
+  @override
+  String get pitsortCoverTitle => '更換封面';
+
+  @override
+  String get pitsortCoverEdit => '更換封面';
+
+  @override
+  String get pitsortCoverRemove => '移除封面';
+
+  @override
+  String get pitsortCoverRemoved => '已移除封面';
+
+  @override
+  String get pitsortDragHandle => '拖動排序';
+
+  @override
   String get refviewEntry => '參考檢視';
 
   @override

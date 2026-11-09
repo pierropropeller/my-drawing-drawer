@@ -3489,6 +3489,84 @@ abstract class AppLocalizations {
   /// **'推活'**
   String get pitSearchCategoryOshi;
 
+  /// No description provided for @pitsortTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯排序'**
+  String get pitsortTitle;
+
+  /// No description provided for @pitsortHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'長按拖動可自訂順序・點封面更換封面'**
+  String get pitsortHint;
+
+  /// No description provided for @pitsortLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'排序'**
+  String get pitsortLabel;
+
+  /// No description provided for @pitsortManual.
+  ///
+  /// In zh, this message translates to:
+  /// **'手動'**
+  String get pitsortManual;
+
+  /// No description provided for @pitsortCreated.
+  ///
+  /// In zh, this message translates to:
+  /// **'建立日期'**
+  String get pitsortCreated;
+
+  /// No description provided for @pitsortUpdated.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新日期'**
+  String get pitsortUpdated;
+
+  /// No description provided for @pitsortNewToOld.
+  ///
+  /// In zh, this message translates to:
+  /// **'新→舊'**
+  String get pitsortNewToOld;
+
+  /// No description provided for @pitsortOldToNew.
+  ///
+  /// In zh, this message translates to:
+  /// **'舊→新'**
+  String get pitsortOldToNew;
+
+  /// No description provided for @pitsortCoverTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'更換封面'**
+  String get pitsortCoverTitle;
+
+  /// No description provided for @pitsortCoverEdit.
+  ///
+  /// In zh, this message translates to:
+  /// **'更換封面'**
+  String get pitsortCoverEdit;
+
+  /// No description provided for @pitsortCoverRemove.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除封面'**
+  String get pitsortCoverRemove;
+
+  /// No description provided for @pitsortCoverRemoved.
+  ///
+  /// In zh, this message translates to:
+  /// **'已移除封面'**
+  String get pitsortCoverRemoved;
+
+  /// No description provided for @pitsortDragHandle.
+  ///
+  /// In zh, this message translates to:
+  /// **'拖動排序'**
+  String get pitsortDragHandle;
+
   /// No description provided for @refviewEntry.
   ///
   /// In zh, this message translates to:

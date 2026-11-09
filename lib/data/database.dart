@@ -47,6 +47,7 @@ part 'database.g.dart';
     RemoteFileSizes,
     UserProfiles,
     RefViewStates,
+    PitSortSettings,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -54,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -119,8 +120,34 @@ class AppDatabase extends _$AppDatabase {
       if (from < 15) {
         await _migrateV15(m);
       }
+      if (from < 16) {
+        await _migrateV16(m);
+      }
     },
   );
+
+  /// v16：主頁手動排序（D-132）。坑加 `sort_order`／`sort_touched_at`／`activity_at`，
+  /// 新表 `pit_sort_settings`（每個分頁的排序方式）。欄位先確認存在與否再加（可重複執行）。
+  Future<void> _migrateV16(Migrator m) async {
+    final have = {
+      for (final r in await customSelect('PRAGMA table_info(pits)').get())
+        r.read<String>('name'),
+    };
+    if (!have.contains('sort_order')) await m.addColumn(pits, pits.sortOrder);
+    if (!have.contains('sort_touched_at')) {
+      await m.addColumn(pits, pits.sortTouchedAt);
+    }
+    if (!have.contains('activity_at')) await m.addColumn(pits, pits.activityAt);
+    final tables = {
+      for (final r in await customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table'",
+      ).get())
+        r.read<String>('name'),
+    };
+    if (!tables.contains('pit_sort_settings')) {
+      await m.createTable(pitSortSettings);
+    }
+  }
 
   /// v15：目標坑改多選（D-124）。goals 加 `pit_ids`，舊的單一 `pit_id` 轉成一個元素的清單。
   /// 欄位先確認存在與否再加（可重複執行）。不動 updated_at：各裝置各自升級結果相同。

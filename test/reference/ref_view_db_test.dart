@@ -56,8 +56,8 @@ void main() {
     expect(await db.select(db.syncDocs).get(), isEmpty);
   });
 
-  test('schemaVersion 是 15', () {
-    expect(db.schemaVersion, 15);
+  test('schemaVersion 是 16', () {
+    expect(db.schemaVersion, 16);
   });
 
   test('v9 → v10：建立 ref_view_states，舊資料保留', () async {
