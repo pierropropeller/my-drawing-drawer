@@ -244,7 +244,7 @@ void main() {
   });
 
   group('AddSourceOptions：依能力顯示項目', () {
-    test('一律有 照片／檔案；只有新增參考圖才有靈感廣場', () {
+    test('一律有 照片／檔案；只有新增參考圖才有素材庫', () {
       expect(const AddSourceOptions(camera: false).sources, [
         AddSource.photos,
         AddSource.files,
@@ -328,7 +328,7 @@ void main() {
       }
       expect(find.text('從「照片」選取'), findsOneWidget);
       expect(find.text('從「檔案」選取'), findsOneWidget);
-      expect(find.text('從靈感廣場選取'), findsOneWidget);
+      expect(find.text('從素材庫選取'), findsOneWidget);
       expect(find.text('拍照'), findsOneWidget);
       expect(find.text('貼上'), findsOneWidget);
       expect(find.text('剪貼簿有 1 張圖'), findsOneWidget);
@@ -536,7 +536,7 @@ void main() {
       expect(find.text('剪貼簿裡沒有圖片'), findsNothing);
     });
 
-    testWidgets('靈感廣場：依點選次序複製成暫存檔，保留副檔名', (tester) async {
+    testWidgets('素材庫：依點選次序複製成暫存檔，保留副檔名', (tester) async {
       InspoPickerSource.allowed = true;
       addTearDown(() => InspoPickerSource.allowed = false);
       size(tester, 834, 1194);
@@ -589,7 +589,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('靈感廣場是空的：顯示空狀態，無法加入', (tester) async {
+    testWidgets('素材庫是空的：顯示空狀態，無法加入', (tester) async {
       InspoPickerSource.allowed = true;
       addTearDown(() => InspoPickerSource.allowed = false);
       size(tester, 834, 1194);

@@ -312,7 +312,7 @@ void main() {
         expect(find.text('新增參考圖'), findsNothing);
       });
 
-      tw('新增參考圖：從靈感廣場選的圖是放進坑（連結），不另存一份', (tester) async {
+      tw('新增參考圖：從素材庫選的圖是放進坑（連結），不另存一份', (tester) async {
         final mid = (await tester.runAsync(
           () => db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
             NewImage(file: 'm.png', width: 1, height: 1),

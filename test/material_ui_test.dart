@@ -36,8 +36,8 @@ class _FakeShareChannel extends ShareChannel {
   void setOnShare(void Function(List<String> paths)? cb) {}
 }
 
-/// 靈感廣場 UI（D-071）：列表／九宮格、分類 pills、多選（移動／刪除／全選）、加圖、
-/// 導覽列規則、「我的」的靈感廣場卡、分享進來的「坑｜靈感廣場」。
+/// 素材庫 UI（D-071）：列表／九宮格、分類 pills、多選（移動／刪除／全選）、加圖、
+/// 導覽列規則、「我的」的素材庫卡、分享進來的「坑｜素材庫」。
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late AppDatabase db;
@@ -70,7 +70,7 @@ void main() {
       (ref) async => ImageStore(Directory('${tmp.path}/images')),
     ),
     imagePickerProvider.overrideWithValue((_) async => pick),
-    // 靈感廣場自己的加圖直接開相簿（不經加圖來源選單）。
+    // 素材庫自己的加圖直接開相簿（不經加圖來源選單）。
     photoPickerProvider.overrideWithValue((_) async => pick),
   ];
 
@@ -130,7 +130,7 @@ void main() {
 
   testWidgets('空狀態：沒有素材時沒有 pills 與右下加號，有「加圖」按鈕', (tester) async {
     await showPage(tester, const MaterialLibraryPage());
-    expect(find.text('靈感廣場'), findsOneWidget);
+    expect(find.text('素材庫'), findsOneWidget);
     expect(find.text('還沒有靈感圖'), findsOneWidget);
     expect(find.text('加圖'), findsOneWidget);
     expect(find.text('服裝'), findsNothing);
@@ -238,7 +238,7 @@ void main() {
 
     await tester.tap(find.byTooltip('取消選擇'));
     await settle(tester);
-    expect(find.text('靈感廣場'), findsOneWidget);
+    expect(find.text('素材庫'), findsOneWidget);
     expect(navBarHiddenCount.value, 0);
     await unmount(tester);
   });
@@ -286,7 +286,7 @@ void main() {
     expect(all.where((r) => r.category == MaterialCategory.scene).length, 3);
     expect(all.where((r) => r.category == MaterialCategory.clothing).length, 2);
     // 退出多選。
-    expect(find.text('靈感廣場'), findsOneWidget);
+    expect(find.text('素材庫'), findsOneWidget);
     expect(navBarHiddenCount.value, 0);
     await unmount(tester);
   });
@@ -414,7 +414,7 @@ void main() {
       await settle(tester);
     }
 
-    testWidgets('「我的」的靈感廣場卡：顯示總張數，點了開靈感廣場（導覽列仍在）', (tester) async {
+    testWidgets('「我的」的素材庫卡：顯示總張數，點了開素材庫（導覽列仍在）', (tester) async {
       await tester.runAsync(() async {
         await seed(MaterialCategory.pose, 3);
         await seed(MaterialCategory.scene, 2);
@@ -422,10 +422,10 @@ void main() {
       await pumpApp(tester);
       await tester.tap(find.text('我的').last);
       await settle(tester);
-      expect(find.text('靈感廣場'), findsOneWidget);
+      expect(find.text('素材庫'), findsOneWidget);
       expect(find.text('5 張'), findsOneWidget);
 
-      await tester.tap(find.text('靈感廣場'));
+      await tester.tap(find.text('素材庫'));
       await settle(tester);
       expect(find.byType(MaterialLibraryPage), findsOneWidget);
       expect(navBarHiddenCount.value, 0);
@@ -441,7 +441,7 @@ void main() {
     Finder inSheet(Finder f) =>
         find.descendant(of: find.byType(ShareSheet), matching: f);
 
-    testWidgets('分享進來：切到「靈感廣場」段，選分類、加入，停在該分類的靈感廣場頁', (tester) async {
+    testWidgets('分享進來：切到「素材庫」段，選分類、加入，停在該分類的素材庫頁', (tester) async {
       final f = File('${tmp.path}/in0.png')..writeAsBytesSync(_png1x1);
       final g = File('${tmp.path}/in1.png')..writeAsBytesSync(_png1x1);
       await pumpApp(tester, initialShare: [f.path, g.path]);
@@ -457,7 +457,7 @@ void main() {
       for (final c in ['服裝', '姿勢', '人體', '色盤', '場景', '畫風', '貼圖']) {
         expect(inSheet(find.text(c)), findsOneWidget);
       }
-      // 靈感廣場段按鈕一律是「加入」。
+      // 素材庫段按鈕一律是「加入」。
       expect(inSheet(find.text('加入')), findsOneWidget);
       expect(inSheet(find.text('下一步')), findsNothing);
 
@@ -473,7 +473,7 @@ void main() {
       expect(File(f.path).existsSync(), isFalse);
       expect(find.byType(ShareSheet), findsNothing);
       expect(find.text('已加入'), findsOneWidget);
-      // 停在「我的」分頁的靈感廣場頁，分類是畫風。
+      // 停在「我的」分頁的素材庫頁，分類是畫風。
       expect(find.byType(MaterialLibraryPage), findsOneWidget);
       expect(find.text('2 張'), findsOneWidget);
       expect(prefs.getString('shareLastDest'), 'material');

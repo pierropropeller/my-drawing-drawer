@@ -334,9 +334,9 @@ void main() {
     await db.close();
   });
 
-  // v8：靈感廣場（D-071）。從每個舊版本升上來都要通，舊資料不動。
+  // v8：素材庫（D-071）。從每個舊版本升上來都要通，舊資料不動。
   for (var from = 1; from <= 6; from++) {
-    test('v$from → v8：靈感廣場表建立、舊資料保留、素材 API 可用', () async {
+    test('v$from → v8：素材庫表建立、舊資料保留、素材 API 可用', () async {
       final db = AppDatabase(
         NativeDatabase.memory(setup: (raw) => _legacySchema(raw, from)),
       );
@@ -352,7 +352,7 @@ void main() {
     });
   }
 
-  test('v7 → v8（用真實的 v7 結構：拆掉靈感廣場表）：其他資料不動、表重新建立', () async {
+  test('v7 → v8（用真實的 v7 結構：拆掉素材庫表）：其他資料不動、表重新建立', () async {
     final dir = await Directory.systemTemp.createTemp('mig_v7');
     final file = File('${dir.path}/db.sqlite');
     var db = AppDatabase(NativeDatabase(file));
@@ -712,7 +712,7 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  // v17：參考圖／靈感廣場（D-141～D-143）。說明、放進坑的連結、自訂分類表。
+  // v17：參考圖／素材庫（D-141～D-143）。說明、放進坑的連結、自訂分類表。
   test('v16 → v17（用真實的 v16 結構：拆掉新欄位與分類表）：資料不動、預設分類補上、可放進坑', () async {
     final dir = await Directory.systemTemp.createTemp('mig_v16');
     final file = File('${dir.path}/db.sqlite');

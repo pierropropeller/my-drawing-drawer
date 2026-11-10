@@ -14,7 +14,7 @@ import 'package:huakeng/data/timeline_queries.dart';
 import 'package:huakeng/sync/remote.dart';
 import 'package:huakeng/sync/sync_engine.dart';
 
-/// 靈感廣場（D-071）：查詢、計數、移動、軟刪除、不影響其他統計，以及兩台裝置的同步（含圖片）。
+/// 素材庫（D-071）：查詢、計數、移動、軟刪除、不影響其他統計，以及兩台裝置的同步（含圖片）。
 void main() {
   late AppDatabase db;
   setUp(() {

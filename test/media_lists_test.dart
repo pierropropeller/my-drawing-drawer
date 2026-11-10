@@ -130,7 +130,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('靈感廣場九宮格：GIF 與影片標記', (tester) async {
+  testWidgets('素材庫九宮格：GIF 與影片標記', (tester) async {
     await tester.runAsync(
       () => db.addMaterials(
         materialCategoryIdOf(MaterialCategory.values.first),
@@ -147,7 +147,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('靈感廣場瀑布：GIF 與影片標記', (tester) async {
+  testWidgets('素材庫瀑布：GIF 與影片標記', (tester) async {
     await tester.runAsync(
       () => db.addMaterials(
         materialCategoryIdOf(MaterialCategory.values.first),

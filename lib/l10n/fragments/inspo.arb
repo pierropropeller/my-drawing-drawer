@@ -2,7 +2,7 @@
   "inspoPitsSeparator": "、",
   "inspoPlaceInPit": "放進坑",
   "inspoManageCategories": "管理分類",
-  "inspoCategoryHint": "分類只用於靈感廣場，拖曳可調整次序",
+  "inspoCategoryHint": "分類只用於素材庫，拖曳可調整次序",
   "inspoCategoryAdd": "新增分類",
   "inspoCategoryNameTitle": "分類名稱",
   "inspoCategoryDeleteTitle": "刪除分類「{name}」？",
@@ -32,9 +32,9 @@
       }
     }
   },
-  "inspoFromInspo": "來自靈感廣場",
+  "inspoFromInspo": "來自素材庫",
   "inspoRemoveFromPit": "移出",
-  "inspoRemovedToast": "已移出，靈感廣場裡的圖還在",
+  "inspoRemovedToast": "已移出，素材庫裡的圖還在",
   "inspoPlacedDate": "{year} / {month} / {day} 放進",
   "@inspoPlacedDate": {
     "placeholders": {

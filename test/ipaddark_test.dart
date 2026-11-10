@@ -466,7 +466,7 @@ void main() {
           )
           .toList();
       expect(colors[0], d.accentSoft); // 照片
-      expect(colors[2], d.accentSoft); // 靈感廣場
+      expect(colors[2], d.accentSoft); // 素材庫
       expect(colors[4], d.chipBg); // 貼上
       for (final c in colors) {
         expect(c.computeLuminance(), lessThan(.1));

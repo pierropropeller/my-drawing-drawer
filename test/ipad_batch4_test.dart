@@ -137,7 +137,7 @@ void main() {
   group('P-031 我的 → 個人化（Profile）', () {
     testWidgets('左欄只有四列；右欄個人化列出四行', (tester) async {
       await show(tester, const ProfilePage());
-      for (final t in ['靈感廣場', '個人化', '備份與同步', '關於 App']) {
+      for (final t in ['素材庫', '個人化', '備份與同步', '關於 App']) {
         expect(find.text(t), findsWidgets);
       }
       // 左欄沒有主題色／語言／敏感內容；它們只在右欄的列表裡各出現一次。

@@ -9,7 +9,7 @@ import 'package:huakeng/data/junk_queries.dart' show AlbumCell;
 import 'package:huakeng/data/material_queries.dart';
 import 'package:huakeng/data/trash_queries.dart';
 
-/// 參考圖／靈感廣場（D-140～D-145）：自訂分類、說明、放進坑（連結）、移出、坑圖移到廣場、
+/// 參考圖／素材庫（D-140～D-145）：自訂分類、說明、放進坑（連結）、移出、坑圖移到廣場、
 /// 刪除與還原連動。
 void main() {
   late AppDatabase db;

@@ -685,7 +685,7 @@ abstract class AppLocalizations {
   /// No description provided for @albumSetMergeNoInspo.
   ///
   /// In zh, this message translates to:
-  /// **'從靈感廣場放進來的圖不能合併'**
+  /// **'從素材庫放進來的圖不能合併'**
   String get albumSetMergeNoInspo;
 
   /// No description provided for @shellTabPits.
@@ -2580,7 +2580,7 @@ abstract class AppLocalizations {
   /// No description provided for @inspoCategoryHint.
   ///
   /// In zh, this message translates to:
-  /// **'分類只用於靈感廣場，拖曳可調整次序'**
+  /// **'分類只用於素材庫，拖曳可調整次序'**
   String get inspoCategoryHint;
 
   /// No description provided for @inspoCategoryAdd.
@@ -2634,7 +2634,7 @@ abstract class AppLocalizations {
   /// No description provided for @inspoFromInspo.
   ///
   /// In zh, this message translates to:
-  /// **'來自靈感廣場'**
+  /// **'來自素材庫'**
   String get inspoFromInspo;
 
   /// No description provided for @inspoRemoveFromPit.
@@ -2646,7 +2646,7 @@ abstract class AppLocalizations {
   /// No description provided for @inspoRemovedToast.
   ///
   /// In zh, this message translates to:
-  /// **'已移出，靈感廣場裡的圖還在'**
+  /// **'已移出，素材庫裡的圖還在'**
   String get inspoRemovedToast;
 
   /// No description provided for @inspoPlacedDate.
@@ -2910,7 +2910,7 @@ abstract class AppLocalizations {
   /// No description provided for @ipadmediaTileMaterials.
   ///
   /// In zh, this message translates to:
-  /// **'靈感廣場'**
+  /// **'素材庫'**
   String get ipadmediaTileMaterials;
 
   /// No description provided for @ipadmediaTileCamera.
@@ -2958,7 +2958,7 @@ abstract class AppLocalizations {
   /// No description provided for @ipadmediaMaterials.
   ///
   /// In zh, this message translates to:
-  /// **'從靈感廣場選取'**
+  /// **'從素材庫選取'**
   String get ipadmediaMaterials;
 
   /// No description provided for @ipadmediaMaterialsSub.
@@ -3006,7 +3006,7 @@ abstract class AppLocalizations {
   /// No description provided for @ipadmediaMaterialsEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'靈感廣場還沒有圖'**
+  /// **'素材庫還沒有圖'**
   String get ipadmediaMaterialsEmpty;
 
   /// No description provided for @ipadmediaMaterialsAdd.
@@ -3192,7 +3192,7 @@ abstract class AppLocalizations {
   /// No description provided for @materialTitle.
   ///
   /// In zh, this message translates to:
-  /// **'靈感廣場'**
+  /// **'素材庫'**
   String get materialTitle;
 
   /// No description provided for @materialLayoutWaterfall.

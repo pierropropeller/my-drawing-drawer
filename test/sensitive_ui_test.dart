@@ -1127,7 +1127,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('「靈感廣場」段：只看總開關（坑沒開也有這一行）', (tester) async {
+    testWidgets('「素材庫」段：只看總開關（坑沒開也有這一行）', (tester) async {
       await openSheet(tester); // 坑沒開
       expect(row(), findsNothing);
       await tester.tap(find.byKey(const ValueKey('shareDestMaterial')));

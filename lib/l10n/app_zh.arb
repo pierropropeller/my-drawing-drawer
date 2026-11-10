@@ -279,7 +279,7 @@
       }
     }
   },
-  "albumSetMergeNoInspo": "從靈感廣場放進來的圖不能合併",
+  "albumSetMergeNoInspo": "從素材庫放進來的圖不能合併",
   "shellTabPits": "坑",
   "shellTabGoals": "時間軸",
   "shellTabMe": "我的",
@@ -1049,7 +1049,7 @@
   "inspoPitsSeparator": "、",
   "inspoPlaceInPit": "放進坑",
   "inspoManageCategories": "管理分類",
-  "inspoCategoryHint": "分類只用於靈感廣場，拖曳可調整次序",
+  "inspoCategoryHint": "分類只用於素材庫，拖曳可調整次序",
   "inspoCategoryAdd": "新增分類",
   "inspoCategoryNameTitle": "分類名稱",
   "inspoCategoryDeleteTitle": "刪除分類「{name}」？",
@@ -1079,9 +1079,9 @@
       }
     }
   },
-  "inspoFromInspo": "來自靈感廣場",
+  "inspoFromInspo": "來自素材庫",
   "inspoRemoveFromPit": "移出",
-  "inspoRemovedToast": "已移出，靈感廣場裡的圖還在",
+  "inspoRemovedToast": "已移出，素材庫裡的圖還在",
   "inspoPlacedDate": "{year} / {month} / {day} 放進",
   "@inspoPlacedDate": {
     "placeholders": {
@@ -1193,7 +1193,7 @@
   "ipadmediaSheetHint": "照片可多選，並保留選取順序；檔案支援 CSP 匯出的 PNG／JPG。",
   "ipadmediaTilePhotos": "照片",
   "ipadmediaTileFiles": "檔案",
-  "ipadmediaTileMaterials": "靈感廣場",
+  "ipadmediaTileMaterials": "素材庫",
   "ipadmediaTileCamera": "拍照",
   "ipadmediaClipboardTitle": "剪貼簿",
   "ipadmediaClipboardSub": "剛剛複製的圖片",
@@ -1201,7 +1201,7 @@
   "ipadmediaPhotosSub": "系統相簿，可多選並保留選取順序",
   "ipadmediaFiles": "從「檔案」選取",
   "ipadmediaFilesSub": "iCloud Drive、CSP 匯出的 PNG／JPG",
-  "ipadmediaMaterials": "從靈感廣場選取",
+  "ipadmediaMaterials": "從素材庫選取",
   "ipadmediaMaterialsSub": "畫匣內已收藏的靈感圖",
   "ipadmediaCamera": "拍照",
   "ipadmediaPaste": "貼上",
@@ -1209,7 +1209,7 @@
   "ipadmediaPasteEmpty": "剪貼簿裡沒有圖片",
   "ipadmediaFilesFailed": "無法讀取所選檔案",
   "ipadmediaCameraFailed": "無法開啟相機",
-  "ipadmediaMaterialsEmpty": "靈感廣場還沒有圖",
+  "ipadmediaMaterialsEmpty": "素材庫還沒有圖",
   "ipadmediaMaterialsAdd": "加入 {count} 張",
   "@ipadmediaMaterialsAdd": {
     "placeholders": {
@@ -1306,7 +1306,7 @@
       }
     }
   },
-  "materialTitle": "靈感廣場",
+  "materialTitle": "素材庫",
   "materialLayoutWaterfall": "瀑布",
   "materialLayoutGrid": "九宮格",
   "materialAddLabel": "加圖",

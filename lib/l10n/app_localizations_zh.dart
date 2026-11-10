@@ -350,7 +350,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get albumSetMergeNoInspo => '從靈感廣場放進來的圖不能合併';
+  String get albumSetMergeNoInspo => '從素材庫放進來的圖不能合併';
 
   @override
   String get shellTabPits => '坑';
@@ -1439,7 +1439,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get inspoManageCategories => '管理分類';
 
   @override
-  String get inspoCategoryHint => '分類只用於靈感廣場，拖曳可調整次序';
+  String get inspoCategoryHint => '分類只用於素材庫，拖曳可調整次序';
 
   @override
   String get inspoCategoryAdd => '新增分類';
@@ -1472,13 +1472,13 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get inspoFromInspo => '來自靈感廣場';
+  String get inspoFromInspo => '來自素材庫';
 
   @override
   String get inspoRemoveFromPit => '移出';
 
   @override
-  String get inspoRemovedToast => '已移出，靈感廣場裡的圖還在';
+  String get inspoRemovedToast => '已移出，素材庫裡的圖還在';
 
   @override
   String inspoPlacedDate(int year, String month, String day) {
@@ -1626,7 +1626,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ipadmediaTileFiles => '檔案';
 
   @override
-  String get ipadmediaTileMaterials => '靈感廣場';
+  String get ipadmediaTileMaterials => '素材庫';
 
   @override
   String get ipadmediaTileCamera => '拍照';
@@ -1650,7 +1650,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ipadmediaFilesSub => 'iCloud Drive、CSP 匯出的 PNG／JPG';
 
   @override
-  String get ipadmediaMaterials => '從靈感廣場選取';
+  String get ipadmediaMaterials => '從素材庫選取';
 
   @override
   String get ipadmediaMaterialsSub => '畫匣內已收藏的靈感圖';
@@ -1674,7 +1674,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ipadmediaCameraFailed => '無法開啟相機';
 
   @override
-  String get ipadmediaMaterialsEmpty => '靈感廣場還沒有圖';
+  String get ipadmediaMaterialsEmpty => '素材庫還沒有圖';
 
   @override
   String ipadmediaMaterialsAdd(int count) {
@@ -1785,7 +1785,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get materialTitle => '靈感廣場';
+  String get materialTitle => '素材庫';
 
   @override
   String get materialLayoutWaterfall => '瀑布';

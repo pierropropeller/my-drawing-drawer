@@ -312,7 +312,7 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
                             context.l10n.inspoFromInspo,
                             color: PreviewPalette.fromInspoBg,
                             fg: PreviewPalette.fromInspo,
-                            icon: MaterialLibIcons.bulb,
+                            icon: MaterialLibIcons.drawer,
                           ),
                       ],
                     ),

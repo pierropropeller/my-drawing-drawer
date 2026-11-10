@@ -121,8 +121,8 @@ void main() {
 
     // 「坑」「位置」小標；坑 chips 列出所有未封存的坑。
     expect(find.byType(MoveSheet), findsOneWidget);
-    expect(inSheet('坑'), findsNWidgets(2)); // 頂部「坑｜靈感廣場」＋坑小標
-    expect(inSheet('靈感廣場'), findsOneWidget);
+    expect(inSheet('坑'), findsNWidgets(2)); // 頂部「坑｜素材庫」＋坑小標
+    expect(inSheet('素材庫'), findsOneWidget);
     expect(inSheet('位置'), findsOneWidget);
     expect(inSheet('坑甲'), findsOneWidget);
     expect(inSheet('坑乙'), findsOneWidget);

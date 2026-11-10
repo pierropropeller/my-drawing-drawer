@@ -28,6 +28,11 @@ abstract final class MaterialLibIcons {
       '<path d="M9 18h6M10 21h4" stroke-linecap="round"/>'
       '<path d="M12 3a6 6 0 0 1 4 10.5c-.7.7-1 1.2-1 2H9c0-.8-.3-1.3-1-2A6 6 0 0 1 12 3z" stroke-linejoin="round"/>';
 
+  /// 素材庫（抽屜；我的頁入口、坑裡參考圖的角標，D-148）。
+  static const drawer =
+      '<rect x="4" y="4" width="16" height="16" rx="2.5"/>'
+      '<path d="M4 12h16M10 8h4M10 16h4" stroke-linecap="round"/>';
+
   /// 說明（三條橫線；預覽的「說明」小標，線寬 2）。
   static const note =
       '<path d="M5 6h14M5 12h14M5 18h9" stroke-linecap="round"/>';

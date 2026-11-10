@@ -113,7 +113,7 @@ void main() {
     expect((await a.watchCellCovers(pitId).first).oshi, 'k1.png');
   });
 
-  test('影片：媒體欄位與截圖檔一起同步（官方圖、靈感廣場、推活），缺檔會補下載（含截圖）', () async {
+  test('影片：媒體欄位與截圖檔一起同步（官方圖、素材庫、推活），缺檔會補下載（含截圖）', () async {
     final pitId = await a.createPit(name: '坑');
     final g = (await a.watchGroups(pitId).first).first.id;
     await a.addOfficial(pitId, g, [

@@ -26,7 +26,7 @@ import 'package:huakeng/ui/me/profile_page.dart';
 import 'package:huakeng/ui/me/theme_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// iPad／平板版面（IPADGOAL）：目標並排、新增目標對話框、我的並排面板、靈感廣場欄數。
+/// iPad／平板版面（IPADGOAL）：目標並排、新增目標對話框、我的並排面板、素材庫欄數。
 /// 視窗尺寸：390×844（手機）、834×1194（直向）、1194×834、1366×1024（橫向）。
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -289,7 +289,7 @@ void main() {
     testWidgets('1194×834：左列表＋右面板，點列只切換內容、不 push', (tester) async {
       await show(tester, const ProfilePage());
       // 預設個人化（D-106）：右面板是個人化頁（四列：主題色、App 圖示、語言、敏感內容）。
-      final list = tester.getTopLeft(find.text('靈感廣場'));
+      final list = tester.getTopLeft(find.text('素材庫'));
       expect(find.byType(PersonalizePage), findsOneWidget);
       expect(
         tester.widget<PersonalizePage>(find.byType(PersonalizePage)).embedded,
@@ -297,7 +297,7 @@ void main() {
       );
       expect(tester.getTopLeft(find.text('主題色').last).dx, greaterThan(360));
       expect(list.dx, lessThan(360));
-      // 左列表只剩 靈感廣場、個人化、備份與同步、關於 App。
+      // 左列表只剩 素材庫、個人化、備份與同步、關於 App。
       expect(find.text('語言'), findsOneWidget);
       expect(find.text('敏感內容'), findsOneWidget);
 
@@ -348,7 +348,7 @@ void main() {
     });
   });
 
-  group('靈感廣場', () {
+  group('素材庫', () {
     Future<void> seed(int n) async {
       await db.addMaterials(materialCategoryIdOf(MaterialCategory.clothing), [
         for (var i = 0; i < n; i++)
@@ -369,7 +369,7 @@ void main() {
         const ProfilePage(),
         prefsInit: const {'materialLayout': 'grid'},
       );
-      await tester.tap(find.text('靈感廣場').first);
+      await tester.tap(find.text('素材庫').first);
       await settle(tester);
       expect(find.byType(MaterialLibraryPage), findsOneWidget);
       expect(find.textContaining('12 張'), findsWidgets);
@@ -398,7 +398,7 @@ void main() {
     testWidgets('面板內瀑布也跟著面板闊度', (tester) async {
       await tester.runAsync(() => seed(6));
       await show(tester, const ProfilePage());
-      await tester.tap(find.text('靈感廣場').first);
+      await tester.tap(find.text('素材庫').first);
       await settle(tester);
       expect(tester.takeException(), isNull);
       await unmount(tester);

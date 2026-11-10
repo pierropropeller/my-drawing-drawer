@@ -392,11 +392,11 @@ class InspoBadge extends StatelessWidget {
       height: 22,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        color: Color(0x9EC9961A),
+        color: Color(0x9E3E8073),
       ),
       alignment: Alignment.center,
       child: const SvgIcon(
-        MaterialLibIcons.bulb,
+        MaterialLibIcons.drawer,
         size: 13,
         color: Colors.white,
         strokeWidth: 2,

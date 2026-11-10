@@ -217,7 +217,7 @@ void main() {
 
       // 位置文字
       expect(find.text('坑B · 好看同人圖'), findsOneWidget);
-      expect(find.text('靈感廣場 · 服裝'), findsOneWidget);
+      expect(find.text('素材庫 · 服裝'), findsOneWidget);
       expect(find.text('坑A · 摸魚 · 天台煙花'), findsOneWidget);
       // 3 張傳輸中各自顯示百分比，第 4 行是等待中
       expect(find.text('72%'), findsOneWidget);
@@ -230,8 +230,8 @@ void main() {
       expect(find.text('坑A · 參考圖'), findsNothing);
       // 順序：上傳 fan(72)、下載 mat(18)、下載 draft(62) 在等待中的 junk 之前
       double y(String s) => tester.getTopLeft(find.text(s)).dy;
-      expect(y('坑B · 好看同人圖'), lessThan(y('靈感廣場 · 服裝')));
-      expect(y('靈感廣場 · 服裝'), lessThan(y('坑A · 摸魚 · 天台煙花')));
+      expect(y('坑B · 好看同人圖'), lessThan(y('素材庫 · 服裝')));
+      expect(y('素材庫 · 服裝'), lessThan(y('坑A · 摸魚 · 天台煙花')));
       expect(y('坑A · 摸魚 · 天台煙花'), lessThan(y('坑A · 雜物')));
       // 上傳／下載標籤
       expect(find.text('上傳'), findsOneWidget);
@@ -439,7 +439,7 @@ void main() {
       fake(c).set(_syncing(mixed()));
       await settle(tester);
       expect(find.text('坑B · 好看同人圖'), findsOneWidget);
-      expect(find.text('靈感廣場 · 服裝'), findsOneWidget);
+      expect(find.text('素材庫 · 服裝'), findsOneWidget);
       expect(find.text('坑A · 摸魚 · 天台煙花'), findsOneWidget);
       expect(find.text('還有 4 張等待中'), findsOneWidget);
       expect(find.byType(SyncRowThumb), findsNWidgets(4));
