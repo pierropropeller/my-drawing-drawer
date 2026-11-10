@@ -19,6 +19,7 @@ class SyncColors {
     required this.failedRowText,
     required this.failedDot,
     required this.fullDot,
+    required this.wifiDot,
   });
 
   /// 進度（深藍 #5B7A99）。
@@ -62,6 +63,9 @@ class SyncColors {
   final Color failedDot;
   final Color fullDot;
 
+  /// 等待 Wi-Fi（D-150，SyncSheetWifi）：頭像小點與標題圓的暖灰 #7A7066。
+  final Color wifiDot;
+
   static const light = SyncColors._(
     progress: Color(0xFF5B7A99),
     track: Color(0xFFD6E0EA),
@@ -79,6 +83,7 @@ class SyncColors {
     failedRowText: Color(0xFFB8860B),
     failedDot: Color(0xFFD9A23C),
     fullDot: Color(0xFFC0392B),
+    wifiDot: Color(0xFF7A7066),
   );
 
   /// 深色（P-022，SyncPopoverDark）：環 #7F9DBB、軌道 #2E3A46、文字 #93AECB。
@@ -101,6 +106,8 @@ class SyncColors {
     failedRowText: Color(0xFFE3BE6E),
     failedDot: Color(0xFFD9A23C),
     fullDot: Color(0xFFE0675A),
+    // 設計稿沒有深色稿：暖灰提亮，深底上看得到。
+    wifiDot: Color(0xFF8C8378),
   );
 
   static SyncColors of(BuildContext context) =>

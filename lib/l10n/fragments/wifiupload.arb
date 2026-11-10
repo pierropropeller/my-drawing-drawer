@@ -1,0 +1,10 @@
+{
+  "wifiUploadOnMobile": "使用流動數據上傳",
+  "wifiWaitingTitle": "等待 Wi-Fi",
+  "wifiPendingCount": "{count} 張待上傳",
+  "@wifiPendingCount": {"placeholders": {"count": {"type": "int"}}},
+  "wifiWaitingHint": "目前使用流動數據，連上 Wi-Fi 後會自動上傳。",
+  "wifiWaitingRow": "等待上傳",
+  "wifiMoreWaiting": "還有 {count} 張等待上傳",
+  "@wifiMoreWaiting": {"placeholders": {"count": {"type": "int"}}}
+}

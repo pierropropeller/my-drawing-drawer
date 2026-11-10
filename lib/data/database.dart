@@ -50,6 +50,7 @@ part 'database.g.dart';
     UserProfiles,
     RefViewStates,
     PitSortSettings,
+    AlbumOrders,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -57,7 +58,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -131,6 +132,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 17) {
         await _migrateV17(m);
       }
+      if (from < 18) {
+        await _migrateV18(m);
+      }
     },
   );
 
@@ -155,6 +159,17 @@ class AppDatabase extends _$AppDatabase {
     if (!tables.contains('pit_sort_settings')) {
       await m.createTable(pitSortSettings);
     }
+  }
+
+  /// v18：圖冊手動排序（D-134）。新表 `album_orders`；表已存在就略過（可重複執行）。
+  Future<void> _migrateV18(Migrator m) async {
+    final tables = {
+      for (final r in await customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table'",
+      ).get())
+        r.read<String>('name'),
+    };
+    if (!tables.contains('album_orders')) await m.createTable(albumOrders);
   }
 
   /// v17：參考圖／靈感廣場（D-141～D-143）。官方圖、同人圖、廣場圖加「說明」，

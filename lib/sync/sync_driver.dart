@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/providers.dart';
 import '../state/settings.dart';
+import 'network_kind.dart';
 import 'sync_controller.dart';
 
 /// 在前台時自動同步：啟動、回到前台、恢復網絡、本機資料變動（防抖）、以及依設定的間隔定時。
@@ -162,6 +163,18 @@ class _SyncDriverState extends ConsumerState<SyncDriver>
           _retry?.cancel();
           _retry = Timer(retryDelays[_retries++], () => _trigger(force: true));
         }
+      }
+    });
+    // 等 Wi-Fi（D-150）：換到非流動數據的網絡、或打開「使用流動數據上傳」，立刻補傳。
+    ref.listen(networkKindProvider, (prev, next) {
+      final kind = next.value;
+      if (kind == null || kind == prev?.value) return;
+      if (kind == NetworkKind.cellular || kind == NetworkKind.none) return;
+      if (ref.read(syncControllerProvider).waitingWifi) _trigger(force: true);
+    });
+    ref.listen(settingsProvider.select((s) => s.uploadOnMobile), (prev, next) {
+      if (next && ref.read(syncControllerProvider).waitingWifi) {
+        _trigger(force: true);
       }
     });
     ref.listen(onlineProvider, (prev, next) {

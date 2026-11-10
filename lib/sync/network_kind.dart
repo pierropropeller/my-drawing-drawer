@@ -36,3 +36,19 @@ final networkKindProvider = StreamProvider<NetworkKind>((ref) async* {
     yield NetworkKind.other;
   }
 });
+
+/// 同步開始時查一次目前的連線種類（D-150「使用流動數據上傳」）；查不到當成 [NetworkKind.other]
+/// （照常上傳）。測試可覆寫。
+final currentNetworkKindProvider = Provider<Future<NetworkKind> Function()>(
+  (ref) => () async {
+    try {
+      return networkKindOf(
+        await Connectivity().checkConnectivity().timeout(
+          const Duration(seconds: 2),
+        ),
+      );
+    } catch (_) {
+      return NetworkKind.other;
+    }
+  },
+);

@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart' show XFile;
 
 import '../picker/inspo_picker_source.dart' show InspoPickerSource;
 
+import '../../data/album_order_queries.dart';
 import '../../data/album_queries.dart';
 import '../../data/junk_queries.dart';
 import '../../l10n/l10n.dart';
@@ -72,7 +73,7 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
     final notes =
         ref.watch(officialNotesProvider(widget.pitId)).value ?? const {};
     final total = ref.watch(pitStatsProvider(widget.pitId)).value?.official;
-    List<AlbumImage> imagesOf(WidgetRef ref, String? gid) => [
+    List<AlbumImage> rawOf(WidgetRef ref, String? gid) => [
       for (final r
           in ref
                   .watch(officialFilteredProvider((widget.pitId, gid, null)))
@@ -95,6 +96,13 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
           inspoId: r.materialId,
         ),
     ];
+    // 手動排序（D-134）：「全部」和每個分組各一套；沒排過＝照原本（更新日期新→舊）。
+    String scopeOf(String? gid) => AlbumOrderScope.official(widget.pitId, gid);
+    List<AlbumImage> imagesOf(WidgetRef ref, String? gid) => applyAlbumOrder(
+      rawOf(ref, gid),
+      ref.watch(albumOrderProvider(scopeOf(gid))).value,
+      (i) => i.id,
+    );
     final images = imagesOf(ref, groupId);
     // 列表區左右滑動切換分組 chip（全部 → 各分組，不循環），內容跟著手指走（D-118）。
     final order = <String?>[null, for (final g in groups) g.id];
@@ -120,6 +128,7 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
         imagesOf: imagesOf,
       ),
       onAdd: () => _add(groupId),
+      onReorder: (ids) => db.saveAlbumOrder(scopeOf(groupId), ids),
       onDelete: (picked) => db.deleteOfficial(picked.map((e) => e.id)),
       previewBuilder: (items, i) =>
           ImagePreviewPage(pitId: widget.pitId, images: items, initialIndex: i),

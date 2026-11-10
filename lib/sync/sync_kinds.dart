@@ -785,6 +785,26 @@ class PitSortKind extends SyncKind {
       db.into(db.pitSortSettings).upsertFull(PitSortSetting.fromJson(data));
 }
 
+/// 圖冊手動排序（D-134）：一頁（全部／某分組）一份文件，id＝範圍字串。
+class AlbumOrderKind extends SyncKind {
+  const AlbumOrderKind();
+  @override
+  String get name => 'albumorder';
+  @override
+  Future<Map<String, int>> versions(AppDatabase db) async => {
+    for (final r in await db.select(db.albumOrders).get())
+      r.scope: r.updatedAt.millisecondsSinceEpoch,
+  };
+  @override
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>
+      (await (db.select(
+        db.albumOrders,
+      )..where((t) => t.scope.equals(id))).getSingle()).toJson();
+  @override
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) =>
+      db.into(db.albumOrders).upsertFull(AlbumOrder.fromJson(data));
+}
+
 const allSyncKinds = <SyncKind>[
   PitsKind(),
   GroupsKind(),
@@ -803,6 +823,7 @@ const allSyncKinds = <SyncKind>[
   ReviewSettingsKind(),
   ProfileKind(),
   PitSortKind(),
+  AlbumOrderKind(),
 ];
 
 Future<String> _officialKey(AppDatabase db, String id) async =>

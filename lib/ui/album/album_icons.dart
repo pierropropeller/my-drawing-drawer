@@ -21,5 +21,9 @@ abstract final class AlbumIcons {
       '<path d="M4 16V6a2 2 0 0 1 2-2h10"/>';
 
   /// 批次 tag sheet「部分有」狀態的橫線。
+  /// 編輯排序：上下箭頭（AlbumSelectSort 多選頁右上，D-134）。
+  static const sort =
+      '<path d="M7 4v16M3.5 7.5L7 4l3.5 3.5M17 20V4M13.5 16.5L17 20l3.5-3.5"/>';
+
   static const dash = '<path d="M7 12h10"/>';
 }

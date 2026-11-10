@@ -138,6 +138,19 @@ class Pits extends Table with SyncColumns {
 
 /// 主頁每個分頁（現坑／淺坑／封存坑）各自的排序方式（D-132；同步）。
 /// [mode]：`manual`／`created_desc`／`created_asc`／`updated_desc`／`updated_asc`；沒有這列＝`updated_desc`。
+/// 圖冊手動排序（D-134）：參考圖、好看同人圖、靈感廣場的「全部」與每個分組各一套順序。
+/// [scope]＝`official:<坑>:<分組或 all>`／`fan:<坑>:<分組或 all>`／`inspo:<分類或 all>`
+/// （見 album_order_queries.dart）；[ids] 是 JSON 陣列，排在前面的在前。
+/// 順序另存一張表，排序不會動到圖本身的 updatedAt（不算「更新」，坑也不會因此跳到最前）。
+class AlbumOrders extends Table {
+  TextColumn get scope => text()();
+  TextColumn get ids => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {scope};
+}
+
 class PitSortSettings extends Table {
   TextColumn get status => text()();
   TextColumn get mode => text()();

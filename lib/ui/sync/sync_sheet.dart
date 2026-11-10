@@ -173,6 +173,7 @@ class _SyncSheetState extends ConsumerState<SyncSheet>
     return SyncSheetBody(
       done: done,
       fullStatic: fullStatic,
+      wifiStatic: wifiStatic,
       onDone: closePanel,
       onManageStorage: () => manageStorage(widget.onManageStorage),
     );
@@ -186,6 +187,9 @@ class _SyncSheetState extends ConsumerState<SyncSheet>
 mixin SyncPanelMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   SyncDoneSummary? done;
   bool fullStatic = false;
+
+  /// 從灰色 Wi-Fi 小點打開（D-150）：「等待 Wi-Fi」，等上傳的行＋「同步設定」「完成」。
+  bool wifiStatic = false;
   bool _closing = false;
 
   void closePanel() {
@@ -207,6 +211,8 @@ mixin SyncPanelMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
         fullStatic = true;
       } else if (s.hasFailures) {
         done = _summaryOf(s, s);
+      } else if (s.isWaitingWifi) {
+        wifiStatic = true;
       }
     }
     // 打開的瞬間沒有在傳、也不是從小點打開的（剛好傳完或根本沒東西傳）：直接關。
@@ -214,6 +220,7 @@ mixin SyncPanelMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       if (mounted &&
           done == null &&
           !fullStatic &&
+          !wifiStatic &&
           !ref.read(syncControllerProvider).isTransferring) {
         closePanel();
       }
@@ -223,6 +230,22 @@ mixin SyncPanelMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   void listenPanel() {
     ref.listen(syncControllerProvider, (prev, next) {
       if (prev == null) return;
+      if (wifiStatic) {
+        // 還在等 Wi-Fi：面板留著；連上 Wi-Fi 開始傳了就換成一般進度。
+        if (next.isWaitingWifi && !next.isTransferring) return;
+        if (next.isSyncing && !next.isTransferring) return;
+        setState(() => wifiStatic = false);
+        if (!next.isSyncing) {
+          if (next.hasFailures) {
+            setState(() => done = _summaryOf(next, next));
+          } else if (!next.quotaFull) {
+            closePanel();
+          } else {
+            setState(() => fullStatic = true);
+          }
+        }
+        return;
+      }
       if (fullStatic) {
         // Drive 還是滿的：面板留著（一輪同步結束也一樣）；有空間了才回到一般流程。
         if (next.quotaFull || next.isSyncing) return;
@@ -262,11 +285,15 @@ class SyncSheetBody extends StatelessWidget {
     this.done,
     this.onDone,
     this.fullStatic = false,
+    this.wifiStatic = false,
     this.onManageStorage,
   });
 
   final SyncDoneSummary? done;
   final VoidCallback? onDone;
+
+  /// 從灰色 Wi-Fi 小點打開：「等待 Wi-Fi」（D-150）。
+  final bool wifiStatic;
 
   /// 從紅點打開、沒有傳輸中：顯示「Drive 已滿」（見 [SyncPanelContent]）。
   final bool fullStatic;
@@ -287,6 +314,8 @@ class SyncSheetBody extends StatelessWidget {
                 : l.syncuiDoneTitle)
           : fullStatic
           ? l.backupFullTitle
+          : wifiStatic
+          ? l.wifiWaitingTitle
           : l.syncuiSheetLabel,
       child: SafeArea(
         child: SingleChildScrollView(
@@ -309,6 +338,7 @@ class SyncSheetBody extends StatelessWidget {
               SyncPanelContent(
                 done: done,
                 fullStatic: fullStatic,
+                wifiStatic: wifiStatic,
                 onDone: onDone,
                 onManageStorage: onManageStorage,
               ),
@@ -330,6 +360,7 @@ class SyncPanelContent extends ConsumerWidget {
     super.key,
     this.done,
     this.fullStatic = false,
+    this.wifiStatic = false,
     this.onDone,
     this.onManageStorage,
     this.onOpenSettings,
@@ -338,6 +369,7 @@ class SyncPanelContent extends ConsumerWidget {
 
   final SyncDoneSummary? done;
   final bool fullStatic;
+  final bool wifiStatic;
   final VoidCallback? onDone;
   final VoidCallback? onManageStorage;
 
@@ -366,6 +398,14 @@ class SyncPanelContent extends ConsumerWidget {
     }
     if (waiting) {
       return SyncFullPanel(popover: popover, onManageStorage: onManageStorage);
+    }
+    if (wifiStatic && !transferring) {
+      // 「同步設定」：iPad popover 有自己的連結動作，手機推備份頁（同「管理儲存空間」）。
+      return SyncWifiPanel(
+        popover: popover,
+        onOpenSettings: onOpenSettings ?? onManageStorage,
+        onDone: onDone,
+      );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -464,6 +504,150 @@ class SyncFullPanel extends ConsumerWidget {
                 ),
               ),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 等待 Wi-Fi（D-150，SyncSheetWifi）：暖灰 Wi-Fi 圓＋「等待 Wi-Fi」、右邊「N 張待上傳」、
+/// 空的進度條、說明一行、等上傳的行（灰字「等待上傳」），底部「同步設定」（外框）＋「完成」。
+class SyncWifiPanel extends ConsumerWidget {
+  const SyncWifiPanel({
+    super.key,
+    this.popover = false,
+    this.onOpenSettings,
+    this.onDone,
+  });
+
+  final bool popover;
+  final VoidCallback? onOpenSettings;
+  final VoidCallback? onDone;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.tokens;
+    final colors = SyncColors.of(context);
+    final l = context.l10n;
+    final pending = ref.watch(
+      syncControllerProvider.select((s) => syncWaitingRows(s).length),
+    );
+    final height = popover ? 46.0 : 48.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: colors.wifiDot,
+                shape: BoxShape.circle,
+              ),
+              child: const SvgIcon(
+                AppIcons.wifi,
+                size: 15,
+                color: Colors.white,
+                strokeWidth: 2.4,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                l.wifiWaitingTitle,
+                key: const Key('sync-wifi-title'),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontSize: popover ? 19 : 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            if (pending > 0)
+              Text(
+                l.wifiPendingCount(pending),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: t.text2,
+                ),
+              ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 8),
+          child: SyncBar(
+            height: 6,
+            fraction: 0,
+            track: colors.waitTrack,
+            color: colors.waitTrack,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            l.wifiWaitingHint,
+            style: TextStyle(fontSize: 13, color: t.text2),
+          ),
+        ),
+        const SyncFullRows(wifi: true),
+        Padding(
+          padding: EdgeInsets.only(top: popover ? 16 : 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: height,
+                  child: OutlinedButton(
+                    key: const Key('sync-wifi-settings-button'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: t.ink,
+                      side: BorderSide(
+                        color: fieldBorderColor(context),
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: onOpenSettings,
+                    child: Text(
+                      l.ipadsyncSettings,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: height,
+                  child: FilledButton(
+                    key: const Key('sync-wifi-done-button'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: t.accent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: onDone,
+                    child: Text(
+                      l.commonDone,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1465,7 +1649,10 @@ List<SyncTransfer> syncWaitingRows(SyncState s) {
 /// SyncPopoverFull 的列：縮圖、只有字的「上傳」標籤、位置、灰字「等待空間」（沒有進度條）；
 /// 超過 [syncFullMaxRows] 張，底下置中寫「還有 N 張等待空間」。
 class SyncFullRows extends ConsumerWidget {
-  const SyncFullRows({super.key});
+  const SyncFullRows({super.key, this.wifi = false});
+
+  /// 等 Wi-Fi（D-150）：列尾「等待上傳」、底下「還有 N 張等待上傳」。
+  final bool wifi;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1518,8 +1705,10 @@ class SyncFullRows extends ConsumerWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      l.syncuiWaitingSpace,
-                      key: const Key('sync-waiting-space'),
+                      wifi ? l.wifiWaitingRow : l.syncuiWaitingSpace,
+                      key: Key(
+                        wifi ? 'sync-waiting-wifi' : 'sync-waiting-space',
+                      ),
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
@@ -1535,7 +1724,7 @@ class SyncFullRows extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: Text(
-              l.ipadsyncMoreWaitingSpace(more),
+              wifi ? l.wifiMoreWaiting(more) : l.ipadsyncMoreWaitingSpace(more),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: t.text3),
             ),

@@ -17,6 +17,8 @@ import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
 import '../common/empty_state.dart';
 import '../common/nav_bar_hidden.dart';
+import '../common/responsive.dart' show columnsForWidth;
+import '../common/sort_done_button.dart';
 import '../common/svg_icon.dart';
 import '../common/sliding_pills.dart';
 import '../common/swipe_pager.dart';
@@ -31,6 +33,8 @@ import 'image_masonry.dart';
 import 'image_preview_page.dart';
 import 'ipadlists_icons.dart';
 import 'move_sheet.dart';
+import 'reorder_masonry.dart';
+import '../pits/pit_section_tabs.dart' show PitSectionTabBar;
 import 'tag_batch_sheet.dart';
 import 'wide_layout.dart';
 import '../common/top_toast.dart' show BottomInsetAnchor, ToastLift;
@@ -72,7 +76,12 @@ class AlbumView extends ConsumerStatefulWidget {
     this.onSwipePrev,
     this.onSwipeNext,
     this.pages,
+    this.onReorder,
   });
+
+  /// 手動排序（D-134）：有給＝多選頁右上多一顆「排序」鍵，進入編輯排序後拖動放手就用新順序
+  /// （這一頁所有圖的 id）呼叫它。參考圖、好看同人圖才有；雜物沒有。
+  final Future<void> Function(List<String> orderedIds)? onReorder;
 
   /// 左右滑切換篩選、內容跟著手指走（D-118）；有給就不用 [onSwipePrev]／[onSwipeNext]。
   final AlbumSwipePages? pages;
@@ -154,6 +163,62 @@ class _AlbumViewState extends ConsumerState<AlbumView>
 
   bool _selecting = false;
   final Set<String> _selected = {};
+
+  /// 編輯排序中（D-134，AlbumSortEdit）。
+  bool _sorting = false;
+
+  /// 剛放手、資料庫還沒回來的新順序（避免閃回舊順序一下）。
+  List<String>? _pendingOrder;
+
+  void _enterSort() => setState(() {
+    _selecting = false;
+    _selected.clear();
+    _sorting = true;
+    _panelId = null;
+    navLocked.value = true;
+  });
+
+  void _exitSort() {
+    navLocked.value = false;
+    setState(() => _sorting = false);
+  }
+
+  @override
+  void dispose() {
+    if (_sorting) navLocked.value = false;
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(AlbumView old) {
+    super.didUpdateWidget(old);
+    final pending = _pendingOrder;
+    if (pending == null) return;
+    final ids = [for (final i in widget.images) i.id];
+    // 存好了（順序一致），或換了一頁／圖增減（不是同一批圖）＝不用再蓋。
+    if (listEquals(ids, pending) ||
+        ids.length != pending.length ||
+        !ids.toSet().containsAll(pending)) {
+      _pendingOrder = null;
+    }
+  }
+
+  /// 這一頁目前要顯示的順序（套上還沒存好的新順序）。
+  List<AlbumImage> get _shown {
+    final pending = _pendingOrder;
+    if (pending == null) return widget.images;
+    final byId = {for (final i in widget.images) i.id: i};
+    final out = [for (final id in pending) ?byId.remove(id)];
+    return [...byId.values, ...out];
+  }
+
+  void _reorder(List<AlbumImage> shown, int from, int to) {
+    final ids = [for (final i in shown) i.id];
+    final id = ids.removeAt(from);
+    ids.insert(to, id);
+    setState(() => _pendingOrder = ids);
+    widget.onReorder?.call(ids);
+  }
 
   /// 寬版預覽面板目前顯示的圖（狀態放在 State，拉窗不會丟）。
   String? _panelId;
@@ -454,7 +519,9 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     bool wide = false,
     bool showPanel = false,
     WideSpec? spec,
-  }) => widget.squares
+  }) => (_sorting && active)
+      ? _sortGrid(wide: wide, spec: spec)
+      : widget.squares
       ? SquareGrid(
           images: images,
           selecting: active && _selecting,
@@ -483,6 +550,43 @@ class _AlbumViewState extends ConsumerState<AlbumView>
           onTap: active ? _open : (_, _) {},
         );
 
+  /// 編輯排序（AlbumSortEdit）：跟多選同一個瀑布流版面（手機依闊度、iPad 4 欄），長按拖動。
+  Widget _sortGrid({required bool wide, WideSpec? spec}) {
+    final shown = _shown;
+    final compact = WindowClass.of(context).isCompact;
+    final cols = wide
+        ? 4
+        : (compact ? columnsForWidth(MediaQuery.sizeOf(context).width) : null);
+    final gap = compact ? 12.0 : 16.0;
+    final pad = wide
+        ? EdgeInsets.fromLTRB(spec!.hpad, 4, spec.hpad, 40)
+        : const EdgeInsets.fromLTRB(20, 2, 20, 40);
+    return SingleChildScrollView(
+      key: const ValueKey('albumSortScroll'),
+      padding: pad,
+      child: LayoutBuilder(
+        builder: (context, box) => ReorderMasonry(
+          key: const ValueKey('albumSortGrid'),
+          count: shown.length,
+          columns: cols ?? gridColumnsFor(box.maxWidth),
+          crossGap: gap,
+          mainGap: gap,
+          idOf: (i) => shown[i].id,
+          estimateHeight: (i, w) =>
+              AlbumMasonryTile.estimateHeight(shown[i], w),
+          itemBuilder: (context, i, lifted) => AlbumMasonryTile(
+            image: shown[i],
+            selecting: false,
+            isSelected: false,
+            lifted: lifted,
+            onTap: () {},
+          ),
+          onReorder: (from, to) => _reorder(shown, from, to),
+        ),
+      ),
+    );
+  }
+
   /// 寬版右側預覽面板：選了圖顯示該圖，沒選顯示提示。
   Widget _panel(WideSpec spec) {
     final sel = widget.images.where((e) => e.id == _panelId).firstOrNull;
@@ -506,111 +610,188 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     );
   }
 
+  /// 坑內分區 tab：編輯排序時其他分區變淡、鎖住（AlbumSortEdit iPad）。
+  Widget? get _tabs {
+    final tabs = widget.sectionTabs;
+    if (!_sorting || tabs is! PitSectionTabBar) return tabs;
+    return PitSectionTabBar(
+      pitId: tabs.pitId,
+      selected: tabs.selected,
+      onSelect: tabs.onSelect,
+      padding: tabs.padding,
+      locked: true,
+    );
+  }
+
+  /// 編輯排序的標題列：「編輯排序」＋下一行「坑名 · 圖冊名」，右邊「完成」（AlbumSortEdit）。
+  PreferredSizeWidget _sortAppBar(String? pitName, {required bool wide}) {
+    final t = context.tokens;
+    final sub = pitName == null
+        ? widget.title
+        : context.l10n.albumTitleWithPit(pitName, widget.title);
+    return AppBar(
+      automaticallyImplyLeading: false,
+      toolbarHeight: wide ? 72 : 68,
+      titleSpacing: wide ? 32 : 20,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            context.l10n.pitsortTitle,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontSize: wide ? 24 : 22,
+              fontWeight: FontWeight.w700,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            sub,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: t.text3,
+              fontSize: wide ? 13 : 12,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        SortDoneButton(
+          key: const ValueKey('albumSortDone'),
+          big: wide,
+          onTap: _exitSort,
+        ),
+        SizedBox(width: wide ? 32 : 20),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    setNavBarHidden(_selecting);
+    setNavBarHidden(_selecting || _sorting);
     final pitName = ref.watch(pitProvider(widget.pitId)).value?.name;
     final total = widget.total ?? widget.images.length;
     final fullyEmpty = total == 0 && widget.images.isEmpty;
     final cls = WindowClass.of(context);
     // 寬版（≥840）且有預覽面板：列表＋右側面板；選取（多選）時面板收起。
     final wide = cls.isWide && widget.panelBuilder != null;
-    final showPanel = wide && !_selecting;
+    final showPanel = wide && !_selecting && !_sorting;
     final spec = WideSpec.of(MediaQuery.sizeOf(context).width);
     final serif = Theme.of(context).textTheme.titleLarge
         ?.copyWith(fontSize: 19, fontWeight: FontWeight.w700);
     return PopScope(
-      canPop: !_selecting,
+      canPop: !_selecting && !_sorting,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _exit();
+        if (didPop) return;
+        _sorting ? _exitSort() : _exit();
       },
       child: Scaffold(
-        appBar: AppBar(
-          leadingWidth: 58,
-          titleSpacing: 4,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 14),
-            child: _selecting
-                ? IconButton(
-                    tooltip: context.l10n.albumCancelSelect,
-                    padding: EdgeInsets.zero,
-                    icon: SvgIcon(
-                      AppIcons.closeX,
-                      size: 22,
-                      color: t.ink,
-                      strokeWidth: 2,
-                    ),
-                    onPressed: _exit,
-                  )
-                : IconButton(
-                    tooltip: context.l10n.commonBack,
-                    padding: EdgeInsets.zero,
-                    icon: SvgIcon(
-                      AppIcons.back,
-                      color: t.ink,
-                      strokeWidth: 1.9,
-                    ),
-                    onPressed: () => Navigator.of(context).maybePop(),
-                  ),
-          ),
-          title: Text(
-            _selecting
-                ? context.l10n.commonSelectedCount(_selected.length)
-                : (pitName == null
-                      ? widget.title
-                      : context.l10n.albumTitleWithPit(pitName, widget.title)),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: serif,
-          ),
-          actions: _selecting
-              ? [
-                  TextButton(
-                    onPressed: _toggleAll,
-                    style: TextButton.styleFrom(
-                      foregroundColor: t.piece.fg,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      textStyle: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    child: Text(
-                      _allSelected
-                          ? context.l10n.commonDeselectAll
-                          : context.l10n.commonSelectAll,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ]
-              : [
-                  ...widget.appBarActions,
-                  if (cls.isWide && widget.panelBuilder != null)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: WideIconButton(
-                        svg: IpadListsIcons.multiSelect,
-                        label: context.l10n.ipadListsMultiSelect,
-                        onTap: () => setState(() => _selecting = true),
-                      ),
-                    ),
-                  Padding(
-                    padding: EdgeInsets.only(
-                      right: widget.searchAction == null ? 22 : 6,
-                    ),
-                    child: Text(
-                      context.l10n.commonCountImages(total),
-                      style: TextStyle(color: t.text3, fontSize: 12),
-                    ),
-                  ),
-                  if (widget.searchAction != null) ...[
-                    widget.searchAction!,
-                    const SizedBox(width: 12),
-                  ],
-                ],
-        ),
-        floatingActionButton: (_selecting || fullyEmpty)
+        appBar: _sorting
+            ? _sortAppBar(pitName, wide: !cls.isCompact)
+            : AppBar(
+                leadingWidth: 58,
+                titleSpacing: 4,
+                leading: Padding(
+                  padding: const EdgeInsets.only(left: 14),
+                  child: _selecting
+                      ? IconButton(
+                          tooltip: context.l10n.albumCancelSelect,
+                          padding: EdgeInsets.zero,
+                          icon: SvgIcon(
+                            AppIcons.closeX,
+                            size: 22,
+                            color: t.ink,
+                            strokeWidth: 2,
+                          ),
+                          onPressed: _exit,
+                        )
+                      : IconButton(
+                          tooltip: context.l10n.commonBack,
+                          padding: EdgeInsets.zero,
+                          icon: SvgIcon(
+                            AppIcons.back,
+                            color: t.ink,
+                            strokeWidth: 1.9,
+                          ),
+                          onPressed: () => Navigator.of(context).maybePop(),
+                        ),
+                ),
+                title: Text(
+                  _selecting
+                      ? context.l10n.commonSelectedCount(_selected.length)
+                      : (pitName == null
+                            ? widget.title
+                            : context.l10n.albumTitleWithPit(
+                                pitName,
+                                widget.title,
+                              )),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: serif,
+                ),
+                actions: _selecting
+                    ? [
+                        if (widget.onReorder != null && !widget.squares)
+                          IconButton(
+                            key: const ValueKey('albumSortButton'),
+                            tooltip: context.l10n.albumsortButton,
+                            icon: SvgIcon(
+                              AlbumIcons.sort,
+                              size: 21,
+                              color: t.ink,
+                              strokeWidth: 1.9,
+                            ),
+                            onPressed: _enterSort,
+                          ),
+                        TextButton(
+                          onPressed: _toggleAll,
+                          style: TextButton.styleFrom(
+                            foregroundColor: t.piece.fg,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            textStyle: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          child: Text(
+                            _allSelected
+                                ? context.l10n.commonDeselectAll
+                                : context.l10n.commonSelectAll,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ]
+                    : [
+                        ...widget.appBarActions,
+                        if (cls.isWide && widget.panelBuilder != null)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: WideIconButton(
+                              svg: IpadListsIcons.multiSelect,
+                              label: context.l10n.ipadListsMultiSelect,
+                              onTap: () => setState(() => _selecting = true),
+                            ),
+                          ),
+                        Padding(
+                          padding: EdgeInsets.only(
+                            right: widget.searchAction == null ? 22 : 6,
+                          ),
+                          child: Text(
+                            context.l10n.commonCountImages(total),
+                            style: TextStyle(color: t.text3, fontSize: 12),
+                          ),
+                        ),
+                        if (widget.searchAction != null) ...[
+                          widget.searchAction!,
+                          const SizedBox(width: 12),
+                        ],
+                      ],
+              ),
+        floatingActionButton: (_selecting || _sorting || fullyEmpty)
             ? null
             : ToastLift(
                 child: FloatingActionButton(
@@ -732,7 +913,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
             : null,
         body: Column(
           children: [
-            ?widget.sectionTabs,
+            ?_tabs,
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -747,6 +928,25 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                               left: wide ? spec.hpad - 20 : 0,
                             ),
                             child: widget.filter,
+                          ),
+                        if (_sorting)
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              wide ? spec.hpad : 20,
+                              0,
+                              20,
+                              10,
+                            ),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                context.l10n.albumsortHint,
+                                style: TextStyle(
+                                  color: t.text2,
+                                  fontSize: wide ? 13 : 12.5,
+                                ),
+                              ),
+                            ),
                           ),
                         Expanded(
                           child: () {
@@ -778,7 +978,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                             final pages = widget.pages;
                             if (pages == null) {
                               return SwipeToSwitch(
-                                enabled: !_selecting,
+                                enabled: !_selecting && !_sorting,
                                 onPrev: widget.onSwipePrev,
                                 onNext: widget.onSwipeNext,
                                 child: pageOf(widget.images),
@@ -786,7 +986,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                             }
                             // 左右滑切換篩選，內容跟著手指走（D-118）。
                             return SwipePager<String?>(
-                              enabled: !_selecting,
+                              enabled: !_selecting && !_sorting,
                               order: pages.order,
                               current: pages.current,
                               progress: pages.progress,

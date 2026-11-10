@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../sync/sync_controller.dart';
 import '../../theme/tokens.dart';
+import '../common/app_icons.dart';
+import '../common/svg_icon.dart';
 import '../common/user_avatar.dart';
 import '../me/backup_page.dart';
 import 'ring_painter.dart';
@@ -13,9 +15,9 @@ import 'sync_popover.dart';
 /// 外圈狀態（D-052）。
 enum SyncRingMode { none, checking, transferring }
 
-/// 外圈淡出後留在頭像右下角的小圓點：琥珀＝有圖片同步失敗（D-109），紅＝Drive 已滿（D-103）。
-/// 同步進行中不畫（外圈在轉）。
-enum SyncRingDot { none, failed, full }
+/// 外圈淡出後留在頭像右下角的小圓點：琥珀＝有圖片同步失敗（D-109），紅＝Drive 已滿（D-103），
+/// 暖灰＋Wi-Fi＝圖片等 Wi-Fi 才上傳（D-150）。同步進行中不畫（外圈在轉）。
+enum SyncRingDot { none, failed, full, wifi }
 
 /// 主頁左上角頭像：同步狀態收在外圈（MainSyncing）。
 ///
@@ -59,6 +61,8 @@ class SyncAvatar extends ConsumerWidget {
             ? SyncRingDot.full
             : s.hasFailures
             ? SyncRingDot.failed
+            : s.isWaitingWifi
+            ? SyncRingDot.wifi
             : SyncRingDot.none,
       ),
     );
@@ -227,7 +231,35 @@ class _SyncRingState extends State<SyncRing>
             ),
           ),
           widget.child,
-          if (widget.dot != SyncRingDot.none && !visible)
+          if (widget.dot == SyncRingDot.wifi && !visible)
+            // 等 Wi-Fi（SyncSheetWifi）：18px 暖灰圓、2px 底色描邊、白色 Wi-Fi，貼頭像右下。
+            Positioned(
+              right: widget.navStyleDot ? 3 : 0,
+              bottom: widget.navStyleDot ? 4 : 0,
+              child: Container(
+                key: const ValueKey('syncRingDot:wifi'),
+                width: 18,
+                height: 18,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colors.wifiDot,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: widget.navStyleDot
+                        ? context.tokens.nav
+                        : Theme.of(context).scaffoldBackgroundColor,
+                    width: 2,
+                  ),
+                ),
+                child: const SvgIcon(
+                  AppIcons.wifi,
+                  size: 11,
+                  color: Colors.white,
+                  strokeWidth: 2.8,
+                ),
+              ),
+            )
+          else if (widget.dot != SyncRingDot.none && !visible)
             Positioned(
               // 外圈比頭像大 4px：navStyleDot 把小點貼回頭像本身的右下角。
               right: widget.navStyleDot ? 4 : 1,
@@ -272,6 +304,7 @@ class _SyncRingState extends State<SyncRing>
             SyncRingMode.none => switch (widget.dot) {
               SyncRingDot.failed => l.syncuiRingFailed,
               SyncRingDot.full => l.backupFullTitle,
+              SyncRingDot.wifi => l.wifiWaitingTitle,
               SyncRingDot.none => null,
             },
           },
