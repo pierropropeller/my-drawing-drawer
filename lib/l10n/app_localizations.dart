@@ -2619,12 +2619,6 @@ abstract class AppLocalizations {
   /// **'說明'**
   String get noteLabel;
 
-  /// No description provided for @notePlaceholder.
-  ///
-  /// In zh, this message translates to:
-  /// **'怎麼用、看哪裡（可留空）'**
-  String get notePlaceholder;
-
   /// No description provided for @pickerSourceAlbum.
   ///
   /// In zh, this message translates to:

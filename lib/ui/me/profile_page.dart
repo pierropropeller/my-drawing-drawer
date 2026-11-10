@@ -47,6 +47,12 @@ final profileSectionRequestProvider =
 /// 手機（＜600，或內容區太窄）＝一欄列表，點列進子頁。
 /// ≥600 且內容夠寬（iPad／平板）＝左設定列表（360）＋右內容面板（Profile 稿）：點列只切換右側內容，
 /// 不 push 頁面；目前選的項目放在 State，拉窗（手機版 ↔ 並排）來回後仍保留。
+// 靈感廣場入口的小燈泡：固定黃色（和廣場圖角標同色系），不隨主題色變。
+const _inspoTileBg = Color(0xFFF6EDD3);
+const _inspoTileFg = Color(0xFFB3850F);
+const _inspoTileBgDark = Color(0x2EC9961A);
+const _inspoTileFgDark = Color(0xFFE2B84A);
+
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
 
@@ -185,9 +191,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 child: Material(
                   type: MaterialType.transparency,
                   child: row(
-                    icon: MaterialLibIcons.library,
-                    tileBg: t.accentSoft,
-                    tileFg: t.piece.fg,
+                    icon: MaterialLibIcons.bulb,
+                    tileBg: dark ? _inspoTileBgDark : _inspoTileBg,
+                    tileFg: dark ? _inspoTileFgDark : _inspoTileFg,
                     title: context.l10n.materialTitle,
                     value: context.l10n.commonCountImages(materialTotal),
                     last: true,
@@ -359,9 +365,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           children: [
             item(
               section: ProfileSection.library,
-              icon: MaterialLibIcons.library,
-              tileBg: t.accentSoft,
-              tileFg: t.piece.fg,
+              icon: MaterialLibIcons.bulb,
+              tileBg: dark ? _inspoTileBgDark : _inspoTileBg,
+              tileFg: dark ? _inspoTileFgDark : _inspoTileFg,
               title: context.l10n.materialTitle,
               value: context.l10n.commonCountImages(materialTotal),
             ),

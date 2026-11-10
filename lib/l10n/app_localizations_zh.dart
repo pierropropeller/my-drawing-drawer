@@ -1462,9 +1462,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noteLabel => '說明';
 
   @override
-  String get notePlaceholder => '怎麼用、看哪裡（可留空）';
-
-  @override
   String get pickerSourceAlbum => '相簿';
 
   @override
