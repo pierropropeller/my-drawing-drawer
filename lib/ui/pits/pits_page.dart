@@ -10,6 +10,7 @@ import '../album/album_image.dart';
 import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
 import '../common/nav_bar_hidden.dart';
+import '../common/sort_done_button.dart';
 import '../common/reorder_tile.dart' show moveListItem;
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
@@ -170,7 +171,11 @@ class _PitsPageState extends ConsumerState<PitsPage>
     );
     // 主頁右上的「搜尋全部坑」鍵（D-105，取代田字／瀑布切換）；三個分頁都有。
     final searchButton = _editing
-        ? _DoneButton(big: tablet, onTap: _exitEdit)
+        ? SortDoneButton(
+            key: const ValueKey('pitSortDone'),
+            big: tablet,
+            onTap: _exitEdit,
+          )
         : _SearchAllButton(big: tablet);
     final t = context.tokens;
     return PopScope(
@@ -361,42 +366,6 @@ class _PitsPageState extends ConsumerState<PitsPage>
 }
 
 /// 編輯排序的「完成」（MainSortEdit：accent 底白字膠囊；iPad 高 44）。
-class _DoneButton extends StatelessWidget {
-  const _DoneButton({required this.onTap, this.big = false});
-  final VoidCallback onTap;
-  final bool big;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    return Semantics(
-      button: true,
-      child: GestureDetector(
-        key: const ValueKey('pitSortDone'),
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          height: big ? 44 : 38,
-          padding: EdgeInsets.symmetric(horizontal: big ? 22 : 18),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: t.accent,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            context.l10n.commonDone,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: big ? 15 : 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// 編輯排序的底部排序列（MainSortEdit，位置同導覽列）：「排序」＋（手動時）「手動」、
 /// 「建立日期」「更新日期」兩顆。點一顆＝改用它排序、新→舊；再點亮著的那顆＝新→舊／舊→新互換。
 class _SortBar extends ConsumerWidget {

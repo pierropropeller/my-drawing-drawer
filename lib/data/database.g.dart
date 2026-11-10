@@ -15132,6 +15132,268 @@ class PitSortSettingsCompanion extends UpdateCompanion<PitSortSetting> {
   }
 }
 
+class $AlbumOrdersTable extends AlbumOrders
+    with TableInfo<$AlbumOrdersTable, AlbumOrder> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AlbumOrdersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _scopeMeta = const VerificationMeta('scope');
+  @override
+  late final GeneratedColumn<String> scope = GeneratedColumn<String>(
+    'scope',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _idsMeta = const VerificationMeta('ids');
+  @override
+  late final GeneratedColumn<String> ids = GeneratedColumn<String>(
+    'ids',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [scope, ids, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'album_orders';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AlbumOrder> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('scope')) {
+      context.handle(
+        _scopeMeta,
+        scope.isAcceptableOrUnknown(data['scope']!, _scopeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scopeMeta);
+    }
+    if (data.containsKey('ids')) {
+      context.handle(
+        _idsMeta,
+        ids.isAcceptableOrUnknown(data['ids']!, _idsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_idsMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {scope};
+  @override
+  AlbumOrder map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AlbumOrder(
+      scope: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scope'],
+      )!,
+      ids: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ids'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AlbumOrdersTable createAlias(String alias) {
+    return $AlbumOrdersTable(attachedDatabase, alias);
+  }
+}
+
+class AlbumOrder extends DataClass implements Insertable<AlbumOrder> {
+  final String scope;
+  final String ids;
+  final DateTime updatedAt;
+  const AlbumOrder({
+    required this.scope,
+    required this.ids,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['scope'] = Variable<String>(scope);
+    map['ids'] = Variable<String>(ids);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  AlbumOrdersCompanion toCompanion(bool nullToAbsent) {
+    return AlbumOrdersCompanion(
+      scope: Value(scope),
+      ids: Value(ids),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory AlbumOrder.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AlbumOrder(
+      scope: serializer.fromJson<String>(json['scope']),
+      ids: serializer.fromJson<String>(json['ids']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'scope': serializer.toJson<String>(scope),
+      'ids': serializer.toJson<String>(ids),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  AlbumOrder copyWith({String? scope, String? ids, DateTime? updatedAt}) =>
+      AlbumOrder(
+        scope: scope ?? this.scope,
+        ids: ids ?? this.ids,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  AlbumOrder copyWithCompanion(AlbumOrdersCompanion data) {
+    return AlbumOrder(
+      scope: data.scope.present ? data.scope.value : this.scope,
+      ids: data.ids.present ? data.ids.value : this.ids,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AlbumOrder(')
+          ..write('scope: $scope, ')
+          ..write('ids: $ids, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(scope, ids, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AlbumOrder &&
+          other.scope == this.scope &&
+          other.ids == this.ids &&
+          other.updatedAt == this.updatedAt);
+}
+
+class AlbumOrdersCompanion extends UpdateCompanion<AlbumOrder> {
+  final Value<String> scope;
+  final Value<String> ids;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const AlbumOrdersCompanion({
+    this.scope = const Value.absent(),
+    this.ids = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AlbumOrdersCompanion.insert({
+    required String scope,
+    required String ids,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : scope = Value(scope),
+       ids = Value(ids),
+       updatedAt = Value(updatedAt);
+  static Insertable<AlbumOrder> custom({
+    Expression<String>? scope,
+    Expression<String>? ids,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (scope != null) 'scope': scope,
+      if (ids != null) 'ids': ids,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AlbumOrdersCompanion copyWith({
+    Value<String>? scope,
+    Value<String>? ids,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return AlbumOrdersCompanion(
+      scope: scope ?? this.scope,
+      ids: ids ?? this.ids,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (scope.present) {
+      map['scope'] = Variable<String>(scope.value);
+    }
+    if (ids.present) {
+      map['ids'] = Variable<String>(ids.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AlbumOrdersCompanion(')
+          ..write('scope: $scope, ')
+          ..write('ids: $ids, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -15169,6 +15431,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PitSortSettingsTable pitSortSettings = $PitSortSettingsTable(
     this,
   );
+  late final $AlbumOrdersTable albumOrders = $AlbumOrdersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -15201,6 +15464,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     userProfiles,
     refViewStates,
     pitSortSettings,
+    albumOrders,
   ];
 }
 
@@ -22920,6 +23184,177 @@ typedef $$PitSortSettingsTableProcessedTableManager =
       PitSortSetting,
       PrefetchHooks Function()
     >;
+typedef $$AlbumOrdersTableCreateCompanionBuilder =
+    AlbumOrdersCompanion Function({
+      required String scope,
+      required String ids,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$AlbumOrdersTableUpdateCompanionBuilder =
+    AlbumOrdersCompanion Function({
+      Value<String> scope,
+      Value<String> ids,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$AlbumOrdersTableFilterComposer
+    extends Composer<_$AppDatabase, $AlbumOrdersTable> {
+  $$AlbumOrdersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get scope => $composableBuilder(
+    column: $table.scope,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ids => $composableBuilder(
+    column: $table.ids,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AlbumOrdersTableOrderingComposer
+    extends Composer<_$AppDatabase, $AlbumOrdersTable> {
+  $$AlbumOrdersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get scope => $composableBuilder(
+    column: $table.scope,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ids => $composableBuilder(
+    column: $table.ids,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AlbumOrdersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AlbumOrdersTable> {
+  $$AlbumOrdersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get scope =>
+      $composableBuilder(column: $table.scope, builder: (column) => column);
+
+  GeneratedColumn<String> get ids =>
+      $composableBuilder(column: $table.ids, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$AlbumOrdersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AlbumOrdersTable,
+          AlbumOrder,
+          $$AlbumOrdersTableFilterComposer,
+          $$AlbumOrdersTableOrderingComposer,
+          $$AlbumOrdersTableAnnotationComposer,
+          $$AlbumOrdersTableCreateCompanionBuilder,
+          $$AlbumOrdersTableUpdateCompanionBuilder,
+          (
+            AlbumOrder,
+            BaseReferences<_$AppDatabase, $AlbumOrdersTable, AlbumOrder>,
+          ),
+          AlbumOrder,
+          PrefetchHooks Function()
+        > {
+  $$AlbumOrdersTableTableManager(_$AppDatabase db, $AlbumOrdersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AlbumOrdersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AlbumOrdersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AlbumOrdersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> scope = const Value.absent(),
+                Value<String> ids = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AlbumOrdersCompanion(
+                scope: scope,
+                ids: ids,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String scope,
+                required String ids,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => AlbumOrdersCompanion.insert(
+                scope: scope,
+                ids: ids,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$AlbumOrdersTable, AlbumOrder>(table),
+                  BaseReferences<_$AppDatabase, $AlbumOrdersTable, AlbumOrder>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AlbumOrdersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AlbumOrdersTable,
+      AlbumOrder,
+      $$AlbumOrdersTableFilterComposer,
+      $$AlbumOrdersTableOrderingComposer,
+      $$AlbumOrdersTableAnnotationComposer,
+      $$AlbumOrdersTableCreateCompanionBuilder,
+      $$AlbumOrdersTableUpdateCompanionBuilder,
+      (
+        AlbumOrder,
+        BaseReferences<_$AppDatabase, $AlbumOrdersTable, AlbumOrder>,
+      ),
+      AlbumOrder,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -22976,4 +23411,6 @@ class $AppDatabaseManager {
       $$RefViewStatesTableTableManager(_db, _db.refViewStates);
   $$PitSortSettingsTableTableManager get pitSortSettings =>
       $$PitSortSettingsTableTableManager(_db, _db.pitSortSettings);
+  $$AlbumOrdersTableTableManager get albumOrders =>
+      $$AlbumOrdersTableTableManager(_db, _db.albumOrders);
 }

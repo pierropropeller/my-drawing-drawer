@@ -280,6 +280,8 @@
     }
   },
   "albumSetMergeNoInspo": "從靈感廣場放進來的圖不能合併",
+  "albumsortButton": "編輯排序",
+  "albumsortHint": "長按拖動可自訂順序",
   "shellTabPits": "坑",
   "shellTabGoals": "時間軸",
   "shellTabMe": "我的",
