@@ -353,6 +353,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get albumSetMergeNoInspo => '從靈感廣場放進來的圖不能合併';
 
   @override
+  String get albumsortButton => '編輯排序';
+
+  @override
+  String get albumsortHint => '長按拖動可自訂順序';
+
+  @override
   String get shellTabPits => '坑';
 
   @override
@@ -1495,9 +1501,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noteLabel => '說明';
-
-  @override
-  String get notePlaceholder => '怎麼用、看哪裡（可留空）';
 
   @override
   String get pickerSourceAlbum => '相簿';

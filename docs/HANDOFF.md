@@ -286,7 +286,7 @@ Drive/App 專用資料夾/
 | `FormImagePreview` | 表單內圖片預覽 | 所有新增／編輯頁點小圖進入；黑底、×、「1 / N」、左右滑，沒有動作列（D-102） |
 | `OfficialSelect` | 多選 | **長按**進入；下載、移動、tag、刪除 |
 | `OfficialSelectMerge` | 多選（合併） | 底欄：下載、移動、**合併**、tag、刪除（D-138）；同人圖同 |
-| `OfficialListMulti` | 官方圖冊（多圖） | 多圖那一格右上角「⧉ N」（D-137） |
+| `OfficialListMulti` | 官方圖冊（多圖） | 多圖那一格右下角「⧉ N」，多選時也顯示（D-137） |
 | `ImagePreviewMulti` | 圖片預覽（多圖） | tag 下面縮圖條（「n / N」＋40×40 縮圖），點縮圖換張；日期左、分組右下（D-137） |
 | `FanArtTagSheet` | 多選 · tag | 同人圖／官方圖多選後批量加減 tag（D-060） |
 | `MoveSheet` | 移動到 | 可選坑（跨坑，D-054）＋官方圖冊／好看同人圖／雜物；選官方圖冊時展開分組。獨有欄位移動時保留但隱藏。目標坑缺 tag 時先出 `MoveTagConfirm`（D-131） |

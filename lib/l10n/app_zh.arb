@@ -280,6 +280,8 @@
     }
   },
   "albumSetMergeNoInspo": "從靈感廣場放進來的圖不能合併",
+  "albumsortButton": "編輯排序",
+  "albumsortHint": "長按拖動可自訂順序",
   "shellTabPits": "坑",
   "shellTabGoals": "時間軸",
   "shellTabMe": "我的",
@@ -1106,7 +1108,6 @@
   "inspoEditTitle": "編輯靈感圖",
   "inspoDeletePlacedNote": "已放進坑的也會一起移除",
   "noteLabel": "說明",
-  "notePlaceholder": "怎麼用、看哪裡（可留空）",
   "pickerSourceAlbum": "相簿",
   "ipadauditGifLoop": "GIF · 自動循環",
   "ipadauditVideoMeta": "影片 · {duration} · 縮圖取第一格",

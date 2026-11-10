@@ -69,7 +69,7 @@ class ImageMasonry extends StatelessWidget {
           itemCount: images.length,
           itemBuilder: (_, i) {
             final im = images[i];
-            final tile = _Tile(
+            final tile = AlbumMasonryTile(
               image: im,
               selecting: selecting,
               isSelected: selected.contains(im.id),
@@ -94,15 +94,28 @@ class ImageMasonry extends StatelessWidget {
   }
 }
 
-class _Tile extends StatelessWidget {
-  const _Tile({
+/// 瀑布流的一格：圖＋說明列。編輯排序（D-134）也用它，[lifted]＝正被拖著（加陰影）。
+class AlbumMasonryTile extends StatelessWidget {
+  const AlbumMasonryTile({
+    super.key,
     required this.image,
     required this.selecting,
     required this.isSelected,
     required this.onTap,
     this.highlighted = false,
     this.onLongPress,
+    this.lifted = false,
   });
+
+  /// 估計這格的高度（編輯排序量到真正高度前用）：圖＋說明列。
+  static double estimateHeight(AlbumImage image, double width) {
+    var h = width / image.aspect.clamp(0.4, 2.5);
+    if ((image.author ?? '').isNotEmpty || (image.groupName ?? '').isNotEmpty) {
+      h += 26;
+    }
+    if ((image.note ?? '').isNotEmpty) h += 40;
+    return h;
+  }
 
   final AlbumImage image;
   final bool selecting;
@@ -110,6 +123,7 @@ class _Tile extends StatelessWidget {
   final bool highlighted;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+  final bool lifted;
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +133,13 @@ class _Tile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
+          if (lifted)
+            DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(Radii.image),
+                boxShadow: liftShadow,
+              ),
+            ),
           ClipRRect(
             borderRadius: BorderRadius.circular(Radii.image),
             child: MediaThumb(image.media, cacheWidth: 500, badgeInset: 7),
@@ -132,15 +153,14 @@ class _Tile extends StatelessWidget {
                 border: Border.all(color: t.accent, width: 2),
               ),
             ),
+          // 多圖（D-136）：右下「⧉ N」（左下是 GIF／影片標記，離邊同 7）；多選時也看得到。
+          Positioned(right: 7, bottom: 7, child: AlbumSetBadge(image.imageKey)),
           if (selecting)
             Positioned(
               top: 8,
               right: 8,
               child: SelectMark(selected: isSelected),
-            )
-          else
-            // 多圖（D-136）：右上「⧉ N」；多選時那個位置是勾選圈，所以不畫。
-            Positioned(top: 8, right: 8, child: AlbumSetBadge(image.imageKey)),
+            ),
         ],
       ),
     );
@@ -157,6 +177,11 @@ class _Tile extends StatelessWidget {
     );
   }
 }
+
+/// 拖動排序時浮起那張的陰影（稿：0 14 28 rgba(43,38,34,.28)）。
+const liftShadow = [
+  BoxShadow(color: Color(0x472B2622), offset: Offset(0, 14), blurRadius: 28),
+];
 
 /// 雜物的 3 欄正方形純圖格（JunkList／JunkSelect）：欄距 2、無圓角、不顯示說明。
 /// 選取模式：右上 22px 圓圈（位置 6,6）；選中＝2px 主色內框＋實心主色圓圈白勾。
@@ -222,6 +247,11 @@ class SquareGrid extends StatelessWidget {
               MediaThumb(im.media, cacheWidth: 400),
               if (im.fromInspo)
                 const Positioned(left: 6, top: 6, child: InspoBadge()),
+              Positioned(
+                right: 6,
+                bottom: 6,
+                child: AlbumSetBadge(im.imageKey),
+              ),
               if (isSelected)
                 DecoratedBox(
                   decoration: BoxDecoration(

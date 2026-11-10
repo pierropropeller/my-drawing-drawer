@@ -124,8 +124,7 @@ class NoteField extends StatelessWidget {
         maxLines: 6,
         keyboardType: TextInputType.multiline,
         style: const TextStyle(fontSize: 15, height: 1.5),
-        decoration: pitInputDecoration(context)
-            .copyWith(hintText: context.l10n.notePlaceholder),
+        decoration: pitInputDecoration(context),
       ),
     ],
   );

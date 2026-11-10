@@ -10,6 +10,7 @@ import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/image_store.dart';
+import 'package:huakeng/data/material_queries.dart';
 import 'package:huakeng/l10n/l10n.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/theme/app_theme.dart';
@@ -25,6 +26,8 @@ import 'package:huakeng/ui/entity/draft_form_page.dart';
 import 'package:huakeng/ui/entity/idea_form_page.dart';
 import 'package:huakeng/ui/entity/piece_form_page.dart';
 import 'package:huakeng/ui/oshi/oshi_form_page.dart';
+import 'package:huakeng/ui/picker/inspo_picker_source.dart'
+    show pickedFromInspo;
 import 'package:huakeng/ui/share/share_sheet.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -307,6 +310,34 @@ void main() {
         );
         expect(rows, hasLength(1));
         expect(find.text('新增參考圖'), findsNothing);
+      });
+
+      tw('新增參考圖：從靈感廣場選的圖是放進坑（連結），不另存一份', (tester) async {
+        final mid = (await tester.runAsync(
+          () => db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
+            NewImage(file: 'm.png', width: 1, height: 1),
+          ]),
+        ))!.single;
+        pickedFromInspo[png.path] = mid;
+        addTearDown(pickedFromInspo.clear);
+        final r = <Object?>[];
+        await pumpHost(
+          tester,
+          size,
+          (c) => openOfficialNew(
+            c,
+            pitId: pitId,
+            initialImages: [XFile(png.path)],
+          ),
+          r,
+        );
+        await tester.tap(find.text(label('加入參考圖', '加入')));
+        await settleLong(tester);
+        final rows = await tester.runAsync(
+          () => db.select(db.officialImages).get(),
+        );
+        expect(rows!.single.materialId, mid);
+        expect(rows.single.imageFile, 'm.png');
       });
 
       tw('加收藏／編輯同人圖：存檔與回傳', (tester) async {

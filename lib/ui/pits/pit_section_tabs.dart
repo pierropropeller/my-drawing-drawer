@@ -91,7 +91,11 @@ class PitSectionTabBar extends ConsumerStatefulWidget {
     required this.selected,
     this.onSelect,
     this.padding = const EdgeInsets.fromLTRB(24, 6, 24, 0),
+    this.locked = false,
   });
+
+  /// 編輯排序中（D-134）：其他分區變淡、不能點。
+  final bool locked;
 
   final String pitId;
   final PitSection selected;
@@ -190,11 +194,18 @@ class _PitSectionTabBarState extends ConsumerState<PitSectionTabBar> {
             children: [
               for (final s in sections) ...[
                 if (s != sections.first) const SizedBox(width: 18),
-                _Tab(
-                  key: s == widget.selected ? _selectedKey : null,
-                  label: s.label(l),
-                  selected: s == widget.selected,
-                  onTap: () => _tap(s),
+                IgnorePointer(
+                  ignoring: widget.locked,
+                  child: AnimatedOpacity(
+                    opacity: widget.locked && s != widget.selected ? 0.4 : 1,
+                    duration: const Duration(milliseconds: 150),
+                    child: _Tab(
+                      key: s == widget.selected ? _selectedKey : null,
+                      label: s.label(l),
+                      selected: s == widget.selected,
+                      onTap: () => _tap(s),
+                    ),
+                  ),
                 ),
               ],
             ],

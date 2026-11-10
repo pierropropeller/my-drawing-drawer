@@ -405,6 +405,7 @@ void main() {
                 context,
                 options: AddSourceOptions(
                   clipboard: ClipboardProbe.image,
+                  inspo: true,
                   clipboardPreview: preview,
                 ),
               ),
@@ -517,7 +518,7 @@ void main() {
             body: TextButton(
               onPressed: () => showMediaSourceMenu(
                 context,
-                options: const AddSourceOptions(),
+                options: const AddSourceOptions(inspo: true),
               ),
               child: const Text('OPEN'),
             ),

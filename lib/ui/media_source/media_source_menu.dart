@@ -19,7 +19,11 @@ class AddSourceOptions {
     this.camera = true,
     this.clipboard = ClipboardProbe.none,
     this.clipboardPreview,
+    this.inspo = false,
   });
+
+  /// 只有新增參考圖才列「靈感廣場」（D-147）。
+  final bool inspo;
 
   /// 裝置有相機才顯示「拍照」。
   final bool camera;
@@ -34,7 +38,7 @@ class AddSourceOptions {
   List<AddSource> get sources => [
     AddSource.photos,
     AddSource.files,
-    AddSource.materials,
+    if (inspo) AddSource.materials,
     if (camera) AddSource.camera,
     if (clipboard != ClipboardProbe.none) AddSource.paste,
   ];

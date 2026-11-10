@@ -688,6 +688,18 @@ abstract class AppLocalizations {
   /// **'從靈感廣場放進來的圖不能合併'**
   String get albumSetMergeNoInspo;
 
+  /// No description provided for @albumsortButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯排序'**
+  String get albumsortButton;
+
+  /// No description provided for @albumsortHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'長按拖動可自訂順序'**
+  String get albumsortHint;
+
   /// No description provided for @shellTabPits.
   ///
   /// In zh, this message translates to:
@@ -2672,12 +2684,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'說明'**
   String get noteLabel;
-
-  /// No description provided for @notePlaceholder.
-  ///
-  /// In zh, this message translates to:
-  /// **'怎麼用、看哪裡（可留空）'**
-  String get notePlaceholder;
 
   /// No description provided for @pickerSourceAlbum.
   ///

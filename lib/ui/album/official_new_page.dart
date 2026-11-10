@@ -15,7 +15,8 @@ import '../common/modal_form_layout.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/sensitive_dialogs.dart';
 import '../media_source/drop_zone.dart';
-import '../picker/inspo_picker_source.dart' show pickedFromInspo;
+import '../picker/inspo_picker_source.dart'
+    show InspoPickerSource, pickedFromInspo;
 import '../../theme/tokens.dart';
 import 'album_actions.dart';
 import 'album_form.dart';
@@ -159,7 +160,11 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
   }
 
   Future<void> _pick() async {
-    final picked = await ref.read(imagePickerProvider)(context);
+    // 從靈感廣場選＝放進坑（連結），只有新增時可以；編輯一組多圖時只從相簿加。
+    Future<List<XFile>> pick() => ref.read(imagePickerProvider)(context);
+    final picked = _editing
+        ? await pick()
+        : await InspoPickerSource.allow(pick);
     if (picked.isNotEmpty) {
       setState(
         () => (_editing ? _editItems : _files).addAll(

@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import '../data/album_queries.dart';
 import '../data/album_set_queries.dart';
 import '../data/batch_tag_queries.dart';
+import '../data/album_order_queries.dart';
 import '../data/database.dart';
 import '../data/entity_queries.dart';
 import '../data/goal_queries.dart';
@@ -51,6 +52,11 @@ final pitsByStatusProvider = StreamProvider.family<List<Pit>, PitStatus>(
 /// 主頁分頁的排序方式（D-132）。
 final pitSortModeProvider = StreamProvider.family<PitSortMode, PitStatus>(
   (ref, status) => ref.watch(databaseProvider).watchPitSortMode(status),
+);
+
+/// 圖冊某一頁（全部／分組）存的手動順序（D-134）；沒排過＝null。範圍見 [AlbumOrderScope]。
+final albumOrderProvider = StreamProvider.family<List<String>?, String>(
+  (ref, scope) => ref.watch(databaseProvider).watchAlbumOrder(scope),
 );
 
 /// 選擇清單用的坑（分享匯入、圖片移動、新增目標、日頁新增）：現坑＋淺坑，**不含封存坑**。
