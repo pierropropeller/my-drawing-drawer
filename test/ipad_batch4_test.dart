@@ -28,6 +28,7 @@ import 'package:huakeng/ui/me/sensitive_settings_page.dart';
 import 'package:huakeng/ui/me/theme_page.dart';
 import 'package:huakeng/ui/pits/pit_edit_page.dart';
 import 'package:huakeng/ui/pits/pit_new_page.dart';
+import 'package:huakeng/ui/pits/pit_type_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// iPad 批次 4（P-031／P-032／P-033／P-035）：我的 → 個人化右欄子頁、敏感內容設定、
@@ -452,7 +453,7 @@ void main() {
           greaterThan(tester.getTopLeft(find.text('坑名')).dx + 380),
         );
         final switches = tester
-            .widgetList<AppSwitch>(find.byType(AppSwitch))
+            .widgetList<PitSectionTile>(find.byType(PitSectionTile))
             .map((s) => s.value)
             .toList();
         expect(switches, [true, true, false, false, false, false, false]);
@@ -596,10 +597,10 @@ void main() {
       expect(switchLabels(tester), [
         '參考圖',
         '好看同人圖',
+        '推活',
         '我的腦洞',
         '我的摸魚',
         '我的成圖',
-        '推活',
         '雜物',
         '敏感內容',
       ]);

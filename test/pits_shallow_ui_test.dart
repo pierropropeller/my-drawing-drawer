@@ -15,7 +15,6 @@ import 'package:huakeng/main.dart';
 import 'package:huakeng/state/providers.dart';
 import 'package:huakeng/state/settings.dart';
 import 'package:huakeng/theme/app_theme.dart';
-import 'package:huakeng/ui/common/app_switch.dart';
 import 'package:huakeng/ui/common/dashed_box.dart';
 import 'package:huakeng/ui/pits/pit_edit_page.dart';
 import 'package:huakeng/ui/pits/pit_new_page.dart';
@@ -154,20 +153,15 @@ void main() {
 
   Finder rowOf(String label) => find.ancestor(
     of: find.text(label),
-    matching: find.byType(PitSectionSwitchRow),
+    matching: find.byType(PitSectionTile),
   );
 
-  bool switchOn(WidgetTester tester, String label) => tester
-      .widget<AppSwitch>(
-        find.descendant(of: rowOf(label), matching: find.byType(AppSwitch)),
-      )
-      .value;
+  bool switchOn(WidgetTester tester, String label) =>
+      tester.widget<PitSectionTile>(rowOf(label)).value;
 
   Future<void> tapSwitch(WidgetTester tester, String label) async {
     await tester.ensureVisible(rowOf(label));
-    await tester.tap(
-      find.descendant(of: rowOf(label), matching: find.byType(AppSwitch)),
-    );
+    await tester.tap(rowOf(label));
     await settle(tester);
   }
 
@@ -447,7 +441,7 @@ void main() {
       expect(find.text('封面'), findsNothing);
       await tapSeg(tester, '淺坑');
       expect(find.text('開啟的格子'), findsOneWidget);
-      expect(find.byType(AppSwitch), findsNWidgets(7));
+      expect(find.byType(PitSectionTile), findsNWidgets(7));
       for (final l in ['參考圖', '好看同人圖', '我的腦洞', '我的摸魚', '我的成圖', '推活', '雜物']) {
         expect(switchOn(tester, l), isFalse, reason: l);
       }
@@ -488,6 +482,7 @@ void main() {
       await pumpLaunch(tester, const PitNewPage());
       await tapSeg(tester, '淺坑');
       await tester.enterText(find.byKey(const ValueKey('pit-name')), '空的');
+      await tester.pump();
       await tester.scrollUntilVisible(
         find.text('建立'),
         200,
@@ -861,7 +856,7 @@ void main() {
       expect(find.byType(PitTypeSegment), findsOneWidget);
       await tapSeg(tester, '淺坑');
       expect(find.text('開啟的格子'), findsOneWidget);
-      expect(find.byType(AppSwitch), findsNWidgets(7));
+      expect(find.byType(PitSectionTile), findsNWidgets(7));
       expect(tester.takeException(), isNull);
       await unmount(tester);
     });

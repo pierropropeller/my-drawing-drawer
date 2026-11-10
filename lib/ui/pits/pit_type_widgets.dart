@@ -226,7 +226,19 @@ class PitSectionSwitchRow extends StatelessWidget {
   }
 }
 
-/// 白底圓角卡（16）：淺坑的「開啟的格子」清單（七個格子，預設全關）。
+/// 淺坑「開啟的格子」的順序（Molly 11/11）：參考圖、好看同人圖、推活一排，腦洞、摸魚、成圖一排，最後雜物。
+const pitSectionGridOrder = [
+  PitSectionKey.official,
+  PitSectionKey.fan,
+  PitSectionKey.oshi,
+  PitSectionKey.idea,
+  PitSectionKey.draft,
+  PitSectionKey.piece,
+  PitSectionKey.junk,
+];
+
+/// 淺坑「開啟的格子」：3 欄方格（PitNewShallow／PitEditShallow），點一下切換。
+/// 敏感內容開關（D-104）：null＝不顯示（總開關關著）；否則在方格下面多一張白底卡。
 class PitSectionSwitchList extends StatelessWidget {
   const PitSectionSwitchList({
     super.key,
@@ -236,62 +248,131 @@ class PitSectionSwitchList extends StatelessWidget {
     this.onSensitiveChanged,
   });
   final Set<PitSectionKey> enabled;
-
-  /// 敏感內容開關（D-104）：null＝不顯示（總開關關著）；否則在同一張卡最後多一列。
   final bool? sensitive;
   final ValueChanged<bool>? onSensitiveChanged;
 
-  /// 使用者撥動某個開關（`true`＝要開）。關掉有內容的格子的確認框由呼叫端處理。
+  /// 使用者點某個格子（`true`＝要開）。關掉有內容的格子的確認框由呼叫端處理。
   final void Function(PitSectionKey key, bool value) onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final t = context.tokens;
     final l = context.l10n;
-    final keys = PitSectionKey.values;
+    final keys = pitSectionGridOrder;
+    final rows = <Widget>[];
+    for (var i = 0; i < keys.length; i += 3) {
+      if (i > 0) rows.add(const SizedBox(height: 8));
+      rows.add(
+        Row(
+          children: [
+            for (var j = i; j < i + 3; j++) ...[
+              if (j > i) const SizedBox(width: 8),
+              Expanded(
+                child: j < keys.length
+                    ? PitSectionTile(
+                        meta: pitSectionMeta(context, keys[j]),
+                        value: enabled.contains(keys[j]),
+                        onChanged: (v) => onChanged(keys[j], v),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         PitFieldLabel(l.shallowFieldSections),
-        Container(
-          margin: const EdgeInsets.only(bottom: 22),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-          decoration: BoxDecoration(
-            color: t.surface,
-            border: Border.all(color: t.border),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              for (var i = 0; i < keys.length; i++)
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: i == keys.length - 1
-                      ? null
-                      : BoxDecoration(
-                          border: Border(bottom: BorderSide(color: t.border)),
+        ...rows,
+        const SizedBox(height: 22),
+        if (sensitive != null) ...[
+          PitSensitiveCard(value: sensitive!, onChanged: onSensitiveChanged!),
+          const SizedBox(height: 22),
+        ],
+      ],
+    );
+  }
+}
+
+/// 一個方格（高 80、圓角 14）：開＝整格填該格子的顏色＋右上角同色勾；關＝白底、淡色 icon。
+class PitSectionTile extends StatelessWidget {
+  const PitSectionTile({
+    super.key,
+    required this.meta,
+    required this.value,
+    required this.onChanged,
+  });
+  final PitSectionMeta meta;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final fg = value ? meta.color.fg : t.text4;
+    return Semantics(
+      button: true,
+      toggled: value,
+      label: meta.label,
+      excludeSemantics: true,
+      child: Material(
+        color: value ? meta.color.bg : t.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: value ? BorderSide.none : BorderSide(color: t.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => onChanged(!value),
+          child: SizedBox(
+            height: 80,
+            child: Stack(
+              children: [
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SvgIcon(meta.svg, size: 24, strokeWidth: 1.7, color: fg),
+                      const SizedBox(height: 8),
+                      Text(
+                        meta.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: value ? FontWeight.w600 : FontWeight.w500,
+                          color: value ? meta.color.fg : t.text3,
                         ),
-                  child: PitSectionSwitchRow(
-                    meta: pitSectionMeta(context, keys[i]),
-                    value: enabled.contains(keys[i]),
-                    onChanged: (v) => onChanged(keys[i], v),
+                      ),
+                    ],
                   ),
                 ),
-              if (sensitive != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: t.border)),
+                if (value)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: meta.color.fg,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: SvgIcon(
+                        PitsIcons.check,
+                        size: 11,
+                        strokeWidth: 3,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                  child: PitSensitiveSwitchRow(
-                    value: sensitive!,
-                    onChanged: onSensitiveChanged!,
-                  ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
