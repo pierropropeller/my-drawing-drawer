@@ -691,7 +691,8 @@ class _Empty extends StatelessWidget {
               width: 96,
               height: 96,
               decoration: BoxDecoration(
-                color: t.piece.bg,
+                // 跟主題色走（D-133）：soft 底＋strong 圖示。
+                color: t.accentSoft,
                 borderRadius: BorderRadius.circular(28),
               ),
               child: Center(
@@ -699,7 +700,7 @@ class _Empty extends StatelessWidget {
                   AppIcons.folder,
                   size: 42,
                   strokeWidth: 1.5,
-                  color: t.piece.fg,
+                  color: t.accentStrong,
                 ),
               ),
             ),
