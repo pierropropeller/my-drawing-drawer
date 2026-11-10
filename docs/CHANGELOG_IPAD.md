@@ -12,7 +12,7 @@
 ---
 
 ## 批次 9（2026-11-10，流動數據上傳）
-- **P-070** **使用流動數據上傳＋「等待 Wi-Fi」**（同手機 D-150）：備份與同步面板的開關、「檢查同步間隔」改名；rail／sidebar 頭像的暖灰 Wi-Fi 小點，點開 popover 是「等待 Wi-Fi」（版面同手機 `SyncSheetWifi`，按鈕高 46）。iPad canvas 沒有畫，照手機稿做。
+- **P-070** **使用流動數據上傳＋「等待 Wi-Fi」**（同手機 D-150）：備份與同步面板的開關、「檢查同步間隔」改名；rail／sidebar 頭像的暖灰 Wi-Fi 小點，點開 popover 是「等待 Wi-Fi」（版面同手機 `SyncSheetWifi`，按鈕高 46）。iPad canvas 沒有畫，照手機稿做。 ✅ commit 383dcd8
 
 ## 批次 8（2026-11-09，主頁手動排序）
 - **P-055** **主頁手動排序＋更換封面 sheet**（同手機 D-132）。Artboard：`MainSortEdit`、`MainSortCover`（iPad canvas「11/09 更新 · 坑主頁手動排序、更換封面」區）。 ✅ commit 01c7919
