@@ -12,7 +12,7 @@
 ---
 
 ## 批次 9（2026-11-10，圖冊手動排序）
-- **P-056** **圖冊手動排序**（同手機 D-134）。Artboard：`FanArtSelectSort`、`AlbumSortEdit`（iPad canvas「11/10 更新 · 圖冊手動排序」區）。
+- **P-056** **圖冊手動排序**（同手機 D-134）。Artboard：`FanArtSelectSort`、`AlbumSortEdit`（iPad canvas「11/10 更新 · 圖冊手動排序」區）。 ✅ commit 0a0a702
   - 排序鍵只在多選頁（全選左邊）。
   - 編輯排序版面＝多選版面：預覽欄收起、四欄瀑布流。側欄變淡、不能點；坑內分區其他 tab 變淡、鎖住。
 
