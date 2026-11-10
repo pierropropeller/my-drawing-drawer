@@ -33,9 +33,7 @@ import 'inspo_preview_page.dart';
 import 'material_category_sheet.dart';
 import 'material_icons.dart';
 import '../common/top_toast.dart' show BottomInsetAnchor;
-import '../picker/inspo_picker_source.dart';
 
-import 'package:image_picker/image_picker.dart' show XFile;
 
 /// 素材庫的兩種版面，記在本機設定（跟裝置走）。
 enum MaterialLayout { waterfall, grid }
@@ -174,14 +172,8 @@ class _MaterialLibraryPageState extends ConsumerState<MaterialLibraryPage>
   /// 加圖：開相簿選圖；在分類下預設歸該分類，在「全部」下先選分類。
   Future<void> _add() async {
     // 素材庫自己的加圖：直接開相簿，不彈「從素材庫選取」的來源選單。
-    // 靈感廣場自己的加圖：選圖 sheet 不列「靈感廣場」那段。
-    InspoPickerSource.suppressed = true;
-    final List<XFile> picked;
-    try {
-      picked = await ref.read(photoPickerProvider)(context);
-    } finally {
-      InspoPickerSource.suppressed = false;
-    }
+    // 靈感廣場自己的加圖：選圖 sheet 不列「靈感廣場」那段（只有新增參考圖才列）。
+    final picked = await ref.read(photoPickerProvider)(context);
     if (picked.isEmpty || !mounted) return;
     var category = _category;
     if (category == null) {

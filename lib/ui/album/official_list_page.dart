@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart' show XFile;
 
+import '../picker/inspo_picker_source.dart' show InspoPickerSource;
+
 import '../../data/album_queries.dart';
 import '../../data/junk_queries.dart';
 import '../../l10n/l10n.dart';
@@ -40,7 +42,9 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
 
   /// 新增：先打開相簿選圖，選好再進入新增頁。
   Future<void> _add(String? groupId) async {
-    final picked = await ref.read(imagePickerProvider)(context);
+    final picked = await InspoPickerSource.allow(
+      () => ref.read(imagePickerProvider)(context),
+    );
     if (picked.isEmpty || !mounted) return;
     await _openNew(groupId, picked);
   }

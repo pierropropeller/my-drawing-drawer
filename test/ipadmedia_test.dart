@@ -20,6 +20,7 @@ import 'package:huakeng/ui/album/official_list_page.dart';
 import 'package:huakeng/ui/album/official_new_page.dart';
 import 'package:huakeng/ui/common/dashed_box.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
+import 'package:huakeng/ui/picker/inspo_picker_source.dart';
 import 'package:huakeng/ui/media_source/drop_target_service.dart';
 import 'package:huakeng/ui/media_source/drop_zone.dart';
 import 'package:huakeng/ui/media_source/media_menu_anchor.dart';
@@ -243,8 +244,12 @@ void main() {
   });
 
   group('AddSourceOptions：依能力顯示項目', () {
-    test('一律有 照片／檔案／靈感廣場', () {
+    test('一律有 照片／檔案；只有新增參考圖才有靈感廣場', () {
       expect(const AddSourceOptions(camera: false).sources, [
+        AddSource.photos,
+        AddSource.files,
+      ]);
+      expect(const AddSourceOptions(camera: false, inspo: true).sources, [
         AddSource.photos,
         AddSource.files,
         AddSource.materials,
@@ -255,6 +260,7 @@ void main() {
         const AddSourceOptions(
           camera: true,
           clipboard: ClipboardProbe.image,
+          inspo: true,
         ).sources,
         [
           AddSource.photos,
@@ -302,6 +308,8 @@ void main() {
     });
 
     testWidgets('寬窗（834）：彈出五項選單，順序與文字照稿；點外面關閉回傳空', (tester) async {
+      InspoPickerSource.allowed = true;
+      addTearDown(() => InspoPickerSource.allowed = false);
       size(tester, 834, 1194);
       List<XFile>? got;
       await pump(
@@ -529,6 +537,8 @@ void main() {
     });
 
     testWidgets('靈感廣場：依點選次序複製成暫存檔，保留副檔名', (tester) async {
+      InspoPickerSource.allowed = true;
+      addTearDown(() => InspoPickerSource.allowed = false);
       size(tester, 834, 1194);
       await tester.runAsync(
         () => db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
@@ -580,6 +590,8 @@ void main() {
     });
 
     testWidgets('靈感廣場是空的：顯示空狀態，無法加入', (tester) async {
+      InspoPickerSource.allowed = true;
+      addTearDown(() => InspoPickerSource.allowed = false);
       size(tester, 834, 1194);
       await pump(
         tester,

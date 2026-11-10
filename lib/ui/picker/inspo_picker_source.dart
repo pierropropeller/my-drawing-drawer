@@ -25,8 +25,18 @@ class InspoPickerSource {
   /// 已選列表裡廣場圖的 id 前綴（和相簿的 id 分開）。
   static const idPrefix = 'inspo:';
 
-  /// 靈感廣場自己的「加圖」不列廣場那段（自己加自己沒意義）。
-  static bool suppressed = false;
+  /// 只有「新增參考圖」的選圖可以從靈感廣場選（D-147）；其他入口一律不列廣場。
+  static bool allowed = false;
+
+  /// 在 [run] 期間開放從靈感廣場選圖（新增參考圖用）。
+  static Future<T> allow<T>(Future<T> Function() run) async {
+    allowed = true;
+    try {
+      return await run();
+    } finally {
+      allowed = false;
+    }
+  }
 
   late final Map<String, MaterialImage> byId = {
     for (final m in images) m.id: m,

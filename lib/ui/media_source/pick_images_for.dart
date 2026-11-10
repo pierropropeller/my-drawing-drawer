@@ -55,6 +55,7 @@ Future<List<XFile>> pickImagesWith(
     context,
     options: AddSourceOptions(
       camera: camera,
+      inspo: InspoPickerSource.allowed,
       clipboard: clipboard,
       clipboardPreview:
           clipboard == ClipboardProbe.image &&
@@ -151,7 +152,7 @@ Future<List<XFile>> copyMaterialsToTemp(
 /// 選圖 sheet「相簿｜靈感廣場」的廣場那段（D-145）。廣場沒有圖、或在靈感廣場自己的加圖時回傳 null
 /// （不顯示切換）。讀取失敗也回傳 null，選圖照常只有相簿。
 Future<InspoPickerSource?> loadInspoPickerSource(ProviderReader read) async {
-  if (InspoPickerSource.suppressed) return null;
+  if (!InspoPickerSource.allowed) return null;
   try {
     final db = read(databaseProvider);
     final images = await db.watchMaterials().first;
