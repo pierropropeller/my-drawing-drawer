@@ -106,6 +106,7 @@ class _SyncPopoverState extends ConsumerState<SyncPopover>
                 child: SyncSheetBody(
                   done: done,
                   fullStatic: fullStatic,
+                  wifiStatic: wifiStatic,
                   onDone: closePanel,
                   onManageStorage: () => manageStorage(widget.onManageStorage),
                 ),
@@ -138,6 +139,8 @@ class _SyncPopoverState extends ConsumerState<SyncPopover>
     final label = summary == null
         ? (fullStatic
               ? context.l10n.backupFullTitle
+              : wifiStatic
+              ? context.l10n.wifiWaitingTitle
               : waitingSpace
               ? context.l10n.ipadsyncFullLabel
               : context.l10n.syncuiSheetLabel)
@@ -218,6 +221,7 @@ class _SyncPopoverState extends ConsumerState<SyncPopover>
                               popover: true,
                               done: done,
                               fullStatic: fullStatic,
+                              wifiStatic: wifiStatic,
                               onDone: closePanel,
                               onManageStorage: () =>
                                   manageStorage(widget.onManageStorage),

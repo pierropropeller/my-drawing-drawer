@@ -83,8 +83,12 @@ class SyncProgress {
     this.thumbsDone = 0,
     this.thumbsTotal = 0,
     this.quotaFull = false,
+    this.waitingWifi = false,
   });
   final SyncStage stage;
+
+  /// 這次同步有圖片因為「只在 Wi-Fi 上傳」而留在佇列（D-150）。
+  final bool waitingWifi;
 
   /// 這次同步已確認 Drive 已滿（上傳被拒絕，D-103）。
   final bool quotaFull;
@@ -131,6 +135,10 @@ class SyncResult {
 
   /// 上傳被 Drive 拒絕為「已滿」（D-103）：上傳留在佇列，下載與其他部分照常。
   bool quotaFull = false;
+
+  /// 正在用流動數據、又沒開「使用流動數據上傳」：圖片上傳留在佇列等 Wi-Fi（D-150）。
+  /// 沒有新圖片的文件照常上傳。
+  bool waitingWifi = false;
 
   /// 這次同步實際嘗試過幾次上傳（含被拒絕的）。
   int uploadAttempts = 0;
@@ -221,6 +229,7 @@ class _Tracker {
   var _thumbsDone = 0;
   var _thumbsTotal = 0;
   var _quotaFull = false;
+  var _waitingWifi = false;
   final _uploadIdx = <String, int>{};
   final _clock = Stopwatch()..start();
   int? _lastMs;
@@ -255,6 +264,12 @@ class _Tracker {
 
   void markQuotaFull() {
     _quotaFull = true;
+    _emit(force: true);
+  }
+
+  void markWaitingWifi() {
+    if (_waitingWifi) return;
+    _waitingWifi = true;
     _emit(force: true);
   }
 
@@ -322,6 +337,7 @@ class _Tracker {
         thumbsDone: _thumbsDone,
         thumbsTotal: _thumbsTotal,
         quotaFull: _quotaFull,
+        waitingWifi: _waitingWifi,
       ),
     );
   }
@@ -343,7 +359,12 @@ class SyncEngine {
     this.thumbFallbackLimit = syncThumbFallbackLimit,
     this.thumbBackfillBudget = syncThumbBackfillBudget,
     this.onPulled,
+    this.holdUploads = false,
   });
+
+  /// 圖片先不上傳（流動數據、沒開「使用流動數據上傳」，D-150）：留在佇列等 Wi-Fi，
+  /// 拉取、下載與沒有新圖片的文件照常。
+  final bool holdUploads;
 
   /// 補縮圖階段的時間上限。
   final Duration thumbBackfillBudget;
@@ -1024,6 +1045,7 @@ class SyncEngine {
     var consecutiveFailures = 0;
     for (final (name, _) in candidates) {
       if (result.quotaFull) break; // Drive 已滿，補了也傳不上去
+      if (holdUploads) break; // 等 Wi-Fi（D-150）
       if (budget <= 0 || DateTime.now().isAfter(deadline)) break;
       check();
       budget--;
@@ -1123,6 +1145,13 @@ class SyncEngine {
             tracker.finish(idx);
             report(SyncStage.uploading, ++done, total);
           }
+          continue;
+        }
+        if (holdUploads) {
+          // 等 Wi-Fi（D-150）：這張留在排隊，這份文件也先不上傳。
+          result.waitingWifi = true;
+          tracker.markWaitingWifi();
+          blocked = true;
           continue;
         }
         if (idx != null) tracker.start(idx);

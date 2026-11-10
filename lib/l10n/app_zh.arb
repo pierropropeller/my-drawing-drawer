@@ -392,8 +392,7 @@
       }
     }
   },
-  "meBackupForegroundRefresh": "前台自動刷新",
-  "meBackupForegroundRefreshDesc": "App 開啟時定期同步最新資料（跨設備）",
+  "meBackupForegroundRefresh": "檢查同步間隔",
   "meBackupRefreshInterval": "刷新間隔",
   "meBackupEveryMinutes": "每 {minutes} 分鐘",
   "@meBackupEveryMinutes": {
@@ -2177,5 +2176,25 @@
   },
   "videoloopLoop": "循環播放",
   "videoloopLoopOn": "循環播放：開",
-  "videoloopLoopOff": "循環播放：關"
+  "videoloopLoopOff": "循環播放：關",
+  "wifiUploadOnMobile": "使用流動數據上傳",
+  "wifiWaitingTitle": "等待 Wi-Fi",
+  "wifiPendingCount": "{count} 張待上傳",
+  "@wifiPendingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wifiWaitingHint": "目前使用流動數據，連上 Wi-Fi 後會自動上傳。",
+  "wifiWaitingRow": "等待上傳",
+  "wifiMoreWaiting": "還有 {count} 張等待上傳",
+  "@wifiMoreWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

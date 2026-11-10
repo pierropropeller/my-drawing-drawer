@@ -8,6 +8,7 @@ import '../state/providers.dart';
 import '../state/settings.dart';
 import 'drive_remote.dart';
 import 'google_auth.dart';
+import 'network_kind.dart';
 import 'remote.dart';
 import 'sync_engine.dart';
 import 'sync_log.dart';
@@ -37,8 +38,17 @@ class SyncState {
     this.thumbsTotal = 0,
     this.retryable = false,
     this.quotaFull = false,
+    this.waitingWifi = false,
   });
   final SyncPhase phase;
+
+  /// 等 Wi-Fi（D-150）：最近一次同步時用的是流動數據、又沒開「使用流動數據上傳」，
+  /// 圖片上傳留在佇列。同步進行中沿用上一次的值；之後上傳完就清掉。
+  final bool waitingWifi;
+
+  /// 從頭像打開「等待 Wi-Fi」：等 Wi-Fi 而且還有沒上傳的（Drive 已滿、有失敗優先）。
+  bool get isWaitingWifi =>
+      waitingWifi && !quotaFull && !hasFailures && unuploadedCount > 0;
 
   /// Drive 已滿（D-103）：最近一次上傳被拒絕。上傳留在佇列、下載照常；之後有空間、
   /// 上傳成功就清掉。同步進行中沿用上一次的值，所以排隊的行可以顯示「等待空間」。
@@ -182,6 +192,7 @@ class SyncState {
     int? thumbsTotal,
     bool? retryable,
     bool? quotaFull,
+    bool? waitingWifi,
   }) => SyncState(
     phase: phase ?? this.phase,
     lastSyncAt: lastSyncAt ?? this.lastSyncAt,
@@ -200,6 +211,7 @@ class SyncState {
     thumbsTotal: thumbsTotal ?? this.thumbsTotal,
     retryable: retryable ?? this.retryable,
     quotaFull: quotaFull ?? this.quotaFull,
+    waitingWifi: waitingWifi ?? this.waitingWifi,
   );
 }
 
@@ -267,13 +279,19 @@ class SyncController extends Notifier<SyncState> {
     // 上一次的結果（失敗張數、Drive 已滿）同步期間沿用，結束時換成這一次的。
     final prevResult = state.lastResult;
     final prevQuotaFull = state.quotaFull;
+    final prevWaitingWifi = state.waitingWifi;
     state = SyncState(
       phase: SyncPhase.syncing,
       lastSyncAt: state.lastSyncAt,
       isFirstSync: first,
       lastResult: prevResult,
       quotaFull: prevQuotaFull,
+      waitingWifi: prevWaitingWifi,
     );
+    // 流動數據＋沒開「使用流動數據上傳」：圖片上傳留在佇列等 Wi-Fi（D-150）。
+    final holdUploads =
+        !settings.uploadOnMobile &&
+        await ref.read(currentNetworkKindProvider)() == NetworkKind.cellular;
     // 看門狗：太久沒有進展就中止這一次（引擎在步驟之間檢查 cancel；卡在某個 await 的
     // 請求則由 Future.any 放棄它）。
     final stall = ref.read(syncStallTimeoutProvider);
@@ -315,6 +333,7 @@ class SyncController extends Notifier<SyncState> {
       retryable: retry,
       lastResult: prevResult,
       quotaFull: prevQuotaFull,
+      waitingWifi: prevWaitingWifi,
     );
     try {
       lastActivity = DateTime.now();
@@ -327,6 +346,7 @@ class SyncController extends Notifier<SyncState> {
           images: await ref.read(imageStoreProvider.future),
           // 暱稱／頭像是同步來的：文件一套用完就更新畫面，不必等圖片下載完。
           onPulled: () => ref.read(settingsProvider.notifier).reloadProfile(),
+          holdUploads: holdUploads,
         );
         return engine.sync(
           cancel: cancel,
@@ -349,6 +369,7 @@ class SyncController extends Notifier<SyncState> {
               thumbsTotal: p.thumbsTotal,
               lastResult: prevResult,
               quotaFull: p.quotaFull || prevQuotaFull,
+              waitingWifi: p.waitingWifi || prevWaitingWifi,
             );
           },
         );
@@ -373,12 +394,14 @@ class SyncController extends Notifier<SyncState> {
               message: partial,
               isFirstSync: first,
               quotaFull: r.quotaFull,
+              waitingWifi: r.waitingWifi,
             )
           : SyncState(
               phase: SyncPhase.idle,
               lastSyncAt: DateTime.now(),
               lastResult: r,
               quotaFull: r.quotaFull,
+              waitingWifi: r.waitingWifi,
             );
       return true;
     } on SyncFormatException catch (e) {

@@ -18,7 +18,7 @@ import 'me_widgets.dart';
 import '../../l10n/l10n.dart';
 import '../login/auth_error.dart';
 
-/// 備份與同步（Backup）：Google Drive 帳號、自動同步、前台自動刷新間隔、
+/// 備份與同步（Backup）：Google Drive 帳號、自動同步、使用流動數據上傳、檢查同步間隔、
 /// 立即同步（主按鈕）、更換同步的 Google 帳號、取消連結。沒有導覽列。
 class BackupPage extends ConsumerWidget {
   const BackupPage({super.key, this.embedded = false});
@@ -379,6 +379,31 @@ class BackupPage extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  // D-150：預設關＝只在 Wi-Fi 上傳。
+                  Container(
+                    constraints: BoxConstraints(minHeight: wide ? 64 : 0),
+                    padding: EdgeInsets.symmetric(vertical: wide ? 10 : 14),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: divider)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            context.l10n.wifiUploadOnMobile,
+                            style: TextStyle(fontSize: wide ? 15 : 14.5),
+                          ),
+                        ),
+                        AppSwitch(
+                          key: const Key('backup-upload-on-mobile'),
+                          large: wide,
+                          value: s.uploadOnMobile,
+                          onChanged: notifier.setUploadOnMobile,
+                          semanticLabel: context.l10n.wifiUploadOnMobile,
+                        ),
+                      ],
+                    ),
+                  ),
                   Container(
                     constraints: BoxConstraints(minHeight: wide ? 64 : 0),
                     padding: EdgeInsets.symmetric(vertical: wide ? 10 : 14),
@@ -393,7 +418,6 @@ class BackupPage extends ConsumerWidget {
                                 context.l10n.meBackupForegroundRefresh,
                                 style: TextStyle(fontSize: wide ? 15 : 14.5),
                               ),
-                              sub(context.l10n.meBackupForegroundRefreshDesc),
                             ],
                           ),
                         ),
@@ -515,7 +539,7 @@ class BackupPage extends ConsumerWidget {
   }
 }
 
-/// 前台自動刷新間隔的分段選擇（Backup 稿 1194）：1／5／15／30 分鐘。
+/// 檢查同步間隔的分段選擇（Backup 稿 1194）：1／5／15／30 分鐘。
 class _IntervalSegments extends StatelessWidget {
   const _IntervalSegments({required this.value, required this.onChanged});
   final int value;

@@ -997,14 +997,8 @@ abstract class AppLocalizations {
   /// No description provided for @meBackupForegroundRefresh.
   ///
   /// In zh, this message translates to:
-  /// **'前台自動刷新'**
+  /// **'檢查同步間隔'**
   String get meBackupForegroundRefresh;
-
-  /// No description provided for @meBackupForegroundRefreshDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'App 開啟時定期同步最新資料（跨設備）'**
-  String get meBackupForegroundRefreshDesc;
 
   /// No description provided for @meBackupRefreshInterval.
   ///
@@ -4820,6 +4814,42 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'循環播放：關'**
   String get videoloopLoopOff;
+
+  /// No description provided for @wifiUploadOnMobile.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用流動數據上傳'**
+  String get wifiUploadOnMobile;
+
+  /// No description provided for @wifiWaitingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'等待 Wi-Fi'**
+  String get wifiWaitingTitle;
+
+  /// No description provided for @wifiPendingCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張待上傳'**
+  String wifiPendingCount(int count);
+
+  /// No description provided for @wifiWaitingHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'目前使用流動數據，連上 Wi-Fi 後會自動上傳。'**
+  String get wifiWaitingHint;
+
+  /// No description provided for @wifiWaitingRow.
+  ///
+  /// In zh, this message translates to:
+  /// **'等待上傳'**
+  String get wifiWaitingRow;
+
+  /// No description provided for @wifiMoreWaiting.
+  ///
+  /// In zh, this message translates to:
+  /// **'還有 {count} 張等待上傳'**
+  String wifiMoreWaiting(int count);
 }
 
 class _AppLocalizationsDelegate

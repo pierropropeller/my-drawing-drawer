@@ -29,6 +29,10 @@ abstract final class AppIcons {
   static const cloudOff =
       '<path d="M7 18h9a3 3 0 0 0 .5-6 5 5 0 0 0-8-3"/><path d="M3 3l18 18"/>';
 
+  /// Wi-Fi（等待 Wi-Fi 上傳：頭像小點、同步 sheet 標題，D-150）。SyncSheetWifi
+  static const wifi =
+      '<path d="M2.5 9a14 14 0 0 1 19 0M6 12.5a9 9 0 0 1 12 0M9.5 16a4 4 0 0 1 5 0"/><circle cx="12" cy="19.5" r="1.3" fill="currentColor" stroke="none"/>';
+
   /// 田字（2×2 方格檢視）。
   static const gridView =
       '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>';

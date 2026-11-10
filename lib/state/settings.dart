@@ -20,6 +20,7 @@ class AppSettings {
     this.themeMode = ThemeMode.system,
     this.refreshMinutes = 5,
     this.autoSync = true,
+    this.uploadOnMobile = false,
     this.nickname = '',
     this.avatarFile,
     this.onboarded = false,
@@ -71,9 +72,13 @@ class AppSettings {
   /// 主題色預設（柿子／牛奶／玫瑰／抹茶），每台裝置各自設定。
   final AccentPreset accent;
 
-  /// 前台自動刷新間隔（分鐘）：1／5／15／30，預設 5。
+  /// 檢查同步間隔（分鐘）：1／5／15／30，預設 5。
   final int refreshMinutes;
   final bool autoSync;
+
+  /// 使用流動數據上傳（預設關＝只在 Wi-Fi 上傳；流動數據時上傳留在佇列、顯示「等待 Wi-Fi」）。
+  /// 只管上傳，下載照常。
+  final bool uploadOnMobile;
   final String nickname;
   final String? avatarFile;
   final bool onboarded;
@@ -85,6 +90,7 @@ class AppSettings {
     ThemeMode? themeMode,
     int? refreshMinutes,
     bool? autoSync,
+    bool? uploadOnMobile,
     String? nickname,
     Object? avatarFile = _keep,
     bool? onboarded,
@@ -115,6 +121,7 @@ class AppSettings {
         : syncedAccount as String?,
     refreshMinutes: refreshMinutes ?? this.refreshMinutes,
     autoSync: autoSync ?? this.autoSync,
+    uploadOnMobile: uploadOnMobile ?? this.uploadOnMobile,
     nickname: nickname ?? this.nickname,
     avatarFile: identical(avatarFile, _keep)
         ? this.avatarFile
@@ -167,6 +174,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
       language: AppLanguage.fromKey(p.getString('language')),
       refreshMinutes: p.getInt('refreshMinutes') ?? 5,
       autoSync: p.getBool('autoSync') ?? true,
+      uploadOnMobile: p.getBool('uploadOnMobile') ?? false,
       nickname: p.getString('nickname') ?? '',
       avatarFile: p.getString('avatarFile'),
       onboarded: p.getBool('onboarded') ?? false,
@@ -259,6 +267,11 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void setAutoSync(bool v) {
     state = state.copyWith(autoSync: v);
     _p?.setBool('autoSync', v);
+  }
+
+  void setUploadOnMobile(bool v) {
+    state = state.copyWith(uploadOnMobile: v);
+    _p?.setBool('uploadOnMobile', v);
   }
 
   void setNickname(String v) {

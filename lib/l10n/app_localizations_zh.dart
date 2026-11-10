@@ -520,10 +520,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get meBackupForegroundRefresh => '前台自動刷新';
-
-  @override
-  String get meBackupForegroundRefreshDesc => 'App 開啟時定期同步最新資料（跨設備）';
+  String get meBackupForegroundRefresh => '檢查同步間隔';
 
   @override
   String get meBackupRefreshInterval => '刷新間隔';
@@ -2749,4 +2746,26 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get videoloopLoopOff => '循環播放：關';
+
+  @override
+  String get wifiUploadOnMobile => '使用流動數據上傳';
+
+  @override
+  String get wifiWaitingTitle => '等待 Wi-Fi';
+
+  @override
+  String wifiPendingCount(int count) {
+    return '$count 張待上傳';
+  }
+
+  @override
+  String get wifiWaitingHint => '目前使用流動數據，連上 Wi-Fi 後會自動上傳。';
+
+  @override
+  String get wifiWaitingRow => '等待上傳';
+
+  @override
+  String wifiMoreWaiting(int count) {
+    return '還有 $count 張等待上傳';
+  }
 }
