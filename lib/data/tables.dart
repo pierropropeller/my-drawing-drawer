@@ -40,8 +40,9 @@ enum GoalPeriod { year, month }
 
 enum GoalKind { idea, draft, piece }
 
-/// 圖片附屬於哪種實體。
-enum OwnerType { idea, draft, piece, oshi }
+/// 圖片附屬於哪種實體。新值只能加在最後（資料庫存的是名稱）。
+/// [album]：多圖的官方圖／同人圖的第 2 張起（D-136），ownerId＝那一列的 imageKey，見 album_set_queries.dart。
+enum OwnerType { idea, draft, piece, oshi, album }
 
 /// 標籤掛在哪種實體上（v7 起官方圖也能有 tag，D-060；推活紀錄 D-057）。
 /// 新值只能加在最後（資料庫存的是名稱，順序無關，但保持習慣）。

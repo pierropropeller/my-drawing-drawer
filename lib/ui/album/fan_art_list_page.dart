@@ -87,6 +87,7 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
           mediaKind: r.kind,
           durationMs: r.durationMs,
           posterFile: r.posterFile,
+          imageKey: r.imageKey,
         ),
     ];
     final images = imagesOf(ref, groupId);

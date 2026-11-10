@@ -31,9 +31,7 @@ class DefaultThumbnailMaker implements ThumbnailMaker {
     final edge = placeholder
         ? ImageStore.placeholderMaxEdge
         : ImageStore.thumbMaxEdge;
-    final quality = placeholder
-        ? ImageStore.placeholderQuality
-        : thumbQuality;
+    final quality = placeholder ? ImageStore.placeholderQuality : thumbQuality;
     final Uint8List bytes;
     try {
       bytes = await source.readAsBytes();

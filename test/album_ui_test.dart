@@ -656,7 +656,7 @@ void main() {
     expect(find.text('編輯同人圖'), findsOneWidget);
     expect(find.text('出處'), findsOneWidget);
     expect(find.byType(Image), findsOneWidget);
-    expect(find.bySemanticsLabel('加圖'), findsNothing); // 單張不能再加
+    expect(find.bySemanticsLabel('加圖'), findsOneWidget); // D-139：編輯也能加圖（多圖）
     await tester.tap(find.bySemanticsLabel('移除圖片'), warnIfMissed: false);
     await settle(tester);
     await tester.tap(find.widgetWithText(TextButton, '刪除'));
@@ -787,7 +787,7 @@ void main() {
     expect(navBarHiddenCount.value, 1);
     expect(find.text('編輯參考圖'), findsOneWidget);
     expect(find.byType(Image), findsOneWidget);
-    expect(find.bySemanticsLabel('加圖'), findsNothing);
+    expect(find.bySemanticsLabel('加圖'), findsOneWidget); // D-139：編輯也能加圖
     await tester.tap(find.text('#角色1')); // 取消
     await tester.pump();
     await tester.tap(find.text('#夏日'));

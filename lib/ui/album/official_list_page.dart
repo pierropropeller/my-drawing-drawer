@@ -90,6 +90,7 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
           mediaKind: r.kind,
           durationMs: r.durationMs,
           posterFile: r.posterFile,
+          imageKey: r.imageKey,
           note: notes[r.id],
           inspoId: r.materialId,
         ),

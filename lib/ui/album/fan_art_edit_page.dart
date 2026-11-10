@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
+import '../../data/album_set_queries.dart';
+import '../../data/junk_queries.dart' show AlbumCell;
 import '../../data/database.dart';
 import '../../data/inspo_queries.dart';
 import '../../data/sensitive_queries.dart';
@@ -15,8 +17,10 @@ import '../pits/pit_form.dart';
 import '../tags/tag_picker.dart';
 import 'album_actions.dart';
 import 'album_form.dart';
+import 'album_set_form.dart';
 import 'group_picker.dart';
 import 'image_picker_field.dart';
+import '../common/reorder_tile.dart';
 
 /// 編輯同人圖的單一入口：視窗 ≥840 開置中 modal，較窄開整頁。回傳 true＝這張圖在編輯時被刪除。
 Future<bool?> openFanArtEdit(
@@ -59,11 +63,12 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
   final _note = TextEditingController();
   String? _groupId;
   List<String>? _tagIds;
-  NewImage? _image;
+  NewImage? _image; // 載入時的第 1 張
 
-  /// 表單裡的這張圖（持有敏感標記的切換狀態，D-104）。
-  ImageItem? _item;
+  /// 表單裡這一組的圖（D-136；持有敏感標記的切換狀態，D-104）。
+  final List<ImageItem> _items = [];
   bool _loaded = false;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -77,22 +82,15 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
       db.fanArts,
     )..where((f) => f.id.equals(widget.imageId))).getSingle();
     final ids = await db.watchTagIds(TagTarget.fanArt, widget.imageId).first;
+    final images = await db.albumSetImages(AlbumCell.fan, widget.imageId);
     if (!mounted) return;
     setState(() {
       _author.text = row.author;
       _note.text = row.note ?? '';
       _groupId = row.groupId;
       _tagIds = ids;
-      _image = NewImage(
-        file: row.imageFile,
-        width: row.width,
-        height: row.height,
-        kind: row.kind,
-        durationMs: row.durationMs,
-        posterFile: row.posterFile,
-        sensitive: row.sensitive,
-      );
-      _item = ImageItem.stored(_image!);
+      _image = images.first;
+      _items.addAll(images.map(ImageItem.stored));
       _loaded = true;
     });
   }
@@ -104,15 +102,20 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
     super.dispose();
   }
 
-  Future<void> _save() async {
+  /// 寫回：整組的圖（次序、增刪）＋作者／出處／tag／第 1 張的敏感標記。取消確認時回傳 false。
+  Future<bool> _persist() async {
     final db = ref.read(databaseProvider);
-    final sensitive = _item!.sensitive;
+    final sensitive = _items.first.sensitive;
     // 把現任封面標成敏感：先確認（D-104）。
     if (sensitive &&
         !_image!.sensitive &&
         await db.coverCountAmong(SensitiveSource.fan, [widget.imageId]) > 0) {
-      if (!mounted || !await confirmSensitiveCover(context, 1)) return;
+      if (!mounted || !await confirmSensitiveCover(context, 1)) return false;
     }
+    setState(() => _saving = true);
+    final store = await ref.read(imageStoreProvider.future);
+    final images = <NewImage>[for (final f in _items) await f.resolve(store)];
+    await db.setAlbumSetImages(AlbumCell.fan, widget.imageId, images);
     await db.updateFanArt(
       widget.imageId,
       author: _author.text.trim(),
@@ -121,11 +124,39 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
       sensitive: sensitive,
     );
     await db.setFanArtNote(widget.imageId, _note.text);
+    return true;
+  }
+
+  Future<void> _save() async {
+    if (_saving || _items.isEmpty) return;
+    if (await _persist() && mounted) Navigator.of(context).pop();
+  }
+
+  /// 拆開（D-136）：先存目前的編輯，再把這一組每一張變成獨立一項。
+  Future<void> _split() async {
+    final n = _items.length;
+    if (!await confirmAlbumSetSplit(context, n) || !mounted) return;
+    if (!await _persist()) return;
+    await ref
+        .read(databaseProvider)
+        .splitAlbumSet(AlbumCell.fan, widget.imageId);
+    // 會跳頁的動作不出提示條（D-114）：回到預覽頁就看得到拆開了。
     if (mounted) Navigator.of(context).pop();
   }
 
-  /// 圖片上的「×」＝刪除這張同人圖（編輯單張沒有別的圖可以換），要確認。
-  Future<void> _removeImage() async {
+  Future<void> _pick() async {
+    final picked = await ref.read(imagePickerProvider)(context);
+    if (picked.isNotEmpty) {
+      setState(() => _items.addAll(picked.map(ImageItem.picked)));
+    }
+  }
+
+  /// 圖片上的「×」：一組裡還有別張＝只拿掉這張；只剩這一張＝刪除這筆同人圖，要確認。
+  Future<void> _removeImage(int i) async {
+    if (_items.length > 1) {
+      setState(() => _items.removeAt(i));
+      return;
+    }
     final ok = await confirmDelete(
       context,
       title: context.l10n.albumDeleteImageTitle,
@@ -160,10 +191,13 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
       AlbumFieldLabel(context.l10n.albumFieldImage),
       ImagePickerField(
         pitId: widget.pitId,
-        items: [_item!],
-        onAdd: null,
-        onRemove: (_) => _removeImage(),
+        items: _items,
+        onAdd: _pick,
+        onRemove: _removeImage,
+        onReorder: (a, b) => setState(() => moveListItem(_items, a, b)),
       ),
+      if (_items.length > 1)
+        AlbumSetSplitRow(count: _items.length, onTap: _saving ? null : _split),
     ];
     final rest = [
       AlbumFieldLabel(context.l10n.albumFieldAuthor),
@@ -207,7 +241,11 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
         const SizedBox(height: 18),
         ...rest,
         const SizedBox(height: 26),
-        AlbumSubmitButton(label: context.l10n.commonSave, onTap: _save),
+        AlbumSubmitButton(
+          label: context.l10n.commonSave,
+          busy: _saving,
+          onTap: _save,
+        ),
       ],
     );
   }

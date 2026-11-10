@@ -15,6 +15,7 @@ import '../common/window_class.dart';
 import '../common/svg_icon.dart';
 import '../material/material_icons.dart';
 import 'album_image.dart';
+import 'album_set_badge.dart';
 
 /// 兩欄瀑布流（間距 12）。選取模式時右上顯示 22px 圓圈（未選：白框半透明；選中：2px 主色框＋實心主色圓圈白勾）。
 class ImageMasonry extends StatelessWidget {
@@ -136,7 +137,10 @@ class _Tile extends StatelessWidget {
               top: 8,
               right: 8,
               child: SelectMark(selected: isSelected),
-            ),
+            )
+          else
+            // 多圖（D-136）：右上「⧉ N」；多選時那個位置是勾選圈，所以不畫。
+            Positioned(top: 8, right: 8, child: AlbumSetBadge(image.imageKey)),
         ],
       ),
     );

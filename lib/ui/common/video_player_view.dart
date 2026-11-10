@@ -78,7 +78,9 @@ class VideoPlayerPlayback implements MediaPlayback {
     final want = v.isPlaying && v.volume > 0;
     if (want == _focused) return;
     _focused = want;
-    want ? VideoAudioFocus.instance.acquire() : VideoAudioFocus.instance.release();
+    want
+        ? VideoAudioFocus.instance.acquire()
+        : VideoAudioFocus.instance.release();
   }
 
   @override

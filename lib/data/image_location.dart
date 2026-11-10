@@ -111,7 +111,8 @@ extension ImageLocationQueries on AppDatabase {
                     ))
                     .getSingleOrNull())
                 ?.pitId,
-          OwnerType.oshi => null, // 推活的圖不在這個函式的範圍（見 DATA_API 批次 6–8）
+          OwnerType.oshi ||
+          OwnerType.album => null, // 推活的圖不在這個函式的範圍（見 DATA_API 批次 6–8）
         };
         final loc = await build(pitId, cell);
         if (loc != null) return loc;
