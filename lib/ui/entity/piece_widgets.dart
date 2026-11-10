@@ -20,11 +20,8 @@ import '../common/reorder_tile.dart';
 String pieceHex(Color c) =>
     '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
 
-/// 表單輸入框的邊線色（淺色 #E3D8C9，深色用 border）。
-Color pieceFieldLine(BuildContext context) =>
-    Theme.of(context).brightness == Brightness.dark
-    ? context.tokens.border
-    : const Color(0xFFE3D8C9);
+/// 表單輸入框的邊線色（field token）。
+Color pieceFieldLine(BuildContext context) => context.tokens.field;
 
 // ---- 幣種 -------------------------------------------------------------
 

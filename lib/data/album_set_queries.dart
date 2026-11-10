@@ -61,12 +61,17 @@ extension AlbumSetQueries on AppDatabase {
     String groupId,
     List<NewImage> images, {
     List<String> tagIds = const [],
+    String? note,
   }) async {
     if (images.isEmpty) return;
     await transaction(() async {
-      final ids = await addOfficial(pitId, groupId, [
-        images.first,
-      ], tagIds: tagIds);
+      final ids = await addOfficial(
+        pitId,
+        groupId,
+        [images.first],
+        tagIds: tagIds,
+        note: note,
+      );
       // 新列的 imageKey＝自己的 id。
       await replaceEntityImages(OwnerType.album, ids.first, images.sublist(1));
     });
@@ -78,6 +83,7 @@ extension AlbumSetQueries on AppDatabase {
     required String author,
     String? groupId,
     List<String> tagIds = const [],
+    String? note,
   }) async {
     if (images.isEmpty) return;
     await transaction(() async {
@@ -87,6 +93,7 @@ extension AlbumSetQueries on AppDatabase {
         author: author,
         groupId: groupId,
         tagIds: tagIds,
+        note: note,
       );
       await replaceEntityImages(OwnerType.album, ids.first, images.sublist(1));
     });
@@ -154,6 +161,7 @@ extension AlbumSetQueries on AppDatabase {
                 imageKey: Value(newId),
                 pitId: src.pitId,
                 groupId: src.groupId,
+                note: Value(src.note),
                 imageFile: e.imageFile,
                 width: Value(e.width),
                 height: Value(e.height),
@@ -180,6 +188,7 @@ extension AlbumSetQueries on AppDatabase {
                 posterFile: Value(e.posterFile),
                 sensitive: Value(e.sensitive),
                 author: Value(src.author),
+                note: Value(src.note),
                 source: Value(src.source),
                 groupId: Value(src.groupId),
                 createdAt: Value(src.createdAt),
@@ -228,6 +237,8 @@ extension AlbumSetQueries on AppDatabase {
         if (r != null) rows.add(r);
       }
       if (rows.length < 2) return null;
+      // 從靈感廣場放進來的（D-142）是連結，不合併。
+      if (rows.any((r) => r.official?.materialId != null)) return null;
       final keeper = rows.first;
       final images = <NewImage>[
         for (final e in await albumExtrasOf(keeper.key)) _newImageOf(e),

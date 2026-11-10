@@ -65,6 +65,8 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
     // 篩選中的分組被刪除時退回「全部」。
     final groupId = groups.any((g) => g.id == _groupId) ? _groupId : null;
     final names = {for (final g in groups) g.id: g.name};
+    final notes =
+        ref.watch(officialNotesProvider(widget.pitId)).value ?? const {};
     final total = ref.watch(pitStatsProvider(widget.pitId)).value?.official;
     List<AlbumImage> imagesOf(WidgetRef ref, String? gid) => [
       for (final r
@@ -85,6 +87,8 @@ class _OfficialListPageState extends ConsumerState<OfficialListPage> {
           durationMs: r.durationMs,
           posterFile: r.posterFile,
           imageKey: r.imageKey,
+          note: notes[r.id],
+          inspoId: r.materialId,
         ),
     ];
     final images = imagesOf(ref, groupId);

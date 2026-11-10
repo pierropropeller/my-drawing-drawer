@@ -25,6 +25,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.chipBg,
     required this.dashed,
     required this.dashedText,
+    required this.field,
     required this.accent,
     required this.accentStrong,
     required this.accentSoft,
@@ -49,6 +50,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
   final Color chipBg;
   final Color dashed;
   final Color dashedText;
+
+  /// 輸入框／pill 外框（設計稿淺色 #E3D8C9；深色同 border）。
+  final Color field;
   final Color accent;
   final Color accentStrong;
 
@@ -77,6 +81,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     chipBg: Color(0xFFEFE7DC),
     dashed: Color(0xFFCDBFAE),
     dashedText: Color(0xFFA58C6A),
+    field: Color(0xFFE3D8C9),
     accent: Color(0xFFD9634E),
     accentStrong: Color(0xFFB84B38),
     accentSoft: Color(0xFFF6E3DC),
@@ -102,6 +107,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     chipBg: Color(0xFF332D28),
     dashed: Color(0xFF5A5047),
     dashedText: Color(0xFFB39A78),
+    field: Color(0xFF3A332D),
     accent: Color(0xFFE27560),
     accentStrong: Color(0xFFE8876F),
     accentSoft: Color(0xFF3D2A24),
@@ -114,23 +120,26 @@ class AppTokens extends ThemeExtension<AppTokens> {
     oshi: CategoryColor(Color(0xFF312B3A), Color(0xFFB8A6D9)),
   );
 
-  /// 換主題色：只替換 accent／strong／soft 三色（ColorSystem 色值表，淺／深各一組），其餘不變。
+  /// 換主題色：替換 accent／strong／soft 三色，並把中性色（底色、卡片、chip、
+  /// 邊框、虛線、灰字）換成該主題微調過色相的版本（D-133）。分類色與 danger 不變。
   AppTokens withAccent(AccentPreset preset, Brightness brightness) {
     if (preset == AccentPreset.coral) return this;
     final c = preset.colors(brightness);
+    final n = preset.neutrals(brightness);
     return AppTokens(
-      ground: ground,
-      surface: surface,
-      nav: nav,
-      ink: ink,
-      text2: text2,
-      text3: text3,
-      text4: text4,
-      border: border,
-      borderCard: borderCard,
-      chipBg: chipBg,
-      dashed: dashed,
-      dashedText: dashedText,
+      ground: n?.ground ?? ground,
+      surface: n?.surface ?? surface,
+      nav: n?.nav ?? nav,
+      ink: n?.ink ?? ink,
+      text2: n?.text2 ?? text2,
+      text3: n?.text3 ?? text3,
+      text4: n?.text4 ?? text4,
+      border: n?.border ?? border,
+      borderCard: n?.borderCard ?? borderCard,
+      chipBg: n?.chipBg ?? chipBg,
+      dashed: n?.dashed ?? dashed,
+      dashedText: n?.dashedText ?? dashedText,
+      field: n?.field ?? field,
       accent: c.accent,
       accentStrong: c.strong,
       accentSoft: c.soft,
@@ -160,30 +169,169 @@ class AccentColors {
   final Color soft;
 }
 
-/// 主題色預設（ColorSystem／HANDOFF 第 7 節）：玫瑰（預設）／霧藍／珊瑚／抹茶（D-067）。
+/// 一個主題在某個亮度下的中性色（D-133）：從柿子（原珊瑚）那套米白轉色相而來，
+/// 亮度與彩度大致不變，只帶一點主題色調。
+class NeutralColors {
+  const NeutralColors({
+    required this.ground,
+    required this.surface,
+    required this.nav,
+    required this.ink,
+    required this.text2,
+    required this.text3,
+    required this.text4,
+    required this.border,
+    required this.borderCard,
+    required this.chipBg,
+    required this.dashed,
+    required this.dashedText,
+    required this.field,
+  });
+  final Color ground;
+  final Color surface;
+  final Color nav;
+  final Color ink;
+  final Color text2;
+  final Color text3;
+  final Color text4;
+  final Color border;
+  final Color borderCard;
+  final Color chipBg;
+  final Color dashed;
+  final Color dashedText;
+  final Color field;
+}
+
+const _roseLight = NeutralColors(
+  ground: Color(0xFFFCF5F6),
+  surface: Color(0xFFFFFFFF),
+  nav: Color(0xFFFEFAFB),
+  ink: Color(0xFF2C2526),
+  text2: Color(0xFF716264),
+  text3: Color(0xFF8F7C7F),
+  text4: Color(0xFF9D8D90),
+  border: Color(0xFFEFDEE0),
+  borderCard: Color(0xFFF3E2E4),
+  chipBg: Color(0xFFF3E4E6),
+  dashed: Color(0xFFD3BABE),
+  dashedText: Color(0xFFB0838A),
+  field: Color(0xFFE9D4D7),
+);
+const _roseDark = NeutralColors(
+  ground: Color(0xFF1B1818),
+  surface: Color(0xFF272122),
+  nav: Color(0xFF221C1D),
+  ink: Color(0xFFF5EAEB),
+  text2: Color(0xFFB8A5A8),
+  text3: Color(0xFFA08F91),
+  text4: Color(0xFF908082),
+  border: Color(0xFF3B3233),
+  borderCard: Color(0xFF362F30),
+  chipBg: Color(0xFF342C2D),
+  dashed: Color(0xFF5C4E50),
+  dashedText: Color(0xFFBE9098),
+  field: Color(0xFF3B3233),
+);
+const _slateLight = NeutralColors(
+  ground: Color(0xFFF4F8FC),
+  surface: Color(0xFFFFFFFF),
+  nav: Color(0xFFF9FCFE),
+  ink: Color(0xFF24272B),
+  text2: Color(0xFF606870),
+  text3: Color(0xFF79838D),
+  text4: Color(0xFF8B939C),
+  border: Color(0xFFDBE4ED),
+  borderCard: Color(0xFFDFE8F1),
+  chipBg: Color(0xFFE1E9F2),
+  dashed: Color(0xFFB6C3D1),
+  dashedText: Color(0xFF7B93AD),
+  field: Color(0xFFD0DBE7),
+);
+const _slateDark = NeutralColors(
+  ground: Color(0xFF17191B),
+  surface: Color(0xFF202326),
+  nav: Color(0xFF1B1E21),
+  ink: Color(0xFFE8EEF4),
+  text2: Color(0xFFA2ACB6),
+  text3: Color(0xFF8C959F),
+  text4: Color(0xFF7D868E),
+  border: Color(0xFF30353B),
+  borderCard: Color(0xFF2D3136),
+  chipBg: Color(0xFF2A2F34),
+  dashed: Color(0xFF4B535B),
+  dashedText: Color(0xFF89A1BB),
+  field: Color(0xFF30353B),
+);
+const _matchaLight = NeutralColors(
+  ground: Color(0xFFF7F8F3),
+  surface: Color(0xFFFFFFFF),
+  nav: Color(0xFFFBFCF8),
+  ink: Color(0xFF262822),
+  text2: Color(0xFF65685C),
+  text3: Color(0xFF808475),
+  text4: Color(0xFF919487),
+  border: Color(0xFFE1E4D7),
+  borderCard: Color(0xFFE5E8DB),
+  chipBg: Color(0xFFE7EADD),
+  dashed: Color(0xFFBFC4B0),
+  dashedText: Color(0xFF8D966E),
+  field: Color(0xFFD8DCCB),
+);
+const _matchaDark = NeutralColors(
+  ground: Color(0xFF181916),
+  surface: Color(0xFF22231F),
+  nav: Color(0xFF1D1E1A),
+  ink: Color(0xFFECEEE5),
+  text2: Color(0xFFA9AD9E),
+  text3: Color(0xFF929687),
+  text4: Color(0xFF838679),
+  border: Color(0xFF34362D),
+  borderCard: Color(0xFF30322B),
+  chipBg: Color(0xFF2E2F28),
+  dashed: Color(0xFF515448),
+  dashedText: Color(0xFF9BA47C),
+  field: Color(0xFF34362D),
+);
+
+/// 主題色預設（ColorSystem／HANDOFF 第 7 節）：玫瑰（預設）／牛奶／柿子／抹茶（D-067、D-133）。
+/// key 沿用舊名（slate＝牛奶、coral＝柿子），已存的設定不受影響。
 enum AccentPreset {
   rose(
     'rose',
     AccentColors(Color(0xFFB76A7C), Color(0xFF9A5264), Color(0xFFF3E2E6)),
     AccentColors(Color(0xFFCF8A9B), Color(0xFFD99AAB), Color(0xFF3A2A2F)),
+    _roseLight,
+    _roseDark,
   ),
   slate(
     'slate',
     AccentColors(Color(0xFF5B7A99), Color(0xFF46627E), Color(0xFFE3EAF1)),
     AccentColors(Color(0xFF7F9DBB), Color(0xFF93AECB), Color(0xFF26303A)),
+    _slateLight,
+    _slateDark,
   ),
   coral(
     'coral',
     AccentColors(Color(0xFFD9634E), Color(0xFFB84B38), Color(0xFFF6E3DC)),
     AccentColors(Color(0xFFE27560), Color(0xFFE8876F), Color(0xFF3D2A24)),
+    null,
+    null,
   ),
   matcha(
     'matcha',
     AccentColors(Color(0xFF7A8B5B), Color(0xFF627248), Color(0xFFE6EBDC)),
     AccentColors(Color(0xFF9AAB79), Color(0xFFADBD8C), Color(0xFF2D3324)),
+    _matchaLight,
+    _matchaDark,
   );
 
-  const AccentPreset(this.key, this.light, this.dark);
+  const AccentPreset(
+    this.key,
+    this.light,
+    this.dark,
+    this.neutralsLight,
+    this.neutralsDark,
+  );
   final String key;
 
   /// 顯示名稱（有 context 的地方用 [labelOf]）。
@@ -202,6 +350,12 @@ enum AccentPreset {
   Color get color => light.accent;
 
   AccentColors colors(Brightness b) => b == Brightness.dark ? dark : light;
+
+  /// 中性色；null＝沿用 AppTokens 預設（柿子）。
+  final NeutralColors? neutralsLight;
+  final NeutralColors? neutralsDark;
+  NeutralColors? neutrals(Brightness b) =>
+      b == Brightness.dark ? neutralsDark : neutralsLight;
 
   static AccentPreset fromKey(String? key) =>
       values.firstWhere((p) => p.key == key, orElse: () => rose);

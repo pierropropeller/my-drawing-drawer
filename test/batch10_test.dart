@@ -253,7 +253,9 @@ void main() {
       await db.addOfficial(pitId, groupId, const [video]);
       await db.addFanArts(pitId, const [video], author: '');
       await db.addJunk(pitId, const [video]);
-      await db.addMaterials(MaterialCategory.pose, const [video]);
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), const [
+        video,
+      ]);
       final ideaId = await db.saveIdea(
         pitId: pitId,
         title: 'i',
@@ -525,7 +527,7 @@ void main() {
       expect(await db.chosenCellCoverId(pitId, 'oshi'), isNull);
     });
 
-    test('官方圖冊：指定的圖被刪除、移到別格、移到別坑 → 退回最新', () async {
+    test('參考圖：指定的圖被刪除、移到別格、移到別坑 → 退回最新', () async {
       await db.addOfficial(pitId, groupId, const [NewImage(file: 'o1.png')]);
       await Future<void>.delayed(const Duration(milliseconds: 1100));
       await db.addOfficial(pitId, groupId, const [NewImage(file: 'o2.png')]);
@@ -628,7 +630,7 @@ void main() {
       await db.setCellCover(pitId, 'oshi', c.id);
       expect((await db.watchCellCovers(pitId).first).oshi, 'v1.jpg');
 
-      // 官方圖冊的影片同理
+      // 參考圖的影片同理
       await db.addOfficial(pitId, groupId, const [
         NewImage(file: 'ov.mp4', kind: MediaKind.video),
       ]);
@@ -715,7 +717,7 @@ void main() {
           throwsArgumentError,
         );
         await expectLater(
-          db.setOshiGroupBatch([a], groupId), // 官方圖冊的分組
+          db.setOshiGroupBatch([a], groupId), // 參考圖的分組
           throwsArgumentError,
         );
         expect(await db.deleteGroup(groups[1].id), isTrue);

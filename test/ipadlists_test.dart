@@ -242,7 +242,7 @@ void main() {
       )
       .first;
 
-  group('官方圖冊／好看同人圖', () {
+  group('參考圖／好看同人圖', () {
     testWidgets('欄數：手機 2、直向 3 以上、橫向 3、1366 為 4（逐格增減）', (tester) async {
       await show(tester, OfficialListPage(pitId: pitId), phone);
       expect(masonryCols(tester), 2);

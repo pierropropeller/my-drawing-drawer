@@ -9,6 +9,8 @@ import '../../theme/tokens.dart';
 import '../album/album_image.dart';
 import '../common/app_icons.dart';
 import '../common/dashed_box.dart';
+import '../common/nav_bar_hidden.dart';
+import '../common/reorder_tile.dart' show moveListItem;
 import '../common/responsive.dart';
 import '../common/svg_icon.dart';
 import '../common/window_class.dart';
@@ -18,9 +20,12 @@ import '../sync/pit_sync.dart';
 import '../sync/sync_avatar.dart';
 import '../common/sliding_pills.dart';
 import '../common/swipe_pager.dart';
+import 'pit_cover_sheet.dart';
 import 'pit_new_page.dart';
 import 'pit_page.dart';
+import 'pit_reorder_grid.dart';
 import 'pit_rows.dart';
+import 'pits_icons.dart';
 
 /// 主頁：現坑／淺坑／封存坑三個分頁，右上是「搜尋全部坑」鍵（D-105）。現坑＝固定田字的坑卡片、開新坑（最後一格的虛線格）；
 /// 淺坑、封存坑＝純列表（小封面、坑名、一行副標、右箭頭），淺坑列表最底有「開新淺坑」（D-088）。
@@ -34,9 +39,66 @@ class PitsPage extends ConsumerStatefulWidget {
 void _openNewPit(BuildContext context, {PitStatus status = PitStatus.active}) =>
     openNewPit(context, initialStatus: status);
 
-class _PitsPageState extends ConsumerState<PitsPage> {
+class _PitsPageState extends ConsumerState<PitsPage>
+    with HidesNavBar<PitsPage> {
   // 上次停留的分頁（設定，啟動即還原，第一格就是它）。
   late PitStatus _tab = ref.read(settingsProvider).lastPitsTab;
+
+  /// 編輯排序（D-132，MainSortEdit）：長按坑封面（列表：整列）進入；「完成」、返回、點空白處退出。
+  /// 期間沒有導覽列（iPad 側欄變淡鎖住），分頁鎖住、不能左右滑，底部是排序列。
+  bool _editing = false;
+
+  /// 剛拖完、資料庫還沒回來的新順序（避免放手後閃回舊順序一下）。
+  final Map<PitStatus, List<String>> _pending = {};
+
+  @override
+  bool get hidesNavBarOnOpen => false;
+
+  void _enterEdit() {
+    if (_editing) return;
+    setState(() => _editing = true);
+    setNavBarHidden(WindowClass.of(context).isCompact);
+    navLocked.value = true;
+  }
+
+  void _exitEdit() {
+    if (!_editing) return;
+    setState(() => _editing = false);
+    setNavBarHidden(false);
+    navLocked.value = false;
+  }
+
+  /// 拖動放手：整個分頁的新順序寫進資料庫，排序方式變成「手動」。
+  void _reorder(PitStatus st, List<Pit> shown, int from, int to) {
+    final ids = [for (final p in shown) p.id];
+    moveListItem(ids, from, to);
+    setState(() => _pending[st] = ids);
+    ref.read(databaseProvider).reorderPits(st, ids);
+  }
+
+  /// 套用還沒寫完的新順序；資料庫已經是這個順序（或坑有增減）就丟掉。
+  List<Pit> _withPending(PitStatus st, List<Pit> list) {
+    final ids = _pending[st];
+    if (ids == null) return list;
+    final current = [for (final p in list) p.id];
+    if (current.length != ids.length ||
+        !current.toSet().containsAll(ids) ||
+        _sameOrder(current, ids)) {
+      _pending.remove(st);
+      return list;
+    }
+    final byId = {for (final p in list) p.id: p};
+    return [for (final id in ids) byId[id]!];
+  }
+
+  static bool _sameOrder(List<String> a, List<String> b) {
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  void _openCover(Pit pit) => showPitCoverSheet(context, pit);
 
   static const _order = [
     PitStatus.active,
@@ -49,6 +111,7 @@ class _PitsPageState extends ConsumerState<PitsPage> {
 
   @override
   void dispose() {
+    if (_editing) navLocked.value = false;
     _progress.dispose();
     super.dispose();
   }
@@ -90,126 +153,388 @@ class _PitsPageState extends ConsumerState<PitsPage> {
       capsuleColor: context.tokens.ink,
       capsuleBorder: context.tokens.border,
       radius: Radii.chip,
-      pill: (context, i, mix, decorated) => _FilterChip(
-        label: label(_order[i]),
-        selected: mix >= 0.5,
-        mix: mix,
-        decorated: decorated,
-        big: tablet,
-        onTap: () => setTab(_order[i]),
+      // 編輯排序時分頁鎖住：其他兩個變淡、點了沒反應。
+      pill: (context, i, mix, decorated) => Opacity(
+        opacity: _editing && _order[i] != _tab ? .4 : 1,
+        child: _FilterChip(
+          label: label(_order[i]),
+          selected: mix >= 0.5,
+          mix: mix,
+          decorated: decorated,
+          big: tablet,
+          onTap: () {
+            if (!_editing) setTab(_order[i]);
+          },
+        ),
       ),
     );
     // 主頁右上的「搜尋全部坑」鍵（D-105，取代田字／瀑布切換）；三個分頁都有。
-    final searchButton = _SearchAllButton(big: tablet);
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (tablet)
-              Padding(
-                padding: EdgeInsets.fromLTRB(padH, 30, padH, 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        context.l10n.pitsMyPits,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(
-                              fontSize: wide ? 30 : 28,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                    ),
-                    if (!nothingAtAll) ...[
-                      if (wide) ...[pills, const SizedBox(width: 16)],
-                      searchButton,
-                    ],
-                  ],
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Row(
-                  children: [
-                    // 同步狀態收在頭像外圈（D-052）；外圈不佔位，同步開始或結束頁面不會動。
-                    const SyncAvatar(size: 40),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        nickname.isEmpty ? context.l10n.pitsMyPits : nickname,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(fontSize: 24, letterSpacing: 0.5),
-                      ),
-                    ),
-                    if (!nothingAtAll) searchButton,
-                  ],
-                ),
-              ),
-            if (!nothingAtAll && tablet && !wide)
-              Padding(
-                padding: EdgeInsets.fromLTRB(padH, 16, padH, 0),
-                child: pills,
-              ),
-            if (!nothingAtAll && !tablet)
-              Padding(
-                // 與列表的分組 pills 同一組間距（ChipRow：上 6、下 12）。
-                padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
-                child: pills,
-              ),
-            // 離線時顯示離線橫條，不用彈窗。同步狀態在頭像外圈，不佔版面（D-052）。
-            if (ref.watch(onlineProvider).value == false)
-              _OfflineBanner(
-                padH: padH,
-                top: tablet ? (wide ? 18 : 16) : 2,
-                fontSize: tablet ? 13 : 12,
-              ),
-            Expanded(
-              // 左右滑動切換 現坑／淺坑／封存坑（不循環），內容跟著手指走（D-118）。
-              child: SwipePager<PitStatus>(
-                enabled: !nothingAtAll,
-                order: _order,
-                current: _tab,
-                progress: _progress,
-                onChanged: setTab,
-                itemBuilder: (context, st) => Consumer(
-                  builder: (context, ref, _) => ref
-                      .watch(pitsByStatusProvider(st))
-                      .when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Center(
-                          child: Text(context.l10n.pitsLoadFailed('$e')),
+    final searchButton = _editing
+        ? _DoneButton(big: tablet, onTap: _exitEdit)
+        : _SearchAllButton(big: tablet);
+    final t = context.tokens;
+    return PopScope(
+      canPop: !_editing,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _exitEdit();
+      },
+      child: Scaffold(
+        bottomNavigationBar: _editing
+            ? _SortBar(status: _tab, tablet: tablet)
+            : null,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (tablet)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(padH, 30, padH, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _editing
+                              ? context.l10n.pitsortTitle
+                              : context.l10n.pitsMyPits,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                fontSize: wide ? 30 : 28,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
-                        data: (list) => switch (st) {
-                          PitStatus.active =>
-                            list.isEmpty
-                                ? _Empty(tab: st)
-                                : _PitList(
-                                    pits: list,
-                                    tablet: tablet,
-                                    wide: wide,
-                                  ),
-                          PitStatus.shallow || PitStatus.archived =>
-                            list.isEmpty
-                                ? _Empty(tab: st)
-                                : PitRows(
-                                    pits: list,
-                                    status: st,
-                                    tablet: tablet,
-                                    wide: wide,
-                                  ),
-                        },
                       ),
+                      if (!nothingAtAll) ...[
+                        if (wide) ...[pills, const SizedBox(width: 16)],
+                        searchButton,
+                      ],
+                    ],
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: _editing
+                      ? SizedBox(
+                          height: 42,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  context.l10n.pitsortTitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                        fontSize: 22,
+                                        letterSpacing: 0.5,
+                                      ),
+                                ),
+                              ),
+                              searchButton,
+                            ],
+                          ),
+                        )
+                      : Row(
+                          children: [
+                            // 同步狀態收在頭像外圈（D-052）；外圈不佔位，同步開始或結束頁面不會動。
+                            const SyncAvatar(size: 40),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                nickname.isEmpty
+                                    ? context.l10n.pitsMyPits
+                                    : nickname,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
+                                      fontSize: 24,
+                                      letterSpacing: 0.5,
+                                    ),
+                              ),
+                            ),
+                            if (!nothingAtAll) searchButton,
+                          ],
+                        ),
                 ),
+              if (!nothingAtAll && tablet && !wide)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(padH, 16, padH, 0),
+                  child: pills,
+                ),
+              if (!nothingAtAll && !tablet)
+                Padding(
+                  // 與列表的分組 pills 同一組間距（ChipRow：上 6、下 12）。
+                  padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
+                  child: pills,
+                ),
+              if (_editing)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(padH, tablet ? 14 : 0, padH, 0),
+                  child: Text(
+                    context.l10n.pitsortHint,
+                    style: TextStyle(
+                      color: t.text2,
+                      fontSize: tablet ? 13 : 12.5,
+                    ),
+                  ),
+                ),
+              // 離線時顯示離線橫條，不用彈窗。同步狀態在頭像外圈，不佔版面（D-052）。
+              if (ref.watch(onlineProvider).value == false)
+                _OfflineBanner(
+                  padH: padH,
+                  top: tablet ? (wide ? 18 : 16) : 2,
+                  fontSize: tablet ? 13 : 12,
+                ),
+              Expanded(
+                // 左右滑動切換 現坑／淺坑／封存坑（不循環），內容跟著手指走（D-118）。
+                // 編輯排序時點空白處＝完成（卡片自己吃掉點擊）。
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: _editing ? _exitEdit : null,
+                  child: SwipePager<PitStatus>(
+                    enabled: !nothingAtAll && !_editing,
+                    order: _order,
+                    current: _tab,
+                    progress: _progress,
+                    onChanged: setTab,
+                    itemBuilder: (context, st) => Consumer(
+                      builder: (context, ref, _) => ref
+                          .watch(pitsByStatusProvider(st))
+                          .when(
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            error: (e, _) => Center(
+                              child: Text(context.l10n.pitsLoadFailed('$e')),
+                            ),
+                            data: (raw) {
+                              final list = _withPending(st, raw);
+                              final editing = _editing && st == _tab;
+                              void reorder(int from, int to) =>
+                                  _reorder(st, list, from, to);
+                              return switch (st) {
+                                PitStatus.active =>
+                                  list.isEmpty
+                                      ? _Empty(tab: st)
+                                      : _PitList(
+                                          pits: list,
+                                          tablet: tablet,
+                                          wide: wide,
+                                          editing: editing,
+                                          onEnterEdit: _enterEdit,
+                                          onReorder: reorder,
+                                          onCoverTap: _openCover,
+                                        ),
+                                PitStatus.shallow || PitStatus.archived =>
+                                  list.isEmpty
+                                      ? _Empty(tab: st)
+                                      : PitRows(
+                                          pits: list,
+                                          status: st,
+                                          tablet: tablet,
+                                          wide: wide,
+                                          editing: editing,
+                                          onEnterEdit: _enterEdit,
+                                          onReorder: reorder,
+                                          onCoverTap: _openCover,
+                                        ),
+                              };
+                            },
+                          ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 編輯排序的「完成」（MainSortEdit：accent 底白字膠囊；iPad 高 44）。
+class _DoneButton extends StatelessWidget {
+  const _DoneButton({required this.onTap, this.big = false});
+  final VoidCallback onTap;
+  final bool big;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        key: const ValueKey('pitSortDone'),
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          height: big ? 44 : 38,
+          padding: EdgeInsets.symmetric(horizontal: big ? 22 : 18),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: t.accent,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            context.l10n.commonDone,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: big ? 15 : 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 編輯排序的底部排序列（MainSortEdit，位置同導覽列）：「排序」＋（手動時）「手動」、
+/// 「建立日期」「更新日期」兩顆。點一顆＝改用它排序、新→舊；再點亮著的那顆＝新→舊／舊→新互換。
+class _SortBar extends ConsumerWidget {
+  const _SortBar({required this.status, this.tablet = false});
+  final PitStatus status;
+  final bool tablet;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.tokens;
+    final l = context.l10n;
+    final mode =
+        ref.watch(pitSortModeProvider(status)).value ?? PitSortMode.updatedDesc;
+    void pick(bool created) {
+      final PitSortMode next;
+      if (created ? mode.isCreated : mode.isUpdated) {
+        next = switch (mode) {
+          PitSortMode.createdDesc => PitSortMode.createdAsc,
+          PitSortMode.createdAsc => PitSortMode.createdDesc,
+          PitSortMode.updatedDesc => PitSortMode.updatedAsc,
+          _ => PitSortMode.updatedDesc,
+        };
+      } else {
+        next = created ? PitSortMode.createdDesc : PitSortMode.updatedDesc;
+      }
+      ref.read(databaseProvider).setPitSortMode(status, next);
+    }
+
+    Widget button(bool created) {
+      final on = created ? mode.isCreated : mode.isUpdated;
+      final child = Container(
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: on ? t.ink : t.surface,
+          border: Border.all(color: t.border),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: tablet ? 6 : 5,
+          children: [
+            Text(
+              created ? l.pitsortCreated : l.pitsortUpdated,
+              style: TextStyle(
+                color: on ? t.surface : t.text2,
+                fontSize: tablet ? 14 : 13.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
+            if (on) ...[
+              Text(
+                mode.isAscending ? l.pitsortOldToNew : l.pitsortNewToOld,
+                style: TextStyle(
+                  color: t.surface.withValues(alpha: .8),
+                  fontSize: tablet ? 12.5 : 12,
+                ),
+              ),
+              SvgIcon(
+                mode.isAscending ? PitsIcons.arrowUp : PitsIcons.arrowDown,
+                size: tablet ? 16 : 15,
+                strokeWidth: 2.2,
+                color: t.surface,
+              ),
+            ],
           ],
+        ),
+      );
+      return Semantics(
+        button: true,
+        selected: on,
+        child: GestureDetector(
+          key: ValueKey(created ? 'pitSortCreated' : 'pitSortUpdated'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => pick(created),
+          child: child,
+        ),
+      );
+    }
+
+    final label = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: tablet
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
+      children: [
+        Text(
+          l.pitsortLabel,
+          style: TextStyle(
+            fontSize: tablet ? 13 : 12,
+            fontWeight: FontWeight.w700,
+            color: t.text2,
+          ),
+        ),
+        if (mode == PitSortMode.manual)
+          Text(
+            l.pitsortManual,
+            style: TextStyle(
+              fontSize: tablet ? 13 : 12,
+              fontWeight: FontWeight.w500,
+              color: t.accent,
+            ),
+          ),
+      ],
+    );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: t.nav,
+        border: Border(top: BorderSide(color: t.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: tablet ? 76 : 64,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: tablet ? 40 : 16),
+            child: tablet
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    spacing: 10,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: label,
+                      ),
+                      SizedBox(width: 200, child: button(true)),
+                      SizedBox(width: 200, child: button(false)),
+                    ],
+                  )
+                : Row(
+                    spacing: 8,
+                    children: [
+                      SizedBox(width: 44, child: label),
+                      Expanded(child: button(true)),
+                      Expanded(child: button(false)),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
@@ -434,7 +759,15 @@ class _Empty extends StatelessWidget {
 }
 
 class _PitList extends StatelessWidget {
-  const _PitList({required this.pits, this.tablet = false, this.wide = false});
+  const _PitList({
+    required this.pits,
+    required this.onEnterEdit,
+    required this.onReorder,
+    required this.onCoverTap,
+    this.tablet = false,
+    this.wide = false,
+    this.editing = false,
+  });
   final List<Pit> pits;
 
   /// ≥600：iPad 版面（欄數按闊度計、間距與字級照 Main／MainPortrait 稿）。
@@ -443,6 +776,12 @@ class _PitList extends StatelessWidget {
   /// ≥840（橫向 Main）；false 為直向 MainPortrait 的間距。
   final bool wide;
 
+  /// 編輯排序中（D-132）：點封面＝更換封面，「開新坑」先隱藏。
+  final bool editing;
+  final VoidCallback onEnterEdit;
+  final void Function(int from, int to) onReorder;
+  final void Function(Pit pit) onCoverTap;
+
   @override
   Widget build(BuildContext context) {
     final pad = tablet
@@ -450,7 +789,6 @@ class _PitList extends StatelessWidget {
         : const EdgeInsets.fromLTRB(20, 12, 20, 24);
     final gapX = tablet ? (wide ? 20.0 : 18.0) : 14.0;
     final gapY = tablet ? 22.0 : 14.0;
-    final itemCount = pits.length + 1;
     return LayoutBuilder(
       builder: (context, c) {
         // 手機沿用既有欄數；iPad 欄數 = max(2, floor(可用闊 ÷ 180))，拉窗逐格增減（RespSpec）。
@@ -459,25 +797,41 @@ class _PitList extends StatelessWidget {
             : columnsForWidth(MediaQuery.sizeOf(context).width);
         final colW = (c.maxWidth - pad.horizontal - gapX * (cols - 1)) / cols;
         final textScale = MediaQuery.textScalerOf(context).scale(1);
-        return GridView.builder(
+        // 正方形封面 ＋ 名稱與統計兩行。
+        final cellH = colW + (tablet ? 62 : 56) * textScale;
+        // 長按任何一張坑卡片＝進入編輯排序並直接開始拖（D-132）。
+        return SingleChildScrollView(
           padding: pad,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            mainAxisSpacing: gapY,
-            crossAxisSpacing: gapX,
-            // 正方形封面 ＋ 名稱與統計兩行。
-            mainAxisExtent: colW + (tablet ? 62 : 56) * textScale,
-          ),
-          itemCount: itemCount,
-          itemBuilder: (_, i) => i == pits.length
-              ? Align(
-                  alignment: Alignment.topCenter,
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: _NewPitTile(tablet: tablet),
+          child: PitReorderGrid(
+            count: pits.length,
+            columns: cols,
+            cellWidth: colW,
+            cellHeight: cellH,
+            gapX: gapX,
+            gapY: gapY,
+            placeholderHeight: colW,
+            placeholderRadius: tablet ? 18 : Radii.card,
+            onDragStart: onEnterEdit,
+            onReorder: onReorder,
+            trailing: editing
+                ? null
+                : Align(
+                    alignment: Alignment.topCenter,
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: _NewPitTile(tablet: tablet),
+                    ),
                   ),
-                )
-              : PitCard(pit: pits[i], index: i, tablet: tablet),
+            itemBuilder: (_, i, dragging, lifted) => PitCard(
+              pit: pits[i],
+              index: i,
+              tablet: tablet,
+              editing: editing || dragging,
+              dragging: dragging,
+              lifted: lifted,
+              onCoverTap: () => onCoverTap(pits[i]),
+            ),
+          ),
         );
       },
     );
@@ -530,12 +884,23 @@ class PitCard extends ConsumerWidget {
     required this.pit,
     this.index = 0,
     this.tablet = false,
+    this.editing = false,
+    this.dragging = false,
+    this.lifted = false,
+    this.onCoverTap,
   });
   final Pit pit;
   final int index;
 
   /// iPad（Main 稿）：封面圓角 18、名稱 16、統計 12.5。
   final bool tablet;
+
+  /// 編輯排序（D-132，MainSortEdit）：點卡片不進坑；點封面＝[onCoverTap]（更換封面），
+  /// 封面右下角有小圖示。[dragging]＝正在拖（小圖示先藏起來）；[lifted]＝浮起的這張（封面加陰影、微斜）。
+  final bool editing;
+  final bool dragging;
+  final bool lifted;
+  final VoidCallback? onCoverTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -574,16 +939,75 @@ class PitCard extends ConsumerWidget {
         ),
       ),
     );
-    return GestureDetector(
+    final radius = BorderRadius.circular(tablet ? 18 : Radii.card);
+    Widget coverArea = SizedBox.expand(child: cover);
+    if (editing && !dragging) {
+      final badge = tablet ? 34.0 : 30.0;
+      coverArea = Semantics(
+        button: true,
+        label: context.l10n.pitsortCoverEdit,
+        child: GestureDetector(
+          key: ValueKey('pitCoverEdit-${pit.id}'),
+          behavior: HitTestBehavior.opaque,
+          onTap: onCoverTap,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              coverArea,
+              Positioned(
+                right: tablet ? 10 : 8,
+                bottom: tablet ? 10 : 8,
+                width: badge,
+                height: badge,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: t.surface.withValues(alpha: .94),
+                    shape: BoxShape.circle,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x2E2B2622),
+                        offset: Offset(0, 1),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: SvgIcon(
+                      AppIcons.image,
+                      size: tablet ? 18 : 16,
+                      strokeWidth: 1.9,
+                      color: t.ink,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (lifted) {
+      coverArea = DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          boxShadow: pitLiftShadow,
+        ),
+        child: coverArea,
+      );
+    }
+    final card = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pit.id))),
+      // 編輯排序時點卡片其他地方不做事（也不算「點空白處」）。
+      onTap: editing
+          ? () {}
+          : () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => PitPage(pitId: pit.id)),
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(child: SizedBox.expand(child: cover)),
+          Expanded(child: coverArea),
           Padding(
             padding: EdgeInsets.fromLTRB(2, tablet ? 10 : 8, 2, 0),
             child: Column(
@@ -619,5 +1043,6 @@ class PitCard extends ConsumerWidget {
         ],
       ),
     );
+    return lifted ? Transform.rotate(angle: -0.026, child: card) : card;
   }
 }

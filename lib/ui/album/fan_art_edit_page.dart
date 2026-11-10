@@ -5,6 +5,7 @@ import '../../data/album_queries.dart';
 import '../../data/album_set_queries.dart';
 import '../../data/junk_queries.dart' show AlbumCell;
 import '../../data/database.dart';
+import '../../data/inspo_queries.dart';
 import '../../data/sensitive_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
@@ -59,6 +60,7 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
   bool get hidesNavBarOnOpen => !widget.asModal;
 
   final _author = TextEditingController();
+  final _note = TextEditingController();
   String? _groupId;
   List<String>? _tagIds;
   NewImage? _image; // 載入時的第 1 張
@@ -84,6 +86,7 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
     if (!mounted) return;
     setState(() {
       _author.text = row.author;
+      _note.text = row.note ?? '';
       _groupId = row.groupId;
       _tagIds = ids;
       _image = images.first;
@@ -95,6 +98,7 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
   @override
   void dispose() {
     _author.dispose();
+    _note.dispose();
     super.dispose();
   }
 
@@ -119,6 +123,7 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
       tagIds: _tagIds ?? const [],
       sensitive: sensitive,
     );
+    await db.setFanArtNote(widget.imageId, _note.text);
     return true;
   }
 
@@ -212,6 +217,8 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
         selected: _tagIds!,
         onChanged: (v) => setState(() => _tagIds = v),
       ),
+      const SizedBox(height: 18),
+      NoteField(controller: _note),
     ];
     if (widget.asModal) {
       return ModalFormShell(

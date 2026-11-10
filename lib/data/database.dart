@@ -11,6 +11,7 @@ export 'tables.dart'
         GoalKind,
         GoalPeriod,
         MaterialCategory,
+        materialCategoryIdOf,
         MediaKind,
         OwnerType,
         PitSectionKey,
@@ -33,6 +34,7 @@ part 'database.g.dart';
     Pieces,
     OshiRecords,
     MaterialImages,
+    MaterialCategories,
     EntityImages,
     PieceLinks,
     TagLinks,
@@ -47,6 +49,7 @@ part 'database.g.dart';
     RemoteFileSizes,
     UserProfiles,
     RefViewStates,
+    PitSortSettings,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -54,11 +57,14 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (m) => m.createAll(),
+    onCreate: (m) async {
+      await m.createAll();
+      await seedMaterialCategories();
+    },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         // v2：圖片記錄寬高，瀑布流不需解碼就能排版。
@@ -119,8 +125,98 @@ class AppDatabase extends _$AppDatabase {
       if (from < 15) {
         await _migrateV15(m);
       }
+      if (from < 16) {
+        await _migrateV16(m);
+      }
+      if (from < 17) {
+        await _migrateV17(m);
+      }
     },
   );
+
+  /// v16：主頁手動排序（D-132）。坑加 `sort_order`／`sort_touched_at`／`activity_at`，
+  /// 新表 `pit_sort_settings`（每個分頁的排序方式）。欄位先確認存在與否再加（可重複執行）。
+  Future<void> _migrateV16(Migrator m) async {
+    final have = {
+      for (final r in await customSelect('PRAGMA table_info(pits)').get())
+        r.read<String>('name'),
+    };
+    if (!have.contains('sort_order')) await m.addColumn(pits, pits.sortOrder);
+    if (!have.contains('sort_touched_at')) {
+      await m.addColumn(pits, pits.sortTouchedAt);
+    }
+    if (!have.contains('activity_at')) await m.addColumn(pits, pits.activityAt);
+    final tables = {
+      for (final r in await customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table'",
+      ).get())
+        r.read<String>('name'),
+    };
+    if (!tables.contains('pit_sort_settings')) {
+      await m.createTable(pitSortSettings);
+    }
+  }
+
+  /// v17：參考圖／靈感廣場（D-141～D-143）。官方圖、同人圖、廣場圖加「說明」，
+  /// 官方圖加 `material_id`（從廣場放進來的圖），廣場圖加 `category_id`，新增廣場分類表。
+  /// 先查欄位／表存不存在再加（可重複執行）。
+  Future<void> _migrateV17(Migrator m) async {
+    Future<Set<String>> cols(String table) async => {
+      for (final r in await customSelect('PRAGMA table_info($table)').get())
+        r.read<String>('name'),
+    };
+    final official = await cols('official_images');
+    if (!official.contains('note')) {
+      await m.addColumn(officialImages, officialImages.note);
+    }
+    if (!official.contains('material_id')) {
+      await m.addColumn(officialImages, officialImages.materialId);
+    }
+    if (!(await cols('fan_arts')).contains('note')) {
+      await m.addColumn(fanArts, fanArts.note);
+    }
+    final material = await cols('material_images');
+    if (!material.contains('note')) {
+      await m.addColumn(materialImages, materialImages.note);
+    }
+    if (!material.contains('category_id')) {
+      await m.addColumn(materialImages, materialImages.categoryId);
+    }
+    if ((await cols('material_categories')).isEmpty) {
+      await m.createTable(materialCategories);
+    }
+    await seedMaterialCategories();
+  }
+
+  /// 靈感廣場的七個預設分類（D-143）。id 固定，已經有的（含已刪除的）不重建。
+  /// 時間設成很早：使用者改過名的版本同步過來一定比較新。
+  Future<void> seedMaterialCategories() async {
+    final old = DateTime.utc(2000, 1, 2);
+    for (var i = 0; i < MaterialCategory.values.length; i++) {
+      final c = MaterialCategory.values[i];
+      await into(materialCategories).insert(
+        MaterialCategoriesCompanion.insert(
+          id: Value(materialCategoryIdOf(c)),
+          name: defaultMaterialCategoryNames[i],
+          sortOrder: Value(i),
+          createdAt: Value(old),
+          updatedAt: Value(old),
+        ),
+        mode: InsertMode.insertOrIgnore,
+      );
+    }
+  }
+
+  /// 靈感廣場預設分類名稱（D-143，順序同 [MaterialCategory]）。之後是資料，可以改名。
+  static const defaultMaterialCategoryNames = [
+    '服裝',
+    '姿勢',
+    '人體',
+    '色盤',
+    '場景',
+    '畫風',
+    '貼圖',
+  ];
 
   /// v15：目標坑改多選（D-124）。goals 加 `pit_ids`，舊的單一 `pit_id` 轉成一個元素的清單。
   /// 欄位先確認存在與否再加（可重複執行）。不動 updated_at：各裝置各自升級結果相同。
@@ -397,7 +493,20 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// 官方圖預設分組。
-  static const defaultGroups = ['設定圖', '海報宣傳', '素材', '自用截圖', '圖透', '官方周邊'];
+  /// 參考圖（原官方圖冊）新坑的預設分組（D-140）。舊坑的分組不動。
+  static const defaultGroups = [
+    '海報宣傳',
+    '建模',
+    '細節設定',
+    '三視圖',
+    '概念圖',
+    '官方周邊',
+    '圖透',
+    '自用截圖',
+    '社區分析',
+    '教學圖',
+    '其他參考',
+  ];
 
   /// 好看同人圖預設分組（＝各出處）。
   static const defaultFanGroups = ['推特', '小紅書', 'lofter', '朋友發的', '網上搜的'];

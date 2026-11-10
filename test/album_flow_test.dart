@@ -54,23 +54,23 @@ void main() {
     }
   }
 
-  testWidgets('官方圖冊：進入 → 新增圖片 → 存入資料庫', (tester) async {
+  testWidgets('參考圖：進入 → 新增圖片 → 存入資料庫', (tester) async {
     await pumpApp(tester);
     await settle(tester);
     await tester.tap(find.text('測試坑'));
     await settle(tester);
-    await tester.tap(find.text('官方圖冊'));
+    await tester.tap(find.text('參考圖'));
     await settle(tester);
-    expect(find.text('還沒有官方圖'), findsOneWidget);
+    expect(find.text('還沒有參考圖'), findsOneWidget);
     // 空白頁（OfficialEmpty）：沒有篩選列，只有「加圖」按鈕。
     expect(find.text('0 張'), findsOneWidget);
 
     // 新增：先打開相簿選圖（測試中由假的選圖器回傳一張），再進入新增頁。
     await tester.tap(find.text('加圖'));
     await settle(tester);
-    expect(find.text('新增官方圖'), findsOneWidget);
+    expect(find.text('新增參考圖'), findsOneWidget);
     expect(find.text('管理'), findsNWidgets(2)); // 分組、tag 各一個管理按鈕
-    await tester.tap(find.text('加入官方圖冊')); // 圖片已經帶入，不用再選
+    await tester.tap(find.text('加入參考圖')); // 圖片已經帶入，不用再選
     await settle(tester);
     await settle(tester);
 
@@ -80,16 +80,16 @@ void main() {
       File('${tmp.path}/images/${rows.single.imageFile}').existsSync(),
       isTrue,
     );
-    expect(find.text('還沒有官方圖'), findsNothing);
+    expect(find.text('還沒有參考圖'), findsNothing);
     // 有圖後出現分組 chips 與「管理分組」。
-    expect(find.text('設定圖'), findsWidgets);
+    expect(find.text('海報宣傳'), findsWidgets);
     expect(find.byTooltip('管理分組'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));
   });
 
-  testWidgets('預覽頁隱藏底部導覽；設為封面＝官方圖冊的封面（不是主頁坑封面）；同人圖列表顯示作者與分組', (tester) async {
+  testWidgets('預覽頁隱藏底部導覽；設為封面＝參考圖的封面（不是主頁坑封面）；同人圖列表顯示作者與分組', (tester) async {
     await tester.runAsync(() async {
       final groups = await db.watchGroups(pitId).first;
       await db.addOfficial(pitId, groups.first.id, const [
@@ -114,8 +114,8 @@ void main() {
     await tester.tap(find.text('測試坑'));
     await settle(tester);
 
-    // 官方圖冊 → 預覽
-    await tester.tap(find.text('官方圖冊'));
+    // 參考圖 → 預覽
+    await tester.tap(find.text('參考圖'));
     await settle(tester);
     expect(find.text('時間軸'), findsOneWidget); // 列表頁底部導覽還在
     await tester.tap(find.byType(Image).first);
@@ -127,7 +127,7 @@ void main() {
     var pit = (await tester.runAsync(() => db.watchPit(pitId).first))!;
     expect(pit.officialCoverId, isNotNull);
     expect(pit.coverImageId, isNull);
-    expect(find.text('已設為官方圖冊封面'), findsOneWidget);
+    expect(find.text('已設為參考圖封面'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await settle(tester);
     expect(find.text('時間軸'), findsOneWidget); // 回來後導覽列又出現
@@ -157,15 +157,18 @@ void main() {
     await pumpApp(tester);
     await settle(tester);
 
-    // 主頁長按坑卡片：不會開選封面（D-093）。
+    // 主頁長按坑卡片：不會開選封面（D-093）；改為進入編輯排序（D-132），按「完成」離開。
     await tester.longPress(find.text('測試坑'));
     await settle(tester);
     expect(find.byType(CoverPickPage), findsNothing);
     expect(find.text('選擇坑的封面'), findsNothing);
+    expect(find.text('編輯排序'), findsOneWidget);
+    await tester.tap(find.text('完成'));
+    await settle(tester);
 
     await tester.tap(find.text('測試坑'));
     await settle(tester);
-    await tester.tap(find.text('官方圖冊'));
+    await tester.tap(find.text('參考圖'));
     await settle(tester);
 
     // 長按進入選取：下方操作列只佔底部一小條，不能把整頁撐滿。
@@ -184,7 +187,7 @@ void main() {
     expect(find.text('設為封面'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await settle(tester);
-    expect(find.text('測試坑 · 官方圖冊'), findsOneWidget);
+    expect(find.text('測試坑 · 參考圖'), findsOneWidget);
     expect(find.text('時間軸'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());

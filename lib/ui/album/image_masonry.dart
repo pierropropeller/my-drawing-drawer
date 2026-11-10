@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
+import '../../l10n/l10n.dart';
+
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../theme/tokens.dart';
@@ -10,6 +13,7 @@ import '../common/media_widgets.dart';
 import '../common/responsive.dart';
 import '../common/window_class.dart';
 import '../common/svg_icon.dart';
+import '../material/material_icons.dart';
 import 'album_image.dart';
 import 'album_set_badge.dart';
 
@@ -119,6 +123,8 @@ class _Tile extends StatelessWidget {
             borderRadius: BorderRadius.circular(Radii.image),
             child: MediaThumb(image.media, cacheWidth: 500, badgeInset: 7),
           ),
+          if (image.fromInspo)
+            const Positioned(left: 7, top: 7, child: InspoBadge()),
           if (isSelected || highlighted)
             DecoratedBox(
               decoration: BoxDecoration(
@@ -214,6 +220,8 @@ class SquareGrid extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               MediaThumb(im.media, cacheWidth: 400),
+              if (im.fromInspo)
+                const Positioned(left: 6, top: 6, child: InspoBadge()),
               if (isSelected)
                 DecoratedBox(
                   decoration: BoxDecoration(
@@ -287,40 +295,61 @@ class _Caption extends StatelessWidget {
     final (Color fg, Color bg) = image.kind == AlbumKind.official
         ? (t.official.fg, t.official.bg)
         : _sourceStyle(group, dark, t);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(2, 7, 2, 0),
-      child: Row(
-        children: [
-          if (author.isNotEmpty)
-            Expanded(
-              child: Text(
-                author,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: t.ink,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                ),
+    final note = image.note ?? '';
+    final row = Row(
+      children: [
+        if (author.isNotEmpty)
+          Expanded(
+            child: Text(
+              author,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: t.ink,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          if (author.isNotEmpty && group.isNotEmpty) const SizedBox(width: 6),
-          if (group.isNotEmpty)
-            // 標籤不搶彈性空間（作者佔滿剩餘寬度，標籤才會貼右）；太長時限制最大寬度並省略。
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 110),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: bg,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  group,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: fg, fontSize: 10.5),
-                ),
+          ),
+        if (author.isNotEmpty && group.isNotEmpty) const SizedBox(width: 6),
+        if (group.isNotEmpty)
+          // 標籤不搶彈性空間（作者佔滿剩餘寬度，標籤才會貼右）；太長時限制最大寬度並省略。
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 110),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                group,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: fg, fontSize: 10.5),
+              ),
+            ),
+          ),
+      ],
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 7, 2, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (author.isNotEmpty || group.isNotEmpty) row,
+          // 說明（RefList，D-141）：12px、兩行。
+          if (note.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(
+                top: author.isNotEmpty || group.isNotEmpty ? 5 : 0,
+              ),
+              child: Text(
+                note,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: t.text2, fontSize: 12, height: 1.45),
               ),
             ),
         ],
@@ -345,4 +374,29 @@ class _Caption extends StatelessWidget {
     }
     return (const Color(0xFF6B6257), const Color(0xFFEFE7DC));
   }
+}
+
+/// 「來自靈感廣場」角標（RefList，D-142）：22px 半透明暗黃圓＋白色燈泡，透明度同 GIF／影片標記。
+class InspoBadge extends StatelessWidget {
+  const InspoBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: context.l10n.inspoFromInspo,
+    child: Container(
+      width: 22,
+      height: 22,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color(0x9EC9961A),
+      ),
+      alignment: Alignment.center,
+      child: const SvgIcon(
+        MaterialLibIcons.bulb,
+        size: 13,
+        color: Colors.white,
+        strokeWidth: 2,
+      ),
+    ),
+  );
 }

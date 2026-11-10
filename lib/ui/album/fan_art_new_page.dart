@@ -64,6 +64,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
       .map(ImageItem.picked)
       .toList();
   final _author = TextEditingController();
+  final _note = TextEditingController();
   late String? _groupId = widget.initialGroupId;
   List<String> _tagIds = [];
   bool _saving = false;
@@ -74,6 +75,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
   @override
   void dispose() {
     _author.dispose();
+    _note.dispose();
     super.dispose();
   }
 
@@ -102,6 +104,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
         author: _author.text.trim(),
         groupId: _groupId,
         tagIds: _tagIds,
+        note: _note.text,
       );
     } else {
       await db.addFanArts(
@@ -110,6 +113,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
         author: _author.text.trim(),
         groupId: _groupId,
         tagIds: _tagIds,
+        note: _note.text,
       );
     }
     if (mounted) Navigator.of(context).pop();
@@ -158,6 +162,8 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
         selected: _tagIds,
         onChanged: (v) => setState(() => _tagIds = v),
       ),
+      const SizedBox(height: 18),
+      NoteField(controller: _note),
     ];
     if (widget.asModal) {
       return ModalFormShell(

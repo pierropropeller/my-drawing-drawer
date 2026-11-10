@@ -110,6 +110,17 @@ class RefInfoContent extends StatelessWidget {
             ),
             SizedBox(height: gap),
           ],
+          // 說明（D-141）：iPad 參考圖檢視的資料面板。
+          if ((image.album?.note ?? '').isNotEmpty) ...[
+            Text(l10n.noteLabel, style: label),
+            const SizedBox(height: 10),
+            Text(
+              image.album!.note!,
+              key: const ValueKey('refInfoNote'),
+              style: TextStyle(color: palette.fg, fontSize: 13.5, height: 1.6),
+            ),
+            SizedBox(height: gap),
+          ],
           if (date != null)
             Text(
               previewDate(date, l10n),

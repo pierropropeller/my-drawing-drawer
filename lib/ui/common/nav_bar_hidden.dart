@@ -9,6 +9,9 @@ import 'window_class.dart';
 /// 把導覽列藏起來；若改用最上層 Navigator，Android 返回手勢會連分頁內的上一頁一起退掉。
 final navBarHiddenCount = ValueNotifier<int>(0);
 
+/// 側欄／rail 暫時鎖住（變淡、不能點）：主頁編輯排序時（D-132，iPad MainSortEdit）。
+final navLocked = ValueNotifier<bool>(false);
+
 mixin HidesNavBar<T extends StatefulWidget> on State<T> {
   bool _navHidden = false;
 

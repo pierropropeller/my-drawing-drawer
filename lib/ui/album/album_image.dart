@@ -34,6 +34,8 @@ class AlbumImage {
     this.mediaKind = MediaKind.image,
     this.durationMs,
     this.posterFile,
+    this.note,
+    this.inspoId,
     String? imageKey,
   }) : _imageKey = imageKey; // ignore: prefer_initializing_formals
 
@@ -76,8 +78,17 @@ class AlbumImage {
     height: height,
   );
 
+  /// 說明（D-141）：列表縮圖下最多兩行。
+  final String? note;
+
+  /// 從靈感廣場放進來的參考圖（D-142）：廣場那張的 id。縮圖左上角有燈泡角標。
+  final String? inspoId;
+  bool get fromInspo => inspoId != null;
+
   bool get hasCaption =>
-      (author ?? '').isNotEmpty || (groupName ?? '').isNotEmpty;
+      (author ?? '').isNotEmpty ||
+      (groupName ?? '').isNotEmpty ||
+      (note ?? '').isNotEmpty;
 
   double get aspect => (width > 0 && height > 0) ? width / height : 1;
 }

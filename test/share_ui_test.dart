@@ -136,7 +136,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
-  testWidgets('冷啟動：顯示縮圖與張數，預設官方圖冊，「加入」存進該坑選的分組', (tester) async {
+  testWidgets('冷啟動：顯示縮圖與張數，預設參考圖，「加入」存進該坑選的分組', (tester) async {
     final files = sharedFiles(3);
     await pumpApp(tester, FakeShareChannel(initial: files));
 
@@ -148,16 +148,16 @@ void main() {
     // 坑 chips ＋「開新坑」，位置格（雜物沒開啟時隱藏）。
     expect(inSheet(find.text('坑A')), findsOneWidget);
     expect(inSheet(find.text('開新坑')), findsOneWidget);
-    expect(inSheet(find.text('官方圖冊')), findsOneWidget);
+    expect(inSheet(find.text('參考圖')), findsOneWidget);
     expect(inSheet(find.text('好看同人圖')), findsOneWidget);
     expect(inSheet(find.text('摸魚')), findsOneWidget);
     expect(inSheet(find.text('腦洞')), findsOneWidget);
     expect(inSheet(find.text('成圖')), findsOneWidget);
-    // 官方圖冊選中時展開分組。
+    // 參考圖選中時展開分組。
     expect(inSheet(find.text('分組')), findsOneWidget);
-    expect(inSheet(find.text('設定圖')), findsOneWidget);
+    expect(inSheet(find.text('海報宣傳')), findsOneWidget);
 
-    await tapIn(tester, '素材');
+    await tapIn(tester, '建模');
     await tapIn(tester, '加入');
     await settleLong(tester);
 
@@ -169,7 +169,7 @@ void main() {
       () => db.select(db.officialGroups).get(),
     ))!;
     final material = groups.firstWhere(
-      (g) => g.name == '素材' && g.pitId == pitA,
+      (g) => g.name == '建模' && g.pitId == pitA,
     );
     expect(
       rows.every((r) => r.pitId == pitA && r.groupId == material.id),
@@ -178,7 +178,7 @@ void main() {
     // 檔案已複製進 App 儲存空間，暫存檔已清掉。
     expect(Directory('${tmp.path}/images').listSync().length, 3);
     expect(File(files.first).existsSync(), isFalse);
-    // 顯示「已加入」，留在 App 裡，停在坑A 的官方圖冊列表。
+    // 顯示「已加入」，留在 App 裡，停在坑A 的參考圖列表。
     expect(find.text('已加入'), findsOneWidget);
     expect(find.byType(ShareSheet), findsNothing);
     expect(find.byType(OfficialListPage), findsOneWidget);
@@ -291,7 +291,7 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('雜物：坑沒開啟時隱藏；開啟後可加入；換到沒開啟的坑退回官方圖冊', (tester) async {
+  testWidgets('雜物：坑沒開啟時隱藏；開啟後可加入；換到沒開啟的坑退回參考圖', (tester) async {
     await db.updatePit(pitA, name: '坑A', archived: false, junkEnabled: true);
     await pumpApp(tester, FakeShareChannel(initial: sharedFiles(2)));
     // 坑A 開啟雜物：有第六格。
@@ -309,7 +309,7 @@ void main() {
     expect(junk.every((j) => j.pitId == pitA), isTrue);
     expect(find.byType(JunkListPage), findsOneWidget);
 
-    // 上次是 坑A＋雜物；切到坑B 時退回官方圖冊。
+    // 上次是 坑A＋雜物；切到坑B 時退回參考圖。
     channel.push(sharedFiles(1));
     await settle(tester);
     expect(inSheet(find.text('雜物')), findsOneWidget);
@@ -358,7 +358,7 @@ void main() {
     ]..sort();
   }
 
-  testWidgets('官方圖冊：分組單選＋tag 多選（可就地新增），加入後存進資料庫', (tester) async {
+  testWidgets('參考圖：分組單選＋tag 多選（可就地新增），加入後存進資料庫', (tester) async {
     await tester.runAsync(() async {
       await db.createTag(pitA, '角色1');
       await db.createTag(pitA, '角色2');
@@ -450,11 +450,11 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('位置是 4 欄 7 格：官方圖冊、好看同人圖、推活、雜物／腦洞、摸魚、成圖（D-091）', (tester) async {
+  testWidgets('位置是 4 欄 7 格：參考圖、好看同人圖、推活、雜物／腦洞、摸魚、成圖（D-091）', (tester) async {
     await db.updatePit(pitA, name: '坑A', archived: false, junkEnabled: true);
     await pumpApp(tester, FakeShareChannel(initial: sharedFiles(1)));
     Offset c(String text) => tester.getCenter(inSheet(find.text(text)));
-    final first = [c('官方圖冊'), c('好看同人圖'), c('推活'), c('雜物')];
+    final first = [c('參考圖'), c('好看同人圖'), c('推活'), c('雜物')];
     final second = [c('腦洞'), c('摸魚'), c('成圖')];
     // 第一列 4 格由左到右，同一水平線。
     for (var i = 1; i < 4; i++) {
@@ -471,7 +471,7 @@ void main() {
     await tapIn(tester, '坑B');
     expect(inSheet(find.text('雜物')), findsNothing);
     expect(c('腦洞').dx, closeTo(first[3].dx, 0.5));
-    expect(c('腦洞').dy, closeTo(c('官方圖冊').dy, 2));
+    expect(c('腦洞').dy, closeTo(c('參考圖').dy, 2));
     await unmount(tester);
   });
 

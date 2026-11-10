@@ -203,7 +203,7 @@ void main() {
         expect(find.text('Wi-Fi'), findsOneWidget);
         expect(find.text('還有 2 張等待中'), findsOneWidget);
         expect(find.text('同步設定'), findsOneWidget);
-        expect(find.text('坑A · 官方圖冊'), findsNWidgets(2));
+        expect(find.text('坑A · 參考圖'), findsNWidgets(2));
 
         // 寬 400、在頭像下方、左緣約 14（稿）。
         final box = tester.getRect(find.byKey(SyncPopover.cardKey));
@@ -235,7 +235,7 @@ void main() {
         expect(find.text('下載 6 張'), findsOneWidget);
         expect(find.text('剛剛'), findsOneWidget);
         expect(find.text('同步設定'), findsNothing); // 列表和設定連結都消失
-        expect(find.text('坑A · 官方圖冊'), findsNothing);
+        expect(find.text('坑A · 參考圖'), findsNothing);
         expect(find.text('Wi-Fi'), findsNothing);
 
         // 又有新的變更：切回同步中。

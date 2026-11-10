@@ -48,18 +48,115 @@ extension PitX on Pit {
   bool sectionOpen(PitSectionKey k) => openSections.contains(k);
 }
 
+/// 主頁分頁的排序方式（D-132）。資料庫存 [stored]；沒設定＝[updatedDesc]（原本的行為）。
+enum PitSortMode {
+  manual('manual'),
+  createdDesc('created_desc'),
+  createdAsc('created_asc'),
+  updatedDesc('updated_desc'),
+  updatedAsc('updated_asc');
+
+  const PitSortMode(this.stored);
+  final String stored;
+
+  static PitSortMode parse(String? raw) => PitSortMode.values.firstWhere(
+    (m) => m.stored == raw,
+    orElse: () => PitSortMode.updatedDesc,
+  );
+
+  bool get isCreated => this == createdDesc || this == createdAsc;
+  bool get isUpdated => this == updatedDesc || this == updatedAsc;
+  bool get isAscending => this == createdAsc || this == updatedAsc;
+}
+
+/// [mode] 下 a、b 兩個坑的先後（[aActivity]／[bActivity]＝最後更新，秒）。
+/// 手動：還沒排過的（sortOrder＝null）在最前面，彼此依建立時間新→舊；其餘依 sortOrder。
+/// 同分時一律依建立時間新→舊，結果穩定。
+int comparePits(PitSortMode mode, Pit a, int aActivity, Pit b, int bActivity) {
+  int newerFirst() => b.createdAt.compareTo(a.createdAt);
+  int byKey(int c, bool ascending) {
+    final r = ascending ? c : -c;
+    return r != 0 ? r : newerFirst();
+  }
+
+  switch (mode) {
+    case PitSortMode.manual:
+      final ao = a.sortOrder, bo = b.sortOrder;
+      if (ao == null && bo == null) return newerFirst();
+      if (ao == null) return -1;
+      if (bo == null) return 1;
+      return ao != bo ? ao.compareTo(bo) : newerFirst();
+    case PitSortMode.createdDesc:
+    case PitSortMode.createdAsc:
+      return byKey(a.createdAt.compareTo(b.createdAt), mode.isAscending);
+    case PitSortMode.updatedDesc:
+    case PitSortMode.updatedAsc:
+      return byKey(aActivity.compareTo(bActivity), mode.isAscending);
+  }
+}
+
 extension PitStatusQueries on AppDatabase {
+  // ---- 排序（D-132）----
+
+  /// 分頁目前的排序方式。
+  Stream<PitSortMode> watchPitSortMode(PitStatus status) =>
+      (select(pitSortSettings)..where((t) => t.status.equals(status.name)))
+          .watchSingleOrNull()
+          .map((r) => PitSortMode.parse(r?.mode));
+
+  /// 換分頁的排序方式（自動排序；或拖動後變手動）。會同步到其他裝置。
+  Future<void> setPitSortMode(PitStatus status, PitSortMode mode) =>
+      into(pitSortSettings).insertOnConflictUpdate(
+        PitSortSettingsCompanion.insert(
+          status: status.name,
+          mode: mode.stored,
+          updatedAt: DateTime.now(),
+        ),
+      );
+
+  /// 手動排序：[orderedIds] 是這個分頁拖動後的完整順序，排序方式同時變成「手動」。
+  /// 只寫入位置有變的坑；只改排序不算「更新」（記下排序前的最後更新，見 [Pits.sortTouchedAt]）。
+  Future<void> reorderPits(PitStatus status, List<String> orderedIds) =>
+      transaction(() async {
+        final now = DateTime.now();
+        final rows = {
+          for (final p in await (select(
+            pits,
+          )..where((p) => p.id.isIn(orderedIds))).get())
+            p.id: p,
+        };
+        for (var i = 0; i < orderedIds.length; i++) {
+          final p = rows[orderedIds[i]];
+          if (p == null || p.sortOrder == i) continue;
+          final onlySorted =
+              p.sortTouchedAt != null && p.sortTouchedAt == p.updatedAt;
+          await (update(pits)..where((t) => t.id.equals(p.id))).write(
+            PitsCompanion(
+              sortOrder: Value(i),
+              activityAt: Value(onlySorted ? p.activityAt : p.updatedAt),
+              sortTouchedAt: Value(now),
+              updatedAt: Value(now),
+            ),
+          );
+        }
+        await setPitSortMode(status, PitSortMode.manual);
+      });
+
   // ---- 清單 ----
 
-  /// 指定類型的坑，依「最後更新」排序（坑本身或坑內任何內容有更新都算）。
+  /// 指定類型的坑。只有一種類型時依該分頁的排序方式（[PitSortMode]，D-132）；
+  /// 多種類型（選擇清單）一律依「最後更新」新→舊。
+  /// 「最後更新」＝坑本身或坑內任何內容有更新；只改排序不算（見 [Pits.sortTouchedAt]）。
   Stream<List<Pit>> watchPitsByStatus(Set<PitStatus> statuses) {
     final list = statuses.toList();
     if (list.isEmpty) return Stream.value(const []);
     final marks = List.filled(list.length, '?').join(',');
+    final single = list.length == 1 ? list.single : null;
     return customSelect(
       '''
       SELECT p.*, MAX(
-        p.updated_at,
+        CASE WHEN p.sort_touched_at IS NOT NULL AND p.sort_touched_at = p.updated_at
+          THEN COALESCE(p.activity_at, p.created_at) ELSE p.updated_at END,
         COALESCE((SELECT MAX(updated_at) FROM official_images WHERE pit_id = p.id), 0),
         COALESCE((SELECT MAX(updated_at) FROM fan_arts WHERE pit_id = p.id), 0),
         COALESCE((SELECT MAX(updated_at) FROM junk_images WHERE pit_id = p.id), 0),
@@ -67,12 +164,15 @@ extension PitStatusQueries on AppDatabase {
         COALESCE((SELECT MAX(updated_at) FROM drafts WHERE pit_id = p.id), 0),
         COALESCE((SELECT MAX(updated_at) FROM pieces WHERE pit_id = p.id), 0),
         COALESCE((SELECT MAX(updated_at) FROM oshi_records WHERE pit_id = p.id), 0)
-      ) AS last_activity
+      ) AS last_activity,
+      (SELECT mode FROM pit_sort_settings WHERE status = ?) AS sort_mode
       FROM pits p
       WHERE p.deleted_at IS NULL AND p.status IN ($marks)
-      ORDER BY last_activity DESC, p.created_at DESC
       ''',
-      variables: [for (final s in list) Variable<String>(s.name)],
+      variables: [
+        Variable<String>(single?.name ?? ''),
+        for (final s in list) Variable<String>(s.name),
+      ],
       readsFrom: {
         pits,
         officialImages,
@@ -82,8 +182,23 @@ extension PitStatusQueries on AppDatabase {
         drafts,
         pieces,
         oshiRecords,
+        pitSortSettings,
       },
-    ).watch().map((rows) => [for (final r in rows) pits.map(r.data)]);
+    ).watch().map((rows) {
+      final mode = single == null || rows.isEmpty
+          ? PitSortMode.updatedDesc
+          : PitSortMode.parse(rows.first.readNullable<String>('sort_mode'));
+      // 第三項＝查詢原本順序：完全同分時維持穩定（List.sort 不保證穩定）。
+      final entries = [
+        for (final (i, r) in rows.indexed)
+          (pits.map(r.data), r.read<int>('last_activity'), i),
+      ];
+      entries.sort((a, b) {
+        final c = comparePits(mode, a.$1, a.$2, b.$1, b.$2);
+        return c != 0 ? c : a.$3.compareTo(b.$3);
+      });
+      return [for (final e in entries) e.$1];
+    });
   }
 
   /// 選擇清單用的坑（分享匯入、圖片移動、新增目標、日頁的新增）：現坑加淺坑；**不含封存坑**。
@@ -383,6 +498,10 @@ extension PitStatusQueries on AppDatabase {
         status: Value(target),
         enabledSections: Value(sections),
         junkEnabled: Value(junk),
+        // 轉到別的分頁：手動排序時排在最前面（D-132）。
+        sortOrder: target == cur.status
+            ? const Value.absent()
+            : const Value(null),
         updatedAt: Value(DateTime.now()),
       ),
     );

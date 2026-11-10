@@ -14,7 +14,7 @@ import 'package:huakeng/data/timeline_queries.dart';
 import 'package:huakeng/sync/remote.dart';
 import 'package:huakeng/sync/sync_engine.dart';
 
-/// 素材庫（D-071）：查詢、計數、移動、軟刪除、不影響其他統計，以及兩台裝置的同步（含圖片）。
+/// 靈感廣場（D-071）：查詢、計數、移動、軟刪除、不影響其他統計，以及兩台裝置的同步（含圖片）。
 void main() {
   late AppDatabase db;
   setUp(() {
@@ -38,11 +38,10 @@ void main() {
   });
 
   test('addMaterials：一個交易加一批、回傳 id、寬高保留；列表新的在前，同一批維持給定順序', () async {
-    final ids1 = await db.addMaterials(MaterialCategory.clothing, [
-      im('a1.png'),
-      im('a2.png'),
-      im('a3.png'),
-    ]);
+    final ids1 = await db.addMaterials(
+      materialCategoryIdOf(MaterialCategory.clothing),
+      [im('a1.png'), im('a2.png'), im('a3.png')],
+    );
     expect(ids1.length, 3);
     var all = await db.watchMaterials().first;
     expect(all.map((m) => m.imageFile), ['a1.png', 'a2.png', 'a3.png']);
@@ -52,7 +51,10 @@ void main() {
     expect(all.first.deviceId, '');
 
     // 第二批（同一秒內也要排在前面）
-    await db.addMaterials(MaterialCategory.pose, [im('b1.png'), im('b2.png')]);
+    await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
+      im('b1.png'),
+      im('b2.png'),
+    ]);
     all = await db.watchMaterials().first;
     expect(all.map((m) => m.imageFile), [
       'b1.png',
@@ -61,13 +63,25 @@ void main() {
       'a2.png',
       'a3.png',
     ]);
-    expect(await db.addMaterials(MaterialCategory.pose, const []), isEmpty);
+    expect(
+      await db.addMaterials(
+        materialCategoryIdOf(MaterialCategory.pose),
+        const [],
+      ),
+      isEmpty,
+    );
   });
 
   test('createdAt 不同時依 createdAt 新到舊；分類篩選', () async {
-    await db.addMaterials(MaterialCategory.scene, [im('old.png')]);
-    await db.addMaterials(MaterialCategory.scene, [im('new.png')]);
-    await db.addMaterials(MaterialCategory.body, [im('body.png')]);
+    await db.addMaterials(materialCategoryIdOf(MaterialCategory.scene), [
+      im('old.png'),
+    ]);
+    await db.addMaterials(materialCategoryIdOf(MaterialCategory.scene), [
+      im('new.png'),
+    ]);
+    await db.addMaterials(materialCategoryIdOf(MaterialCategory.body), [
+      im('body.png'),
+    ]);
     await db.customStatement(
       "UPDATE material_images SET created_at = 1000 WHERE image_file = 'new.png'",
     );
@@ -75,15 +89,24 @@ void main() {
       "UPDATE material_images SET created_at = 2000 WHERE image_file = 'old.png'",
     );
     final scene = await db
-        .watchMaterials(category: MaterialCategory.scene)
+        .watchMaterials(category: materialCategoryIdOf(MaterialCategory.scene))
         .first;
     expect(scene.map((m) => m.imageFile), ['old.png', 'new.png']);
     expect(
-      (await db.watchMaterials(category: MaterialCategory.body).first).length,
+      (await db
+              .watchMaterials(
+                category: materialCategoryIdOf(MaterialCategory.body),
+              )
+              .first)
+          .length,
       1,
     );
     expect(
-      await db.watchMaterials(category: MaterialCategory.style).first,
+      await db
+          .watchMaterials(
+            category: materialCategoryIdOf(MaterialCategory.style),
+          )
+          .first,
       isEmpty,
     );
   });
@@ -91,21 +114,25 @@ void main() {
   test(
     'moveMaterials 改分類（沒變的不蓋 updatedAt）；deleteMaterials 軟刪除；計數即時更新',
     () async {
-      final ids = await db.addMaterials(MaterialCategory.clothing, [
-        im('1.png'),
-        im('2.png'),
-        im('3.png'),
-      ]);
+      final ids = await db.addMaterials(
+        materialCategoryIdOf(MaterialCategory.clothing),
+        [im('1.png'), im('2.png'), im('3.png')],
+      );
       var counts = await db.watchMaterialCounts().first;
       expect(counts.total, 3);
-      expect(counts.of(MaterialCategory.clothing), 3);
-      expect(counts.of(MaterialCategory.sticker), 0);
-      expect(counts.byCategory.length, MaterialCategory.values.length);
+      expect(counts.of(materialCategoryIdOf(MaterialCategory.clothing)), 3);
+      expect(counts.of(materialCategoryIdOf(MaterialCategory.sticker)), 0);
+      expect(counts.byCategory.length, 1); // 只列有圖的分類
 
       // 讓 updatedAt 可以區分
       await db.customStatement('UPDATE material_images SET updated_at = 1');
-      await db.moveMaterials([ids[0], ids[1]], MaterialCategory.pose);
-      await db.moveMaterials([ids[1]], MaterialCategory.pose); // 已在目標分類
+      await db.moveMaterials([
+        ids[0],
+        ids[1],
+      ], materialCategoryIdOf(MaterialCategory.pose));
+      await db.moveMaterials([
+        ids[1],
+      ], materialCategoryIdOf(MaterialCategory.pose)); // 已在目標分類
       final rows = {
         for (final m in await db.select(db.materialImages).get()) m.id: m,
       };
@@ -116,20 +143,22 @@ void main() {
       expect(rows[ids[2]]!.updatedAt.millisecondsSinceEpoch, 1000); // 沒動的不變
 
       counts = await db.watchMaterialCounts().first;
-      expect(counts.of(MaterialCategory.pose), 2);
-      expect(counts.of(MaterialCategory.clothing), 1);
+      expect(counts.of(materialCategoryIdOf(MaterialCategory.pose)), 2);
+      expect(counts.of(materialCategoryIdOf(MaterialCategory.clothing)), 1);
 
       await db.deleteMaterials([ids[0], ids[2]]);
       counts = await db.watchMaterialCounts().first;
       expect(counts.total, 1);
-      expect(counts.of(MaterialCategory.pose), 1);
+      expect(counts.of(materialCategoryIdOf(MaterialCategory.pose)), 1);
       expect((await db.watchMaterials().first).single.id, ids[1]);
       // 軟刪除：列還在、有 deletedAt；已刪除的不能被移動
       final gone = await (db.select(
         db.materialImages,
       )..where((m) => m.id.equals(ids[0]))).getSingle();
       expect(gone.deletedAt, isNotNull);
-      await db.moveMaterials([ids[0]], MaterialCategory.style);
+      await db.moveMaterials([
+        ids[0],
+      ], materialCategoryIdOf(MaterialCategory.style));
       expect(
         (await (db.select(
           db.materialImages,
@@ -144,7 +173,10 @@ void main() {
     final seen = <int>[];
     final sub = db.watchMaterialCounts().listen((c) => seen.add(c.total));
     await Future<void>.delayed(const Duration(milliseconds: 50));
-    final ids = await db.addMaterials(MaterialCategory.palette, [im('x.png')]);
+    final ids = await db.addMaterials(
+      materialCategoryIdOf(MaterialCategory.palette),
+      [im('x.png')],
+    );
     await Future<void>.delayed(const Duration(milliseconds: 50));
     await db.deleteMaterials(ids);
     await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -154,7 +186,9 @@ void main() {
 
   test('素材不影響坑統計、時間軸、封面與位置查詢', () async {
     final pitId = await db.createPit(name: '坑');
-    await db.addMaterials(MaterialCategory.sticker, [im('m.png')]);
+    await db.addMaterials(materialCategoryIdOf(MaterialCategory.sticker), [
+      im('m.png'),
+    ]);
     final stats = await db.watchPitStats(pitId).first;
     expect(stats.imageCount, 0);
     expect(stats.official + stats.fanArts + stats.junk, 0);
@@ -192,11 +226,11 @@ void main() {
     Future<void> tick() =>
         Future<void>.delayed(const Duration(milliseconds: 1100));
 
-    test('A 加素材（含圖）→ B 拉到圖與分類；B 移動 → A 拉到；A 刪除 → B 看不到', () async {
-      final ids = await db.addMaterials(MaterialCategory.pose, [
-        file('m1.png'),
-        file('m2.png'),
-      ]);
+    test('A 加圖（含圖）→ B 拉到圖與分類；B 移動 → A 拉到；A 刪除 → B 看不到', () async {
+      final ids = await db.addMaterials(
+        materialCategoryIdOf(MaterialCategory.pose),
+        [file('m1.png'), file('m2.png')],
+      );
       final up = await engineA.sync();
       expect(up.imagesUp, 2);
       final down = await engineB.sync();
@@ -209,7 +243,9 @@ void main() {
       expect((await b.watchMaterialCounts().first).total, 2);
 
       await tick();
-      await b.moveMaterials([ids[0]], MaterialCategory.body);
+      await b.moveMaterials([
+        ids[0],
+      ], materialCategoryIdOf(MaterialCategory.body));
       await engineB.sync();
       await engineA.sync();
       final moved = await (db.select(
@@ -227,7 +263,9 @@ void main() {
     });
 
     test('傳輸清單含素材的圖（上傳與下載），imageLocationOf 為 null', () async {
-      await db.addMaterials(MaterialCategory.style, [file('t1.png')]);
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.style), [
+        file('t1.png'),
+      ]);
       final up = <SyncProgress>[];
       await engineA.sync(onProgress: up.add);
       final planned = up.firstWhere((e) => e.transfersPlanned);
@@ -244,7 +282,9 @@ void main() {
     });
 
     test('只缺圖檔（文件已同步）時，下次同步補下載素材的圖', () async {
-      await db.addMaterials(MaterialCategory.scene, [file('late.png')]);
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.scene), [
+        file('late.png'),
+      ]);
       await engineA.sync();
       await engineB.sync();
       File('${dirB.path}/late.png').deleteSync();
@@ -254,9 +294,10 @@ void main() {
     });
 
     test('遠端文件缺 width/height 仍可套用；不認識的分類被略過而不中斷同步', () async {
-      final id = (await db.addMaterials(MaterialCategory.sticker, [
-        file('ok.png'),
-      ])).single;
+      final id = (await db.addMaterials(
+        materialCategoryIdOf(MaterialCategory.sticker),
+        [file('ok.png')],
+      )).single;
       await engineA.sync();
       // 手動寫兩份遠端文件：缺寬高的舊格式、未知分類
       Map<String, dynamic> doc(String docId, Map<String, dynamic> data) => {

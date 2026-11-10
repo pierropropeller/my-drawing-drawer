@@ -108,7 +108,9 @@ void main() {
     await db.addOfficial(pitA, officialGroup, [im('official.png')]);
     await db.addFanArts(pitB, [im('fan.png')], author: 'x');
     await db.addJunk(pitA, [im('junk.png')]);
-    await db.addMaterials(MaterialCategory.clothing, [im('mat.png')]);
+    await db.addMaterials(materialCategoryIdOf(MaterialCategory.clothing), [
+      im('mat.png'),
+    ]);
     await db.saveDraft(
       pitId: pitA,
       title: '天台煙花',
@@ -215,7 +217,7 @@ void main() {
 
       // 位置文字
       expect(find.text('坑B · 好看同人圖'), findsOneWidget);
-      expect(find.text('素材庫 · 服裝'), findsOneWidget);
+      expect(find.text('靈感廣場 · 服裝'), findsOneWidget);
       expect(find.text('坑A · 摸魚 · 天台煙花'), findsOneWidget);
       // 3 張傳輸中各自顯示百分比，第 4 行是等待中
       expect(find.text('72%'), findsOneWidget);
@@ -225,11 +227,11 @@ void main() {
       expect(find.text('坑A · 雜物'), findsOneWidget); // 第一個等待中
       // 其餘 4 張收進「還有 N 張等待中」
       expect(find.text('還有 4 張等待中'), findsOneWidget);
-      expect(find.text('坑A · 官方圖冊'), findsNothing);
+      expect(find.text('坑A · 參考圖'), findsNothing);
       // 順序：上傳 fan(72)、下載 mat(18)、下載 draft(62) 在等待中的 junk 之前
       double y(String s) => tester.getTopLeft(find.text(s)).dy;
-      expect(y('坑B · 好看同人圖'), lessThan(y('素材庫 · 服裝')));
-      expect(y('素材庫 · 服裝'), lessThan(y('坑A · 摸魚 · 天台煙花')));
+      expect(y('坑B · 好看同人圖'), lessThan(y('靈感廣場 · 服裝')));
+      expect(y('靈感廣場 · 服裝'), lessThan(y('坑A · 摸魚 · 天台煙花')));
       expect(y('坑A · 摸魚 · 天台煙花'), lessThan(y('坑A · 雜物')));
       // 上傳／下載標籤
       expect(find.text('上傳'), findsOneWidget);
@@ -262,7 +264,10 @@ void main() {
       'mat.png': ('material', (t) => CategoryColor(t.chipBg, t.text3)),
     };
     final files = cases.keys.toList();
-    final tokens = AppTokens.light;
+    final tokens = AppTokens.light.withAccent(
+      AccentPreset.rose,
+      Brightness.light,
+    ); // 預設玫瑰，中性色帶玫瑰色調（D-133）
     for (var i = 0; i < files.length; i += 4) {
       final batch = files.skip(i).take(4).toList();
       fake(c).set(_syncing([for (final f in batch) _t(f)]));
@@ -434,7 +439,7 @@ void main() {
       fake(c).set(_syncing(mixed()));
       await settle(tester);
       expect(find.text('坑B · 好看同人圖'), findsOneWidget);
-      expect(find.text('素材庫 · 服裝'), findsOneWidget);
+      expect(find.text('靈感廣場 · 服裝'), findsOneWidget);
       expect(find.text('坑A · 摸魚 · 天台煙花'), findsOneWidget);
       expect(find.text('還有 4 張等待中'), findsOneWidget);
       expect(find.byType(SyncRowThumb), findsNWidgets(4));
@@ -460,7 +465,9 @@ void main() {
         tagIds: const [],
         ideaIds: const [],
       );
-      await db.addMaterials(MaterialCategory.pose, [NewImage(file: 'm.png')]);
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
+        NewImage(file: 'm.png'),
+      ]);
       final r = await db.syncRowInfos([
         'v.mp4',
         'v_poster.jpg',
@@ -474,7 +481,7 @@ void main() {
       expect(r['v.mp4']!.posterFile, 'v_poster.jpg');
       expect(r['v_poster.jpg']!.kind, SyncRowKind.draft);
       expect(r['m.png']!.kind, SyncRowKind.material);
-      expect(r['m.png']!.materialCategory, MaterialCategory.pose);
+      expect(r['m.png']!.materialCategory, '姿勢');
       expect(r['m.png']!.pitName, isNull);
       expect(await db.syncRowInfos(const []), isEmpty);
     });

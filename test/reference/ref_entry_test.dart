@@ -17,7 +17,7 @@ import 'package:huakeng/ui/album/image_preview_page.dart';
 import 'package:huakeng/ui/common/nav_bar_hidden.dart';
 import 'package:huakeng/ui/reference/reference_viewer.dart';
 
-/// 從官方圖冊／同人圖預覽頁進入參考圖檢視（入口只在 ≥600，手機版面不變）。
+/// 從參考圖／同人圖預覽頁進入參考圖檢視（入口只在 ≥600，手機版面不變）。
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late AppDatabase db;
@@ -125,9 +125,9 @@ void main() {
     await tester.tap(find.byType(RefEntryChip));
     await settle(tester);
     expect(find.byType(ReferenceViewer), findsOneWidget);
-    // 從目前這張（第 2 張）開始，標題是「坑A · 官方圖冊」。
+    // 從目前這張（第 2 張）開始，標題是「坑A · 參考圖」。
     expect(find.text('2 / 2'), findsWidgets);
-    expect(find.text('坑A · 官方圖冊'), findsWidgets);
+    expect(find.text('坑A · 參考圖'), findsWidgets);
     // 檢視器沒有導覽列（HidesNavBar）。
     expect(navBarHiddenCount.value, greaterThan(0));
     await tester.tap(

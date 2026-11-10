@@ -243,7 +243,7 @@ void main() {
   });
 
   group('AddSourceOptions：依能力顯示項目', () {
-    test('一律有 照片／檔案／素材庫', () {
+    test('一律有 照片／檔案／靈感廣場', () {
       expect(const AddSourceOptions(camera: false).sources, [
         AddSource.photos,
         AddSource.files,
@@ -320,7 +320,7 @@ void main() {
       }
       expect(find.text('從「照片」選取'), findsOneWidget);
       expect(find.text('從「檔案」選取'), findsOneWidget);
-      expect(find.text('從素材庫選取'), findsOneWidget);
+      expect(find.text('從靈感廣場選取'), findsOneWidget);
       expect(find.text('拍照'), findsOneWidget);
       expect(find.text('貼上'), findsOneWidget);
       expect(find.text('剪貼簿有 1 張圖'), findsOneWidget);
@@ -528,10 +528,10 @@ void main() {
       expect(find.text('剪貼簿裡沒有圖片'), findsNothing);
     });
 
-    testWidgets('素材庫：依點選次序複製成暫存檔，保留副檔名', (tester) async {
+    testWidgets('靈感廣場：依點選次序複製成暫存檔，保留副檔名', (tester) async {
       size(tester, 834, 1194);
       await tester.runAsync(
-        () => db.addMaterials(MaterialCategory.pose, [
+        () => db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
           const NewImage(file: 'a.png', width: 1, height: 1),
           const NewImage(file: 'b.png', width: 1, height: 1),
         ]),
@@ -579,7 +579,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('素材庫是空的：顯示空狀態，無法加入', (tester) async {
+    testWidgets('靈感廣場是空的：顯示空狀態，無法加入', (tester) async {
       size(tester, 834, 1194);
       await pump(
         tester,
@@ -604,7 +604,7 @@ void main() {
 
     test('copyMaterialsToTemp：略過本機沒有的檔案', () async {
       final store = ImageStore(Directory('${tmp.path}/images'));
-      await db.addMaterials(MaterialCategory.pose, [
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
         const NewImage(file: 'a.png'),
         const NewImage(file: 'missing.png'),
       ]);
@@ -618,8 +618,8 @@ void main() {
     });
   });
 
-  group('官方圖冊表單的加圖格（整合）', () {
-    testWidgets('寬窗：點新增官方圖的「＋」格彈出選單；選照片後圖片加進格子', (tester) async {
+  group('參考圖表單的加圖格（整合）', () {
+    testWidgets('寬窗：點新增參考圖的「＋」格彈出選單；選照片後圖片加進格子', (tester) async {
       size(tester, 834, 1194);
       await pump(
         tester,
@@ -691,7 +691,7 @@ void main() {
               width: 500,
               height: 400,
               child: DropZone(
-                title: '放開即可加入「官方圖冊」',
+                title: '放開即可加入「參考圖」',
                 subtitleFor: (n) => '$n 張 · 放開後選擇分組',
                 onFiles: received.add,
                 child: const ColoredBox(color: Colors.white),
@@ -712,7 +712,7 @@ void main() {
       fake.enter(3, const Offset(100, 100));
       await tester.pump();
       expect(find.byKey(const Key('drop-banner')), findsOneWidget);
-      expect(find.text('放開即可加入「官方圖冊」'), findsOneWidget);
+      expect(find.text('放開即可加入「參考圖」'), findsOneWidget);
       expect(find.text('3 張 · 放開後選擇分組'), findsOneWidget);
 
       fake.move(const Offset(700, 700)); // 範圍外
@@ -886,8 +886,8 @@ void main() {
     });
   });
 
-  group('官方圖冊的落點', () {
-    testWidgets('新增官方圖：支援拖放時顯示提示文字；不支援時不顯示', (tester) async {
+  group('參考圖的落點', () {
+    testWidgets('新增參考圖：支援拖放時顯示提示文字；不支援時不顯示', (tester) async {
       size(tester, 834, 1194);
       await pump(
         tester,
@@ -911,7 +911,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('新增官方圖：拖放進來的圖加到圖片格', (tester) async {
+    testWidgets('新增參考圖：拖放進來的圖加到圖片格', (tester) async {
       size(tester, 834, 1194);
       final fake = FakeDropTargetService();
       await pump(
@@ -922,7 +922,7 @@ void main() {
       expect(find.byType(ImageItemThumb), findsNothing);
       fake.enter(2, const Offset(300, 300));
       await tester.pump();
-      expect(find.text('放開即可加入「官方圖冊」'), findsOneWidget);
+      expect(find.text('放開即可加入「參考圖」'), findsOneWidget);
       expect(find.text('2 張'), findsOneWidget);
       fake.drop([
         DropItem(id: '1', load: () async => XFile('${tmp.path}/pick.png')),
@@ -933,7 +933,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('官方圖冊列表：提示條寫明張數與「放開後選擇分組」；放開後進入選分組的新增頁', (tester) async {
+    testWidgets('參考圖列表：提示條寫明張數與「放開後選擇分組」；放開後進入選分組的新增頁', (tester) async {
       size(tester, 834, 1194);
       final fake = FakeDropTargetService();
       await pump(
@@ -943,7 +943,7 @@ void main() {
       );
       fake.enter(3, const Offset(400, 600));
       await tester.pump();
-      expect(find.text('放開即可加入「官方圖冊」'), findsOneWidget);
+      expect(find.text('放開即可加入「參考圖」'), findsOneWidget);
       expect(find.text('3 張 · 放開後選擇分組'), findsOneWidget);
 
       fake.drop([
@@ -953,7 +953,7 @@ void main() {
       expect(find.byType(OfficialNewPage), findsOneWidget);
       expect(find.byType(ImageItemThumb), findsOneWidget);
       // 新增頁本身就是選分組那一步。
-      expect(find.text('加入官方圖冊'), findsOneWidget);
+      expect(find.text('加入參考圖'), findsOneWidget);
       await unmount(tester);
     });
   });

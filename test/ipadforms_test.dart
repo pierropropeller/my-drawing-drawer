@@ -283,7 +283,7 @@ void main() {
         expect(rows!.single.title, '一週年展');
       });
 
-      tw('新增官方圖：選分組、加入', (tester) async {
+      tw('新增參考圖：選分組、加入', (tester) async {
         final r = <Object?>[];
         await pumpHost(
           tester,
@@ -296,17 +296,17 @@ void main() {
           r,
         );
         expectMode(mode);
-        expect(find.text('新增官方圖'), findsOneWidget);
+        expect(find.text('新增參考圖'), findsOneWidget);
         if (modal) {
           expect(find.textContaining('一併加入'), findsOneWidget);
         }
-        await tester.tap(find.text(label('加入官方圖冊', '加入')));
+        await tester.tap(find.text(label('加入參考圖', '加入')));
         await settleLong(tester);
         final rows = await tester.runAsync(
           () => db.select(db.officialImages).get(),
         );
         expect(rows, hasLength(1));
-        expect(find.text('新增官方圖'), findsNothing);
+        expect(find.text('新增參考圖'), findsNothing);
       });
 
       tw('加收藏／編輯同人圖：存檔與回傳', (tester) async {
@@ -472,8 +472,8 @@ void main() {
       expect(box.height, 760);
       expect(find.text('加入到畫匣'), findsOneWidget);
       expect(find.text('2 張'), findsOneWidget);
-      // 位置 7 欄：官方圖冊與推活在同一排
-      final y1 = tester.getTopLeft(find.text('官方圖冊')).dy;
+      // 位置 7 欄：參考圖與推活在同一排
+      final y1 = tester.getTopLeft(find.text('參考圖')).dy;
       final y2 = tester.getTopLeft(find.text('推活').last).dy;
       expect(y1, closeTo(y2, 4));
       await tester.tap(find.text('取消'));
@@ -531,7 +531,7 @@ void main() {
       await settle(tester);
       await tester.tap(find.text('推活').first);
       await settle(tester);
-      await tester.tap(find.text('官方圖冊').first);
+      await tester.tap(find.text('參考圖').first);
       await settle(tester);
       expect(find.text('我的腦洞'), findsOneWidget);
     });

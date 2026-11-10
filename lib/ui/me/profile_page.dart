@@ -442,13 +442,12 @@ class _EditProfileChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
       decoration: BoxDecoration(
         color: t.surface,
         borderRadius: BorderRadius.circular(Radii.chip),
-        border: Border.all(color: dark ? t.border : const Color(0xFFE3D8C9)),
+        border: Border.all(color: t.field),
       ),
       child: Text(
         context.l10n.meEditProfile,

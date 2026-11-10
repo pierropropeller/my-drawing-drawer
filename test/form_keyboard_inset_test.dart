@@ -244,7 +244,7 @@ void main() {
           ),
           PitEditPage,
         ),
-        '新增官方圖': ((c, id) => openOfficialNew(c, pitId: id), OfficialNewPage),
+        '新增參考圖': ((c, id) => openOfficialNew(c, pitId: id), OfficialNewPage),
         '新增同人圖': ((c, id) => openFanArtNew(c, pitId: id), FanArtNewPage),
       };
 
@@ -272,7 +272,7 @@ void main() {
       <String, (Future<void> Function(BuildContext, String), Type)>{
         '開新坑': ((c, id) => openNewPit(c), PitNewPage),
         '編輯坑': ((c, id) => openPitEdit(c, _pit!), PitEditPage),
-        '新增官方圖': ((c, id) => openOfficialNew(c, pitId: id), OfficialNewPage),
+        '新增參考圖': ((c, id) => openOfficialNew(c, pitId: id), OfficialNewPage),
         '新增同人圖': ((c, id) => openFanArtNew(c, pitId: id), FanArtNewPage),
       };
   for (final e in padModals.entries) {

@@ -77,12 +77,25 @@ class AdaptiveNavScaffold extends StatelessWidget {
             ),
             _ => const SizedBox.shrink(),
           };
+          // 主頁編輯排序時側欄變淡、不能點（D-132）。
+          final lockedSide = ValueListenableBuilder<bool>(
+            valueListenable: navLocked,
+            child: side,
+            builder: (context, locked, side) => IgnorePointer(
+              ignoring: locked,
+              child: AnimatedOpacity(
+                opacity: locked ? .45 : 1,
+                duration: const Duration(milliseconds: 150),
+                child: side,
+              ),
+            ),
+          );
           final hasSide = mode == NavMode.rail || mode == NavMode.sidebar;
           return Scaffold(
             body: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                side,
+                lockedSide,
                 Expanded(
                   // 左邊有導覽時，頁面的 SafeArea 不用再留左側安全區。
                   // 外層 Scaffold 已經為鍵盤縮短了 body；把 viewInsets 從 MediaQuery 拿掉，

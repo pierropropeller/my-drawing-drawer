@@ -595,7 +595,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('官方圖冊分組 chips：滑動切換、端點不動、多選中不切換、列表可垂直捲動', (tester) async {
+    testWidgets('參考圖分組 chips：滑動切換、端點不動、多選中不切換、列表可垂直捲動', (tester) async {
       phone(tester);
       await tester.runAsync(() async {
         await Directory('${tmp.path}/images').create(recursive: true);

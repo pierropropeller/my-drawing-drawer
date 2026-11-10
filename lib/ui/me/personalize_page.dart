@@ -13,7 +13,7 @@ import 'me_widgets.dart';
 import 'sensitive_settings_page.dart';
 import 'theme_page.dart';
 
-/// 主題色那一列右邊的字：「珊瑚 · 跟隨系統」。
+/// 主題色那一列右邊的字：「柿子 · 跟隨系統」。
 String themeValueLabel(BuildContext context, AppSettings s) {
   final modeLabel = switch (s.themeMode) {
     ThemeMode.light => context.l10n.themeModeLight,

@@ -80,6 +80,7 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
           height: r.height,
           kind: AlbumKind.fanArt,
           author: r.author,
+          note: r.note,
           groupName: names[r.groupId],
           groupId: r.groupId,
           createdAt: r.createdAt,

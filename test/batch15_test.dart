@@ -81,7 +81,7 @@ void main() {
     expect(usage.firstWhere((u) => u.tag.id == t).count, 0);
   });
 
-  test('坑內搜尋：官方圖冊一段，排在成圖之後、同人圖之前', () async {
+  test('坑內搜尋：參考圖一段，排在成圖之後、同人圖之前', () async {
     final t = await db.createTag(pitId, '角色1');
     await addTwo([t]);
     await db.addFanArts(

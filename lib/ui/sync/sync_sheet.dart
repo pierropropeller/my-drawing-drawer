@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/database.dart' show MaterialCategory;
 import '../../data/media.dart';
 import '../../data/sync_row_info.dart';
 import '../../l10n/l10n.dart';
@@ -1259,16 +1258,7 @@ String? syncLocationText(AppLocalizations l, SyncRowInfo? info) {
     SyncRowKind.cover => l.pitsFieldCover,
   };
   if (info.kind == SyncRowKind.material) {
-    final cat = switch (info.materialCategory) {
-      MaterialCategory.clothing => l.materialCatClothing,
-      MaterialCategory.pose => l.materialCatPose,
-      MaterialCategory.body => l.materialCatBody,
-      MaterialCategory.palette => l.materialCatPalette,
-      MaterialCategory.scene => l.materialCatScene,
-      MaterialCategory.style => l.materialCatStyle,
-      MaterialCategory.sticker => l.materialCatSticker,
-      null => null,
-    };
+    final cat = info.materialCategory;
     return cat == null ? cell : l.syncuiLocation(cell, cat);
   }
   final pit = info.pitName;

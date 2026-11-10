@@ -490,7 +490,7 @@ class MonthGoalRing extends StatelessWidget {
         child: CustomPaint(
           painter: _RingPainter(
             ratio: progress.ratio,
-            track: dark ? t.chipBg : const Color(0xFFEFE7DC),
+            track: t.chipBg,
             color: color,
           ),
         ),

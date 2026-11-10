@@ -22,7 +22,7 @@ import 'package:huakeng/ui/reference/reference_viewer.dart';
 import 'package:huakeng/ui/sync/download_badge.dart';
 
 /// 還沒下載完的圖片角標（D-052）在平板版面也要出現：Main 坑卡片、Pit 分區 tile／封面、
-/// 官方圖冊／好看同人圖的列表與預覽、參考圖檢視舞台（834／1194／1366／404）。
+/// 參考圖／好看同人圖的列表與預覽、參考圖檢視舞台（834／1194／1366／404）。
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -130,7 +130,7 @@ void main() {
         await unmount(tester);
       });
 
-      testWidgets('官方圖冊列表', (tester) async {
+      testWidgets('參考圖列表', (tester) async {
         setView(tester, w, h);
         await pumpHome(tester, OfficialListPage(pitId: pitId), navWidth: 84);
         expect(find.byType(DownloadBadge), findsWidgets);
@@ -160,7 +160,7 @@ void main() {
           file: n,
           width: 1000,
           height: 1500,
-          title: '坑A · 官方圖冊',
+          title: '坑A · 參考圖',
           category: '設定圖',
           tags: const [],
           addedAt: DateTime(2026, 9, 21),

@@ -3,25 +3,23 @@ import '../common/themed_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/database.dart';
 import '../../data/material_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
-import 'material_category.dart';
 
-/// 選分類的單選 bottom sheet（MaterialMoveSheet）：列出 7 個分類和張數。
+/// 選分類的單選 bottom sheet（MaterialMoveSheet）：列出靈感廣場的分類和張數（D-143 起可自訂）。
 ///
 /// 兩種用途：多選的「移動」（標題「移動到」、按鈕「移動」），
 /// 以及在「全部」下加圖時先選分類（標題「加入到」、按鈕「加入」）。取消回傳 null。
-Future<MaterialCategory?> showMaterialCategorySheet(
+Future<String?> showMaterialCategorySheet(
   BuildContext context, {
   required String title,
   required String confirmLabel,
   required int count,
-  MaterialCategory? initial,
+  String? initial,
 }) {
-  return showThemedSheet<MaterialCategory>(
+  return showThemedSheet<String>(
     context: context,
     builder: (_) => MaterialCategorySheet(
       title: title,
@@ -48,7 +46,7 @@ class MaterialCategorySheet extends ConsumerStatefulWidget {
   final int count;
 
   /// 預選的分類（移動時是所選圖共同的分類）。
-  final MaterialCategory? initial;
+  final String? initial;
 
   @override
   ConsumerState<MaterialCategorySheet> createState() =>
@@ -56,7 +54,7 @@ class MaterialCategorySheet extends ConsumerStatefulWidget {
 }
 
 class _MaterialCategorySheetState extends ConsumerState<MaterialCategorySheet> {
-  late MaterialCategory? _picked = widget.initial;
+  late String? _picked = widget.initial;
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +62,7 @@ class _MaterialCategorySheetState extends ConsumerState<MaterialCategorySheet> {
     final l = context.l10n;
     final counts =
         ref.watch(materialCountsProvider).value ?? MaterialCounts.empty;
+    final cats = ref.watch(inspoCategoriesProvider).value ?? const [];
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 26),
@@ -92,13 +91,13 @@ class _MaterialCategorySheetState extends ConsumerState<MaterialCategorySheet> {
               padding: const EdgeInsets.only(bottom: 18),
               child: Column(
                 children: [
-                  for (final c in MaterialCategory.values)
+                  for (final c in cats)
                     _CategoryRow(
-                      key: ValueKey('materialCat-${c.name}'),
-                      label: c.label(l),
-                      count: counts.of(c),
-                      selected: _picked == c,
-                      onTap: () => setState(() => _picked = c),
+                      key: ValueKey('materialCat-${c.id}'),
+                      label: c.name,
+                      count: counts.of(c.id),
+                      selected: _picked == c.id,
+                      onTap: () => setState(() => _picked = c.id),
                     ),
                 ],
               ),

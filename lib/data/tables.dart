@@ -125,6 +125,26 @@ class Pits extends Table with SyncColumns {
   /// （就算圖片資料裡有標記），重新開啟後標記自動恢復。還要搭配裝置的總開關才生效。
   BoolColumn get sensitiveEnabled =>
       boolean().withDefault(const Constant(false))();
+
+  /// 主頁「手動」排序的位置（D-132）：小的排前面；null＝還沒排過（新坑、剛從別的分頁轉過來），
+  /// 排在最前面（彼此按建立時間新→舊）。轉換坑的類型時清成 null。
+  IntColumn get sortOrder => integer().nullable()();
+
+  /// 最後一次「只改排序」的時間（D-132）。等於 [updatedAt] 時，表示坑本身最後一次寫入只是排序，
+  /// 「更新日期」排序改看 [activityAt]（排序前坑本身的最後更新）——排序不算更新。
+  DateTimeColumn get sortTouchedAt => dateTime().nullable()();
+  DateTimeColumn get activityAt => dateTime().nullable()();
+}
+
+/// 主頁每個分頁（現坑／淺坑／封存坑）各自的排序方式（D-132；同步）。
+/// [mode]：`manual`／`created_desc`／`created_asc`／`updated_desc`／`updated_asc`；沒有這列＝`updated_desc`。
+class PitSortSettings extends Table {
+  TextColumn get status => text()();
+  TextColumn get mode => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {status};
 }
 
 /// 分組：官方圖冊的分組（kind=official）、好看同人圖的分組（kind=fan，預設是各出處）
@@ -149,6 +169,13 @@ class OfficialImages extends Table with SyncColumns, MediaColumns {
 
   /// 移到別格後，原格的列會被隱藏（保留各格獨有的欄位，移回時恢復）。
   BoolColumn get hidden => boolean().withDefault(const Constant(false))();
+
+  /// 說明（D-141）：怎麼用、看哪裡；可留空。[materialId] 有值時以靈感廣場那張的說明為準（共用一份）。
+  TextColumn get note => text().nullable()();
+
+  /// 從靈感廣場放進來的圖（D-142）：指向 [MaterialImages] 的 id；null＝坑自己的參考圖。
+  /// 檔案與廣場那張共用（同一個 imageFile），分組、tag 是這個坑自己的。
+  TextColumn get materialId => text().nullable()();
 }
 
 class FanArts extends Table with SyncColumns, MediaColumns {
@@ -168,6 +195,9 @@ class FanArts extends Table with SyncColumns, MediaColumns {
 
   /// 移到別格後，原格的列會被隱藏（保留各格獨有的欄位，移回時恢復）。
   BoolColumn get hidden => boolean().withDefault(const Constant(false))();
+
+  /// 說明（D-141）：可留空。
+  TextColumn get note => text().nullable()();
 }
 
 /// 雜物（D-034）：純圖，不計入目標、不出現在時間軸、不能當封面、不參與搜尋。
@@ -189,13 +219,34 @@ class JunkImages extends Table with SyncColumns, MediaColumns {
 /// 新值只能加在最後。順序＝畫面上 pills 的順序（全部 → 服裝 → 姿勢 → 人體 → 色盤 → 場景 → 畫風 → 貼圖）。
 enum MaterialCategory { clothing, pose, body, palette, scene, style, sticker }
 
+/// 預設分類的固定 id（D-143）。
+String materialCategoryIdOf(MaterialCategory c) => 'mcat-${c.name}';
+
 /// 素材庫（D-071，HANDOFF 3.12）：畫畫參考圖，不屬於任何坑，只有圖與分類，沒有任何文字欄位。
 /// 不計入目標、時間軸、搜尋、封面與坑統計。排序依 [createdAt]，新的在前。
 class MaterialImages extends Table with SyncColumns, MediaColumns {
   TextColumn get imageFile => text()();
   IntColumn get width => integer().withDefault(const Constant(0))();
   IntColumn get height => integer().withDefault(const Constant(0))();
+
+  /// 舊的固定分類（D-071）。D-143 起分類可自訂、以 [categoryId] 為準；
+  /// 這欄繼續寫（自訂分類寫 `clothing`），讓舊版 App 讀得懂。
   TextColumn get category => textEnum<MaterialCategory>()();
+
+  /// 分類（D-143，[MaterialCategories] 的 id）。null＝舊資料，用 [category] 對應的預設分類
+  /// （`mcat-<名稱>`，見 [materialCategoryIdOf]）。
+  TextColumn get categoryId => text().nullable()();
+
+  /// 說明（D-141）：可留空。放進坑的參考圖共用這一份。
+  TextColumn get note => text().nullable()();
+}
+
+/// 靈感廣場的分類（D-143）：可新增、改名、刪除、拖曳排序。
+/// 七個預設分類的 id 固定是 `mcat-<MaterialCategory 名稱>`，各裝置各自建立也不會重複。
+@DataClassName('InspoCategory')
+class MaterialCategories extends Table with SyncColumns {
+  TextColumn get name => text()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }
 
 class Tags extends Table with SyncColumns {

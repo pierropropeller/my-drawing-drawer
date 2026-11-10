@@ -137,7 +137,7 @@ void main() {
   group('P-031 我的 → 個人化（Profile）', () {
     testWidgets('左欄只有四列；右欄個人化列出四行', (tester) async {
       await show(tester, const ProfilePage());
-      for (final t in ['素材庫', '個人化', '備份與同步', '關於 App']) {
+      for (final t in ['靈感廣場', '個人化', '備份與同步', '關於 App']) {
         expect(find.text(t), findsWidgets);
       }
       // 左欄沒有主題色／語言／敏感內容；它們只在右欄的列表裡各出現一次。
@@ -177,12 +177,12 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('主題色順序：玫瑰、霧藍、珊瑚、抹茶（沒有橄欖）', (tester) async {
+    testWidgets('主題色順序：玫瑰、牛奶、柿子、抹茶（沒有橄欖）', (tester) async {
       await show(tester, const ProfilePage());
       await tester.tap(find.text('主題色'));
       await settle(tester);
       final xs = [
-        for (final n in ['玫瑰', '霧藍', '珊瑚', '抹茶'])
+        for (final n in ['玫瑰', '牛奶', '柿子', '抹茶'])
           tester.getTopLeft(find.text(n)).dx,
       ];
       expect(xs, orderedEquals([...xs]..sort()));
@@ -436,7 +436,7 @@ void main() {
     });
 
     testWidgets(
-      'NewPitShallow：選淺坑 → 880 兩欄；左 類型＋坑名＋描述（沒有封面）；右 7 個開關預設只開官方圖冊與好看同人圖',
+      'NewPitShallow：選淺坑 → 880 兩欄；左 類型＋坑名＋描述（沒有封面）；右 7 個開關預設只開參考圖與好看同人圖',
       (tester) async {
         await openNew(tester, const Size(1194, 834));
         await tester.tap(find.text('淺坑'));
@@ -457,7 +457,7 @@ void main() {
             .toList();
         expect(switches, [true, true, false, false, false, false, false]);
 
-        // 建立：淺坑、只開官方圖冊＋同人圖。
+        // 建立：淺坑、只開參考圖＋同人圖。
         await tester.enterText(find.byType(TextFormField).first, '新淺坑');
         await tester.pump();
         await tester.tap(find.text('建立'));
@@ -594,7 +594,7 @@ void main() {
       await openEdit(tester, pit!);
       expect(find.text('開啟的格子'), findsOneWidget);
       expect(switchLabels(tester), [
-        '官方圖冊',
+        '參考圖',
         '好看同人圖',
         '我的腦洞',
         '我的摸魚',

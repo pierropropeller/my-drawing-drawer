@@ -121,7 +121,8 @@ void main() {
 
     // 「坑」「位置」小標；坑 chips 列出所有未封存的坑。
     expect(find.byType(MoveSheet), findsOneWidget);
-    expect(inSheet('坑'), findsOneWidget);
+    expect(inSheet('坑'), findsNWidgets(2)); // 頂部「坑｜靈感廣場」＋坑小標
+    expect(inSheet('靈感廣場'), findsOneWidget);
     expect(inSheet('位置'), findsOneWidget);
     expect(inSheet('坑甲'), findsOneWidget);
     expect(inSheet('坑乙'), findsOneWidget);
@@ -191,7 +192,7 @@ void main() {
       );
     }
     expect(inSheet('雜物'), findsOneWidget); // 本坑開了雜物
-    await tester.tap(inSheet('官方圖冊'));
+    await tester.tap(inSheet('參考圖'));
     await settle(tester);
     expect(inSheet('乙專屬分組'), findsNothing);
     await tester.tap(inSheet('坑乙'));

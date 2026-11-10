@@ -47,7 +47,9 @@ void main() {
       await db.addOfficial(pit, g, [img('o.png')]);
       await db.addFanArts(pit, [img('f.png')], author: '');
       await db.addJunk(pit, [img('j.png')]);
-      await db.addMaterials(MaterialCategory.pose, [img('m.png')]);
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
+        img('m.png'),
+      ]);
       await db.saveIdea(
         pitId: pit,
         title: 'i',
@@ -64,13 +66,13 @@ void main() {
       expect((await db.select(db.entityImages).getSingle()).sensitive, false);
     });
 
-    test('NewImage.sensitive 會寫進每一種圖片列（官方、同人圖、雜物、素材庫、腦洞、摸魚、成圖、推活）', () async {
+    test('NewImage.sensitive 會寫進每一種圖片列（官方、同人圖、雜物、靈感廣場、腦洞、摸魚、成圖、推活）', () async {
       final pit = await db.createPit(name: '坑');
       final g = await groupOf(pit);
       await db.addOfficial(pit, g, [img('o.png', sensitive: true)]);
       await db.addFanArts(pit, [img('f.png', sensitive: true)], author: '');
       await db.addJunk(pit, [img('j.png', sensitive: true)]);
-      await db.addMaterials(MaterialCategory.pose, [
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
         img('m.png', sensitive: true),
       ]);
       await db.saveIdea(
@@ -222,9 +224,9 @@ void main() {
       expect(await db.nextSensitiveValue(SensitiveSource.official, []), null);
     });
 
-    test('素材庫、雜物、同人圖各自有效；已是目標狀態的列不動 updatedAt', () async {
+    test('靈感廣場、雜物、同人圖各自有效；已是目標狀態的列不動 updatedAt', () async {
       final pit = await db.createPit(name: '坑');
-      await db.addMaterials(MaterialCategory.pose, [
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
         img('m1.png'),
         img('m2.png', sensitive: true),
       ]);
@@ -567,7 +569,7 @@ void main() {
   group('有效敏感的檔名集合（列表縮圖用）', () {
     Future<Set<String>> files() => db.watchSensitiveFiles().first;
 
-    test('坑的開關關：不算；開：算；素材庫不看坑；已刪除的照算（最近刪除裡也要模糊，D-120）', () async {
+    test('坑的開關關：不算；開：算；靈感廣場不看坑；已刪除的照算（最近刪除裡也要模糊，D-120）', () async {
       final off = await pitWithFlag(on: false);
       final on = await pitWithFlag();
       final g1 = await groupOf(off);
@@ -577,7 +579,7 @@ void main() {
         img('on.png', sensitive: true),
         img('plain.png'),
       ]);
-      await db.addMaterials(MaterialCategory.pose, [
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
         img('m.png', sensitive: true),
       ]);
       await db.saveIdea(
@@ -678,7 +680,7 @@ void main() {
       ]);
       await db.addFanArts(pit, [onDisk('f.png', sensitive: true)], author: '');
       await db.addJunk(pit, [onDisk('j.png', sensitive: true)]);
-      await db.addMaterials(MaterialCategory.pose, [
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
         onDisk('m.png', sensitive: true),
       ]);
       await db.saveIdea(

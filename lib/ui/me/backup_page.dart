@@ -596,7 +596,7 @@ class _UnlinkAlertWide extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final line = dark ? t.border : const Color(0xFFEEE5D9);
+    final line = t.borderCard;
     Widget action(String label, bool confirm) => Expanded(
       child: InkWell(
         onTap: () => Navigator.pop(context, confirm),

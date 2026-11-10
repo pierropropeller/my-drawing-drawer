@@ -149,7 +149,7 @@ void main() {
   }
 
   const cells = [
-    ('官方圖冊', 'official'),
+    ('參考圖', 'official'),
     ('好看同人圖', 'fan'),
     ('我的摸魚', 'draft'),
     ('我的腦洞', 'idea'),
@@ -223,7 +223,7 @@ void main() {
       ),
     ))!;
     await pumpPage(tester, PitPage(pitId: id));
-    await tester.longPress(find.text('官方圖冊'));
+    await tester.longPress(find.text('參考圖'));
     await settle(tester);
     expect(find.byType(CoverPickPage), findsNothing);
     await unmount(tester);

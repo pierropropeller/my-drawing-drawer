@@ -68,7 +68,7 @@ class AppSettings {
   /// App 介面語言（預留）：目前只有繁體中文，英文介面之後再補。
   final AppLanguage language;
 
-  /// 主題色預設（珊瑚／霧藍／玫瑰／抹茶），每台裝置各自設定。
+  /// 主題色預設（柿子／牛奶／玫瑰／抹茶），每台裝置各自設定。
   final AccentPreset accent;
 
   /// 前台自動刷新間隔（分鐘）：1／5／15／30，預設 5。

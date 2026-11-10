@@ -85,11 +85,7 @@ class _TagManagePageState extends ConsumerState<TagManagePage>
                               padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
                               decoration: BoxDecoration(
                                 color: t.surface,
-                                border: Border.all(
-                                  color: dark
-                                      ? t.border
-                                      : const Color(0xFFE3D8C9),
-                                ),
+                                border: Border.all(color: t.field),
                                 borderRadius: BorderRadius.circular(Radii.chip),
                               ),
                               child: Row(

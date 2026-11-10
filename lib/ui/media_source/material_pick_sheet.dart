@@ -11,7 +11,6 @@ import '../album/album_view.dart' show ChipRow;
 import '../common/app_icons.dart';
 import '../common/media_widgets.dart';
 import '../common/svg_icon.dart';
-import '../material/material_category.dart';
 
 /// 「從素材庫選取」的選擇 sheet（MediaMenu 第三項，設計稿沒有畫這張 sheet）。
 ///
@@ -34,7 +33,7 @@ class MaterialPickSheet extends ConsumerStatefulWidget {
 }
 
 class _MaterialPickSheetState extends ConsumerState<MaterialPickSheet> {
-  MaterialCategory? _category;
+  String? _category;
 
   /// 依點選次序的 id；換分類篩選時保留。
   final List<String> _order = [];
@@ -86,14 +85,12 @@ class _MaterialPickSheetState extends ConsumerState<MaterialPickSheet> {
             ),
             ChipRow(
               options: [
-                for (final c in MaterialCategory.values) (c.name, c.label(l)),
+                for (final c
+                    in ref.watch(inspoCategoriesProvider).value ?? const [])
+                  (c.id, c.name),
               ],
-              selected: _category?.name,
-              onSelected: (v) => setState(
-                () => _category = v == null
-                    ? null
-                    : MaterialCategory.values.firstWhere((c) => c.name == v),
-              ),
+              selected: _category,
+              onSelected: (v) => setState(() => _category = v),
             ),
             Expanded(
               child: rows.isEmpty

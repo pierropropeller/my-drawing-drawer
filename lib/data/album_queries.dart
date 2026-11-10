@@ -216,11 +216,17 @@ extension AlbumQueries on AppDatabase {
     String groupId,
     List<NewImage> images, {
     List<String> tagIds = const [],
+    String? note,
   }) {
+    final n = (note ?? '').trim();
     return transaction(() async {
       final ids = <String>[];
       for (final im in images) {
-        final row = _newOfficial(pitId, groupId, im);
+        final row = _newOfficial(
+          pitId,
+          groupId,
+          im,
+        ).copyWith(note: Value(n.isEmpty ? null : n));
         await into(officialImages).insert(row);
         ids.add(row.id.value);
         if (tagIds.isNotEmpty) {
@@ -295,8 +301,9 @@ extension AlbumQueries on AppDatabase {
     );
   }
 
-  Future<void> deleteOfficial(Iterable<String> ids) {
-    final now = DateTime.now();
+  /// [at]：刪除時間（廣場圖刪除時，放進各坑的那幾張用同一個時間，見 deleteMaterials）。
+  Future<void> deleteOfficial(Iterable<String> ids, {DateTime? at}) {
+    final now = at ?? DateTime.now();
     return transaction(() async {
       await deleteAlbumImageRows(ids, now);
       await _clearCoverIn(ids);
@@ -356,7 +363,9 @@ extension AlbumQueries on AppDatabase {
     required String author,
     String? groupId,
     List<String> tagIds = const [],
+    String? note,
   }) {
+    final n = (note ?? '').trim();
     return transaction(() async {
       final ids = <String>[];
       for (final im in images) {
@@ -375,6 +384,7 @@ extension AlbumQueries on AppDatabase {
             sensitive: Value(im.sensitive),
             author: Value(author),
             groupId: Value(groupId),
+            note: Value(n.isEmpty ? null : n),
           ),
         );
         await setTags(TagTarget.fanArt, row.id, tagIds);
