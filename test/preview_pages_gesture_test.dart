@@ -116,7 +116,7 @@ void main() {
   Offset center(WidgetTester tester) =>
       tester.getCenter(find.byType(PreviewMediaArea).first);
 
-  group('官方圖冊預覽 ImagePreviewPage', () {
+  group('參考圖預覽 ImagePreviewPage', () {
     testWidgets('點一下圖片收起標題列／操作列，再點叫出', (tester) async {
       await pushPage(
         tester,

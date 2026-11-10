@@ -285,7 +285,7 @@ void main() {
 
     expect(find.byType(PitSearchPage), findsOneWidget);
     expect(find.text('時間軸'), findsNothing);
-    final labels = ['全部', '成圖', '官方圖', '同人圖', '推活', '摸魚', '腦洞'];
+    final labels = ['全部', '成圖', '參考圖', '同人圖', '推活', '摸魚', '腦洞'];
     final xs = [
       for (final l in labels)
         tester.getTopLeft(find.widgetWithText(Container, l).first).dx,
@@ -575,7 +575,7 @@ void main() {
     ], tagIds: tags);
   }
 
-  testWidgets('D-089 搜尋結果：官方圖冊在成圖之後、同人圖之前；分頁有「官方圖」；+N 進官方圖相冊', (tester) async {
+  testWidgets('D-089 搜尋結果：參考圖在成圖之後、同人圖之前；分頁有「官方圖」；+N 進官方圖相冊', (tester) async {
     await tester.runAsync(() async {
       for (var i = 0; i < 4; i++) {
         await newPiece('成圖$i', tags: [tagA]);
@@ -585,14 +585,14 @@ void main() {
       await seedFan(2, tags: [tagA]);
     });
     await pumpPage(tester, PitSearchResultPage(pitId: pitId, tagId: tagA));
-    expect(find.text('官方圖 5'), findsOneWidget);
+    expect(find.text('參考圖 5'), findsOneWidget);
     double y(String t) => tester.getTopLeft(find.text(t)).dy;
-    final ys = [y('成圖  4'), y('官方圖冊  5'), y('好看同人圖  2')];
+    final ys = [y('成圖  4'), y('參考圖  5'), y('好看同人圖  2')];
     expect([...ys]..sort(), ys);
     // 官方圖 5 筆＝+2。
     expect(find.text('+2'), findsOneWidget);
     // 點 pill「官方圖 5」＝單一相冊（九宮格，沒有分段標題與 +N）。
-    await tester.tap(find.text('官方圖 5'));
+    await tester.tap(find.text('參考圖 5'));
     await settle(tester);
     expect(find.byType(PitSearchResultTab), findsOneWidget);
     expect(find.text('成圖  4'), findsNothing);
@@ -623,7 +623,7 @@ void main() {
     await settle(tester);
     expect(find.byType(PitSearchResultPage), findsOneWidget);
     expect(pill('角色1'), findsOneWidget);
-    expect(find.text('官方圖 1'), findsOneWidget);
+    expect(find.text('參考圖 1'), findsOneWidget);
     expect(find.byType(Image), findsOneWidget);
     // 按 pill 的 ×：沒有別的條件就離開搜尋頁，回到預覽。
     await tester.tap(find.bySemanticsLabel('移除篩選'));

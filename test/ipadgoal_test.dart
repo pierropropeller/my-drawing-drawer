@@ -350,7 +350,7 @@ void main() {
 
   group('素材庫', () {
     Future<void> seed(int n) async {
-      await db.addMaterials(MaterialCategory.clothing, [
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.clothing), [
         for (var i = 0; i < n; i++)
           NewImage(file: 'm-$i.png', width: 30, height: 40 + i),
       ]);

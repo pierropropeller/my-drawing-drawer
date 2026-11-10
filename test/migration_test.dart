@@ -8,6 +8,7 @@ import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/junk_queries.dart';
 import 'package:huakeng/data/material_queries.dart';
+import 'package:huakeng/data/inspo_queries.dart';
 import 'package:huakeng/data/oshi_queries.dart';
 import 'package:huakeng/data/remote_size_queries.dart';
 import 'package:huakeng/data/sensitive_queries.dart';
@@ -247,7 +248,7 @@ void main() {
         'oshi-default-p1-1',
         'oshi-default-p1-2',
       ]); // 決定性 id，兩台裝置各自升級不會重複
-      // 官方圖冊／同人圖的分組不受影響（v1~v4 本來沒有 kind 欄，v5 才補）
+      // 參考圖／同人圖的分組不受影響（v1~v4 本來沒有 kind 欄，v5 才補）
       final all = await db.select(db.officialGroups).get();
       expect(all.where((g) => g.kind == 'oshi').length, 3);
 
@@ -313,7 +314,10 @@ void main() {
       (await db.watchGroups(pitId, kind: 'oshi').first).map((g) => g.name),
       ['線下照片', '遊戲截圖', '對話記錄'],
     );
-    expect((await db.watchGroups(pitId).first).length, 6);
+    expect(
+      (await db.watchGroups(pitId).first).length,
+      AppDatabase.defaultGroups.length,
+    );
     expect(await db.watchOshiRecords(pitId).first, isEmpty);
     await db.close();
     await dir.delete(recursive: true);
@@ -339,7 +343,7 @@ void main() {
       expect(await db.select(db.materialImages).get(), isEmpty);
       expect((await db.watchIdeaView('i1').first)!.idea.title, '舊腦洞');
       expect((await db.watchMaterialCounts().first).total, 0);
-      await db.addMaterials(MaterialCategory.pose, const [
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), const [
         NewImage(file: 'm.png', width: 3, height: 4),
       ]);
       final m = (await db.watchMaterials().first).single;
@@ -370,11 +374,14 @@ void main() {
     db = AppDatabase(NativeDatabase(file));
     expect(await db.watchMaterials().first, isEmpty);
     expect((await db.watchIdeaViews(pitId).first).single.tags.single.name, 'x');
-    await db.addMaterials(MaterialCategory.sticker, const [
-      NewImage(file: 'm.png'),
-    ]);
+    await db.addMaterials(
+      materialCategoryIdOf(MaterialCategory.sticker),
+      const [NewImage(file: 'm.png')],
+    );
     expect(
-      (await db.watchMaterialCounts().first).of(MaterialCategory.sticker),
+      (await db.watchMaterialCounts().first).of(
+        materialCategoryIdOf(MaterialCategory.sticker),
+      ),
       1,
     );
     await db.close();
@@ -402,7 +409,7 @@ void main() {
       }
       expect(await db.select(db.materialImages).get(), isEmpty);
       // 新 API 可用
-      await db.addMaterials(MaterialCategory.pose, const [
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), const [
         NewImage(
           file: 'v.mp4',
           kind: MediaKind.video,
@@ -433,9 +440,10 @@ void main() {
     ]);
     await db.addFanArts(pitId, const [NewImage(file: 'f.gif')], author: '');
     await db.addJunk(pitId, const [NewImage(file: 'j.jpg')]);
-    await db.addMaterials(MaterialCategory.sticker, const [
-      NewImage(file: 'm.gif'),
-    ]);
+    await db.addMaterials(
+      materialCategoryIdOf(MaterialCategory.sticker),
+      const [NewImage(file: 'm.gif')],
+    );
     await db.saveIdea(
       pitId: pitId,
       title: '腦洞',
@@ -648,7 +656,7 @@ void main() {
     await db.addOfficial(pitId, g, [const NewImage(file: 'o.png')]);
     await db.addFanArts(pitId, [const NewImage(file: 'f.png')], author: 'a');
     await db.addJunk(pitId, [const NewImage(file: 'j.png')]);
-    await db.addMaterials(MaterialCategory.pose, [
+    await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
       const NewImage(file: 'm.png'),
     ]);
     await db.saveOshiRecord(
@@ -700,6 +708,68 @@ void main() {
     db = AppDatabase(NativeDatabase(file));
     final p = await db.select(db.pits).getSingle();
     expect((p.id, p.sensitiveEnabled), (pitId, true)); // 已有的值不被洗掉
+    await db.close();
+    await dir.delete(recursive: true);
+  });
+
+  // v17：參考圖／素材庫（D-141～D-143）。說明、放進坑的連結、自訂分類表。
+  test('v16 → v17（用真實的 v16 結構：拆掉新欄位與分類表）：資料不動、預設分類補上、可放進坑', () async {
+    final dir = await Directory.systemTemp.createTemp('mig_v16');
+    final file = File('${dir.path}/db.sqlite');
+    var db = AppDatabase(NativeDatabase(file));
+    final pitId = await db.createPit(name: '舊坑');
+    final g = (await db.watchGroups(pitId).first).first.id;
+    await db.addOfficial(pitId, g, [const NewImage(file: 'o.png')]);
+    await db.addFanArts(pitId, [const NewImage(file: 'f.png')], author: 'a');
+    await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
+      const NewImage(file: 'm.png'),
+    ]);
+    await db.customStatement('ALTER TABLE official_images DROP COLUMN note');
+    await db.customStatement(
+      'ALTER TABLE official_images DROP COLUMN material_id',
+    );
+    await db.customStatement('ALTER TABLE fan_arts DROP COLUMN note');
+    await db.customStatement('ALTER TABLE material_images DROP COLUMN note');
+    await db.customStatement(
+      'ALTER TABLE material_images DROP COLUMN category_id',
+    );
+    await db.customStatement('DROP TABLE material_categories');
+    await db.customStatement('PRAGMA user_version = 16');
+    await db.close();
+
+    db = AppDatabase(NativeDatabase(file));
+    expect((await db.select(db.officialImages).getSingle()).note, isNull);
+    expect((await db.select(db.fanArts).getSingle()).note, isNull);
+    final m = await db.select(db.materialImages).getSingle();
+    expect(
+      (m.category, m.categoryId, m.note),
+      (MaterialCategory.pose, null, null),
+    );
+    expect(m.categoryKey, materialCategoryIdOf(MaterialCategory.pose));
+    final cats = await db.loadInspoCategories();
+    expect(cats.map((c) => c.name), AppDatabase.defaultMaterialCategoryNames);
+    expect(
+      (await db
+              .watchMaterials(
+                category: materialCategoryIdOf(MaterialCategory.pose),
+              )
+              .first)
+          .single
+          .id,
+      m.id,
+    );
+    await db.placeMaterials([m.id], pitId, g);
+    expect(
+      (await db.select(db.officialImages).get()).where(
+        (o) => o.materialId == m.id,
+      ),
+      hasLength(1),
+    );
+    // 再跑一次 v17 遷移不出錯、不重複補分類。
+    await db.customStatement('PRAGMA user_version = 16');
+    await db.close();
+    db = AppDatabase(NativeDatabase(file));
+    expect(await db.loadInspoCategories(), hasLength(7));
     await db.close();
     await dir.delete(recursive: true);
   });

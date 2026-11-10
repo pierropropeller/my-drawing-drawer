@@ -9,11 +9,22 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icons.dart';
+import '../common/segment_toggle.dart';
 import '../common/svg_icon.dart';
 
 /// 移動的目的地：哪一坑、哪一格，以及（官方圖冊＝分組／好看同人圖＝出處）。
 class MoveTarget {
-  const MoveTarget(this.cell, this.groupId, {this.pitId, this.pitName});
+  const MoveTarget(
+    this.cell,
+    this.groupId, {
+    this.pitId,
+    this.pitName,
+    this.inspoCategoryId,
+  });
+
+  /// 移到靈感廣場的這個分類（D-144）；非 null 時 [cell]／[groupId]／[pitId] 不用。
+  final String? inspoCategoryId;
+  bool get toInspo => inspoCategoryId != null;
   final AlbumCell cell;
   final String? groupId;
 
@@ -95,6 +106,10 @@ class _MoveSheetState extends ConsumerState<MoveSheet> {
 
   bool get _crossPit => _pitId != widget.pitId;
 
+  /// 頂部「坑｜靈感廣場」切換（D-144）；廣場段只選分類。
+  bool _toInspo = false;
+  String? _inspoCat;
+
   /// 目標坑開著的格子（D-088）：淺坑只開放它開啟的格子；雜物還要看雜物開關，
   /// 本來就在雜物裡、且留在原坑時照舊列出。
   bool _cellOpen(Pit? pit, AlbumCell c) => switch (c) {
@@ -149,6 +164,11 @@ class _MoveSheetState extends ConsumerState<MoveSheet> {
       for (final c in AlbumCell.values)
         if (_cellOpen(pit, c)) c,
     ];
+    final cats = ref.watch(inspoCategoriesProvider).value ?? const [];
+    final inspoCat = cats.any((c) => c.id == _inspoCat)
+        ? _inspoCat
+        : cats.firstOrNull?.id;
+    final ok = _toInspo ? inspoCat != null : canDone;
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 26),
@@ -173,52 +193,91 @@ class _MoveSheetState extends ConsumerState<MoveSheet> {
                 ],
               ),
             ),
-            const _SectionLabel(bottom: 8),
-            _PitChips(pits: pits, selected: _pitId, onSelected: _pickPit),
-            const SizedBox(height: 14),
-            const _SectionLabel(position: true),
-            for (final c in cells)
-              _CellRow(
-                cell: c,
-                selected: _cell == c,
-                onTap: () => setState(() => _cell = c),
-                chips: _cell != c
-                    ? null
-                    : switch (c) {
-                        AlbumCell.official => _GroupChips(
-                          options: officialOpts,
-                          selected: group,
-                          onSelected: (id) =>
-                              setState(() => _officialGroup = id),
-                        ),
-                        AlbumCell.fan when fanOpts.isNotEmpty => _GroupChips(
-                          options: fanOpts,
-                          selected: _fanGroup,
-                          // 再點一次已選的出處＝取消（同人圖的出處可留空）。
-                          onSelected: (id) => setState(
-                            () => _fanGroup = id == _fanGroup ? null : id,
-                          ),
-                        ),
-                        _ => null,
-                      },
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: SegmentToggle(
+                labels: [
+                  context.l10n.moveReviewPitLabel,
+                  context.l10n.materialTitle,
+                ],
+                selected: _toInspo ? 1 : 0,
+                onChanged: (i) => setState(() => _toInspo = i == 1),
+                segmentKeys: const [
+                  ValueKey('moveDestPit'),
+                  ValueKey('moveDestInspo'),
+                ],
               ),
+            ),
+            if (_toInspo) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(2, 0, 0, 8),
+                child: Text(
+                  context.l10n.materialFieldCategory,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: t.text2,
+                  ),
+                ),
+              ),
+              GroupChoiceChips(
+                options: [for (final c in cats) (c.id, c.name)],
+                selected: inspoCat,
+                onSelected: (id) => setState(() => _inspoCat = id),
+              ),
+            ] else ...[
+              const _SectionLabel(bottom: 8),
+              PitChips(pits: pits, selected: _pitId, onSelected: _pickPit),
+              const SizedBox(height: 14),
+              const _SectionLabel(position: true),
+              for (final c in cells)
+                _CellRow(
+                  cell: c,
+                  selected: _cell == c,
+                  onTap: () => setState(() => _cell = c),
+                  chips: _cell != c
+                      ? null
+                      : switch (c) {
+                          AlbumCell.official => GroupChoiceChips(
+                            options: officialOpts,
+                            selected: group,
+                            onSelected: (id) =>
+                                setState(() => _officialGroup = id),
+                          ),
+                          AlbumCell.fan when fanOpts.isNotEmpty =>
+                            GroupChoiceChips(
+                              options: fanOpts,
+                              selected: _fanGroup,
+                              // 再點一次已選的出處＝取消（同人圖的出處可留空）。
+                              onSelected: (id) => setState(
+                                () => _fanGroup = id == _fanGroup ? null : id,
+                              ),
+                            ),
+                          _ => null,
+                        },
+                ),
+            ],
             const SizedBox(height: 16),
             GestureDetector(
-              onTap: canDone
+              onTap: !ok
+                  ? null
+                  : _toInspo
                   ? () => Navigator.of(context).pop(
+                      MoveTarget(widget.from, null, inspoCategoryId: inspoCat),
+                    )
+                  : () => Navigator.of(context).pop(
                       MoveTarget(
                         _cell,
                         group,
                         pitId: _crossPit ? _pitId : null,
                         pitName: _crossPit ? pit?.name : null,
                       ),
-                    )
-                  : null,
+                    ),
               child: Container(
                 alignment: Alignment.center,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 decoration: BoxDecoration(
-                  color: canDone ? t.accent : t.accent.withValues(alpha: 0.4),
+                  color: ok ? t.accent : t.accent.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(Radii.button),
                 ),
                 child: Text(
@@ -261,8 +320,9 @@ class _SectionLabel extends StatelessWidget {
 }
 
 /// 坑 chips（橫向捲動）：文件夾 icon ＋坑名（同目標卡上的坑標籤）；選中＝主色底。
-class _PitChips extends StatelessWidget {
-  const _PitChips({
+class PitChips extends StatelessWidget {
+  const PitChips({
+    super.key,
     required this.pits,
     required this.selected,
     required this.onSelected,
@@ -430,8 +490,9 @@ class _CellRow extends StatelessWidget {
   }
 }
 
-class _GroupChips extends StatelessWidget {
-  const _GroupChips({
+class GroupChoiceChips extends StatelessWidget {
+  const GroupChoiceChips({
+    super.key,
     required this.options,
     required this.selected,
     required this.onSelected,

@@ -47,7 +47,9 @@ void main() {
       await db.addOfficial(pit, g, [img('o.png')]);
       await db.addFanArts(pit, [img('f.png')], author: '');
       await db.addJunk(pit, [img('j.png')]);
-      await db.addMaterials(MaterialCategory.pose, [img('m.png')]);
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
+        img('m.png'),
+      ]);
       await db.saveIdea(
         pitId: pit,
         title: 'i',
@@ -70,7 +72,7 @@ void main() {
       await db.addOfficial(pit, g, [img('o.png', sensitive: true)]);
       await db.addFanArts(pit, [img('f.png', sensitive: true)], author: '');
       await db.addJunk(pit, [img('j.png', sensitive: true)]);
-      await db.addMaterials(MaterialCategory.pose, [
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
         img('m.png', sensitive: true),
       ]);
       await db.saveIdea(
@@ -224,7 +226,7 @@ void main() {
 
     test('素材庫、雜物、同人圖各自有效；已是目標狀態的列不動 updatedAt', () async {
       final pit = await db.createPit(name: '坑');
-      await db.addMaterials(MaterialCategory.pose, [
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
         img('m1.png'),
         img('m2.png', sensitive: true),
       ]);
@@ -577,7 +579,7 @@ void main() {
         img('on.png', sensitive: true),
         img('plain.png'),
       ]);
-      await db.addMaterials(MaterialCategory.pose, [
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
         img('m.png', sensitive: true),
       ]);
       await db.saveIdea(
@@ -678,7 +680,7 @@ void main() {
       ]);
       await db.addFanArts(pit, [onDisk('f.png', sensitive: true)], author: '');
       await db.addJunk(pit, [onDisk('j.png', sensitive: true)]);
-      await db.addMaterials(MaterialCategory.pose, [
+      await db.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
         onDisk('m.png', sensitive: true),
       ]);
       await db.saveIdea(

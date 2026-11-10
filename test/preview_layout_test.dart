@@ -97,7 +97,7 @@ void main() {
   Widget shell(List<(int, int)> sizes, {PageController? controller}) {
     final c = controller ?? PageController();
     return PreviewShell(
-      title: '坑A · 官方圖冊',
+      title: '坑A · 參考圖',
       counter: '1 / ${sizes.length}',
       controller: c,
       media: [
@@ -157,7 +157,7 @@ void main() {
           .where((b) => b.color == banner)
           .length;
       expect(n, 2);
-      expect(tester.getRect(find.text('坑A · 官方圖冊')).top, lessThan(80));
+      expect(tester.getRect(find.text('坑A · 參考圖')).top, lessThan(80));
       final action = tester.getRect(find.text('分享'));
       expect(action.bottom, lessThanOrEqualTo(screen.height));
       expect(action.top, greaterThan(screen.height - 140));
@@ -166,7 +166,7 @@ void main() {
 
     testWidgets('寬圖：原樣置中在兩個橫幅之間；收起橫幅時圖不動', (tester) async {
       await pushPage(tester, shell([(300, 200)]));
-      final header = tester.getRect(find.text('坑A · 官方圖冊'));
+      final header = tester.getRect(find.text('坑A · 參考圖'));
       final footer = tester.getRect(find.text('資訊區'));
       Rect box() => tester.getRect(
         find.descendant(of: viewer(), matching: find.byType(MediaViewer)).first,
@@ -213,7 +213,7 @@ void main() {
       );
       expect(img.width, 390);
       expect(img.height, closeTo(1560, 0.01));
-      final header = tester.getRect(find.text('坑A · 官方圖冊'));
+      final header = tester.getRect(find.text('坑A · 參考圖'));
       // 圖的頂邊＝頂欄底邊（在標題文字下面、不在它後面）。
       expect(img.top, greaterThan(header.bottom));
       expect(img.top, lessThan(header.bottom + 30));
@@ -291,7 +291,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 350));
       await settle(tester);
       expect(opacityOf(tester, find.text('分享')), 0);
-      expect(opacityOf(tester, find.text('坑A · 官方圖冊')), 0);
+      expect(opacityOf(tester, find.text('坑A · 參考圖')), 0);
       await tester.tapAt(center(tester));
       // 單擊要等雙擊逾時（D-121 雙擊放大）才收起橫幅。
       await tester.pump(const Duration(milliseconds: 350));
@@ -307,7 +307,7 @@ void main() {
       await pushPage(tester, shell([(100, 150)]));
       final tc = tcOf(tester);
       expect(tester.widget<InteractiveViewer>(viewer()).constrained, isTrue);
-      final header = tester.getRect(find.text('坑A · 官方圖冊'));
+      final header = tester.getRect(find.text('坑A · 參考圖'));
       final footer = tester.getRect(find.text('資訊區'));
       await tester.dragFrom(center(tester), const Offset(0, -80));
       await settle(tester);
@@ -377,7 +377,7 @@ void main() {
   });
 
   group('資訊區靠左（設計稿 padding 8/24/14，左對齊）', () {
-    testWidgets('官方圖冊預覽：分組標、tag、日期都靠左', (tester) async {
+    testWidgets('參考圖預覽：分組標、tag、日期都靠左', (tester) async {
       final tagId = await db.createTag(pitId, 'Clawd');
       await db.setTags(TagTarget.official, 'a.png', [tagId]);
       await pushPage(

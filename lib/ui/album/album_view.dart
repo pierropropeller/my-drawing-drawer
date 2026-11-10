@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart' show TagTarget;
+import '../../data/inspo_queries.dart';
 import '../../data/entity_move_queries.dart';
+import '../../data/album_set_queries.dart';
 import '../../data/junk_queries.dart';
 import '../entity/entity_move.dart' show showMoveTagConfirm;
 import '../../data/sensitive_queries.dart';
@@ -24,6 +26,7 @@ import '../reference/reference_viewer.dart';
 import 'album_actions.dart';
 import 'album_icons.dart';
 import 'album_image.dart';
+import 'album_set_strip.dart' show expandAlbumSets;
 import 'image_masonry.dart';
 import 'image_preview_page.dart';
 import 'ipadlists_icons.dart';
@@ -186,7 +189,8 @@ class _AlbumViewState extends ConsumerState<AlbumView>
 
   Future<void> _download() async {
     if (_selected.isEmpty) return;
-    final n = await downloadImages(ref, _picked);
+    // 多圖（D-136）：整組都下載。
+    final n = await downloadImages(ref, await expandAlbumSets(ref, _picked));
     if (!mounted) return;
     showSnack(
       context,
@@ -199,7 +203,37 @@ class _AlbumViewState extends ConsumerState<AlbumView>
 
   Future<void> _share() async {
     if (_selected.isEmpty) return;
-    await shareImages(ref, _picked);
+    await shareImages(ref, await expandAlbumSets(ref, _picked));
+  }
+
+  /// 官方圖冊、同人圖才能合併成一組（D-136）。
+  bool get _mergeable =>
+      widget.cell == AlbumCell.official || widget.cell == AlbumCell.fan;
+
+  /// 合併（D-136，OfficialSelectMerge）：依列表次序，第一項留下，其他項的圖接在後面。
+  Future<void> _merge() async {
+    final cell = widget.cell;
+    if (cell == null) return;
+    final picked = _picked;
+    if (picked.length < 2) {
+      showSnack(context, context.l10n.albumSetMergeNeedTwo);
+      return;
+    }
+    // 從靈感廣場放進來的圖（D-142）是連結，不能併進別組。
+    if (picked.any((p) => p.inspoId != null)) {
+      showSnack(context, context.l10n.albumSetMergeNoInspo);
+      return;
+    }
+    final db = ref.read(databaseProvider);
+    final keeper = await db.mergeAlbumSets(cell, [
+      for (final p in picked) p.id,
+    ]);
+    if (!mounted || keeper == null) return;
+    final key = picked.first.imageKey;
+    final n = (await db.albumExtrasOf(key)).length + 1;
+    if (!mounted) return;
+    showSnack(context, context.l10n.albumSetMerged(n));
+    _exit();
   }
 
   Future<void> _move() async {
@@ -218,6 +252,18 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     if (target == null || !mounted) return;
     final db = ref.read(databaseProvider);
     final ids = [for (final p in picked) p.id];
+    if (target.toInspo) {
+      // 移到靈感廣場（D-144）：廣場多一張，坑裡這張拿走。
+      await db.moveToInspo(cell, ids, target.inspoCategoryId!);
+      if (!mounted) return;
+      showSnack(
+        context,
+        context.l10n.albumMovedCount(ids.length, context.l10n.materialTitle),
+        success: true,
+      );
+      _exit();
+      return;
+    }
     // 同種格跨坑才會帶 tag；目標坑缺的 tag 先問（MoveTagConfirm，CR 2026-11-09）。
     var createTags = true;
     final tagTarget = switch (cell) {
@@ -644,6 +690,17 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                               iconSize: 22,
                               strokeWidth: 1.7,
                               onTap: _move,
+                            ),
+                          ),
+                        if (_mergeable)
+                          Expanded(
+                            child: _BarAction(
+                              context.l10n.albumSetMerge,
+                              AlbumIcons.stack,
+                              t.ink,
+                              iconSize: 22,
+                              strokeWidth: 1.7,
+                              onTap: _merge,
                             ),
                           ),
                         if (_taggable)

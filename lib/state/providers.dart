@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../data/album_queries.dart';
+import '../data/album_set_queries.dart';
 import '../data/batch_tag_queries.dart';
 import '../data/database.dart';
 import '../data/entity_queries.dart';
@@ -16,6 +17,7 @@ import '../data/image_store.dart';
 import '../data/income_queries.dart';
 import '../data/junk_queries.dart';
 import '../data/material_queries.dart';
+import '../data/inspo_queries.dart';
 import '../data/oshi_queries.dart';
 import '../data/timeline_queries.dart';
 import '../data/trash_queries.dart';
@@ -80,13 +82,16 @@ final galleryRepositoryProvider = Provider<GalleryRepository>(
 /// 手機（＜600）的加圖、素材庫本身的加圖都用它；一般表單請用 [imagePickerProvider]。
 final photoPickerProvider =
     Provider<Future<List<XFile>> Function(BuildContext context)>(
-      (ref) =>
-          (context) async =>
-              await showAppImagePicker(
-                context,
-                repository: ref.read(galleryRepositoryProvider),
-              ) ??
-              const [],
+      (ref) => (context) async {
+        final inspo = await loadInspoPickerSource(ref.read);
+        if (!context.mounted) return const [];
+        return await showAppImagePicker(
+              context,
+              repository: ref.read(galleryRepositoryProvider),
+              inspo: inspo,
+            ) ??
+            const [];
+      },
     );
 
 /// 表單／列表的「加圖」（D-080、D-084；iPad MediaMenu）。
@@ -212,6 +217,16 @@ final officialProvider =
     );
 
 /// 官方圖冊，可按分組、tag 篩選（D-089）。key＝(坑 id, 分組 id, tag id)。
+/// 多圖的官方圖／同人圖（D-136）：imageKey → 額外幾張（不含第 1 張）。列表右上「⧉ N」用。
+final albumExtraCountsProvider = StreamProvider<Map<String, int>>(
+  (ref) => ref.watch(databaseProvider).watchAlbumExtraCounts(),
+);
+
+/// 一組圖的第 2 張起（依次序）。
+final albumExtrasProvider = StreamProvider.family<List<EntityImage>, String>(
+  (ref, imageKey) => ref.watch(databaseProvider).watchAlbumExtras(imageKey),
+);
+
 final officialFilteredProvider =
     StreamProvider.family<List<OfficialImage>, (String, String?, String?)>(
       (ref, key) => ref
@@ -278,11 +293,26 @@ final timelineRevisionProvider = StreamProvider<int>(
   (ref) => ref.watch(databaseProvider).watchTimelineRevision(),
 );
 
-/// 素材庫列表（D-071）；key＝分類，null＝全部。
-final materialsProvider =
-    StreamProvider.family<List<MaterialImage>, MaterialCategory?>(
-      (ref, category) =>
-          ref.watch(databaseProvider).watchMaterials(category: category),
+/// 靈感廣場列表（D-071）；key＝分類 id，null＝全部。
+final materialsProvider = StreamProvider.family<List<MaterialImage>, String?>(
+  (ref, category) =>
+      ref.watch(databaseProvider).watchMaterials(category: category),
+);
+
+/// 靈感廣場的自訂分類，依拖曳順序（D-143）。
+final inspoCategoriesProvider = StreamProvider<List<InspoCategory>>(
+  (ref) => ref.watch(databaseProvider).watchInspoCategories(),
+);
+
+/// 廣場圖放進了哪些坑（D-142）：廣場圖 id → 坑（依坑名）。
+final placedPitsProvider = StreamProvider<Map<String, List<PlacedPit>>>(
+  (ref) => ref.watch(databaseProvider).watchPlacedPits(),
+);
+
+/// 一個坑所有參考圖的說明（D-141）：參考圖 id → 說明。
+final officialNotesProvider =
+    StreamProvider.family<Map<String, String>, String>(
+      (ref, pitId) => ref.watch(databaseProvider).watchOfficialNotes(pitId),
     );
 
 /// 最近刪除的全部內容（D-120）：Profile 入口的項目數、最近刪除頁。

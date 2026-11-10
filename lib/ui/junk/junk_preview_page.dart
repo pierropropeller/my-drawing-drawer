@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/junk_queries.dart';
+import '../../data/inspo_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../album/album_actions.dart';
@@ -70,6 +71,19 @@ class _JunkPreviewPageState extends ConsumerState<JunkPreviewPage>
       count: 1,
     );
     if (target == null || !mounted) return;
+    if (target.toInspo) {
+      await ref.read(databaseProvider).moveToInspo(AlbumCell.junk, [
+        _current.id,
+      ], target.inspoCategoryId!);
+      if (!mounted) return;
+      showSnack(
+        context,
+        context.l10n.albumMovedCount(1, context.l10n.materialTitle),
+        success: true,
+      );
+      _removeCurrent();
+      return;
+    }
     await ref
         .read(databaseProvider)
         .moveAlbumImages(

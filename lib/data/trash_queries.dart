@@ -143,9 +143,15 @@ extension TrashQueries on AppDatabase {
         c.isNotNull() & c.isBiggerThanValue(cutoff);
     final items = <TrashItem>[];
 
-    for (final r in await (select(
-      officialImages,
-    )..where((o) => recent(o.deletedAt) & o.hidden.equals(false))).get()) {
+    for (final r
+        in await (select(officialImages)..where(
+              (o) =>
+                  recent(o.deletedAt) &
+                  o.hidden.equals(false) &
+                  // 從靈感廣場放進來的圖跟著廣場那張走，不單獨出現在最近刪除（D-142）。
+                  o.materialId.isNull(),
+            ))
+            .get()) {
       if (goneIds.contains(r.pitId)) continue;
       items.add(
         TrashItem(
@@ -416,6 +422,18 @@ extension TrashQueries on AppDatabase {
           )..where((x) => x.id.equals(it.id))).write(
             MaterialImagesCompanion(deletedAt: clear, updatedAt: Value(now)),
           );
+          // 放進各坑的那幾張一起回來（刪除時用同一個 deletedAt，見 deleteMaterials）。
+          await (update(officialImages)..where(
+                (x) =>
+                    x.materialId.equals(it.id) &
+                    x.deletedAt.equals(it.deletedAt),
+              ))
+              .write(
+                OfficialImagesCompanion(
+                  deletedAt: clear,
+                  updatedAt: Value(now),
+                ),
+              );
         case TrashKind.idea:
           await (update(ideas)..where((x) => x.id.equals(it.id))).write(
             IdeasCompanion(deletedAt: clear, updatedAt: Value(now)),
@@ -538,6 +556,12 @@ extension TrashQueries on AppDatabase {
           )..where((x) => x.id.equals(it.id))).write(
             MaterialImagesCompanion(deletedAt: gone, updatedAt: Value(now)),
           );
+          await (update(officialImages)..where(
+                (x) => x.materialId.equals(it.id) & x.deletedAt.isNotNull(),
+              ))
+              .write(
+                OfficialImagesCompanion(deletedAt: gone, updatedAt: Value(now)),
+              );
         case TrashKind.idea:
           await (update(ideas)..where((x) => x.id.equals(it.id))).write(
             IdeasCompanion(deletedAt: gone, updatedAt: Value(now)),

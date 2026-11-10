@@ -8,7 +8,8 @@ import 'dart:typed_data';
 ({int width, int height})? heifDimensions(Uint8List b) {
   var width = 0, height = 0, rotation = 0;
 
-  int u32(int o) => (b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3];
+  int u32(int o) =>
+      (b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3];
 
   void scan(int start, int end, int depth) {
     if (depth > 6) return;

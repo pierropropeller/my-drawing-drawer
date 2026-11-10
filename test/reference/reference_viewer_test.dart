@@ -51,7 +51,7 @@ void main() {
         file: n,
         width: 1000,
         height: 1500,
-        title: '坑A · 官方圖冊',
+        title: '坑A · 參考圖',
         category: '設定圖',
         tags: const ['角色1', '服裝參考'],
         addedAt: DateTime(2026, 9, 21),
@@ -183,7 +183,7 @@ void main() {
           find.text('2026 / 09 / 21 加入'),
           c.$5 ? findsOneWidget : findsNothing,
         );
-        expect(find.text('坑A · 官方圖冊'), findsOneWidget);
+        expect(find.text('坑A · 參考圖'), findsOneWidget);
         expect(find.text('1 / 3'), findsOneWidget);
         // 工具列文字：窄版只有 icon。
         expect(
@@ -420,7 +420,7 @@ void main() {
               createdAt: DateTime(2026, 9, 21),
             ),
             pitId: pitId!,
-            title: '坑A · 官方圖冊',
+            title: '坑A · 參考圖',
           ),
       ];
       await pumpViewer(tester, size: const Size(1194, 834), images: images);

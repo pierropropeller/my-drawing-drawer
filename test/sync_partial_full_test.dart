@@ -759,7 +759,7 @@ void main() {
           expect(ok.width / bar.width, closeTo(6 / 8, 0.001));
           // 失敗的每一張：標籤、位置、琥珀「失敗」。
           expect(find.text('失敗'), findsNWidgets(2));
-          expect(find.text('坑A · 官方圖冊'), findsNWidgets(2));
+          expect(find.text('坑A · 參考圖'), findsNWidgets(2));
           expect(find.text('上傳'), findsOneWidget);
           expect(find.text('下載'), findsOneWidget);
           expect(find.text('同步中'), findsNothing);

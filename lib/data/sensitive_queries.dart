@@ -193,6 +193,8 @@ extension SensitiveQueries on AppDatabase {
           )..where((x) => x.id.isIn(ids))).get())
             r.id: r.pitId,
         };
+      case OwnerType.album:
+        return const {};
     }
   }
 
@@ -291,6 +293,8 @@ extension SensitiveQueries on AppDatabase {
           case OwnerType.oshi:
             await (update(oshiRecords)..where((x) => x.id.isIn(ownerIds)))
                 .write(OshiRecordsCompanion(updatedAt: Value(now)));
+          case OwnerType.album:
+            break;
         }
     }
     if (value) {

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
+
 import '../../media/audio_focus.dart';
 
 /// 影片參考檢視需要的播放介面（比 `MediaPlayback` 多了速度、循環）。
@@ -54,7 +55,9 @@ class VideoPlayerRefPlayback implements RefVideoPlayback {
     final want = v.isPlaying && v.volume > 0;
     if (want == _focused) return;
     _focused = want;
-    want ? VideoAudioFocus.instance.acquire() : VideoAudioFocus.instance.release();
+    want
+        ? VideoAudioFocus.instance.acquire()
+        : VideoAudioFocus.instance.release();
   }
 
   @override

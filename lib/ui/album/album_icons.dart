@@ -15,6 +15,11 @@ abstract final class AlbumIcons {
       '<path d="M4 12V5a1 1 0 0 1 1-1h7l8 8-8 8z"/>'
       '<circle cx="8.5" cy="8.5" r="1.5"/>';
 
+  /// 多圖（D-136）：兩張疊在一起。列表小標（線寬 2.2）與多選「合併」（線寬 1.7）共用。
+  static const stack =
+      '<rect x="7" y="7" width="13" height="13" rx="2.5"/>'
+      '<path d="M4 16V6a2 2 0 0 1 2-2h10"/>';
+
   /// 批次 tag sheet「部分有」狀態的橫線。
   static const dash = '<path d="M7 12h10"/>';
 }

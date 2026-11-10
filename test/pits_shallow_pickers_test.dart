@@ -97,14 +97,14 @@ void main() {
     expect(inSheet(find.text('淺坑乙')), findsOneWidget);
     expect(inSheet(find.text('封存丙')), findsNothing);
     // 現坑六格（沒開雜物所以沒有雜物）
-    for (final s in ['官方圖冊', '好看同人圖', '推活', '摸魚', '腦洞', '成圖']) {
+    for (final s in ['參考圖', '好看同人圖', '推活', '摸魚', '腦洞', '成圖']) {
       expect(inSheet(find.text(s)), findsOneWidget, reason: s);
     }
     await tester.tap(inSheet(find.text('淺坑乙')));
     await settle(tester);
     expect(inSheet(find.text('好看同人圖')), findsOneWidget);
     expect(inSheet(find.text('摸魚')), findsOneWidget);
-    for (final s in ['官方圖冊', '推活', '腦洞', '成圖', '雜物']) {
+    for (final s in ['參考圖', '推活', '腦洞', '成圖', '雜物']) {
       expect(inSheet(find.text(s)), findsNothing, reason: s);
     }
     await unmount(tester);
@@ -146,11 +146,11 @@ void main() {
     expect(s('現坑甲'), findsOneWidget);
     expect(s('淺坑乙'), findsOneWidget);
     expect(s('封存丙'), findsNothing);
-    expect(s('官方圖冊'), findsOneWidget);
+    expect(s('參考圖'), findsOneWidget);
     await tester.tap(s('淺坑乙'));
     await settle(tester);
-    // 淺坑乙沒開官方圖冊：只剩好看同人圖，並且自動換到它
-    expect(s('官方圖冊'), findsNothing);
+    // 淺坑乙沒開參考圖：只剩好看同人圖，並且自動換到它
+    expect(s('參考圖'), findsNothing);
     expect(s('好看同人圖'), findsOneWidget);
     await unmount(tester);
   });

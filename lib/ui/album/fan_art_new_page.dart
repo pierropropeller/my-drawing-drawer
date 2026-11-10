@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
+import '../../data/album_set_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/adaptive_modal.dart';
@@ -11,6 +12,7 @@ import '../common/nav_bar_hidden.dart';
 import '../pits/pit_form.dart';
 import '../tags/tag_picker.dart';
 import 'album_form.dart';
+import 'album_set_form.dart';
 import 'group_picker.dart';
 import 'image_picker_field.dart';
 import '../common/reorder_tile.dart';
@@ -62,13 +64,18 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
       .map(ImageItem.picked)
       .toList();
   final _author = TextEditingController();
+  final _note = TextEditingController();
   late String? _groupId = widget.initialGroupId;
   List<String> _tagIds = [];
   bool _saving = false;
 
+  /// 「合成一組」（D-136，預設關）：開著＝這幾張存成一筆多圖。
+  bool _combine = false;
+
   @override
   void dispose() {
     _author.dispose();
+    _note.dispose();
     super.dispose();
   }
 
@@ -89,15 +96,26 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
     for (final f in _files) {
       imported.add(await f.resolve(store));
     }
-    await ref
-        .read(databaseProvider)
-        .addFanArts(
-          widget.pitId,
-          imported,
-          author: _author.text.trim(),
-          groupId: _groupId,
-          tagIds: _tagIds,
-        );
+    final db = ref.read(databaseProvider);
+    if (_combine && imported.length > 1) {
+      await db.addFanArtSet(
+        widget.pitId,
+        imported,
+        author: _author.text.trim(),
+        groupId: _groupId,
+        tagIds: _tagIds,
+        note: _note.text,
+      );
+    } else {
+      await db.addFanArts(
+        widget.pitId,
+        imported,
+        author: _author.text.trim(),
+        groupId: _groupId,
+        tagIds: _tagIds,
+        note: _note.text,
+      );
+    }
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -120,6 +138,11 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
         onRemove: (i) => setState(() => _files.removeAt(i)),
         onReorder: (a, b) => setState(() => moveListItem(_files, a, b)),
       ),
+      if (_files.length > 1)
+        AlbumSetCombineRow(
+          value: _combine,
+          onChanged: (v) => setState(() => _combine = v),
+        ),
     ];
     final rest = [
       AlbumFieldLabel(context.l10n.albumFieldAuthor),
@@ -139,6 +162,8 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
         selected: _tagIds,
         onChanged: (v) => setState(() => _tagIds = v),
       ),
+      const SizedBox(height: 18),
+      NoteField(controller: _note),
     ];
     if (widget.asModal) {
       return ModalFormShell(

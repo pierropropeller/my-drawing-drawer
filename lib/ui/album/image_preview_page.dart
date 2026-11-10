@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
+import '../../data/junk_queries.dart' show AlbumCell;
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../common/app_icons.dart';
@@ -12,9 +13,12 @@ import '../common/window_class.dart';
 import '../reference/reference_viewer.dart';
 import 'album_actions.dart';
 import 'album_image.dart';
+import 'album_set_strip.dart';
 import 'official_new_page.dart';
 import '../search/tagged_list.dart';
 import 'preview_shell.dart';
+import '../../data/inspo_queries.dart';
+import '../material/material_icons.dart';
 
 /// 官方圖冊的圖片預覽（ImagePreview）：深色全屏、圖片滿版；分享、下載、設為封面、編輯、刪除。
 /// 同人圖有自己的預覽頁，見 `FanArtPreviewPage`。沒有底部導覽列。
@@ -39,7 +43,7 @@ class ImagePreviewPage extends ConsumerStatefulWidget {
 }
 
 class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
-    with HidesNavBar<ImagePreviewPage> {
+    with HidesNavBar<ImagePreviewPage>, AlbumSetPreview<ImagePreviewPage> {
   /// 點 tag：預設進該坑的搜尋結果頁並帶上這個 tag（D-107）。
   void _tagTap(String id) => widget.onTagTap != null
       ? widget.onTagTap!(id)
@@ -58,7 +62,7 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
   }
 
   Future<void> _download() async {
-    final n = await downloadImages(ref, [_current]);
+    final n = await downloadImages(ref, [currentPage(_current)]);
     if (mounted) {
       showSnack(
         context,
@@ -84,7 +88,24 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
       pitId: widget.pitId,
       imageId: id,
     );
-    if (deleted == true && mounted) _removeCurrent();
+    if (!mounted) return;
+    if (deleted == true) {
+      _removeCurrent();
+      return;
+    }
+    final i = _index;
+    final fresh = await reloadAlbumSetFirst(ref, AlbumCell.official, _items[i]);
+    if (mounted && i < _items.length && _items[i].id == fresh.id) {
+      replaceEntry(_items, i, fresh);
+    }
+  }
+
+  /// 移出（D-142）：從靈感廣場放進來的圖只解除連結，廣場那張不動。
+  Future<void> _unplace() async {
+    await ref.read(databaseProvider).unplaceOfficial([_current.id]);
+    if (!mounted) return;
+    showSnack(context, context.l10n.inspoRemovedToast);
+    _removeCurrent();
   }
 
   Future<void> _delete() async {
@@ -131,6 +152,94 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
     });
   }
 
+  /// 多圖的資訊區（D-136，ImagePreviewMulti）：tag → 縮圖條 → 左日期、右下分組。
+  Widget _setInfo(
+    List<AlbumImage> pages,
+    String group,
+    DateTime? date,
+    List<String> tagIds,
+    Map<String, String> tagNames,
+    String note,
+  ) {
+    final sub = subIndexOf(_current, pages.length);
+    final hasTags = tagIds.any(tagNames.containsKey);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasTags)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 6, 24, 0),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final id in tagIds)
+                    if (tagNames[id] != null)
+                      PreviewTagChip(tagNames[id]!, onTap: () => _tagTap(id)),
+                ],
+              ),
+            ),
+          if (note.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.fromLTRB(24, hasTags ? 10 : 6, 24, 0),
+              child: PreviewNote(note, icon: MaterialLibIcons.note),
+            ),
+          Padding(
+            padding: EdgeInsets.only(
+              left: 24,
+              top: hasTags || note.isNotEmpty ? 10 : 6,
+            ),
+            child: AlbumSetStrip(
+              pages: pages,
+              selected: sub,
+              onSelected: (i) => selectSub(_current, i),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: date == null
+                      ? const SizedBox.shrink()
+                      : Text(
+                          previewDate(date, context.l10n),
+                          style: const TextStyle(
+                            color: PreviewPalette.muted,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                ),
+                if (group.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: PreviewPalette.pill,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      group,
+                      style: const TextStyle(
+                        color: PreviewPalette.bg,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_items.isEmpty) {
@@ -148,6 +257,20 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
         tag.id: tag.name,
     };
     final hasTags = tagIds.any(tagNames.containsKey);
+    // 多圖（D-136）：這一筆的全部圖。
+    final pages = albumSetPages(ref, _current);
+    final note =
+        ref.watch(officialNotesProvider(widget.pitId)).value?[_current.id] ??
+        '';
+    final inspoId = _current.inspoId;
+    // 「也在 坑B」：同一張廣場圖放進的其他坑。
+    final others = inspoId == null
+        ? const <String>[]
+        : [
+            for (final p
+                in ref.watch(placedPitsProvider).value?[inspoId] ?? const [])
+              if (p.id != widget.pitId) p.name,
+          ];
     final title = pitName == null
         ? context.l10n.pitsOfficial
         : context.l10n.albumTitleWithPit(pitName, context.l10n.pitsOfficial);
@@ -167,85 +290,115 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
           : RefEntryChip(onTap: () => _openReference(title)),
       counter: '${_index + 1} / ${_items.length}',
       controller: _controller,
-      media: [for (final i in _items) i.media],
+      media: pageMedia(_items, _index),
       currentIndex: _index,
       onPageChanged: (i) => setState(() => _index = i),
-      info: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 6, 24, 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (group.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                decoration: BoxDecoration(
-                  color: PreviewPalette.pill,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  group,
-                  style: const TextStyle(
-                    color: PreviewPalette.bg,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            // tag chips（D-089，同 FanArtPreview）：點了回官方圖冊並以該 tag 篩選。
-            if (hasTags)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final id in tagIds)
-                      if (tagNames[id] != null)
-                        GestureDetector(
-                          onTap: () => _tagTap(id),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: PreviewPalette.tagBg,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              '#${tagNames[id]}',
-                              style: const TextStyle(
-                                color: PreviewPalette.tagText,
-                                fontSize: 12,
-                              ),
-                            ),
+      info: pages.length > 1
+          ? _setInfo(pages, group, date, tagIds, tagNames, note)
+          : Padding(
+              padding: const EdgeInsets.fromLTRB(24, 6, 24, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (group.isNotEmpty || inspoId != null)
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        if (group.isNotEmpty) PreviewPill(group),
+                        if (inspoId != null)
+                          PreviewPill(
+                            context.l10n.inspoFromInspo,
+                            color: PreviewPalette.fromInspoBg,
+                            fg: PreviewPalette.fromInspo,
+                            icon: MaterialLibIcons.drawer,
                           ),
+                      ],
+                    ),
+                  // tag chips（D-089，同 FanArtPreview）：點了回官方圖冊並以該 tag 篩選。
+                  if (hasTags)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final id in tagIds)
+                            if (tagNames[id] != null)
+                              GestureDetector(
+                                onTap: () => _tagTap(id),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: PreviewPalette.tagBg,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    '#${tagNames[id]}',
+                                    style: const TextStyle(
+                                      color: PreviewPalette.tagText,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                        ],
+                      ),
+                    ),
+                  if (note.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: group.isEmpty && inspoId == null && !hasTags
+                            ? 0
+                            : 10,
+                      ),
+                      child: PreviewNote(note, icon: MaterialLibIcons.note),
+                    ),
+                  if (date != null)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top:
+                            group.isEmpty &&
+                                inspoId == null &&
+                                !hasTags &&
+                                note.isEmpty
+                            ? 0
+                            : 10,
+                      ),
+                      child: Text(
+                        [
+                          inspoId == null
+                              ? previewDate(date, context.l10n)
+                              : context.l10n.inspoPlacedDate(
+                                  date.year,
+                                  date.month.toString().padLeft(2, '0'),
+                                  date.day.toString().padLeft(2, '0'),
+                                ),
+                          if (others.isNotEmpty)
+                            context.l10n.inspoAlsoIn(
+                              others.join(context.l10n.inspoPitsSeparator),
+                            ),
+                        ].join(' · '),
+                        style: TextStyle(
+                          color: inspoId == null
+                              ? PreviewPalette.muted
+                              : PreviewPalette.soft,
+                          fontSize: 11.5,
                         ),
-                  ],
-                ),
+                      ),
+                    ),
+                ],
               ),
-            if (date != null)
-              Padding(
-                padding: EdgeInsets.only(
-                  top: group.isEmpty && !hasTags ? 0 : 10,
-                ),
-                child: Text(
-                  previewDate(date, context.l10n),
-                  style: const TextStyle(
-                    color: PreviewPalette.muted,
-                    fontSize: 11.5,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+            ),
       actions: [
         PreviewAction(
           AppIcons.share,
           context.l10n.commonShare,
-          () => shareImage(ref, _current),
+          () => shareImage(ref, currentPage(_current)),
         ),
         PreviewAction(
           AppIcons.download,
@@ -254,12 +407,19 @@ class _ImagePreviewPageState extends ConsumerState<ImagePreviewPage>
         ),
         PreviewAction(AppIcons.setCover, context.l10n.albumSetCover, _setCover),
         PreviewAction(AppIcons.edit, context.l10n.commonEdit, _edit),
-        PreviewAction(
-          AppIcons.trash,
-          context.l10n.commonDelete,
-          _delete,
-          color: PreviewPalette.danger,
-        ),
+        inspoId == null
+            ? PreviewAction(
+                AppIcons.trash,
+                context.l10n.commonDelete,
+                _delete,
+                color: PreviewPalette.danger,
+              )
+            : PreviewAction(
+                MaterialLibIcons.unplace,
+                context.l10n.inspoRemoveFromPit,
+                _unplace,
+                color: PreviewPalette.danger,
+              ),
       ],
     );
   }

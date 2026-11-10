@@ -21,6 +21,16 @@ abstract final class PreviewPalette {
   /// 同人圖出處小標底色。
   static const pillFan = Color(0xFFE8C6CF);
 
+  /// 靈感廣場分類小標底色（InspoPreview）。
+  static const pillInspo = Color(0xFFE8D6CC);
+
+  /// 「來自靈感廣場」小標（RefPreview）：字色、底色（字色 14%）。
+  static const fromInspo = Color(0xFFF2D3C9);
+  static const fromInspoBg = Color(0x24F2D3C9);
+
+  /// 說明小標、日期（InspoPreview／RefPreview）。
+  static const soft = Color(0xFFD8CFC4);
+
   /// 同人圖 tag 底色（白 12%）。
   static const tagBg = Color(0x1FFFFFFF);
   static const tagText = Color(0xFFF2ECE4);
@@ -33,6 +43,113 @@ String previewDate(DateTime d, [AppLocalizations? l10n]) =>
       d.month.toString().padLeft(2, '0'),
       d.day.toString().padLeft(2, '0'),
     );
+
+/// 預覽頁的 tag chip（白 12% 底、圓角膠囊），點了照呼叫端處理（D-089／D-107）。
+class PreviewTagChip extends StatelessWidget {
+  const PreviewTagChip(this.name, {super.key, required this.onTap});
+  final String name;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: PreviewPalette.tagBg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '#$name',
+        style: const TextStyle(color: PreviewPalette.tagText, fontSize: 12),
+      ),
+    ),
+  );
+}
+
+/// 預覽資訊區的小標（分組／分類／出處）：圓角 6、11.5/600。
+class PreviewPill extends StatelessWidget {
+  const PreviewPill(
+    this.text, {
+    super.key,
+    this.color = PreviewPalette.pill,
+    this.fg = PreviewPalette.bg,
+    this.icon,
+  });
+  final String text;
+  final Color color;
+  final Color fg;
+  final String? icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          SvgIcon(icon!, size: 10, color: fg, strokeWidth: 2),
+          const SizedBox(width: 4),
+        ],
+        Text(
+          text,
+          style: TextStyle(
+            color: fg,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// 預覽資訊區的「說明」（D-141）：三條線 icon＋小標，下面兩行內文。
+class PreviewNote extends StatelessWidget {
+  const PreviewNote(this.text, {super.key, required this.icon});
+  final String text;
+
+  /// 小標的 icon（三條橫線，從設計稿抄）。
+  final String icon;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Row(
+        children: [
+          SvgIcon(icon, size: 12, color: PreviewPalette.soft, strokeWidth: 2),
+          const SizedBox(width: 5),
+          Text(
+            context.l10n.noteLabel,
+            style: const TextStyle(
+              color: PreviewPalette.soft,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 3),
+      Text(
+        text,
+        key: const ValueKey('previewNote'),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: PreviewPalette.text,
+          fontSize: 13.5,
+          height: 1.6,
+        ),
+      ),
+    ],
+  );
+}
 
 class PreviewAction {
   const PreviewAction(this.svg, this.label, this.onTap, {this.color});
@@ -104,8 +221,12 @@ class PreviewShell extends StatelessWidget {
                     // 圖片與 GIF 可縮放；影片用自己的控制列（同詳情頁），不縮放。
                     // 預覽頁沒有安全模式：一律正常顯示（Molly：預覽頁就不要安全模式了）。
                     // 長圖（高 > 寬）寬度鋪滿、貼齊最上面、垂直捲動（見 [PreviewMediaPage]）。
-                    itemBuilder: (_, i) =>
-                        PreviewMediaPage(media[i], active: i == currentIndex),
+                    // 同一頁換成組內另一張（D-136）時重建，縮放狀態不帶過去。
+                    itemBuilder: (_, i) => PreviewMediaPage(
+                      media[i],
+                      key: ValueKey(media[i].file),
+                      active: i == currentIndex,
+                    ),
                   ),
                 ),
           // 資訊區一律靠左（設計稿 ImagePreview／FanArtPreview：padding 8/24/14，左對齊）。

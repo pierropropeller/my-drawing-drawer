@@ -4,6 +4,9 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
+import '../common/segment_toggle.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart' show XFile;
 
@@ -26,7 +29,6 @@ import '../common/svg_icon.dart';
 import '../entity/entity_widgets.dart';
 import '../goals/pit_pill.dart' show mockLine;
 import '../common/window_class.dart';
-import '../material/material_category.dart';
 import 'share_icons.dart';
 
 /// 「加入到」的七個位置。順序＝設計稿 4 欄 7 格的順序（官方圖冊、好看同人圖、推活、雜物、腦洞、摸魚、成圖，D-091）。
@@ -124,7 +126,7 @@ class ShareChoice {
   final List<String> tagIds;
 
   /// 「素材庫」段選的分類（action＝addMaterial 時才有）。
-  final MaterialCategory? material;
+  final String? material;
 }
 
 const _kDestKey = 'shareLastDest';
@@ -210,18 +212,18 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
 
   /// 頂部「坑｜素材庫」切換（D-071）；預設停在上次用的那段。
   bool _toMaterial = false;
-  late MaterialCategory _material;
+
+  /// 選的分類 id；還沒選（或記住的分類已刪）時用第一個分類。
+  String? _material;
 
   @override
   void initState() {
     super.initState();
     final prefs = ref.read(sharedPrefsProvider);
     _toMaterial = prefs?.getString(_kDestKey) == 'material';
-    _material =
-        MaterialCategory.values
-            .where((c) => c.name == prefs?.getString(_kMaterialKey))
-            .firstOrNull ??
-        MaterialCategory.values.first;
+    final saved = prefs?.getString(_kMaterialKey);
+    // 舊版記的是分類的英文名（clothing…），新版記分類 id。
+    _material = saved == null || saved.contains('-') ? saved : 'mcat-$saved';
     final memory = ref.read(shareMemoryProvider);
     _pitId = widget.initialPitId ?? memory.lastPit;
     _section =
@@ -245,12 +247,18 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
         ?.setString(_kDestKey, material ? 'material' : 'pit');
   }
 
+  /// 目前的分類：記住的那個還在就用它，不然用第一個。
+  String? _materialIn(List<InspoCategory> cats) =>
+      cats.any((c) => c.id == _material) ? _material : cats.firstOrNull?.id;
+
   void _finishMaterial() {
-    ref.read(sharedPrefsProvider)?.setString(_kMaterialKey, _material.name);
+    final id = _materialIn(ref.read(inspoCategoriesProvider).value ?? const []);
+    if (id == null) return;
+    ref.read(sharedPrefsProvider)?.setString(_kMaterialKey, id);
     Navigator.of(context).pop(
       ShareChoice(
         ShareAction.addMaterial,
-        material: _material,
+        material: id,
         sensitive: _sensitive && ref.read(sensitiveMarkingProvider(null)),
       ),
     );
@@ -298,6 +306,7 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     // 現坑＋淺坑；封存坑不列（D-088）。
     final pits = ref.watch(selectablePitsProvider).value ?? const <Pit>[];
+    final cats = ref.watch(inspoCategoriesProvider).value ?? const [];
     // 選中的坑不在列表（已封存、還沒載入）時退回第一個。
     final pit =
         pits.where((p) => p.id == _pitId).firstOrNull ?? pits.firstOrNull;
@@ -499,13 +508,13 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
                   _Label(l.materialFieldCategory),
                   _ChipWrap(
                     children: [
-                      for (final c in MaterialCategory.values)
+                      for (final c in cats)
                         KeyedSubtree(
-                          key: ValueKey('shareMaterial-${c.name}'),
+                          key: ValueKey('shareMaterial-${c.id}'),
                           child: _GroupChip(
-                            label: c.label(l),
-                            selected: c == _material,
-                            onTap: () => setState(() => _material = c),
+                            label: c.name,
+                            selected: c.id == _materialIn(cats),
+                            onTap: () => setState(() => _material = c.id),
                           ),
                         ),
                     ],
@@ -719,69 +728,19 @@ class _DestToggle extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    Widget seg(bool material, String label) {
-      final on = material == toMaterial;
-      return Expanded(
-        child: Semantics(
-          button: true,
-          selected: on,
-          child: GestureDetector(
-            key: ValueKey(material ? 'shareDestMaterial' : 'shareDestPit'),
-            onTap: () => onChanged(material),
-            child: Container(
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(vertical: 9),
-              decoration: BoxDecoration(
-                color: on ? t.surface : Colors.transparent,
-                borderRadius: BorderRadius.circular(9),
-                boxShadow: on
-                    ? [
-                        BoxShadow(
-                          color: const Color(0xFF2B2622)
-                              .withValues(alpha: 0.12),
-                          blurRadius: 3,
-                          offset: const Offset(0, 1),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: on ? t.ink : t.text3,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      child: Semantics(
-        label: context.l10n.materialShareDestLabel,
-        child: Container(
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: t.chipBg,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              seg(false, context.l10n.shareFieldPit),
-              const SizedBox(width: 2),
-              seg(true, context.l10n.materialTitle),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+    child: SegmentToggle(
+      labels: [context.l10n.shareFieldPit, context.l10n.materialTitle],
+      selected: toMaterial ? 1 : 0,
+      onChanged: (i) => onChanged(i == 1),
+      segmentKeys: const [
+        ValueKey('shareDestPit'),
+        ValueKey('shareDestMaterial'),
+      ],
+      semanticsLabel: context.l10n.materialShareDestLabel,
+    ),
+  );
 }
 
 class _ChipWrap extends StatelessWidget {

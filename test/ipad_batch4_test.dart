@@ -436,7 +436,7 @@ void main() {
     });
 
     testWidgets(
-      'NewPitShallow：選淺坑 → 880 兩欄；左 類型＋坑名＋描述（沒有封面）；右 7 個開關預設只開官方圖冊與好看同人圖',
+      'NewPitShallow：選淺坑 → 880 兩欄；左 類型＋坑名＋描述（沒有封面）；右 7 個開關預設只開參考圖與好看同人圖',
       (tester) async {
         await openNew(tester, const Size(1194, 834));
         await tester.tap(find.text('淺坑'));
@@ -457,7 +457,7 @@ void main() {
             .toList();
         expect(switches, [true, true, false, false, false, false, false]);
 
-        // 建立：淺坑、只開官方圖冊＋同人圖。
+        // 建立：淺坑、只開參考圖＋同人圖。
         await tester.enterText(find.byType(TextFormField).first, '新淺坑');
         await tester.pump();
         await tester.tap(find.text('建立'));
@@ -594,7 +594,7 @@ void main() {
       await openEdit(tester, pit!);
       expect(find.text('開啟的格子'), findsOneWidget);
       expect(switchLabels(tester), [
-        '官方圖冊',
+        '參考圖',
         '好看同人圖',
         '我的腦洞',
         '我的摸魚',

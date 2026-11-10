@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
+import '../../data/album_set_queries.dart';
+import '../../data/junk_queries.dart' show AlbumCell;
 import '../../data/database.dart';
+import '../../data/inspo_queries.dart';
 import '../../data/sensitive_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
@@ -12,9 +15,12 @@ import '../common/modal_form_layout.dart';
 import '../common/nav_bar_hidden.dart';
 import '../common/sensitive_dialogs.dart';
 import '../media_source/drop_zone.dart';
+import '../picker/inspo_picker_source.dart'
+    show InspoPickerSource, pickedFromInspo;
 import '../../theme/tokens.dart';
 import 'album_actions.dart';
 import 'album_form.dart';
+import 'album_set_form.dart';
 import '../tags/tag_picker.dart';
 import 'group_picker.dart';
 import 'image_picker_field.dart';
@@ -89,11 +95,24 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
       .toList();
   String? _groupId;
   List<String> _tagIds = [];
+  final _note = TextEditingController();
   bool _saving = false;
 
-  // 編輯模式：載入的那一張。
-  NewImage? _editImage;
-  ImageItem? _editItem; // 持有敏感標記的切換狀態（D-104）
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  /// 新增時「合成一組」（D-136，預設關）：開著＝這幾張存成一筆多圖。
+  bool _combine = false;
+
+  // 編輯模式：載入的那一組（D-136；第 1 張＝那一列本身）。
+  NewImage? _editImage; // 載入時的第 1 張
+  final List<ImageItem> _editItems = []; // 持有敏感標記的切換狀態（D-104）
+
+  /// 從靈感廣場放進來的（D-142）：圖是廣場那張，不能加圖／拆開。
+  bool _linked = false;
   bool _loaded = false;
   bool get _editing => widget.editImageId != null;
 
@@ -109,26 +128,27 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
       db.officialImages,
     )..where((f) => f.id.equals(widget.editImageId!))).getSingle();
     final ids = await db.watchTagIds(TagTarget.official, row.id).first;
+    final images = await db.albumSetImages(AlbumCell.official, row.id);
+    // 從靈感廣場放進來的圖：說明讀廣場那張（共用一份）。
+    final note = await db.watchOfficialNote(row.id).first;
     if (!mounted) return;
+    _note.text = note ?? '';
     setState(() {
       _groupId = row.groupId;
       _tagIds = ids;
-      _editImage = NewImage(
-        file: row.imageFile,
-        width: row.width,
-        height: row.height,
-        kind: row.kind,
-        durationMs: row.durationMs,
-        posterFile: row.posterFile,
-        sensitive: row.sensitive,
-      );
-      _editItem = ImageItem.stored(_editImage!);
+      _linked = row.materialId != null;
+      _editImage = images.first;
+      _editItems.addAll(images.map(ImageItem.stored));
       _loaded = true;
     });
   }
 
-  /// 編輯模式圖片上的「×」＝刪除這張官方圖（編輯單張沒有別的圖可以換），要確認。
-  Future<void> _removeImage() async {
+  /// 編輯模式圖片上的「×」：一組裡還有別張＝只拿掉這張；只剩這一張＝刪除這筆官方圖，要確認。
+  Future<void> _removeImage(int i) async {
+    if (_editItems.length > 1) {
+      setState(() => _editItems.removeAt(i));
+      return;
+    }
     final ok = await confirmDelete(
       context,
       title: context.l10n.albumDeleteImageTitle,
@@ -140,32 +160,64 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
   }
 
   Future<void> _pick() async {
-    final picked = await ref.read(imagePickerProvider)(context);
+    // 從靈感廣場選＝放進坑（連結），只有新增時可以；編輯一組多圖時只從相簿加。
+    Future<List<XFile>> pick() => ref.read(imagePickerProvider)(context);
+    final picked = _editing
+        ? await pick()
+        : await InspoPickerSource.allow(pick);
     if (picked.isNotEmpty) {
-      setState(() => _files.addAll(picked.map(ImageItem.picked)));
+      setState(
+        () => (_editing ? _editItems : _files).addAll(
+          picked.map(ImageItem.picked),
+        ),
+      );
     }
+  }
+
+  /// 編輯模式寫回：整組的圖（次序、增刪）＋分組／tag／第 1 張的敏感標記。取消確認時回傳 false。
+  Future<bool> _persistEdit(String groupId) async {
+    final db = ref.read(databaseProvider);
+    final sensitive = _editItems.first.sensitive;
+    // 把現任封面標成敏感：先確認（D-104）。
+    if (sensitive &&
+        !_editImage!.sensitive &&
+        await db.coverCountAmong(SensitiveSource.official, [
+              widget.editImageId!,
+            ]) >
+            0) {
+      if (!mounted || !await confirmSensitiveCover(context, 1)) return false;
+    }
+    setState(() => _saving = true);
+    final store = await ref.read(imageStoreProvider.future);
+    final images = <NewImage>[
+      for (final f in _editItems) await f.resolve(store),
+    ];
+    await db.setAlbumSetImages(AlbumCell.official, widget.editImageId!, images);
+    await db.updateOfficial(
+      widget.editImageId!,
+      groupId: groupId,
+      tagIds: _tagIds,
+      sensitive: sensitive,
+    );
+    await db.setOfficialNote(widget.editImageId!, _note.text);
+    return true;
+  }
+
+  /// 拆開（D-136）：先存目前的編輯，再把這一組每一張變成獨立一項。
+  Future<void> _split(String groupId) async {
+    final n = _editItems.length;
+    if (!await confirmAlbumSetSplit(context, n) || !mounted) return;
+    if (!await _persistEdit(groupId)) return;
+    await ref
+        .read(databaseProvider)
+        .splitAlbumSet(AlbumCell.official, widget.editImageId!);
+    // 會跳頁的動作不出提示條（D-114）：回到預覽頁就看得到拆開了。
+    if (mounted) Navigator.of(context).pop();
   }
 
   Future<void> _save(String groupId) async {
     if (_editing) {
-      final db = ref.read(databaseProvider);
-      final sensitive = _editItem!.sensitive;
-      // 把現任封面標成敏感：先確認（D-104）。
-      if (sensitive &&
-          !_editImage!.sensitive &&
-          await db.coverCountAmong(SensitiveSource.official, [
-                widget.editImageId!,
-              ]) >
-              0) {
-        if (!mounted || !await confirmSensitiveCover(context, 1)) return;
-      }
-      await db.updateOfficial(
-        widget.editImageId!,
-        groupId: groupId,
-        tagIds: _tagIds,
-        sensitive: sensitive,
-      );
-      if (mounted) Navigator.of(context).pop();
+      if (await _persistEdit(groupId) && mounted) Navigator.of(context).pop();
       return;
     }
     if (_files.isEmpty) {
@@ -173,13 +225,46 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
     }
     setState(() => _saving = true);
     final store = await ref.read(imageStoreProvider.future);
+    final db = ref.read(databaseProvider);
     final imported = <NewImage>[];
+    // 從靈感廣場選的圖：放進坑（連結，D-145），不另存一份。
+    final linked = <String>[];
     for (final f in _files) {
+      final mid = f.picked == null ? null : pickedFromInspo[f.picked!.path];
+      if (mid != null) {
+        linked.add(mid);
+        continue;
+      }
       imported.add(await f.resolve(store));
     }
-    await ref
-        .read(databaseProvider)
-        .addOfficial(widget.pitId, groupId, imported, tagIds: _tagIds);
+    if (linked.isNotEmpty) {
+      await db.placeMaterials(linked, widget.pitId, groupId, tagIds: _tagIds);
+      // 說明共用：有填才寫進廣場那張。
+      if (_note.text.trim().isNotEmpty) {
+        for (final id in linked) {
+          await db.setMaterialNote(id, _note.text);
+        }
+      }
+    }
+    if (imported.isNotEmpty) {
+      if (_combine && imported.length > 1) {
+        await db.addOfficialSet(
+          widget.pitId,
+          groupId,
+          imported,
+          tagIds: _tagIds,
+          note: _note.text,
+        );
+      } else {
+        await db.addOfficial(
+          widget.pitId,
+          groupId,
+          imported,
+          tagIds: _tagIds,
+          note: _note.text,
+        );
+      }
+    }
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -212,7 +297,8 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
               : (groups.isEmpty ? null : groups.first.id));
     // 必填（圖、分組）沒填完：按鈕變灰（D-121 ①）。
     final canSave =
-        groupId != null && (_editing ? _editItem != null : _files.isNotEmpty);
+        groupId != null &&
+        (_editing ? _editItems.isNotEmpty : _files.isNotEmpty);
     final imageField = [
       AlbumFieldLabel(
         // 彈出頁（form sheet／page sheet）新增時標題帶張數：「圖片 · 2 張」。
@@ -223,14 +309,22 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
               )
             : context.l10n.albumFieldImage,
       ),
-      if (_editing)
+      if (_editing) ...[
         ImagePickerField(
           pitId: widget.pitId,
-          items: [_editItem!],
-          onAdd: null,
-          onRemove: (_) => _removeImage(),
-        )
-      else ...[
+          items: _editItems,
+          onAdd: _linked ? null : _pick,
+          onRemove: _removeImage,
+          onReorder: _linked
+              ? null
+              : (a, b) => setState(() => moveListItem(_editItems, a, b)),
+        ),
+        if (!_linked && _editItems.length > 1 && groupId != null)
+          AlbumSetSplitRow(
+            count: _editItems.length,
+            onTap: _saving ? null : () => _split(groupId),
+          ),
+      ] else ...[
         ImagePickerField(
           pitId: widget.pitId,
           items: _files,
@@ -238,6 +332,11 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
           onRemove: (i) => setState(() => _files.removeAt(i)),
           onReorder: (a, b) => setState(() => moveListItem(_files, a, b)),
         ),
+        if (_files.length > 1)
+          AlbumSetCombineRow(
+            value: _combine,
+            onChanged: (v) => setState(() => _combine = v),
+          ),
         const DropHintRow(),
       ],
     ];
@@ -274,6 +373,8 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
               groupField,
               const SizedBox(height: 18),
               tagField,
+              const SizedBox(height: 18),
+              NoteField(controller: _note),
               if (!_editing && name != null && _files.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -294,7 +395,9 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
           groupField,
           const SizedBox(height: 16),
           tagField,
-          const SizedBox(height: 26),
+          const SizedBox(height: 16),
+          NoteField(controller: _note),
+          const SizedBox(height: 24),
           AlbumSubmitButton(
             label: _editing
                 ? context.l10n.commonSave
@@ -309,9 +412,12 @@ class _OfficialNewPageState extends ConsumerState<OfficialNewPage>
       title: context.l10n.ipadmediaDropTitle(context.l10n.pitsOfficial),
       subtitleFor: context.l10n.ipadmediaDropCount,
       // 拖進來的圖直接加到圖片格（分組用分組欄選）。
-      onFiles: (files) =>
-          setState(() => _files.addAll(files.map(ImageItem.picked))),
-      enabled: !_saving && !_editing,
+      onFiles: (files) => setState(
+        () => (_editing ? _editItems : _files).addAll(
+          files.map(ImageItem.picked),
+        ),
+      ),
+      enabled: !_saving && !_linked,
       child: form,
     );
   }

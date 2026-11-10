@@ -14,7 +14,7 @@
   "pitsDeleteHint": "坑內所有內容會一併移到最近刪除",
   "pitsNewTitle": "開新坑",
   "pitsCreate": "建立",
-  "pitsOfficial": "官方圖冊",
+  "pitsOfficial": "參考圖",
   "pitsFanArt": "好看同人圖",
   "pitsDrafts": "我的摸魚",
   "pitsIdeas": "我的腦洞",
@@ -198,7 +198,7 @@
   "albumGroupKeepOne": "至少要保留一個分組",
   "albumGroupNameTitle": "分組名稱",
   "albumGroupHintFan": "分組只用於好看同人圖，拖曳可調整次序",
-  "albumGroupHintOfficial": "分組只用於官方圖冊，拖曳可調整次序",
+  "albumGroupHintOfficial": "分組只用於參考圖，拖曳可調整次序",
   "albumGroupRename": "重新命名 {name}",
   "@albumGroupRename": {
     "placeholders": {
@@ -221,11 +221,11 @@
   "albumPreviewImage": "預覽圖片",
   "albumChangeGroup": "更換分組",
   "albumGroupChanged": "已更換分組",
-  "albumCoverSetOfficial": "已設為官方圖冊封面",
+  "albumCoverSetOfficial": "已設為參考圖封面",
   "albumMoveTo": "移動到",
-  "albumOfficialEmpty": "還沒有官方圖",
-  "albumOfficialNewTitle": "新增官方圖",
-  "albumOfficialAdd": "加入官方圖冊",
+  "albumOfficialEmpty": "還沒有參考圖",
+  "albumOfficialNewTitle": "新增參考圖",
+  "albumOfficialAdd": "加入參考圖",
   "albumPreviewDateAdded": "{year} / {month} / {day} 加入",
   "@albumPreviewDateAdded": {
     "placeholders": {
@@ -240,6 +240,46 @@
       }
     }
   },
+  "albumSetCount": "{count} 張",
+  "@albumSetCount": {
+    "description": "多圖（D-136）列表小標的讀屏文字",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumSetThumb": "第 {index} 張",
+  "@albumSetThumb": {
+    "description": "預覽頁縮圖條的一格（讀屏）",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "albumSetMerge": "合併",
+  "albumSetMergeNeedTwo": "至少選兩項才能合併",
+  "albumSetMerged": "已合併成一組，共 {count} 張",
+  "@albumSetMerged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumSetCombine": "合成一組",
+  "albumSetSplit": "拆開",
+  "albumSetSplitTitle": "拆開這一組？",
+  "albumSetSplitBody": "{count} 張圖會各自變成獨立一項，分組和 tag 照舊。",
+  "@albumSetSplitBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumSetMergeNoInspo": "從素材庫放進來的圖不能合併",
   "shellTabPits": "坑",
   "shellTabGoals": "時間軸",
   "shellTabMe": "我的",
@@ -1006,6 +1046,68 @@
       }
     }
   },
+  "inspoPitsSeparator": "、",
+  "inspoPlaceInPit": "放進坑",
+  "inspoManageCategories": "管理分類",
+  "inspoCategoryHint": "分類只用於素材庫，拖曳可調整次序",
+  "inspoCategoryAdd": "新增分類",
+  "inspoCategoryNameTitle": "分類名稱",
+  "inspoCategoryDeleteTitle": "刪除分類「{name}」？",
+  "@inspoCategoryDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inspoCategoryDeleteBody": "分類裡的圖會移到其他分類。",
+  "inspoCategoryKeepOne": "至少要保留一個分類",
+  "inspoPlacedIn": "已放進",
+  "inspoPlacedToast": "已放進「{pit}」",
+  "@inspoPlacedToast": {
+    "placeholders": {
+      "pit": {
+        "type": "String"
+      }
+    }
+  },
+  "inspoAlreadyInPit": "這些圖已經在「{pit}」裡了",
+  "@inspoAlreadyInPit": {
+    "placeholders": {
+      "pit": {
+        "type": "String"
+      }
+    }
+  },
+  "inspoFromInspo": "來自素材庫",
+  "inspoRemoveFromPit": "移出",
+  "inspoRemovedToast": "已移出，素材庫裡的圖還在",
+  "inspoPlacedDate": "{year} / {month} / {day} 放進",
+  "@inspoPlacedDate": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "inspoAlsoIn": "也在 {pits}",
+  "@inspoAlsoIn": {
+    "placeholders": {
+      "pits": {
+        "type": "String"
+      }
+    }
+  },
+  "inspoEditTitle": "編輯靈感圖",
+  "inspoDeletePlacedNote": "已放進坑的也會一起移除",
+  "noteLabel": "說明",
+  "pickerSourceAlbum": "相簿",
   "ipadauditGifLoop": "GIF · 自動循環",
   "ipadauditVideoMeta": "影片 · {duration} · 縮圖取第一格",
   "@ipadauditVideoMeta": {
@@ -1100,14 +1202,14 @@
   "ipadmediaFiles": "從「檔案」選取",
   "ipadmediaFilesSub": "iCloud Drive、CSP 匯出的 PNG／JPG",
   "ipadmediaMaterials": "從素材庫選取",
-  "ipadmediaMaterialsSub": "畫匣內已收藏的素材",
+  "ipadmediaMaterialsSub": "畫匣內已收藏的靈感圖",
   "ipadmediaCamera": "拍照",
   "ipadmediaPaste": "貼上",
   "ipadmediaPasteHasImage": "剪貼簿有 1 張圖",
   "ipadmediaPasteEmpty": "剪貼簿裡沒有圖片",
   "ipadmediaFilesFailed": "無法讀取所選檔案",
   "ipadmediaCameraFailed": "無法開啟相機",
-  "ipadmediaMaterialsEmpty": "素材庫還沒有素材",
+  "ipadmediaMaterialsEmpty": "素材庫還沒有圖",
   "ipadmediaMaterialsAdd": "加入 {count} 張",
   "@ipadmediaMaterialsAdd": {
     "placeholders": {
@@ -1116,7 +1218,7 @@
       }
     }
   },
-  "ipadmediaMaterialsFailed": "無法讀取所選素材",
+  "ipadmediaMaterialsFailed": "無法讀取所選的圖",
   "ipadmediaDropTitle": "放開即可加入「{target}」",
   "@ipadmediaDropTitle": {
     "placeholders": {
@@ -1207,15 +1309,8 @@
   "materialTitle": "素材庫",
   "materialLayoutWaterfall": "瀑布",
   "materialLayoutGrid": "九宮格",
-  "materialAddLabel": "加素材",
-  "materialEmpty": "還沒有素材",
-  "materialCatClothing": "服裝",
-  "materialCatPose": "姿勢",
-  "materialCatBody": "人體",
-  "materialCatPalette": "色盤",
-  "materialCatScene": "場景",
-  "materialCatStyle": "畫風",
-  "materialCatSticker": "貼圖",
+  "materialAddLabel": "加圖",
+  "materialEmpty": "還沒有靈感圖",
   "materialFieldCategory": "分類",
   "materialShareDestLabel": "加入到哪裡",
   "mediaBadgeGif": "GIF",
@@ -1259,8 +1354,8 @@
       }
     }
   },
-  "officialtagEditTitle": "編輯官方圖",
-  "searchCategoryOfficial": "官方圖",
+  "officialtagEditTitle": "編輯參考圖",
+  "searchCategoryOfficial": "參考圖",
   "oshiTitle": "推活",
   "oshiCountRecords": "{count} 筆",
   "@oshiCountRecords": {

@@ -79,7 +79,10 @@ void main() {
         await db.addOfficial(pit, group, [v]);
         await db.addFanArts(pit, [v], author: 'x');
         await db.addJunk(pit, [v]);
-        await db.addMaterials(MaterialCategory.values.first, [v]);
+        await db.addMaterials(
+          materialCategoryIdOf(MaterialCategory.values.first),
+          [v],
+        );
         await db.saveIdea(
           pitId: pit,
           title: 't',

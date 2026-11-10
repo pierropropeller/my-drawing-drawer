@@ -5,6 +5,7 @@ import '../../theme/tokens.dart';
 import '../common/adaptive_modal.dart' show disabledButtonBg, disabledButtonFg;
 import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
+import '../pits/pit_form.dart' show pitInputDecoration;
 
 /// 圖冊表單頁骨架（OfficialNew）：返回＋襯線標題 20px、可捲動內容（內距 20,8,20,24）。
 /// 表單頁沒有底部導覽列，由各頁的 State 加 `HidesNavBar`。
@@ -103,4 +104,28 @@ class AlbumSubmitButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 「說明」欄（RefNew，D-141）：小標＋三行輸入框，可留空。參考圖、靈感廣場、好看同人圖共用。
+class NoteField extends StatelessWidget {
+  const NoteField({super.key, required this.controller});
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      AlbumFieldLabel(context.l10n.noteLabel),
+      TextField(
+        key: const ValueKey('noteField'),
+        controller: controller,
+        minLines: 3,
+        maxLines: 6,
+        keyboardType: TextInputType.multiline,
+        style: const TextStyle(fontSize: 15, height: 1.5),
+        decoration: pitInputDecoration(context),
+      ),
+    ],
+  );
 }

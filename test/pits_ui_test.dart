@@ -114,7 +114,7 @@ void main() {
   testWidgets('D-058：六格 2 欄 3 列，數量單位各自正確，推活 N 筆', (tester) async {
     await tester.runAsync(() => seedOshi(2));
     await pumpPitPage(tester, Brightness.light);
-    final o = at(tester, '官方圖冊');
+    final o = at(tester, '參考圖');
     final f = at(tester, '好看同人圖');
     final d = at(tester, '我的摸魚');
     final i = at(tester, '我的腦洞');
@@ -177,7 +177,7 @@ void main() {
     await pumpPitPage(tester, Brightness.light);
     await tester.tap(find.text('推活'));
     await settle(tester);
-    expect(find.text('官方圖冊'), findsNothing); // 已進入推活列表頁
+    expect(find.text('參考圖'), findsNothing); // 已進入推活列表頁
     expect(find.byType(OshiListPage), findsOneWidget);
     await unmount(tester);
   });
@@ -230,7 +230,7 @@ void main() {
 
     await tester.tap(find.text('坑A'));
     await settle(tester);
-    expect(find.text('官方圖冊'), findsOneWidget);
+    expect(find.text('參考圖'), findsOneWidget);
     expect(find.text('時間軸'), findsOneWidget);
 
     await tester.tap(find.byTooltip('編輯'));
@@ -304,7 +304,7 @@ void main() {
     await settle(tester);
     // 進入雜物列表頁（坑內頁被蓋住，五格不再可見）。
     expect(find.byType(JunkListPage), findsOneWidget);
-    expect(find.text('官方圖冊'), findsNothing);
+    expect(find.text('參考圖'), findsNothing);
     await unmount(tester);
   });
 

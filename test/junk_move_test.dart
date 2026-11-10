@@ -4,7 +4,7 @@ import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/junk_queries.dart';
 
-/// 雜物（D-034）與官方圖冊／好看同人圖／雜物之間的移動（D-044）。
+/// 雜物（D-034）與參考圖／好看同人圖／雜物之間的移動（D-044）。
 void main() {
   late AppDatabase db;
   late String pitId;

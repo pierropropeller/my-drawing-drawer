@@ -98,7 +98,7 @@ void main() {
     );
   }
 
-  testWidgets('長按官方圖冊格：選的是這一格的封面，坑封面不變', (tester) async {
+  testWidgets('長按參考圖格：選的是這一格的封面，坑封面不變', (tester) async {
     await tester.runAsync(seedOfficial);
     await pumpHome(tester, PitPage(pitId: pitId));
     // 沒指定＝自動的一張（updatedAt 只到秒，哪張算最新不固定），選另一張。
@@ -106,13 +106,13 @@ void main() {
     final other = auto == 'o2.png' ? 'o1.png' : 'o2.png';
     expect(img(auto), findsOneWidget);
 
-    await tester.longPress(find.text('官方圖冊'));
+    await tester.longPress(find.text('參考圖'));
     await settle(tester);
-    expect(find.text('長按中：官方圖冊 封面'), findsOneWidget);
+    expect(find.text('長按中：參考圖 封面'), findsOneWidget);
     await tester.tap(img(other));
     await settle(tester);
 
-    expect(find.text('已設為「官方圖冊」的封面'), findsOneWidget);
+    expect(find.text('已設為「參考圖」的封面'), findsOneWidget);
     expect(find.byType(CoverPickPage), findsNothing);
     expect(img(other), findsOneWidget);
     expect(img(auto), findsNothing);

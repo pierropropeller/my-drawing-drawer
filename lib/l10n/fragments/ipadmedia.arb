@@ -13,21 +13,21 @@
   "ipadmediaFiles": "從「檔案」選取",
   "ipadmediaFilesSub": "iCloud Drive、CSP 匯出的 PNG／JPG",
   "ipadmediaMaterials": "從素材庫選取",
-  "ipadmediaMaterialsSub": "畫匣內已收藏的素材",
+  "ipadmediaMaterialsSub": "畫匣內已收藏的靈感圖",
   "ipadmediaCamera": "拍照",
   "ipadmediaPaste": "貼上",
   "ipadmediaPasteHasImage": "剪貼簿有 1 張圖",
   "ipadmediaPasteEmpty": "剪貼簿裡沒有圖片",
   "ipadmediaFilesFailed": "無法讀取所選檔案",
   "ipadmediaCameraFailed": "無法開啟相機",
-  "ipadmediaMaterialsEmpty": "素材庫還沒有素材",
+  "ipadmediaMaterialsEmpty": "素材庫還沒有圖",
   "ipadmediaMaterialsAdd": "加入 {count} 張",
   "@ipadmediaMaterialsAdd": {
     "placeholders": {
       "count": {"type": "int"}
     }
   },
-  "ipadmediaMaterialsFailed": "無法讀取所選素材",
+  "ipadmediaMaterialsFailed": "無法讀取所選的圖",
   "ipadmediaDropTitle": "放開即可加入「{target}」",
   "@ipadmediaDropTitle": {
     "placeholders": {

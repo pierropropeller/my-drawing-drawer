@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import 'database.dart';
+import 'material_queries.dart' show MaterialImageCategory;
 
 /// 同步進度 sheet 一行要顯示的「這張圖屬於哪裡」（D-099）。
 enum SyncRowKind {
@@ -32,8 +33,8 @@ class SyncRowInfo {
   /// 腦洞／摸魚／成圖／推活的標題（沒有標題為 null）。
   final String? title;
 
-  /// 素材庫的分類（只有 [SyncRowKind.material]）。
-  final MaterialCategory? materialCategory;
+  /// 靈感廣場的分類名（只有 [SyncRowKind.material]）。
+  final String? materialCategory;
 
   /// 這個檔案是影片時，它的 poster 圖檔名（列的縮圖用 poster）。
   final String? posterFile;
@@ -59,7 +60,7 @@ class _Hit {
   _Hit(this.kind, {this.pitId, this.category, this.poster});
   final SyncRowKind kind;
   String? pitId;
-  final MaterialCategory? category;
+  final String? category;
   final String? poster;
   String? title;
 }
@@ -135,11 +136,18 @@ extension SyncRowInfoQueries on AppDatabase {
                   i.deletedAt.isNull(),
             ))
             .get();
+    final catNames = {
+      for (final c in await select(materialCategories).get()) c.id: c.name,
+    };
     for (final r in material) {
       add(
         r.imageFile,
         r.posterFile,
-        (p) => _Hit(SyncRowKind.material, category: r.category, poster: p),
+        (p) => _Hit(
+          SyncRowKind.material,
+          category: catNames[r.categoryKey],
+          poster: p,
+        ),
       );
     }
 
@@ -185,6 +193,7 @@ extension SyncRowInfoQueries on AppDatabase {
           )..where((p) => p.id.isIn(ids) & p.deletedAt.isNull())).get())
             o.id: (pitId: o.pitId, title: o.title),
         },
+        OwnerType.album => <String, ({String pitId, String? title})>{},
       };
       for (final e in rows) {
         final owner = map[e.ownerId];

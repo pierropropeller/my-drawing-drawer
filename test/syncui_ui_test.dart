@@ -211,7 +211,7 @@ void main() {
     expect(find.text('上傳 1 張'), findsOneWidget);
     expect(find.text('下載 6 張'), findsOneWidget);
     // 已完成的不列；其餘依序列出前 4 張，位置是「坑 · 格」。
-    expect(find.text('坑A · 官方圖冊'), findsNWidgets(4));
+    expect(find.text('坑A · 參考圖'), findsNWidgets(4));
     expect(find.text('72%'), findsOneWidget);
     expect(find.text('62%'), findsOneWidget);
     expect(find.text('等待中'), findsNWidgets(2));
@@ -245,7 +245,7 @@ void main() {
     expect(find.text('上傳 1 張'), findsOneWidget);
     expect(find.text('下載 6 張'), findsOneWidget);
     expect(find.text('剛剛'), findsOneWidget);
-    expect(find.text('坑A · 官方圖冊'), findsNothing); // 列表消失
+    expect(find.text('坑A · 參考圖'), findsNothing); // 列表消失
     expect(find.text('還有 1 張等待中'), findsNothing);
     final bar = tester.getSize(find.byKey(const Key('sync-done-bar')));
     final inner = tester.getSize(find.byType(SyncDoneContent));

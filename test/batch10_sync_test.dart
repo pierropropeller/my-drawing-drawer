@@ -125,7 +125,7 @@ void main() {
         poster: 'v1.jpg',
       ),
     ]);
-    await a.addMaterials(MaterialCategory.pose, [
+    await a.addMaterials(materialCategoryIdOf(MaterialCategory.pose), [
       fileOn(dirA, 'm.gif', kind: MediaKind.gif),
     ]);
     final oid = await a.saveOshiRecord(
@@ -210,7 +210,9 @@ void main() {
         fileOn(dirA, 'x.gif'),
         fileOn(dirA, 'y.png'),
       ]);
-      await a.addMaterials(MaterialCategory.style, [fileOn(dirA, 'z.gif')]);
+      await a.addMaterials(materialCategoryIdOf(MaterialCategory.style), [
+        fileOn(dirA, 'z.gif'),
+      ]);
       final oid = await a.saveOshiRecord(
         pitId: pitId,
         date: DateTime(2026, 10, 1),

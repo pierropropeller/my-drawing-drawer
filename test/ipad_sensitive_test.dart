@@ -447,7 +447,7 @@ void main() {
         matching: find.byType(SensitiveGate),
       );
       expect(tile, findsWidgets);
-      // 官方圖冊格子的封面是沒標記的 b.png，不是 a.png。
+      // 參考圖格子的封面是沒標記的 b.png，不是 a.png。
       expect(tester.widget<SensitiveGate>(tile.first).file, 'b.png');
       expect(find.byKey(blur), findsNothing);
       await unmount(tester);

@@ -61,21 +61,24 @@
 
 主頁卡片副標：`{成圖數} 成圖 · {未孵腦洞數} 腦洞未孵`。
 
-### 3.2 官方圖冊 `OfficialImage`
+### 3.2 參考圖 `OfficialImage`（原「官方圖冊」，D-140 改名）
 | 欄位 | 型別 | 備註 |
 |---|---|---|
 | pitId | id | |
-| imageFile | file | 一張圖一筆；新增頁可一次加多張 |
+| imageFile | file | 第 1 張；新增頁可一次加多張（每張一筆，或開「合成一組」存成一筆，D-139） |
+| （額外圖） | `entity_images` | 第 2 張起（D-136）：ownerType＝`album`、ownerId＝imageKey、依 sortOrder；同步放在文件的 `extras` |
 | groupId | id | 分組（＝類型） |
 | tags | Tag[] | D-089 起官方圖也可以加 tag |
+| note | string? | 說明（D-141）；從廣場放進來的圖不用這欄，讀廣場那張的 |
+| materialId | id? | 從素材庫放進來（D-142）：廣場那張的 id。檔案共用；「移出」＝只刪這一列（不進最近刪除） |
 
-`OfficialGroup`：`pitId`、`name`、`sortOrder`。預設：設定圖、海報宣傳、素材、自用截圖。可新增、改名、刪除、拖曳排序（`GroupManage`）。
+`OfficialGroup`：`pitId`、`name`、`sortOrder`。新坑預設（D-140）：海報宣傳、建模、細節設定、三視圖、概念圖、官方周邊、圖透、自用截圖、社區分析、教學圖、其他參考；舊坑不動。可新增、改名、刪除、拖曳排序（`GroupManage`）。
 
 ### 3.3 好看同人圖 `FanArt`
 | 欄位 | 型別 | 備註 |
 |---|---|---|
 | pitId | id | |
-| imageFile | file | |
+| imageFile | file | 第 1 張；第 2 張起同官方圖（D-136） |
 | author | string | 例：@illust_ka |
 | source | enum/string | 推特、小紅書、lofter、朋友發的、網上搜的 |
 | tags | Tag[] | |
@@ -185,13 +188,17 @@
 - 沒有「類型」、沒有「可展示」（D-062 拿掉）。
 - 計數單位：「筆」。
 
-### 3.12 素材庫 `Material`（D-071）
-畫畫參考用的圖，**不屬於任何坑**，入口在「我的」。只有圖，**沒有任何文字欄位**（無標題、描述、tag）。
+### 3.12 素材庫 `Material`（D-071；原「素材庫」，D-140 改名）
+畫畫參考用的圖，**不屬於任何坑**，入口在「我的」。沒有標題、tag（「無屬性向」）；可以寫說明。
 | 欄位 | 型別 | 備註 |
 |---|---|---|
 | image | file | 一筆＝一張圖 |
-| category | enum | 單選：服裝、姿勢、人體、色盤、場景、畫風、貼圖（先固定這 7 個） |
+| category / categoryId | enum / id | 單選分類。D-143 起分類可自訂（`MaterialCategory` 表：`name`、`sortOrder`）；原本 7 個是預設分類，id 固定為 `mcat-<英文名>`。舊欄位 `category` 照寫（自訂分類寫 clothing），讓舊版 App 讀得到 |
+| note | string? | 說明（D-141），放進各坑的參考圖共用這一份 |
 | createdAt | datetime | 排序用，新的在前 |
+
+- 「放進坑」（D-142）＝在那個坑建立一筆 `OfficialImage`（`materialId` 指回來）。刪除廣場圖時一起拿掉，還原時一起回來。
+- 坑圖可以移到廣場（D-144）：廣場新增一筆（檔案共用、說明帶過去），坑裡那筆拿走。
 
 - 不計入目標、不入時間軸、不和坑內任何東西建立關聯。
 - 版面偏好（瀑布／九宮格）存在裝置設定（3.10）。
@@ -278,6 +285,9 @@ Drive/App 專用資料夾/
 | `OfficialNew` | 新增官方圖 | 圖片、分組、tag（D-089）；亦作編輯頁 |
 | `FormImagePreview` | 表單內圖片預覽 | 所有新增／編輯頁點小圖進入；黑底、×、「1 / N」、左右滑，沒有動作列（D-102） |
 | `OfficialSelect` | 多選 | **長按**進入；下載、移動、tag、刪除 |
+| `OfficialSelectMerge` | 多選（合併） | 底欄：下載、移動、**合併**、tag、刪除（D-138）；同人圖同 |
+| `OfficialListMulti` | 官方圖冊（多圖） | 多圖那一格右下角「⧉ N」，多選時也顯示（D-137） |
+| `ImagePreviewMulti` | 圖片預覽（多圖） | tag 下面縮圖條（「n / N」＋40×40 縮圖），點縮圖換張；日期左、分組右下（D-137） |
 | `FanArtTagSheet` | 多選 · tag | 同人圖／官方圖多選後批量加減 tag（D-060） |
 | `MoveSheet` | 移動到 | 可選坑（跨坑，D-054）＋官方圖冊／好看同人圖／雜物；選官方圖冊時展開分組。獨有欄位移動時保留但隱藏。目標坑缺 tag 時先出 `MoveTagConfirm`（D-131） |
 | `EntityMoveSheet` | 移動到（腦洞／摸魚／成圖） | 只選坑（D-130）；有關聯先出 `MoveUnlinkConfirm`（斷開確認），缺 tag 出 `MoveTagConfirm` |
@@ -366,14 +376,14 @@ Drive/App 專用資料夾/
 | `PitDeleteConfirm` | 刪除坑 · 確認 | 「坑內所有內容會移到「最近刪除」，30 天內可以還原。」 |
 | `About` | 關於 App | 圖示、名稱、版本、資料存放說明、開源授權 |
 | `AppIconPick` | App 圖示 | 兩欄大卡（icon＋名稱），選中＝主色框＋勾；撳一下即換，底部 toast「桌面圖示已換成「三筆」」（D-086） |
-| `MaterialList` | 素材庫 · 瀑布 | 從「我的」進入；標題列右邊瀑布／九宮格切換；上方分類 pills（全部＋7 類）；只有圖、沒有字；右下 ＋ 加圖（D-071） |
+| `MaterialList` → `InspoList` | 素材庫 · 瀑布 | 從「我的」進入；標題列右邊瀑布／九宮格切換；上方分類 pills（全部＋自訂分類），最右「管理分類」（`InspoCategoryManage`）；縮圖下說明兩行、放進了哪些坑；右下 ＋ 加圖（D-071、D-143） |
 | `MaterialGrid` | 素材庫 · 九宮格 | 同上，一排 3 格正方形（示範篩選「姿勢」） |
 | `MaterialDragSelect` | 長按拖曳連續多選 | 示範拖曳中：起點到手指之間全部選中；底部淡色＝自動捲動區（D-081） |
 | `MediaBadges` | 影片與 GIF | 列表標記、詳情頁影片未播放／播放中（D-080） |
 | `ImagePicker` | 圖片選擇器 | 所有加圖入口共用；永遠黑底；底部「下一步（N）」（未選時整塊不出現）；按日期分組、日期標題置頂、按撳的次序編號、底部已選列（D-084） |
 | `ImagePickerScrub` | 圖片選擇器 · 其他狀態 | 選整天、快速捲動月份泡泡、「只開放了部分相片」提示（D-084） |
 | `ImagePickerSheet` | 圖片選擇器 · 半開 | 打開時是 60% 高 bottom sheet，往上拉彈到全螢幕（`ImagePicker`），往下拉縮回／關閉（D-084） |
-| `MaterialSelect` | 素材庫 · 多選 | 長按進入；底部 分享／下載／移動／刪除 |
+| `MaterialSelect` | 素材庫 · 多選 | 長按進入；底部 放進坑（`InspoPitSheet`）／分享／下載／移動／刪除 |
 | `MaterialMoveSheet` | 素材庫 · 移動到 | 選一個分類（單選，顯示各分類張數）→「移動」 |
 
 ### 其他

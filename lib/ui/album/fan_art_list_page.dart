@@ -80,12 +80,14 @@ class _FanArtListPageState extends ConsumerState<FanArtListPage> {
           height: r.height,
           kind: AlbumKind.fanArt,
           author: r.author,
+          note: r.note,
           groupName: names[r.groupId],
           groupId: r.groupId,
           createdAt: r.createdAt,
           mediaKind: r.kind,
           durationMs: r.durationMs,
           posterFile: r.posterFile,
+          imageKey: r.imageKey,
         ),
     ];
     final images = imagesOf(ref, groupId);

@@ -375,7 +375,7 @@ void main() {
               SizedBox.expand(),
               Positioned.fill(
                 child: DropHighlightBanner(
-                  title: '放開即可加入「官方圖冊」',
+                  title: '放開即可加入「參考圖」',
                   subtitle: '3 張',
                 ),
               ),
@@ -405,6 +405,7 @@ void main() {
                 context,
                 options: AddSourceOptions(
                   clipboard: ClipboardProbe.image,
+                  inspo: true,
                   clipboardPreview: preview,
                 ),
               ),
@@ -517,7 +518,7 @@ void main() {
             body: TextButton(
               onPressed: () => showMediaSourceMenu(
                 context,
-                options: const AddSourceOptions(),
+                options: const AddSourceOptions(inspo: true),
               ),
               child: const Text('OPEN'),
             ),

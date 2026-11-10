@@ -1,0 +1,249 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../data/database.dart';
+import '../../data/inspo_queries.dart';
+import '../../l10n/l10n.dart';
+import '../../state/providers.dart';
+import '../../theme/tokens.dart';
+import '../album/album_actions.dart';
+import '../common/app_icons.dart';
+import '../common/nav_bar_hidden.dart';
+import '../common/svg_icon.dart';
+
+/// 靈感廣場的管理分類（InspoCategoryManage，D-143）：拖曳排序、改名、刪除、新增。
+/// 版型同參考圖的管理分組。沒有底部導覽列。
+class InspoCategoryManagePage extends ConsumerWidget {
+  const InspoCategoryManagePage({super.key});
+
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    InspoCategory c,
+  ) async {
+    final ok = await confirmDelete(
+      context,
+      title: context.l10n.inspoCategoryDeleteTitle(c.name),
+      message: context.l10n.inspoCategoryDeleteBody,
+    );
+    if (!ok) return;
+    final done = await ref.read(databaseProvider).deleteInspoCategory(c.id);
+    if (!done && context.mounted) {
+      showSnack(context, context.l10n.inspoCategoryKeepOne);
+    }
+  }
+
+  Future<void> _rename(
+    BuildContext context,
+    WidgetRef ref,
+    InspoCategory c,
+  ) async {
+    final name = await promptText(
+      context,
+      title: context.l10n.inspoCategoryNameTitle,
+      initial: c.name,
+    );
+    if (name != null) {
+      await ref.read(databaseProvider).renameInspoCategory(c.id, name);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.tokens;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final db = ref.watch(databaseProvider);
+    final groups = ref.watch(inspoCategoriesProvider).value ?? const [];
+    final counts = ref.watch(materialCountsProvider).value;
+    final rowLine = BorderSide(color: t.borderCard);
+    // 管理頁沒有底部導覽列（InspoCategoryManage 沒畫 nav）。
+    return HideNavBar(
+      child: Scaffold(
+        appBar: AppBar(
+          leadingWidth: 58,
+          titleSpacing: 6,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 14),
+            child: IconButton(
+              tooltip: context.l10n.commonBack,
+              padding: EdgeInsets.zero,
+              icon: SvgIcon(AppIcons.back, color: t.ink, strokeWidth: 1.9),
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
+          ),
+          title: Text(
+            context.l10n.inspoManageCategories,
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(2, 0, 2, 12),
+              child: Text(
+                context.l10n.inspoCategoryHint,
+                style: TextStyle(color: t.text3, fontSize: 12.5),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 2, 10, 2),
+              decoration: BoxDecoration(
+                color: t.surface,
+                borderRadius: BorderRadius.circular(Radii.card),
+                border: Border.all(color: t.borderCard),
+              ),
+              child: Column(
+                children: [
+                  ReorderableListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    buildDefaultDragHandles: false,
+                    itemCount: groups.length,
+                    onReorderItem: (from, to) {
+                      final ids = groups.map((g) => g.id).toList();
+                      ids.insert(to, ids.removeAt(from));
+                      db.reorderInspoCategories(ids);
+                    },
+                    itemBuilder: (_, i) {
+                      final g = groups[i];
+                      return Container(
+                        key: ValueKey(g.id),
+                        padding: const EdgeInsets.fromLTRB(0, 6, 4, 6),
+                        decoration: BoxDecoration(
+                          color: t.surface,
+                          border: Border(bottom: rowLine),
+                        ),
+                        child: Row(
+                          children: [
+                            ReorderableDragStartListener(
+                              index: i,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 2,
+                                ),
+                                child: SvgIcon(
+                                  AppIcons.dragDots,
+                                  size: 18,
+                                  fill: 'currentColor',
+                                  strokeWidth: 0,
+                                  color: dark
+                                      ? t.text4
+                                      : const Color(0xFFC9BEB0),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => _rename(context, ref, g),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  child: Text(
+                                    g.name,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(right: 2),
+                              child: Text(
+                                context.l10n.commonCountImages(
+                                  counts?.of(g.id) ?? 0,
+                                ),
+                                style: TextStyle(
+                                  color: t.text4,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ),
+                            _RowButton(
+                              tooltip: context.l10n.albumGroupRename(g.name),
+                              svg: AppIcons.edit,
+                              color: t.text2,
+                              onTap: () => _rename(context, ref, g),
+                            ),
+                            _RowButton(
+                              tooltip: context.l10n.albumGroupDelete(g.name),
+                              svg: AppIcons.trash,
+                              color: t.danger,
+                              onTap: () => _delete(context, ref, g),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  InkWell(
+                    onTap: () async {
+                      final name = await promptText(
+                        context,
+                        title: context.l10n.inspoCategoryAdd,
+                      );
+                      if (name != null) {
+                        await db.addInspoCategory(name);
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Row(
+                        children: [
+                          SvgIcon(
+                            AppIcons.plus,
+                            size: 18,
+                            color: t.dashedText,
+                            strokeWidth: 2,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            context.l10n.inspoCategoryAdd,
+                            style: TextStyle(
+                              color: t.dashedText,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RowButton extends StatelessWidget {
+  const _RowButton({
+    required this.tooltip,
+    required this.svg,
+    required this.color,
+    required this.onTap,
+  });
+  final String tooltip;
+  final String svg;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: tooltip,
+    onPressed: onTap,
+    padding: EdgeInsets.zero,
+    constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+    icon: SvgIcon(svg, size: 20, color: color),
+  );
+}
