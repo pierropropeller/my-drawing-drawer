@@ -132,15 +132,14 @@ class _Tile extends StatelessWidget {
                 border: Border.all(color: t.accent, width: 2),
               ),
             ),
+          // 多圖（D-136）：右下「⧉ N」（左下是 GIF／影片標記，離邊同 7）；多選時也看得到。
+          Positioned(right: 7, bottom: 7, child: AlbumSetBadge(image.imageKey)),
           if (selecting)
             Positioned(
               top: 8,
               right: 8,
               child: SelectMark(selected: isSelected),
-            )
-          else
-            // 多圖（D-136）：右上「⧉ N」；多選時那個位置是勾選圈，所以不畫。
-            Positioned(top: 8, right: 8, child: AlbumSetBadge(image.imageKey)),
+            ),
         ],
       ),
     );
@@ -222,6 +221,11 @@ class SquareGrid extends StatelessWidget {
               MediaThumb(im.media, cacheWidth: 400),
               if (im.fromInspo)
                 const Positioned(left: 6, top: 6, child: InspoBadge()),
+              Positioned(
+                right: 6,
+                bottom: 6,
+                child: AlbumSetBadge(im.imageKey),
+              ),
               if (isSelected)
                 DecoratedBox(
                   decoration: BoxDecoration(

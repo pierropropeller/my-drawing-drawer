@@ -31,7 +31,7 @@ canvas「參考圖／靈感廣場（CR 11/09）」區：`RefList`、`RefNew`、`
 - **D-136** **一筆官方圖／同人圖可以有多張圖**（漫畫、variant 用）。資料見 HANDOFF 3.2／3.3。 ✅ commit 1ddeb83
   - 第 1 張仍是那一筆本身（列表、封面、搜尋照舊）；第 2 張起存在 `entity_images`（ownerType＝`album`、ownerId＝那一筆的 imageKey），所以移動到同人圖／雜物、跨坑時整組跟著走。同步：放在那一筆的文件裡（`extras`）。
 - **D-137** **列表小標＋預覽頁縮圖條**。Artboard：`OfficialListMulti`、`ImagePreviewMulti`。 ✅ commit 1ddeb83
-  - 列表：多圖的那一格右上角「⧉ N」（N＝總張數）；多選時那個位置換成勾選圈。
+  - 列表：多圖的那一格**右下角**「⧉ N」（N＝總張數，離邊同左下的 GIF／影片標記）；多選時也看得到（Molly 11/10：原本放右上會被勾選圈蓋住）。
   - 預覽：左右滑照舊是換一筆；多圖的那一筆在 tag 下面多一條縮圖條（左邊「n / N」，40×40 縮圖橫向捲動，選中的白框、其他半透明），點縮圖換張。日期在左、分組在右下。只有 1 張的照舊（`ImagePreview`）。
   - 分享、下載＝目前這一張；多選的分享、下載＝整組。
 - **D-138** **多選「合併」**。Artboard：`OfficialSelectMerge`。 ✅ commit 1ddeb83
