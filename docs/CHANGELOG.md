@@ -14,7 +14,7 @@
 
 - **D-153** **時間軸多選：選中卡片的上框被月份標題蓋住**（Molly 11/13 bug）：2px 主色框原本是 1px 邊＋往外擴 1px，第一張卡的外擴那 1px 被吸頂的月份標題蓋掉。改成 2px 框整個畫在卡片內側，內容位置不變。 ✅ commit 89b317b
 
-- **D-154** **推活時間軸縮圖左下角的影片標記變形**（Molly 11/13 bug）：▶ 圖形用錯座標系（viewBox 跟顯示尺寸一樣大），三角形被裁掉、偏右下又太大。改回稿上的 `viewBox 0 0 9 10` 縮到 8×9，置中在 20px 圓裡。Artboard：`OshiTimeline`、`MediaBadges`。 ✅ commit {sha}
+- **D-154** **推活時間軸縮圖左下角的影片標記變形**（Molly 11/13 bug）：▶ 圖形用錯座標系（viewBox 跟顯示尺寸一樣大），三角形被裁掉、偏右下又太大。改回稿上的 `viewBox 0 0 9 10` 縮到 8×9，置中在 20px 圓裡。Artboard：`OshiTimeline`、`MediaBadges`。 ✅ commit 1e91d0d
 
 ## 批次 31（2026-11-10，流動數據上傳）
 - **D-150** **使用流動數據上傳＋「等待 Wi-Fi」狀態**（補 D-080 的「只在 Wi-Fi 上傳」）。Artboard：`Backup`、`SyncSheetWifi`。 ✅ commit 383dcd8
