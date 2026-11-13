@@ -24,6 +24,7 @@ import '../entity/idea_form_page.dart';
 import '../entity/piece_form_page.dart';
 import '../junk/junk_list_page.dart';
 import '../material/material_library_page.dart';
+import '../common/device_class.dart';
 import '../common/window_class.dart';
 import '../pits/pit_new_page.dart';
 import '../pits/pit_page.dart';
@@ -131,13 +132,18 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     }
   }
 
-  /// 開新坑：視窗 ≥840 是置中 modal，較窄沿用整頁（坑分頁的 Navigator）。回傳新坑 id。
+  /// 開新坑：視窗 ≥840 是置中 modal；手機開 bottom sheet；其餘沿用整頁（坑分頁的 Navigator）。回傳新坑 id。
   Future<String?> _newPit() async {
     final nav = widget.pitsNavigator.currentState;
     final overlayCtx = nav?.overlay?.context;
     if (nav == null || overlayCtx == null) return null;
     if (MediaQuery.sizeOf(overlayCtx).width >= WindowClass.expandedMin) {
       return openNewPit(overlayCtx);
+    }
+    // 手機：開新坑 bottom sheet（D-153）；較窄的 iPad 照舊整頁。
+    if (!isTabletDevice(overlayCtx) &&
+        MediaQuery.sizeOf(overlayCtx).width < WindowClass.mediumMin) {
+      return openNewPitSheet(overlayCtx);
     }
     return nav.push<String>(
       MaterialPageRoute<String>(builder: (_) => const PitNewPage()),

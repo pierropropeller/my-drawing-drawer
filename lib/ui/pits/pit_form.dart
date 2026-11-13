@@ -31,6 +31,29 @@ InputDecoration pitInputDecoration(BuildContext context, {String? label}) {
   );
 }
 
+/// 浮動標籤輸入框（D-153，開新坑 sheet）：標籤空白時在框內（15、text4），
+/// 有字或聚焦時縮到框線上（12、粗體；聚焦＝accentStrong、其餘 text2）。
+InputDecoration pitFloatingDecoration(BuildContext context, String label) {
+  final t = context.tokens;
+  return pitInputDecoration(context).copyWith(
+    labelText: label,
+    alignLabelWithHint: false,
+    contentPadding: const EdgeInsets.all(14),
+    labelStyle: TextStyle(fontSize: 15, color: t.text4),
+    floatingLabelStyle: WidgetStateTextStyle.resolveWith(
+      (states) => TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: states.contains(WidgetState.focused) ? t.accentStrong : t.text2,
+      ),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: t.accent, width: 1.5),
+    ),
+  );
+}
+
 /// 其他表單沿用的帶標籤輸入框樣式。
 InputDecoration pitFieldDecoration(BuildContext context, String label) =>
     pitInputDecoration(context, label: label);
