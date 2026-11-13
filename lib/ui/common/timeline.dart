@@ -414,7 +414,7 @@ class _EntryCard extends StatelessWidget {
       child: Container(
         key: entry.cardKey,
         // 多選時右側留出勾選圈的位置；選中＝2px 主色框。
-        // 框整個畫在卡片內側（不往外擴），月份標題吸頂時才不會蓋掉上緣（D-155）；
+        // 框整個畫在卡片內側（不往外擴），月份標題吸頂時才不會蓋掉上緣（D-153）；
         // 邊框多出的 1px 從 padding 扣回，內容不位移。
         padding: picked
             ? const EdgeInsets.fromLTRB(9, 9, 39, 9)
