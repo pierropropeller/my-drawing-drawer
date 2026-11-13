@@ -140,7 +140,7 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     if (MediaQuery.sizeOf(overlayCtx).width >= WindowClass.expandedMin) {
       return openNewPit(overlayCtx);
     }
-    // 手機：開新坑 bottom sheet（D-153）；較窄的 iPad 照舊整頁。
+    // 手機：開新坑 bottom sheet（D-155）；較窄的 iPad 照舊整頁。
     if (!isTabletDevice(overlayCtx) &&
         MediaQuery.sizeOf(overlayCtx).width < WindowClass.mediumMin) {
       return openNewPitSheet(overlayCtx);

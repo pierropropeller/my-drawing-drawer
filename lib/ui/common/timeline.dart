@@ -413,15 +413,19 @@ class _EntryCard extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Container(
         key: entry.cardKey,
-        // 多選時右側留出勾選圈的位置；選中＝2px 主色框（1px 邊＋1px 外擴）。
-        padding: EdgeInsets.fromLTRB(10, 10, sel == null ? 10 : 40, 10),
+        // 多選時右側留出勾選圈的位置；選中＝2px 主色框。
+        // 框整個畫在卡片內側（不往外擴），月份標題吸頂時才不會蓋掉上緣（D-155）；
+        // 邊框多出的 1px 從 padding 扣回，內容不位移。
+        padding: picked
+            ? const EdgeInsets.fromLTRB(9, 9, 39, 9)
+            : EdgeInsets.fromLTRB(10, 10, sel == null ? 10 : 40, 10),
         decoration: BoxDecoration(
           color: t.surface,
-          border: Border.all(color: picked ? t.accent : t.borderCard),
+          border: Border.all(
+            color: picked ? t.accent : t.borderCard,
+            width: picked ? 2 : 1,
+          ),
           borderRadius: BorderRadius.circular(Radii.card),
-          boxShadow: picked
-              ? [BoxShadow(color: t.accent, spreadRadius: 1)]
-              : null,
         ),
         child: Stack(
           clipBehavior: Clip.none,

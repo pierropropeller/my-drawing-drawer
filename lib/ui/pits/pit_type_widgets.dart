@@ -86,7 +86,7 @@ class PitTypeSegment extends StatelessWidget {
   });
   final PitStatus value;
 
-  /// false＝不畫上方「類型」小標題、不留下方間距（開新坑 sheet，D-153）。
+  /// false＝不畫上方「類型」小標題、不留下方間距（開新坑 sheet，D-155）。
   final bool showLabel;
   final ValueChanged<PitStatus> onChanged;
   final bool allowArchive;
@@ -254,7 +254,7 @@ class PitSectionSwitchList extends StatelessWidget {
   });
   final Set<PitSectionKey> enabled;
 
-  /// false＝方格下面不留 22 間距（開新坑 sheet 自己排間距，D-153）。
+  /// false＝方格下面不留 22 間距（開新坑 sheet 自己排間距，D-155）。
   final bool trailingGap;
   final bool? sensitive;
   final ValueChanged<bool>? onSensitiveChanged;

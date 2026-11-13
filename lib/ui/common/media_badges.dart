@@ -18,6 +18,8 @@ class MediaGlyph extends StatelessWidget {
     required this.width,
     required this.height,
     this.color = Colors.white,
+    this.viewBoxWidth,
+    this.viewBoxHeight,
   });
 
   final String svg;
@@ -25,10 +27,15 @@ class MediaGlyph extends StatelessWidget {
   final double height;
   final Color color;
 
+  /// path 原本的座標系（稿上的 viewBox）。畫得比 viewBox 小時一定要給，
+  /// 不然 path 會被裁掉、看起來偏右下又太大（D-154）。
+  final double? viewBoxWidth;
+  final double? viewBoxHeight;
+
   @override
   Widget build(BuildContext context) => SvgPicture.string(
     '<svg xmlns="http://www.w3.org/2000/svg" width="$width" height="$height" '
-    'viewBox="0 0 $width $height">$svg</svg>',
+    'viewBox="0 0 ${viewBoxWidth ?? width} ${viewBoxHeight ?? height}">$svg</svg>',
     width: width,
     height: height,
     theme: SvgTheme(currentColor: color),

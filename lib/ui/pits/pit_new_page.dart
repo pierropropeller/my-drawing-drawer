@@ -16,7 +16,7 @@ import 'pit_form.dart';
 import 'pit_type_widgets.dart';
 
 /// 開新坑的單一入口：視窗 ≥600 開置中 modal（NewPit，600 闊）；＜600 的 iPad 開 page sheet（NewPit400）；
-/// 手機開 bottom sheet（D-153，PitNewSheet／PitNewSheetShallow）。
+/// 手機開 bottom sheet（D-155，PitNewSheet／PitNewSheetShallow）。
 /// 回傳新坑的 id（取消為 null）。[initialStatus]：預設的類型（主頁「淺坑」分頁的「開新淺坑」帶淺坑）。
 Future<String?> openNewPit(
   BuildContext context, {
@@ -44,7 +44,7 @@ Future<String?> openNewPit(
   ).whenComplete(width.dispose);
 }
 
-/// 手機的開新坑 bottom sheet（D-153）：走最上層 Navigator，蓋住導覽列，
+/// 手機的開新坑 bottom sheet（D-155）：走最上層 Navigator，蓋住導覽列，
 /// 從分享 sheet 上開也不會被壓在下面。回傳新坑的 id。
 Future<String?> openNewPitSheet(
   BuildContext context, {
@@ -73,7 +73,7 @@ class PitNewPage extends ConsumerStatefulWidget {
   });
   final bool asModal;
 
-  /// 手機 bottom sheet（D-153）：抓握條、標題＋關閉、浮動標籤輸入框、建立。
+  /// 手機 bottom sheet（D-155）：抓握條、標題＋關閉、浮動標籤輸入框、建立。
   final bool asSheet;
   final PitStatus initialStatus;
 

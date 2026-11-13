@@ -139,7 +139,14 @@ class MiniMediaThumb extends StatelessWidget {
           color: mediaBadgeColor,
           shape: BoxShape.circle,
         ),
-        child: const MediaGlyph(MediaIcons.playSmall, width: 8, height: 9),
+        // 稿：<svg width="8" height="9" viewBox="0 0 9 10">。
+        child: const MediaGlyph(
+          MediaIcons.playSmall,
+          width: 8,
+          height: 9,
+          viewBoxWidth: MediaIcons.playSmallWidth,
+          viewBoxHeight: MediaIcons.playSmallHeight,
+        ),
       );
     }
     return null;

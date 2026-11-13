@@ -31,7 +31,7 @@ InputDecoration pitInputDecoration(BuildContext context, {String? label}) {
   );
 }
 
-/// 浮動標籤輸入框（D-153，開新坑 sheet）：標籤空白時在框內（15、text4），
+/// 浮動標籤輸入框（D-155，開新坑 sheet）：標籤空白時在框內（15、text4），
 /// 有字或聚焦時縮到框線上（12、粗體；聚焦＝accentStrong、其餘 text2）。
 InputDecoration pitFloatingDecoration(BuildContext context, String label) {
   final t = context.tokens;

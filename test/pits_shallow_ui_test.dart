@@ -324,7 +324,7 @@ void main() {
       await unmount(tester);
     });
 
-    testWidgets('手機開新坑 sheet（D-153）：淺坑預設開參考圖、好看同人圖；建立後關掉 sheet', (
+    testWidgets('手機開新坑 sheet（D-155）：淺坑預設開參考圖、好看同人圖；建立後關掉 sheet', (
       tester,
     ) async {
       await tester.runAsync(seed);
