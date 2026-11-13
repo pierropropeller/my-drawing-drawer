@@ -391,7 +391,7 @@ class _FinishedListPageState extends ConsumerState<FinishedListPage>
                 children: [
                   if (selecting)
                     EntitySelectHeader(
-                      title: context.l10n.commonSelectedCount(picked.length),
+                      title: context.l10n.commonSelectedEntries(picked.length),
                       allSelected: _sel.allSelected,
                       onExit: _sel.exit,
                       onToggleAll: () =>

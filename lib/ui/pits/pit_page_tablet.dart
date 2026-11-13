@@ -175,7 +175,7 @@ class PitPageTablet extends ConsumerWidget {
       _Tile(
         sectionKey: PitSectionKey.official,
         label: l.pitsOfficial,
-        count: l.commonCountImages(stats.official),
+        count: l.commonCountEntries(stats.official),
         svg: AppIcons.pitOfficial,
         color: t.official,
         file: covers.official,
@@ -185,7 +185,7 @@ class PitPageTablet extends ConsumerWidget {
       _Tile(
         sectionKey: PitSectionKey.fan,
         label: l.pitsFanArt,
-        count: l.commonCountImages(stats.fanArts),
+        count: l.commonCountEntries(stats.fanArts),
         svg: AppIcons.pitFanArt,
         color: t.fanArt,
         file: covers.fanArt,

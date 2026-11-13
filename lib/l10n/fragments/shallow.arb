@@ -46,6 +46,8 @@
       }
     }
   },
+  "shallowCountEntries": "{count} 份圖",
+  "@shallowCountEntries": { "placeholders": { "count": { "type": "int" } } },
   "shallowCountImages": "{count} 張圖",
   "@shallowCountImages": {
     "placeholders": {
@@ -78,7 +80,7 @@
       }
     }
   },
-  "shallowCountOshi": "{count} 筆推活",
+  "shallowCountOshi": "{count} 次推活",
   "@shallowCountOshi": {
     "placeholders": {
       "count": {

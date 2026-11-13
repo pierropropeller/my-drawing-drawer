@@ -1419,6 +1419,24 @@ abstract class AppLocalizations {
   /// **'已選 {count} 張'**
   String commonSelectedCount(int count);
 
+  /// 參考圖、同人圖、成圖這類可以多圖的項目的數量（D-155）
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 份'**
+  String commonCountEntries(int count);
+
+  /// No description provided for @commonSelectedEntries.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選 {count} 份'**
+  String commonSelectedEntries(int count);
+
+  /// No description provided for @commonMovedEntries.
+  ///
+  /// In zh, this message translates to:
+  /// **'已移動 {count} 份到{target}'**
+  String commonMovedEntries(int count, String target);
+
   /// No description provided for @dayflowEmpty.
   ///
   /// In zh, this message translates to:
@@ -3309,6 +3327,12 @@ abstract class AppLocalizations {
   /// **'已移動 {count} 張到「{pit}」的{target}'**
   String moveReviewMovedToPit(int count, String pit, String target);
 
+  /// No description provided for @moveReviewMovedEntriesToPit.
+  ///
+  /// In zh, this message translates to:
+  /// **'已移動 {count} 份到「{pit}」的{target}'**
+  String moveReviewMovedEntriesToPit(int count, String pit, String target);
+
   /// No description provided for @moveReviewPickTitle.
   ///
   /// In zh, this message translates to:
@@ -3342,7 +3366,7 @@ abstract class AppLocalizations {
   /// No description provided for @oshiCountRecords.
   ///
   /// In zh, this message translates to:
-  /// **'{count} 筆'**
+  /// **'{count} 次'**
   String oshiCountRecords(int count);
 
   /// No description provided for @oshiCountItems.
@@ -3474,7 +3498,7 @@ abstract class AppLocalizations {
   /// No description provided for @oshiDeleteTitle.
   ///
   /// In zh, this message translates to:
-  /// **'刪除這筆紀錄？'**
+  /// **'刪除這次推活紀錄？'**
   String get oshiDeleteTitle;
 
   /// No description provided for @oshiGroupHint.
@@ -3492,7 +3516,7 @@ abstract class AppLocalizations {
   /// No description provided for @oshiSelectedCount.
   ///
   /// In zh, this message translates to:
-  /// **'已選 {count} 筆'**
+  /// **'已選 {count} 次'**
   String oshiSelectedCount(int count);
 
   /// No description provided for @oshiNoGroup.
@@ -3510,7 +3534,7 @@ abstract class AppLocalizations {
   /// No description provided for @oshiDeleteSelectedTitle.
   ///
   /// In zh, this message translates to:
-  /// **'刪除 {count} 筆紀錄？'**
+  /// **'刪除 {count} 次推活紀錄？'**
   String oshiDeleteSelectedTitle(int count);
 
   /// No description provided for @pickerTitle.
@@ -3630,7 +3654,7 @@ abstract class AppLocalizations {
   /// No description provided for @pitsCellOshiCount.
   ///
   /// In zh, this message translates to:
-  /// **'{count} 筆'**
+  /// **'{count} 次'**
   String pitsCellOshiCount(int count);
 
   /// No description provided for @pitSearchCategoryOshi.
@@ -4323,6 +4347,12 @@ abstract class AppLocalizations {
   /// **'格子裡的 {detail}會移到「最近刪除」，30 天內可以還原；還原時這個格子會自動重新開啟。'**
   String shallowCloseBody(String detail);
 
+  /// No description provided for @shallowCountEntries.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 份圖'**
+  String shallowCountEntries(int count);
+
   /// No description provided for @shallowCountImages.
   ///
   /// In zh, this message translates to:
@@ -4350,7 +4380,7 @@ abstract class AppLocalizations {
   /// No description provided for @shallowCountOshi.
   ///
   /// In zh, this message translates to:
-  /// **'{count} 筆推活'**
+  /// **'{count} 次推活'**
   String shallowCountOshi(int count);
 
   /// No description provided for @shallowCloseConfirm.

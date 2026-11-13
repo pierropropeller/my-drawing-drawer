@@ -301,6 +301,9 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     _exit();
   }
 
+  /// 參考圖、同人圖可以多圖，一項算「份」；雜物（[AlbumView.squares]）照舊算「張」（D-155）。
+  bool get _entries => !widget.squares;
+
   Future<void> _move() async {
     final cell = widget.cell;
     if (cell == null || _selected.isEmpty) return;
@@ -323,7 +326,15 @@ class _AlbumViewState extends ConsumerState<AlbumView>
       if (!mounted) return;
       showSnack(
         context,
-        context.l10n.albumMovedCount(ids.length, context.l10n.materialTitle),
+        _entries
+            ? context.l10n.commonMovedEntries(
+                ids.length,
+                context.l10n.materialTitle,
+              )
+            : context.l10n.albumMovedCount(
+                ids.length,
+                context.l10n.materialTitle,
+              ),
         success: true,
       );
       _exit();
@@ -366,11 +377,19 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     showSnack(
       context,
       target.crossPit
-          ? context.l10n.moveReviewMovedToPit(
-              picked.length,
-              target.pitName ?? '',
-              cellLabel,
-            )
+          ? (_entries
+                ? context.l10n.moveReviewMovedEntriesToPit(
+                    picked.length,
+                    target.pitName ?? '',
+                    cellLabel,
+                  )
+                : context.l10n.moveReviewMovedToPit(
+                    picked.length,
+                    target.pitName ?? '',
+                    cellLabel,
+                  ))
+          : _entries
+          ? context.l10n.commonMovedEntries(picked.length, cellLabel)
           : context.l10n.albumMovedCount(picked.length, cellLabel),
       success: true,
     );
@@ -722,7 +741,13 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                 ),
                 title: Text(
                   _selecting
-                      ? context.l10n.commonSelectedCount(_selected.length)
+                      ? (_entries
+                            ? context.l10n.commonSelectedEntries(
+                                _selected.length,
+                              )
+                            : context.l10n.commonSelectedCount(
+                                _selected.length,
+                              ))
                       : (pitName == null
                             ? widget.title
                             : context.l10n.albumTitleWithPit(
@@ -781,7 +806,9 @@ class _AlbumViewState extends ConsumerState<AlbumView>
                             right: widget.searchAction == null ? 22 : 6,
                           ),
                           child: Text(
-                            context.l10n.commonCountImages(total),
+                            _entries
+                                ? context.l10n.commonCountEntries(total)
+                                : context.l10n.commonCountImages(total),
                             style: TextStyle(color: t.text3, fontSize: 12),
                           ),
                         ),

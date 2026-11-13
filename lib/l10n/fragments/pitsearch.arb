@@ -1,6 +1,6 @@
 {
   "pitsCellOshi": "推活",
-  "pitsCellOshiCount": "{count} 筆",
+  "pitsCellOshiCount": "{count} 次",
   "@pitsCellOshiCount": {"placeholders": {"count": {"type": "int"}}},
   "pitSearchCategoryOshi": "推活"
 }

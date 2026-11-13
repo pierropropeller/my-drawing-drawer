@@ -187,7 +187,9 @@ class _MoveSheetState extends ConsumerState<MoveSheet> {
                         ?.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                   Text(
-                    context.l10n.commonCountImages(widget.count),
+                    widget.from == AlbumCell.junk
+                        ? context.l10n.commonCountImages(widget.count)
+                        : context.l10n.commonCountEntries(widget.count),
                     style: TextStyle(fontSize: 12.5, color: t.text3),
                   ),
                 ],

@@ -189,7 +189,7 @@ class GroupManagePage extends ConsumerWidget {
                                     ? context.l10n.oshiCountRecords(
                                         counts[g.id] ?? 0,
                                       )
-                                    : context.l10n.commonCountImages(
+                                    : context.l10n.commonCountEntries(
                                         counts[g.id] ?? 0,
                                       ),
                                 style: TextStyle(

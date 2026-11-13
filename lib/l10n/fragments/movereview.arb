@@ -9,6 +9,8 @@
       "target": { "type": "String" }
     }
   },
+  "moveReviewMovedEntriesToPit": "已移動 {count} 份到「{pit}」的{target}",
+  "@moveReviewMovedEntriesToPit": { "placeholders": { "count": { "type": "int" }, "pit": { "type": "String" }, "target": { "type": "String" } } },
   "moveReviewPickTitle": "選擇 {month} 月的圖片",
   "@moveReviewPickTitle": {
     "placeholders": {

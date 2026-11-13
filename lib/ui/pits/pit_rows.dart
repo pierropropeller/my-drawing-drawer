@@ -154,8 +154,8 @@ class PitRow extends ConsumerWidget {
       return [
         for (final k in open)
           l.shallowSubtitlePart(pitSectionMeta(context, k).label, switch (k) {
-            PitSectionKey.official => l.commonCountImages(stats.official),
-            PitSectionKey.fan => l.commonCountImages(stats.fanArts),
+            PitSectionKey.official => l.commonCountEntries(stats.official),
+            PitSectionKey.fan => l.commonCountEntries(stats.fanArts),
             PitSectionKey.idea => l.pitsCountIdeas(stats.ideas),
             PitSectionKey.draft => l.pitsCountDrafts(stats.drafts),
             PitSectionKey.piece => l.pitsCountPieces(stats.pieces),
@@ -167,7 +167,7 @@ class PitRow extends ConsumerWidget {
     if (stats.pieces == 0 && stats.drafts == 0 && stats.official > 0) {
       return l.shallowSubtitlePart(
         l.pitsOfficial,
-        l.commonCountImages(stats.official),
+        l.commonCountEntries(stats.official),
       );
     }
     return l.shallowArchivedSubtitle(stats.pieces, stats.drafts);

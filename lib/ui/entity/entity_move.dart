@@ -32,7 +32,7 @@ Future<bool> moveEntitiesToOtherPit(
       countText: switch (type) {
         OwnerType.idea => l.entityMoveCountIdea(ids.length),
         OwnerType.draft => l.entityMoveCountDraft(ids.length),
-        _ => l.commonCountImages(ids.length),
+        _ => l.commonCountEntries(ids.length),
       },
     ),
   );

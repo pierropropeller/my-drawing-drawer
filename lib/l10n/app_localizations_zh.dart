@@ -765,6 +765,21 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String commonCountEntries(int count) {
+    return '$count 份';
+  }
+
+  @override
+  String commonSelectedEntries(int count) {
+    return '已選 $count 份';
+  }
+
+  @override
+  String commonMovedEntries(int count, String target) {
+    return '已移動 $count 份到$target';
+  }
+
+  @override
   String get dayflowEmpty => '還沒有紀錄';
 
   @override
@@ -1847,6 +1862,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String moveReviewMovedEntriesToPit(int count, String pit, String target) {
+    return '已移動 $count 份到「$pit」的$target';
+  }
+
+  @override
   String moveReviewPickTitle(int month) {
     return '選擇 $month 月的圖片';
   }
@@ -1867,7 +1887,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String oshiCountRecords(int count) {
-    return '$count 筆';
+    return '$count 次';
   }
 
   @override
@@ -1940,7 +1960,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get oshiDeleteTitle => '刪除這筆紀錄？';
+  String get oshiDeleteTitle => '刪除這次推活紀錄？';
 
   @override
   String get oshiGroupHint => '分組只用於推活，拖曳可調整次序';
@@ -1950,7 +1970,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String oshiSelectedCount(int count) {
-    return '已選 $count 筆';
+    return '已選 $count 次';
   }
 
   @override
@@ -1961,7 +1981,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String oshiDeleteSelectedTitle(int count) {
-    return '刪除 $count 筆紀錄？';
+    return '刪除 $count 次推活紀錄？';
   }
 
   @override
@@ -2039,7 +2059,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String pitsCellOshiCount(int count) {
-    return '$count 筆';
+    return '$count 次';
   }
 
   @override
@@ -2432,6 +2452,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String shallowCountEntries(int count) {
+    return '$count 份圖';
+  }
+
+  @override
   String shallowCountImages(int count) {
     return '$count 張圖';
   }
@@ -2453,7 +2478,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String shallowCountOshi(int count) {
-    return '$count 筆推活';
+    return '$count 次推活';
   }
 
   @override

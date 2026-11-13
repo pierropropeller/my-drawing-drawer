@@ -207,7 +207,7 @@ class _BatchTagSheetState extends ConsumerState<BatchTagSheet> {
                       ),
                       Text(
                         widget.backend?.countText(l, widget.ids.length) ??
-                            l.commonCountImages(widget.ids.length),
+                            l.commonCountEntries(widget.ids.length),
                         style: TextStyle(fontSize: 12.5, color: t.text3),
                       ),
                     ],

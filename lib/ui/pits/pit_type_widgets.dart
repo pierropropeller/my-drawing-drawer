@@ -516,12 +516,12 @@ class PitSensitiveCard extends StatelessWidget {
   }
 }
 
-/// 某格子目前內容數量的說明：「3 張圖」「2 個腦洞」「5 份摸魚」「4 張成圖」「6 筆推活」。
+/// 某格子目前內容數量的說明：「3 份圖」「2 個腦洞」「5 份摸魚」「4 份成圖」「6 次推活」。
 String pitSectionCountText(BuildContext context, PitSectionKey key, int n) {
   final l = context.l10n;
   return switch (key) {
-    PitSectionKey.official ||
-    PitSectionKey.fan ||
+    // 參考圖、同人圖可以多圖，一項算「份」（D-155）。
+    PitSectionKey.official || PitSectionKey.fan => l.shallowCountEntries(n),
     PitSectionKey.junk => l.shallowCountImages(n),
     PitSectionKey.idea => l.shallowCountIdeas(n),
     PitSectionKey.draft => l.shallowCountDrafts(n),
