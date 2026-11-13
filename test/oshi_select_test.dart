@@ -128,7 +128,7 @@ void main() {
       expect(navBarHiddenCount.value, 0);
 
       await longPress(tester, card('甲'));
-      expect(find.text('已選 1 筆'), findsOneWidget);
+      expect(find.text('已選 1 次'), findsOneWidget);
       expect(find.text('全選'), findsOneWidget);
       expect(navBarHiddenCount.value, greaterThan(0));
       // 分組 pills 隱藏（線下照片只剩分組動作之外沒有別的）。
@@ -155,18 +155,18 @@ void main() {
       await longPress(tester, card('甲'));
       await tester.tap(card('乙'));
       await settle(tester);
-      expect(find.text('已選 2 筆'), findsOneWidget);
+      expect(find.text('已選 2 次'), findsOneWidget);
       await tester.tap(card('乙'));
       await settle(tester);
-      expect(find.text('已選 1 筆'), findsOneWidget);
+      expect(find.text('已選 1 次'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('oshiSelectAll')));
       await settle(tester);
-      expect(find.text('已選 3 筆'), findsOneWidget);
+      expect(find.text('已選 3 次'), findsOneWidget);
       expect(find.text('取消全選'), findsOneWidget);
       await tester.tap(find.text('取消全選'));
       await settle(tester);
-      expect(find.text('已選 3 筆'), findsNothing);
+      expect(find.text('已選 3 次'), findsNothing);
       expect(navBarHiddenCount.value, 0);
 
       // 取消最後一筆也會離開。
@@ -185,7 +185,7 @@ void main() {
       expect(navBarHiddenCount.value, greaterThan(0));
       await tester.tap(find.byKey(const ValueKey('oshiSelectExit')));
       await settle(tester);
-      expect(find.text('已選 1 筆'), findsNothing);
+      expect(find.text('已選 1 次'), findsNothing);
       expect(navBarHiddenCount.value, 0);
       await unmount(tester);
     });
@@ -214,7 +214,7 @@ void main() {
       expect((await view(tester, a))!.record.groupId, groups[1].id);
       expect((await view(tester, b))!.record.groupId, groups[1].id);
       expect((await view(tester, c))!.record.groupId, isNull);
-      expect(find.text('已選 2 筆'), findsNothing);
+      expect(find.text('已選 2 次'), findsNothing);
       expect(navBarHiddenCount.value, 0);
       await unmount(tester);
     });
@@ -228,7 +228,7 @@ void main() {
       // 取消：點遮罩關閉，仍在多選。
       await tester.tapAt(const Offset(180, 40));
       await settle(tester);
-      expect(find.text('已選 1 筆'), findsOneWidget);
+      expect(find.text('已選 1 次'), findsOneWidget);
       expect((await view(tester, a))!.record.groupId, groups[0].id);
 
       await tester.tap(find.byKey(const ValueKey('oshiSelectGroup')));
@@ -250,7 +250,7 @@ void main() {
       await settle(tester);
       await tester.tap(find.byKey(const ValueKey('oshiSelectTag')));
       await settle(tester);
-      expect(find.text('2 筆'), findsWidgets); // sheet 標題右側
+      expect(find.text('2 次'), findsWidgets); // sheet 標題右側
       await tester.tap(find.byKey(const ValueKey('batchTag-角色1-none')));
       await tester.pump();
       await tester.tap(find.text('完成'));
@@ -259,7 +259,7 @@ void main() {
       expect((await view(tester, a))!.tags.map((t) => t.id), [tag]);
       expect((await view(tester, c))!.tags.map((t) => t.id), [tag]);
       expect((await view(tester, b))!.tags, isEmpty);
-      expect(find.text('已選 2 筆'), findsNothing);
+      expect(find.text('已選 2 次'), findsNothing);
       await unmount(tester);
     });
 
@@ -275,7 +275,7 @@ void main() {
       await tester.tap(find.text('取消'));
       await settle(tester);
       expect(await view(tester, a), isNotNull);
-      expect(find.text('已選 2 筆'), findsOneWidget);
+      expect(find.text('已選 2 次'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('oshiSelectDelete')));
       await settle(tester);
@@ -302,12 +302,12 @@ void main() {
       await show(tester, prefsInit: {'oshiLayout': 'grid'});
       expect(find.text('甲'), findsNothing); // 九宮格沒有字
       await longPress(tester, find.byKey(ValueKey('oshi-grid-$a')));
-      expect(find.text('已選 1 筆'), findsOneWidget);
+      expect(find.text('已選 1 次'), findsOneWidget);
       expect(navBarHiddenCount.value, greaterThan(0));
       expect(find.text('線下照片'), findsNothing); // pills 隱藏
       await tester.tap(find.byKey(ValueKey('oshi-grid-$b')));
       await settle(tester);
-      expect(find.text('已選 2 筆'), findsOneWidget);
+      expect(find.text('已選 2 次'), findsOneWidget);
 
       // 刪除後九宮格更新。
       await tester.tap(find.byKey(const ValueKey('oshiSelectDelete')));
@@ -342,20 +342,20 @@ void main() {
       await seed(tester);
       await show(tester);
       final g = await holdAt(tester, tester.getCenter(card('甲')));
-      expect(find.text('已選 1 筆'), findsOneWidget);
+      expect(find.text('已選 1 次'), findsOneWidget);
       await g.moveTo(tester.getCenter(card('丙')));
       await tester.pump();
-      expect(find.text('已選 3 筆'), findsOneWidget);
+      expect(find.text('已選 3 次'), findsOneWidget);
       await g.moveTo(tester.getCenter(card('乙')));
       await tester.pump();
-      expect(find.text('已選 2 筆'), findsOneWidget);
+      expect(find.text('已選 2 次'), findsOneWidget);
       await release(tester, g);
       // 放手後維持多選，點卡片仍可切換。
-      expect(find.text('已選 2 筆'), findsOneWidget);
+      expect(find.text('已選 2 次'), findsOneWidget);
       expect(navBarHiddenCount.value, greaterThan(0));
       await tester.tap(card('丙'));
       await settle(tester);
-      expect(find.text('已選 3 筆'), findsOneWidget);
+      expect(find.text('已選 3 次'), findsOneWidget);
       await unmount(tester);
     });
 
@@ -366,16 +366,16 @@ void main() {
       await tester.tap(card('乙'));
       await tester.tap(card('丙'));
       await settle(tester);
-      expect(find.text('已選 3 筆'), findsOneWidget);
+      expect(find.text('已選 3 次'), findsOneWidget);
       // 從乙開始往下拖＝取消乙、丙，甲不受影響。
       var g = await holdAt(tester, tester.getCenter(card('乙')));
       await g.moveTo(tester.getCenter(card('丙')));
       await tester.pump();
-      expect(find.text('已選 1 筆'), findsOneWidget);
+      expect(find.text('已選 1 次'), findsOneWidget);
       await release(tester, g);
       // 再從甲取消到最後一筆 → 全空，放手後離開多選。
       g = await holdAt(tester, tester.getCenter(card('甲')));
-      expect(find.text('已選 0 筆'), findsOneWidget); // 拖曳中仍在多選
+      expect(find.text('已選 0 次'), findsOneWidget); // 拖曳中仍在多選
       await release(tester, g);
       expect(find.text('全選'), findsNothing);
       expect(navBarHiddenCount.value, 0);
@@ -390,9 +390,9 @@ void main() {
       final g = await holdAt(tester, tester.getCenter(ga));
       await g.moveTo(tester.getCenter(gc));
       await tester.pump();
-      expect(find.text('已選 3 筆'), findsOneWidget);
+      expect(find.text('已選 3 次'), findsOneWidget);
       await release(tester, g);
-      expect(find.text('已選 3 筆'), findsOneWidget);
+      expect(find.text('已選 3 次'), findsOneWidget);
       // 從已選的乙取消到丙。
       final g2 = await holdAt(
         tester,
@@ -400,7 +400,7 @@ void main() {
       );
       await g2.moveTo(tester.getCenter(gc));
       await tester.pump();
-      expect(find.text('已選 1 筆'), findsOneWidget);
+      expect(find.text('已選 1 次'), findsOneWidget);
       await release(tester, g2);
       await unmount(tester);
     });
@@ -426,7 +426,7 @@ void main() {
       }
       expect(scrollable.position.pixels, greaterThan(200));
       final n = int.parse(
-        RegExp(r'已選 (\d+) 筆')
+        RegExp(r'已選 (\d+) 次')
             .firstMatch(
               tester
                   .widgetList<Text>(find.textContaining('已選'))

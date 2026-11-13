@@ -236,7 +236,7 @@ void main() {
       expect(find.text('第 3 集再決定要不要入'), findsOneWidget);
       expect(find.text('坑G'), findsOneWidget);
       // 沒有描述：列出開啟格子的張數
-      expect(find.text('參考圖 2 張 · 好看同人圖 0 張'), findsOneWidget);
+      expect(find.text('參考圖 2 份 · 好看同人圖 0 份'), findsOneWidget);
       // 沒封面＝坑名第一個字
       expect(find.text('星'), findsOneWidget);
       expect(find.text('開新淺坑'), findsOneWidget);
@@ -571,7 +571,7 @@ void main() {
       await tapSwitch(tester, '參考圖');
       expect(find.text('關閉「參考圖」？'), findsOneWidget);
       expect(
-        find.text('格子裡的 3 張圖會移到「最近刪除」，30 天內可以還原；還原時這個格子會自動重新開啟。'),
+        find.text('格子裡的 3 份圖會移到「最近刪除」，30 天內可以還原；還原時這個格子會自動重新開啟。'),
         findsOneWidget,
       );
       expect(find.text('取消'), findsOneWidget);

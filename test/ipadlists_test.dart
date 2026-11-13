@@ -324,7 +324,7 @@ void main() {
       expect(find.text(l.commonDownload), findsOneWidget);
       await tester.tap(firstThumb());
       await settle(tester);
-      expect(find.text(l.commonSelectedCount(1)), findsOneWidget);
+      expect(find.text(l.commonSelectedEntries(1)), findsOneWidget);
       await unmount(tester);
     });
 
@@ -333,7 +333,7 @@ void main() {
       final l = AppLocalizations.of(tester.element(find.byType(Scaffold)));
       await tester.longPress(firstThumb());
       await settle(tester);
-      expect(find.text(l.commonSelectedCount(1)), findsOneWidget);
+      expect(find.text(l.commonSelectedEntries(1)), findsOneWidget);
       await unmount(tester);
     });
   });

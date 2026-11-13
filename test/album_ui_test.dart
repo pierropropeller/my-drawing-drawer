@@ -143,7 +143,7 @@ void main() {
 
     await tester.longPress(find.byType(Image).first);
     await settle(tester);
-    expect(find.text('已選 1 張'), findsOneWidget);
+    expect(find.text('已選 1 份'), findsOneWidget);
     expect(find.text('時間軸'), findsNothing); // 多選沒有導覽列
     expect(find.text('下載'), findsOneWidget);
     expect(find.text('移動'), findsOneWidget);
@@ -474,7 +474,7 @@ void main() {
     await openTagSheet(tester);
 
     expect(find.byType(BatchTagSheet), findsOneWidget);
-    expect(find.text('2 張'), findsWidgets);
+    expect(find.text('2 份'), findsWidgets);
     // 實色＋勾／虛線框＋橫線／白底。
     expect(tagChip('T1', TagCoverage.all), findsOneWidget);
     expect(tagChip('T2', TagCoverage.some), findsOneWidget);

@@ -230,14 +230,14 @@ void main() {
               e('c', DateTime(2026, 10, 5)),
               e('d', DateTime(2026, 9, 22)),
             ],
-            countLabel: (n) => '$n 筆',
+            countLabel: (n) => '$n 次',
           ),
         ),
       );
       expect(find.text('2026 年 10 月'), findsOneWidget);
       expect(find.text('2026 年 9 月'), findsOneWidget);
-      expect(find.text('3 筆'), findsOneWidget);
-      expect(find.text('1 筆'), findsOneWidget);
+      expect(find.text('3 次'), findsOneWidget);
+      expect(find.text('1 次'), findsOneWidget);
       // 日期大字：10/8、10/5（只一次）、9/22；同天第二筆是灰點。
       expect(find.text('08'), findsOneWidget);
       expect(find.text('05'), findsOneWidget);
@@ -273,7 +273,7 @@ void main() {
     testWidgets('空狀態：沒有導覽列隱藏、沒有 FAB／篩選列、可新增', (tester) async {
       await show(tester, OshiListPage(pitId: pitId));
       expect(find.text('坑A · 推活'), findsOneWidget);
-      expect(find.text('0 筆'), findsOneWidget);
+      expect(find.text('0 次'), findsOneWidget);
       expect(find.text('還沒有推活紀錄'), findsOneWidget);
       expect(find.text('新增紀錄'), findsOneWidget);
       expect(find.text('全部'), findsNothing);
@@ -300,7 +300,7 @@ void main() {
         await rec(date: DateTime(2026, 9, 22), title: '痛包完成');
       });
       await show(tester, OshiListPage(pitId: pitId));
-      expect(find.text('3 筆'), findsWidgets); // 標題列總數＋10 月的 2 筆…
+      expect(find.text('3 次'), findsWidgets); // 標題列總數＋10 月的 2 筆…
       expect(find.text('2026 年 10 月'), findsOneWidget);
       expect(find.text('2026 年 9 月'), findsOneWidget);
       expect(find.text('一週年展・現場'), findsOneWidget);
@@ -416,7 +416,7 @@ void main() {
       await tester.tap(find.byTooltip('管理分組'));
       await settle(tester);
       expect(find.text('分組只用於推活，拖曳可調整次序'), findsOneWidget);
-      expect(find.text('1 筆'), findsOneWidget);
+      expect(find.text('1 次'), findsOneWidget);
       expect(navBarHiddenCount.value, greaterThan(0));
       await unmount(tester);
     });
@@ -644,7 +644,7 @@ void main() {
       await settle(tester);
       await tester.tap(find.bySemanticsLabel('刪除'));
       await settle(tester);
-      expect(find.text('刪除這筆紀錄？'), findsOneWidget);
+      expect(find.text('刪除這次推活紀錄？'), findsOneWidget);
       await tester.tap(find.text('取消'));
       await settle(tester);
       expect(await tester.runAsync(() => db.getOshiRecord(id)), isNotNull);

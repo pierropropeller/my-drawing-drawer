@@ -174,12 +174,12 @@ void main() {
 
       await tester.longPress(find.byType(AlbumMasonryTile).first);
       await settle(tester);
-      expect(find.text('已選 1 張'), findsOneWidget);
+      expect(find.text('已選 1 份'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('albumSortButton')));
       await settle(tester);
       expect(find.text('編輯排序'), findsOneWidget);
       expect(find.text('長按拖動可自訂順序'), findsOneWidget);
-      expect(find.text('已選 1 張'), findsNothing);
+      expect(find.text('已選 1 份'), findsNothing);
       expect(find.text('下載'), findsNothing); // 沒有多選動作列
       expect(find.byKey(const ValueKey('albumSortGrid')), findsOneWidget);
       expect(navLocked.value, isTrue);

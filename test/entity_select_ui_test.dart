@@ -455,7 +455,7 @@ void main() {
         final before = tester.getTopLeft(tiles.first);
 
         await longPress(tester, tiles.first);
-        expect(find.text('已選 1 張'), findsOneWidget);
+        expect(find.text('已選 1 份'), findsOneWidget);
         // 佈局沒變（列表模式多選時換成九宮格，同摸魚列表，不比位置）
         if (mode != 0) {
           expect(tester.getTopLeft(find.byType(DragSelectItem).first), before);
@@ -472,10 +472,10 @@ void main() {
 
         await tester.tap(find.byType(DragSelectItem).at(1));
         await tester.pump();
-        expect(find.text('已選 2 張'), findsOneWidget);
+        expect(find.text('已選 2 份'), findsOneWidget);
         await tester.tap(bar('entitySelectAll'));
         await tester.pump();
-        expect(find.text('已選 5 張'), findsOneWidget);
+        expect(find.text('已選 5 份'), findsOneWidget);
         await tester.tap(bar('entitySelectExit'));
         await settle(tester);
         expect(find.byType(SelectMark), findsNothing);
@@ -490,10 +490,10 @@ void main() {
         await tester.pump();
         await g.moveTo(tester.getCenter(find.byType(DragSelectItem).at(2)));
         await tester.pump();
-        expect(find.text('已選 3 張'), findsOneWidget);
+        expect(find.text('已選 3 份'), findsOneWidget);
         await g.up();
         await settle(tester);
-        expect(find.text('已選 3 張'), findsOneWidget);
+        expect(find.text('已選 3 份'), findsOneWidget);
         await unmount(tester);
       });
     }
@@ -530,7 +530,7 @@ void main() {
       await longPress(tester, find.byType(DragSelectItem).first);
       await tester.tap(find.byType(DragSelectItem).at(1));
       await tester.pump();
-      expect(find.text('已選 2 張'), findsOneWidget);
+      expect(find.text('已選 2 份'), findsOneWidget);
 
       await tester.tap(bar('entitySelectShare'));
       await settle(tester);
@@ -594,7 +594,7 @@ void main() {
       );
       final w0 = tester.getSize(find.byType(DragSelectArea)).width;
       await longPress(tester, find.byType(DragSelectItem).first);
-      expect(find.text('已選 1 張'), findsOneWidget);
+      expect(find.text('已選 1 份'), findsOneWidget);
       expect(
         tester.getSize(find.byType(DragSelectArea)).width,
         greaterThan(w0),

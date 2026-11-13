@@ -63,7 +63,7 @@ void main() {
     await settle(tester);
     expect(find.text('還沒有參考圖'), findsOneWidget);
     // 空白頁（OfficialEmpty）：沒有篩選列，只有「加圖」按鈕。
-    expect(find.text('0 張'), findsOneWidget);
+    expect(find.text('0 份'), findsOneWidget);
 
     // 新增：先打開相簿選圖（測試中由假的選圖器回傳一張），再進入新增頁。
     await tester.tap(find.text('加圖'));
@@ -174,7 +174,7 @@ void main() {
     // 長按進入選取：下方操作列只佔底部一小條，不能把整頁撐滿。
     await tester.longPress(find.byType(Image).first);
     await settle(tester);
-    expect(find.text('已選 1 張'), findsOneWidget);
+    expect(find.text('已選 1 份'), findsOneWidget);
     expect(find.text('下載'), findsOneWidget);
     expect(tester.getTopLeft(find.text('下載')).dy, greaterThan(650));
     expect(find.byType(Image), findsWidgets); // 圖還在
