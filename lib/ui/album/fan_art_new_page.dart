@@ -9,7 +9,7 @@ import '../../state/providers.dart';
 import '../common/adaptive_modal.dart';
 import '../common/modal_form_layout.dart';
 import '../common/nav_bar_hidden.dart';
-import '../pits/pit_form.dart';
+import '../authors/author_pick_sheet.dart';
 import '../tags/tag_picker.dart';
 import 'album_form.dart';
 import 'album_set_form.dart';
@@ -63,7 +63,9 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
   late final List<ImageItem> _files = widget.initialImages
       .map(ImageItem.picked)
       .toList();
-  final _author = TextEditingController();
+
+  /// 作者（D-156）：null＝不指定。
+  String? _authorId;
   final _note = TextEditingController();
   late String? _groupId = widget.initialGroupId;
   List<String> _tagIds = [];
@@ -74,7 +76,6 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
 
   @override
   void dispose() {
-    _author.dispose();
     _note.dispose();
     super.dispose();
   }
@@ -101,7 +102,8 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
       await db.addFanArtSet(
         widget.pitId,
         imported,
-        author: _author.text.trim(),
+        author: await authorNameFor(db, _authorId),
+        authorId: _authorId,
         groupId: _groupId,
         tagIds: _tagIds,
         note: _note.text,
@@ -110,7 +112,8 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
       await db.addFanArts(
         widget.pitId,
         imported,
-        author: _author.text.trim(),
+        author: await authorNameFor(db, _authorId),
+        authorId: _authorId,
         groupId: _groupId,
         tagIds: _tagIds,
         note: _note.text,
@@ -146,7 +149,10 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
     ];
     final rest = [
       AlbumFieldLabel(context.l10n.albumFieldAuthor),
-      TextField(controller: _author, decoration: pitInputDecoration(context)),
+      AuthorField(
+        authorId: _authorId,
+        onChanged: (id) => setState(() => _authorId = id),
+      ),
       const SizedBox(height: 18),
       GroupPicker(
         pitId: widget.pitId,

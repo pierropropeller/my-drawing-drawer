@@ -319,7 +319,34 @@ void main() {
       await tester.tap(find.text('開新淺坑'));
       await settle(tester);
       expect(find.byType(PitNewPage), findsOneWidget);
+      expect(find.byType(BottomSheet), findsOneWidget);
       expect(find.text('開啟的格子'), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('手機開新坑 sheet（D-155）：淺坑預設開參考圖、好看同人圖；建立後關掉 sheet', (
+      tester,
+    ) async {
+      await tester.runAsync(seed);
+      await pumpApp(tester);
+      await tester.tap(find.text('淺坑'));
+      await settle(tester);
+      await tester.tap(find.text('開新淺坑'));
+      await settle(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('pit-name')),
+        'sheet 淺坑',
+      );
+      await settle(tester);
+      await tester.tap(find.text('建立'));
+      await settle(tester);
+      expect(find.byType(PitNewPage), findsNothing);
+      final pit = await tester.runAsync(() async {
+        final all = await db.select(db.pits).get();
+        return all.firstWhere((p) => p.name == 'sheet 淺坑');
+      });
+      expect(pit!.status, PitStatus.shallow);
+      expect(pit.enabledSections, {PitSectionKey.official, PitSectionKey.fan});
       await unmount(tester);
     });
 

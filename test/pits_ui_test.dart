@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:huakeng/ui/pits/pit_new_page.dart';
 import 'package:huakeng/data/album_queries.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/entity_queries.dart';
@@ -215,16 +216,20 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('導覽列：坑內頁有，編輯坑／開新坑沒有', (tester) async {
+  testWidgets('導覽列：坑內頁有，編輯坑沒有；開新坑是蓋在主頁上的 sheet（D-155）', (tester) async {
     await pumpApp(tester);
     await settle(tester);
     expect(find.text('時間軸'), findsOneWidget);
 
     await tester.tap(find.text('開新坑').last);
     await settle(tester);
-    expect(find.text('時間軸'), findsNothing);
-    await tester.tap(find.bySemanticsLabel('返回'));
+    // 手機開新坑＝bottom sheet：有抓握條＋✕，沒有「類型」小標題，坑名是浮動標籤。
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.byType(PitNewPage), findsOneWidget);
+    expect(find.text('類型'), findsNothing);
+    await tester.tap(find.byTooltip('關閉'));
     await settle(tester);
+    expect(find.byType(PitNewPage), findsNothing);
     expect(find.text('時間軸'), findsOneWidget);
 
     await tester.tap(find.text('坑A'));

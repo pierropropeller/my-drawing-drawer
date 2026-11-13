@@ -509,6 +509,131 @@
       }
     }
   },
+  "authorTitle": "作者",
+  "authorCount": "{count} 位",
+  "@authorCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "authorSelectedCount": "已選 {count} 位",
+  "@authorSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "authorNoFanArts": "還沒有同人圖",
+  "authorLayoutList": "列表",
+  "authorLayoutGrid": "格子",
+  "authorLayoutLabel": "版面",
+  "authorAdd": "新增作者",
+  "authorEmpty": "還沒有作者",
+  "authorEditTitle": "編輯作者",
+  "authorFieldName": "名字",
+  "authorFieldHandle": "ID",
+  "authorFieldBanner": "封面",
+  "authorChangeBanner": "更換封面",
+  "authorChangeAvatar": "更換頭像",
+  "authorPickAvatar": "選擇頭像",
+  "authorLinkedAccounts": "連結帳號",
+  "authorXLinkLabel": "推特連結",
+  "authorXhsLinkLabel": "小紅書連結",
+  "authorXLinkHint": "x.com/…",
+  "authorXhsLinkHint": "xiaohongshu.com/user/profile/…",
+  "authorLookingUp": "查找中",
+  "authorLinkFail": "找不到這個帳號，或網路有問題",
+  "authorCreate": "建立作者",
+  "authorCreateAndPick": "建立並選擇",
+  "authorNameRequired": "請輸入名字",
+  "authorDelete": "刪除作者",
+  "authorDeleteTitle": "刪除「{name}」？",
+  "@authorDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "authorDeleteManyTitle": "刪除 {count} 位作者？",
+  "@authorDeleteManyTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "authorDeleteBody": "{count} 張同人圖會留著，只是作者欄變回空白。",
+  "@authorDeleteBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "authorDeleteBodyNone": "同人圖會留著，只是作者欄變回空白。",
+  "authorUseXTitle": "使用推特上的資料？",
+  "authorUseXhsTitle": "使用小紅書上的資料？",
+  "authorUseXBody": "頭像、名字和 ID 會換成推特上的資料。",
+  "authorUseXhsBody": "頭像、名字和 ID 會換成小紅書上的資料。",
+  "authorUseNo": "不用",
+  "authorUseYes": "使用",
+  "authorLastRefreshed": "上次更新 {date}",
+  "@authorLastRefreshed": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "authorRefresh": "更新",
+  "authorRefreshNow": "立即更新",
+  "authorRefreshFromX": "從推特更新資料",
+  "authorRefreshFromXhs": "從小紅書更新資料",
+  "authorUseForSync": "改用這個同步",
+  "authorUseForSyncLabel": "改用這個帳號同步",
+  "authorUnlink": "解除連結",
+  "authorXChangedTitle": "推特上的資料有變更",
+  "authorXhsChangedTitle": "小紅書上的資料有變更",
+  "authorUnchanged": "（沒有變）",
+  "authorRefreshFail": "更新失敗，帳號可能已停用或設為私密，也可能是網路問題",
+  "authorUpToDate": "資料已是最新",
+  "authorXhsNumber": "小紅書號 {id}",
+  "@authorXhsNumber": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "authorXhsShort": "小紅書 {id}",
+  "@authorXhsShort": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "authorDetailSub": "{handle} · {count} 張",
+  "@authorDetailSub": {
+    "placeholders": {
+      "handle": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "authorPick": "選擇作者",
+  "authorPickNone": "不指定",
+  "authorSearch": "搜尋作者",
+  "authorFanArt": "同人圖",
+  "authorPlatformX": "推特",
+  "authorPlatformXhs": "小紅書",
   "backupStorageTitle": "儲存空間",
   "backupStorageOfLimit": " / {limit}",
   "@backupStorageOfLimit": {

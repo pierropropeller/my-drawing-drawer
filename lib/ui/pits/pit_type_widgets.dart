@@ -82,8 +82,12 @@ class PitTypeSegment extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.allowArchive = true,
+    this.showLabel = true,
   });
   final PitStatus value;
+
+  /// false＝不畫上方「類型」小標題、不留下方間距（開新坑 sheet，D-155）。
+  final bool showLabel;
   final ValueChanged<PitStatus> onChanged;
   final bool allowArchive;
 
@@ -99,9 +103,9 @@ class PitTypeSegment extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        PitFieldLabel(l.shallowTypeLabel),
+        if (showLabel) PitFieldLabel(l.shallowTypeLabel),
         Container(
-          margin: const EdgeInsets.only(bottom: 18),
+          margin: EdgeInsets.only(bottom: showLabel ? 18 : 0),
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
             color: t.chipBg,
@@ -246,8 +250,12 @@ class PitSectionSwitchList extends StatelessWidget {
     required this.onChanged,
     this.sensitive,
     this.onSensitiveChanged,
+    this.trailingGap = true,
   });
   final Set<PitSectionKey> enabled;
+
+  /// false＝方格下面不留 22 間距（開新坑 sheet 自己排間距，D-155）。
+  final bool trailingGap;
   final bool? sensitive;
   final ValueChanged<bool>? onSensitiveChanged;
 
@@ -285,7 +293,7 @@ class PitSectionSwitchList extends StatelessWidget {
       children: [
         PitFieldLabel(l.shallowFieldSections),
         ...rows,
-        const SizedBox(height: 22),
+        if (trailingGap || sensitive != null) const SizedBox(height: 22),
         if (sensitive != null) ...[
           PitSensitiveCard(value: sensitive!, onChanged: onSensitiveChanged!),
           const SizedBox(height: 22),

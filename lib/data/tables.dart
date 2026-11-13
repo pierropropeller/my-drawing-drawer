@@ -211,6 +211,41 @@ class FanArts extends Table with SyncColumns, MediaColumns {
 
   /// 說明（D-141）：可留空。
   TextColumn get note => text().nullable()();
+
+  /// 作者（D-156）。[author] 改成作者名字的本機快取（舊版 App、搜尋、列表照舊讀它），
+  /// 由 [authorId] 指向的作者決定；作者改名時只更新本機快取，不動 updatedAt。
+  TextColumn get authorId => text().nullable()();
+}
+
+/// 作者（D-156）：名字、ID、頭像／封面（獨立的圖片檔，不屬於任何圖冊，跟著同步備份）。
+/// 可連結 X／小紅書帳號，綁的是平台的永久使用者 id（不是帳號名稱）；兩邊都連結時只有
+/// [syncSource] 那一邊會「更新」資料。舊版自由輸入的作者文字遷移成作者時，
+/// id 由名字決定（[authorIdForName]），各裝置各自遷移也不會重複。
+class Authors extends Table with SyncColumns {
+  TextColumn get name => text()();
+
+  /// 顯示用的 ID（例：@yukimi_ill）；可留空。
+  TextColumn get handle => text().withDefault(const Constant(''))();
+  TextColumn get avatarFile => text().nullable()();
+  TextColumn get bannerFile => text().nullable()();
+
+  /// 手動排序（小的在前；新增的排最前面）。
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  TextColumn get xUserId => text().nullable()();
+  TextColumn get xHandle => text().nullable()();
+  TextColumn get xName => text().nullable()();
+  TextColumn get xhsUserId => text().nullable()();
+
+  /// 小紅書號（使用者看得到的號碼）。
+  TextColumn get xhsHandle => text().nullable()();
+  TextColumn get xhsName => text().nullable()();
+
+  /// `x`／`xhs`；只連結一邊時就是那一邊，都沒連結是 null。
+  TextColumn get syncSource => text().nullable()();
+
+  /// 上次從平台更新資料的時間。
+  DateTimeColumn get refreshedAt => dateTime().nullable()();
 }
 
 /// 雜物（D-034）：純圖，不計入目標、不出現在時間軸、不能當封面、不參與搜尋。

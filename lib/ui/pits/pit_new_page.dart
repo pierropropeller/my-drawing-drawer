@@ -6,16 +6,26 @@ import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
 import '../../theme/tokens.dart';
 import '../common/adaptive_modal.dart';
+import '../common/app_icons.dart';
+import '../common/device_class.dart';
 import '../common/nav_bar_hidden.dart';
+import '../common/svg_icon.dart';
+import '../common/themed_sheet.dart';
+import '../common/window_class.dart';
 import 'pit_form.dart';
 import 'pit_type_widgets.dart';
 
-/// 開新坑的單一入口：視窗 ≥600 開置中 modal（NewPit，600 闊）；＜600 的 iPad 開 page sheet（NewPit400）；手機開整頁。
+/// 開新坑的單一入口：視窗 ≥600 開置中 modal（NewPit，600 闊）；＜600 的 iPad 開 page sheet（NewPit400）；
+/// 手機開 bottom sheet（D-155，PitNewSheet／PitNewSheetShallow）。
 /// 回傳新坑的 id（取消為 null）。[initialStatus]：預設的類型（主頁「淺坑」分頁的「開新淺坑」帶淺坑）。
 Future<String?> openNewPit(
   BuildContext context, {
   PitStatus initialStatus = PitStatus.active,
 }) {
+  final popup =
+      MediaQuery.sizeOf(context).width >= WindowClass.mediumMin ||
+      isTabletDevice(context);
+  if (!popup) return openNewPitSheet(context, initialStatus: initialStatus);
   // 選淺坑時 form sheet 變兩欄、加寬到 880（NewPitShallow）；切回坑縮回 600。
   final width = ValueNotifier<double>(
     initialStatus == PitStatus.shallow
@@ -34,6 +44,19 @@ Future<String?> openNewPit(
   ).whenComplete(width.dispose);
 }
 
+/// 手機的開新坑 bottom sheet（D-155）：走最上層 Navigator，蓋住導覽列，
+/// 從分享 sheet 上開也不會被壓在下面。回傳新坑的 id。
+Future<String?> openNewPitSheet(
+  BuildContext context, {
+  PitStatus initialStatus = PitStatus.active,
+}) {
+  return showThemedSheet<String>(
+    context: context,
+    useRootNavigator: true,
+    builder: (_) => PitNewPage(asSheet: true, initialStatus: initialStatus),
+  );
+}
+
 /// 開新坑：類型（坑｜淺坑）、坑名、描述；選淺坑時多出封面（可選）與「開啟的格子」。
 /// [asModal]＝畫成 modal 內容（取消／開新坑／建立 標題列，不藏導覽列）；否則整頁。
 ///
@@ -44,10 +67,14 @@ class PitNewPage extends ConsumerStatefulWidget {
   const PitNewPage({
     super.key,
     this.asModal = false,
+    this.asSheet = false,
     this.initialStatus = PitStatus.active,
     this.widthNotifier,
   });
   final bool asModal;
+
+  /// 手機 bottom sheet（D-155）：抓握條、標題＋關閉、浮動標籤輸入框、建立。
+  final bool asSheet;
   final PitStatus initialStatus;
 
   /// form sheet 的寬度（選淺坑時 880，其餘 600）；由 [openNewPit] 傳入，讓對話框跟著加寬。
@@ -66,7 +93,7 @@ class PitNewPage extends ConsumerStatefulWidget {
 class _PitNewPageState extends ConsumerState<PitNewPage>
     with HidesNavBar<PitNewPage> {
   @override
-  bool get hidesNavBarOnOpen => !widget.asModal;
+  bool get hidesNavBarOnOpen => !widget.asModal && !widget.asSheet;
 
   final _form = GlobalKey<FormState>();
   final _name = TextEditingController();
@@ -75,7 +102,8 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
       ? PitStatus.shallow
       : PitStatus.active;
   // iPad modal 預設只開官方圖冊、好看同人圖（NewPitShallow）；手機整頁維持全關（D-088）。
-  late final Set<PitSectionKey> _sections = widget.asModal
+  // 手機 bottom sheet 照 PitNewSheetShallow 稿，同 iPad 預設開參考圖、好看同人圖。
+  late final Set<PitSectionKey> _sections = widget.asModal || widget.asSheet
       ? {PitSectionKey.official, PitSectionKey.fan}
       : {};
 
@@ -255,8 +283,115 @@ class _PitNewPageState extends ConsumerState<PitNewPage>
     );
   }
 
+  /// 手機 bottom sheet（PitNewSheet／PitNewSheetShallow）：抓握條 → 標題＋✕ → 類型 → 坑名 → 描述
+  /// →（淺坑）開啟的格子 → 建立；欄位用浮動標籤，間距 18。
+  Widget _sheet(BuildContext context) {
+    final t = context.tokens;
+    final l = context.l10n;
+    final mq = MediaQuery.of(context);
+    const gap = SizedBox(height: 18);
+    return Padding(
+      padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: (mq.size.height - mq.viewInsets.bottom) * 0.92,
+        ),
+        child: Form(
+          key: _form,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(20, 10, 20, 28 + mq.padding.bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: t.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l.pitsNewTitle,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Transform.translate(
+                      offset: const Offset(10, 0),
+                      child: IconButton(
+                        tooltip: l.commonClose,
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: SvgIcon(
+                          AppIcons.closeX,
+                          size: 20,
+                          strokeWidth: 2,
+                          color: t.text2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                gap,
+                PitTypeSegment(
+                  value: _status,
+                  allowArchive: false,
+                  showLabel: false,
+                  onChanged: _setStatus,
+                ),
+                gap,
+                TextFormField(
+                  key: const ValueKey('pit-name'),
+                  controller: _name,
+                  autofocus: !_shallow,
+                  textInputAction: TextInputAction.next,
+                  style: const TextStyle(fontSize: 15),
+                  decoration: pitFloatingDecoration(context, l.pitsFieldName),
+                ),
+                gap,
+                TextFormField(
+                  key: const ValueKey('pit-desc'),
+                  controller: _desc,
+                  minLines: 2,
+                  maxLines: 6,
+                  style: const TextStyle(fontSize: 15, height: 1.55),
+                  decoration: pitFloatingDecoration(context, l.pitsFieldDesc),
+                ),
+                if (_shallow) ...[
+                  gap,
+                  PitSectionSwitchList(
+                    enabled: _sections,
+                    trailingGap: false,
+                    onChanged: (k, v) => setState(() {
+                      v ? _sections.add(k) : _sections.remove(k);
+                    }),
+                  ),
+                ],
+                gap,
+                PitPrimaryButton(
+                  label: l.pitsCreate,
+                  onPressed: _canSave ? _save : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.asSheet) return _sheet(context);
     if (widget.asModal) return _modal(context);
     return Scaffold(
       body: SafeArea(

@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import 'author_queries.dart';
 import 'database.dart';
 import 'junk_queries.dart';
 import 'media.dart';
@@ -361,12 +362,13 @@ extension AlbumQueries on AppDatabase {
     String pitId,
     List<NewImage> images, {
     required String author,
+    String? authorId,
     String? groupId,
     List<String> tagIds = const [],
     String? note,
-  }) {
+  }) async {
     final n = (note ?? '').trim();
-    return transaction(() async {
+    final ids = await transaction(() async {
       final ids = <String>[];
       for (final im in images) {
         final id = uuid.v4();
@@ -383,6 +385,7 @@ extension AlbumQueries on AppDatabase {
             posterFile: Value(im.posterFile),
             sensitive: Value(im.sensitive),
             author: Value(author),
+            authorId: Value(authorId),
             groupId: Value(groupId),
             note: Value(n.isEmpty ? null : n),
           ),
@@ -392,12 +395,16 @@ extension AlbumQueries on AppDatabase {
       }
       return ids;
     });
+    // 只帶作者文字（分享進來、從影片擷取）：歸給同名作者，沒有就建立（D-156）。
+    if (authorId == null && author.trim().isNotEmpty) await linkLegacyAuthors();
+    return ids;
   }
 
   /// [sensitive]（D-104）：null＝不變；標成敏感時若這張是封面，封面改用別張（見 [setSensitive]）。
   Future<void> updateFanArt(
     String id, {
     required String author,
+    String? authorId,
     String? groupId,
     required List<String> tagIds,
     bool? sensitive,
@@ -406,6 +413,7 @@ extension AlbumQueries on AppDatabase {
       await (update(fanArts)..where((i) => i.id.equals(id))).write(
         FanArtsCompanion(
           author: Value(author),
+          authorId: Value(authorId),
           groupId: Value(groupId),
           sensitive: sensitive == null
               ? const Value.absent()

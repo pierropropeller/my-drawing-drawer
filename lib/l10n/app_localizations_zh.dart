@@ -660,6 +660,201 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get authorTitle => '作者';
+
+  @override
+  String authorCount(int count) {
+    return '$count 位';
+  }
+
+  @override
+  String authorSelectedCount(int count) {
+    return '已選 $count 位';
+  }
+
+  @override
+  String get authorNoFanArts => '還沒有同人圖';
+
+  @override
+  String get authorLayoutList => '列表';
+
+  @override
+  String get authorLayoutGrid => '格子';
+
+  @override
+  String get authorLayoutLabel => '版面';
+
+  @override
+  String get authorAdd => '新增作者';
+
+  @override
+  String get authorEmpty => '還沒有作者';
+
+  @override
+  String get authorEditTitle => '編輯作者';
+
+  @override
+  String get authorFieldName => '名字';
+
+  @override
+  String get authorFieldHandle => 'ID';
+
+  @override
+  String get authorFieldBanner => '封面';
+
+  @override
+  String get authorChangeBanner => '更換封面';
+
+  @override
+  String get authorChangeAvatar => '更換頭像';
+
+  @override
+  String get authorPickAvatar => '選擇頭像';
+
+  @override
+  String get authorLinkedAccounts => '連結帳號';
+
+  @override
+  String get authorXLinkLabel => '推特連結';
+
+  @override
+  String get authorXhsLinkLabel => '小紅書連結';
+
+  @override
+  String get authorXLinkHint => 'x.com/…';
+
+  @override
+  String get authorXhsLinkHint => 'xiaohongshu.com/user/profile/…';
+
+  @override
+  String get authorLookingUp => '查找中';
+
+  @override
+  String get authorLinkFail => '找不到這個帳號，或網路有問題';
+
+  @override
+  String get authorCreate => '建立作者';
+
+  @override
+  String get authorCreateAndPick => '建立並選擇';
+
+  @override
+  String get authorNameRequired => '請輸入名字';
+
+  @override
+  String get authorDelete => '刪除作者';
+
+  @override
+  String authorDeleteTitle(String name) {
+    return '刪除「$name」？';
+  }
+
+  @override
+  String authorDeleteManyTitle(int count) {
+    return '刪除 $count 位作者？';
+  }
+
+  @override
+  String authorDeleteBody(int count) {
+    return '$count 張同人圖會留著，只是作者欄變回空白。';
+  }
+
+  @override
+  String get authorDeleteBodyNone => '同人圖會留著，只是作者欄變回空白。';
+
+  @override
+  String get authorUseXTitle => '使用推特上的資料？';
+
+  @override
+  String get authorUseXhsTitle => '使用小紅書上的資料？';
+
+  @override
+  String get authorUseXBody => '頭像、名字和 ID 會換成推特上的資料。';
+
+  @override
+  String get authorUseXhsBody => '頭像、名字和 ID 會換成小紅書上的資料。';
+
+  @override
+  String get authorUseNo => '不用';
+
+  @override
+  String get authorUseYes => '使用';
+
+  @override
+  String authorLastRefreshed(String date) {
+    return '上次更新 $date';
+  }
+
+  @override
+  String get authorRefresh => '更新';
+
+  @override
+  String get authorRefreshNow => '立即更新';
+
+  @override
+  String get authorRefreshFromX => '從推特更新資料';
+
+  @override
+  String get authorRefreshFromXhs => '從小紅書更新資料';
+
+  @override
+  String get authorUseForSync => '改用這個同步';
+
+  @override
+  String get authorUseForSyncLabel => '改用這個帳號同步';
+
+  @override
+  String get authorUnlink => '解除連結';
+
+  @override
+  String get authorXChangedTitle => '推特上的資料有變更';
+
+  @override
+  String get authorXhsChangedTitle => '小紅書上的資料有變更';
+
+  @override
+  String get authorUnchanged => '（沒有變）';
+
+  @override
+  String get authorRefreshFail => '更新失敗，帳號可能已停用或設為私密，也可能是網路問題';
+
+  @override
+  String get authorUpToDate => '資料已是最新';
+
+  @override
+  String authorXhsNumber(String id) {
+    return '小紅書號 $id';
+  }
+
+  @override
+  String authorXhsShort(String id) {
+    return '小紅書 $id';
+  }
+
+  @override
+  String authorDetailSub(String handle, int count) {
+    return '$handle · $count 張';
+  }
+
+  @override
+  String get authorPick => '選擇作者';
+
+  @override
+  String get authorPickNone => '不指定';
+
+  @override
+  String get authorSearch => '搜尋作者';
+
+  @override
+  String get authorFanArt => '同人圖';
+
+  @override
+  String get authorPlatformX => '推特';
+
+  @override
+  String get authorPlatformXhs => '小紅書';
+
+  @override
   String get backupStorageTitle => '儲存空間';
 
   @override
