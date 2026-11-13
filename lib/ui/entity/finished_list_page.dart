@@ -526,11 +526,15 @@ Widget _pieceImage(
 }) {
   final t = context.tokens;
   if (v.images.isNotEmpty) {
-    return MediaThumb(
-      MediaSource.fromImageRef(v.images.first),
-      cacheWidth: 500,
-      badgeInset: badgeInset,
-      count: v.images.length,
+    // 透明 PNG 底下墊主題色（同縱向列表的 chipBg），三種佈局一致。
+    return ColoredBox(
+      color: t.chipBg,
+      child: MediaThumb(
+        MediaSource.fromImageRef(v.images.first),
+        cacheWidth: 500,
+        badgeInset: badgeInset,
+        count: v.images.length,
+      ),
     );
   }
   return ColoredBox(
