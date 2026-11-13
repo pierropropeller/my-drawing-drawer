@@ -133,7 +133,7 @@ void main() {
     expect(o.dx < f.dx, isTrue);
     // 列距相同＝格子是正方形（寬格已不存在）。
     expect((d.dy - o.dy), closeTo(p.dy - d.dy, 0.01));
-    expect(find.text('0 份'), findsNWidgets(4)); // 參考圖、同人圖、摸魚、成圖（D-127、D-156）
+    expect(find.text('0 份'), findsNWidgets(4)); // 參考圖、同人圖、摸魚、成圖（D-127、D-157）
     expect(find.text('0 個'), findsOneWidget);
     expect(find.text('2 次'), findsOneWidget);
     expect(find.text('還沒有成圖・開始你的第一份'), findsNothing);

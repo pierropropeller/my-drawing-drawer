@@ -1773,7 +1773,7 @@ abstract class AppLocalizations {
   /// **'已選 {count} 張'**
   String commonSelectedCount(int count);
 
-  /// 參考圖、同人圖、成圖這類可以多圖的項目的數量（D-155）
+  /// 參考圖、同人圖、成圖這類可以多圖的項目的數量（D-157）
   ///
   /// In zh, this message translates to:
   /// **'{count} 份'**

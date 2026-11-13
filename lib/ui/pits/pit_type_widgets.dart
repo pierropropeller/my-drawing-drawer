@@ -528,7 +528,7 @@ class PitSensitiveCard extends StatelessWidget {
 String pitSectionCountText(BuildContext context, PitSectionKey key, int n) {
   final l = context.l10n;
   return switch (key) {
-    // 參考圖、同人圖可以多圖，一項算「份」（D-155）。
+    // 參考圖、同人圖可以多圖，一項算「份」（D-157）。
     PitSectionKey.official || PitSectionKey.fan => l.shallowCountEntries(n),
     PitSectionKey.junk => l.shallowCountImages(n),
     PitSectionKey.idea => l.shallowCountIdeas(n),

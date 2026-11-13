@@ -26,7 +26,7 @@
   "commonSelectedCount": "已選 {count} 張",
   "@commonSelectedCount": { "placeholders": { "count": { "type": "int" } } },
   "commonCountEntries": "{count} 份",
-  "@commonCountEntries": { "description": "參考圖、同人圖、成圖這類可以多圖的項目的數量（D-155）", "placeholders": { "count": { "type": "int" } } },
+  "@commonCountEntries": { "description": "參考圖、同人圖、成圖這類可以多圖的項目的數量（D-157）", "placeholders": { "count": { "type": "int" } } },
   "commonSelectedEntries": "已選 {count} 份",
   "@commonSelectedEntries": { "placeholders": { "count": { "type": "int" } } },
   "commonMovedEntries": "已移動 {count} 份到{target}",

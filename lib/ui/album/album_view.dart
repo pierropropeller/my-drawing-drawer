@@ -301,7 +301,7 @@ class _AlbumViewState extends ConsumerState<AlbumView>
     _exit();
   }
 
-  /// 參考圖、同人圖可以多圖，一項算「份」；雜物（[AlbumView.squares]）照舊算「張」（D-155）。
+  /// 參考圖、同人圖可以多圖，一項算「份」；雜物（[AlbumView.squares]）照舊算「張」（D-157）。
   bool get _entries => !widget.squares;
 
   Future<void> _move() async {

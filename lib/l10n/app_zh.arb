@@ -718,7 +718,7 @@
   },
   "commonCountEntries": "{count} 份",
   "@commonCountEntries": {
-    "description": "參考圖、同人圖、成圖這類可以多圖的項目的數量（D-155）",
+    "description": "參考圖、同人圖、成圖這類可以多圖的項目的數量（D-157）",
     "placeholders": {
       "count": {
         "type": "int"
