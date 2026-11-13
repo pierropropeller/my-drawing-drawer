@@ -9,8 +9,15 @@
 
 ---
 
-## 批次 33（2026-11-13，開新坑改 bottom sheet）
-- **D-153** **手機開新坑改成 bottom sheet**（Molly 11/13）：不再開整頁，主頁上蓋一張 sheet：抓握條、標題「開新坑」＋右上 ✕、坑｜淺坑切換（沒有「類型」小標題）、坑名、描述、建立。坑名、描述改用**浮動標籤**輸入框（空白時標籤在框內，有字或聚焦時縮到框線上）。選淺坑時 sheet 變高，多出「開啟的格子」3 欄方格（預設開參考圖、好看同人圖）。分享進來的「開新坑」在手機也開這張 sheet。iPad 不變。Artboard：手機 `PitNewSheet`、`PitNewSheetShallow`。 ✅ commit 528fad2
+## 批次 34（2026-11-13，作者系統）
+- **D-156** **作者系統**（Molly 11/13 CR）。Artboard：手機 `cr-author` 頁的 `AuthorEntry`、`AuthorListRows`、`AuthorListGrid`、`AuthorSelectRows`、`AuthorSelectGrid`、`AuthorSortRows`、`AuthorSortGrid`、`AuthorDetail`、`AuthorDetailOnePit`、`AuthorNew`、`AuthorLinkConfirm`、`AuthorLinkStates`、`AuthorEdit`、`AuthorRefreshConfirm`、`AuthorRefreshFail`、`AuthorDeleteConfirm`、`FanArtNewAuthor`、`AuthorPickSheet`、`AuthorQuickNew`、`FanArtPreviewAuthor`。
+  - 資料：新表 `authors`（名字、ID、頭像、封面、手動排序、X／小紅書的永久使用者 id 與帳號、同步來源、上次更新時間），同人圖加 `author_id`（schema v19）。頭像、封面是獨立圖片檔，跟著同步備份。
+  - 舊的作者文字自動轉成作者（同名合併；已有同名作者就歸給他）。分享進來、從影片擷取的同人圖仍帶文字，存完一樣歸給同名作者。
+  - 「我的」素材庫下面一張「作者」卡（作者數）。列表／格子切換、坑分頁（＝主坑，依主頁順序）、記住上次的分頁與捲動位置。長按多選：刪除、↑↓ 編輯排序（全域一份手動順序，只在「全部」排，其他分頁鎖住；新增的排最前面）。
+  - 作者詳情：封面、頭像、名字、ID·張數、連結帳號（同步來源那個有更新鍵）、依坑分頁的同人圖（只有一個坑不顯示分頁）。
+  - 新增／編輯作者：貼 X／小紅書連結就查，查到問要不要用平台資料；查不到一種一般失敗＋重試。編輯頁：更新（有變更先確認，沒變提示已是最新，失敗提示條＋重試）、改用這個同步、解除連結、更換封面、刪除作者（同人圖留著，作者欄清空）。
+  - 新增／編輯同人圖的作者欄改成「選擇作者」sheet（搜尋、不指定、新增作者並選擇）。預覽頁作者列可點進作者詳情。
+  - X 用免費的 api.fxtwitter.com（用帳號名稱查，綁回傳的永久 id）；小紅書讀個人頁資料，可能被擋（擋了就是一般失敗）。
 
 ## 批次 33（2026-11-13，開新坑改 bottom sheet）
 - **D-155** **手機開新坑改成 bottom sheet**（Molly 11/13）：不再開整頁，主頁上蓋一張 sheet：抓握條、標題「開新坑」＋右上 ✕、坑｜淺坑切換（沒有「類型」小標題）、坑名、描述、建立。坑名、描述改用**浮動標籤**輸入框（空白時標籤在框內，有字或聚焦時縮到框線上）。選淺坑時 sheet 變高，多出「開啟的格子」3 欄方格（預設開參考圖、好看同人圖）。分享進來的「開新坑」在手機也開這張 sheet。iPad 不變。Artboard：手機 `PitNewSheet`、`PitNewSheetShallow`。 ✅ commit 528fad2

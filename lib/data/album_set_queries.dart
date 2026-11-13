@@ -81,6 +81,7 @@ extension AlbumSetQueries on AppDatabase {
     String pitId,
     List<NewImage> images, {
     required String author,
+    String? authorId,
     String? groupId,
     List<String> tagIds = const [],
     String? note,
@@ -91,6 +92,7 @@ extension AlbumSetQueries on AppDatabase {
         pitId,
         [images.first],
         author: author,
+        authorId: authorId,
         groupId: groupId,
         tagIds: tagIds,
         note: note,
@@ -188,6 +190,7 @@ extension AlbumSetQueries on AppDatabase {
                 posterFile: Value(e.posterFile),
                 sensitive: Value(e.sensitive),
                 author: Value(src.author),
+                authorId: Value(src.authorId),
                 note: Value(src.note),
                 source: Value(src.source),
                 groupId: Value(src.groupId),

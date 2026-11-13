@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../data/author_queries.dart';
 import '../data/database.dart';
 import '../data/image_store.dart';
 import '../data/media.dart';
@@ -423,6 +424,12 @@ class SyncEngine {
 
     await _pull(files, known, result, tracker, check);
     try {
+      // 拉下來的同人圖可能還是舊版的作者文字（D-156）。
+      await db.linkLegacyAuthors();
+    } catch (e) {
+      syncLog('sync: linkLegacyAuthors failed (${e.runtimeType})');
+    }
+    try {
       await onPulled?.call();
     } catch (e) {
       syncLog('sync: onPulled failed (${e.runtimeType})');
@@ -613,6 +620,13 @@ class SyncEngine {
     // 頭像排最前面，同步時最先下載。
     final avatar = (await db.getProfile())?.avatarFile;
     if (avatar != null && avatar.isNotEmpty) needed.add(avatar);
+    // 作者頭像、封面（D-156）。
+    for (final r in await db.select(db.authors).get()) {
+      if (r.deletedAt != null) continue;
+      for (final f in [r.avatarFile, r.bannerFile]) {
+        if (f != null && f.isNotEmpty) needed.add(f);
+      }
+    }
     // 淺坑自己選的封面檔（D-088）。
     for (final r in await db.select(db.pits).get()) {
       final c = r.coverFile;
@@ -753,6 +767,12 @@ class SyncEngine {
     final out = <String>{};
     final avatar = (await db.getProfile())?.avatarFile;
     if (avatar != null && avatar.isNotEmpty) out.add(avatar);
+    for (final r in await db.select(db.authors).get()) {
+      if (r.deletedAt != null) continue;
+      for (final f in [r.avatarFile, r.bannerFile]) {
+        if (f != null && f.isNotEmpty) out.add(f);
+      }
+    }
     for (final r in await db.select(db.pits).get()) {
       final c = r.coverFile;
       if (c != null && c.isNotEmpty) out.add(c);

@@ -1233,6 +1233,360 @@ abstract class AppLocalizations {
   /// **'桌面圖示已換成「{name}」'**
   String appiconToast(String name);
 
+  /// No description provided for @authorTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'作者'**
+  String get authorTitle;
+
+  /// No description provided for @authorCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 位'**
+  String authorCount(int count);
+
+  /// No description provided for @authorSelectedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已選 {count} 位'**
+  String authorSelectedCount(int count);
+
+  /// No description provided for @authorNoFanArts.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有同人圖'**
+  String get authorNoFanArts;
+
+  /// No description provided for @authorLayoutList.
+  ///
+  /// In zh, this message translates to:
+  /// **'列表'**
+  String get authorLayoutList;
+
+  /// No description provided for @authorLayoutGrid.
+  ///
+  /// In zh, this message translates to:
+  /// **'格子'**
+  String get authorLayoutGrid;
+
+  /// No description provided for @authorLayoutLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'版面'**
+  String get authorLayoutLabel;
+
+  /// No description provided for @authorAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增作者'**
+  String get authorAdd;
+
+  /// No description provided for @authorEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有作者'**
+  String get authorEmpty;
+
+  /// No description provided for @authorEditTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'編輯作者'**
+  String get authorEditTitle;
+
+  /// No description provided for @authorFieldName.
+  ///
+  /// In zh, this message translates to:
+  /// **'名字'**
+  String get authorFieldName;
+
+  /// No description provided for @authorFieldHandle.
+  ///
+  /// In zh, this message translates to:
+  /// **'ID'**
+  String get authorFieldHandle;
+
+  /// No description provided for @authorFieldBanner.
+  ///
+  /// In zh, this message translates to:
+  /// **'封面'**
+  String get authorFieldBanner;
+
+  /// No description provided for @authorChangeBanner.
+  ///
+  /// In zh, this message translates to:
+  /// **'更換封面'**
+  String get authorChangeBanner;
+
+  /// No description provided for @authorChangeAvatar.
+  ///
+  /// In zh, this message translates to:
+  /// **'更換頭像'**
+  String get authorChangeAvatar;
+
+  /// No description provided for @authorPickAvatar.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇頭像'**
+  String get authorPickAvatar;
+
+  /// No description provided for @authorLinkedAccounts.
+  ///
+  /// In zh, this message translates to:
+  /// **'連結帳號'**
+  String get authorLinkedAccounts;
+
+  /// No description provided for @authorXLinkLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'推特連結'**
+  String get authorXLinkLabel;
+
+  /// No description provided for @authorXhsLinkLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'小紅書連結'**
+  String get authorXhsLinkLabel;
+
+  /// No description provided for @authorXLinkHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'x.com/…'**
+  String get authorXLinkHint;
+
+  /// No description provided for @authorXhsLinkHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'xiaohongshu.com/user/profile/…'**
+  String get authorXhsLinkHint;
+
+  /// No description provided for @authorLookingUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'查找中'**
+  String get authorLookingUp;
+
+  /// No description provided for @authorLinkFail.
+  ///
+  /// In zh, this message translates to:
+  /// **'找不到這個帳號，或網路有問題'**
+  String get authorLinkFail;
+
+  /// No description provided for @authorCreate.
+  ///
+  /// In zh, this message translates to:
+  /// **'建立作者'**
+  String get authorCreate;
+
+  /// No description provided for @authorCreateAndPick.
+  ///
+  /// In zh, this message translates to:
+  /// **'建立並選擇'**
+  String get authorCreateAndPick;
+
+  /// No description provided for @authorNameRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'請輸入名字'**
+  String get authorNameRequired;
+
+  /// No description provided for @authorDelete.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除作者'**
+  String get authorDelete;
+
+  /// No description provided for @authorDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除「{name}」？'**
+  String authorDeleteTitle(String name);
+
+  /// No description provided for @authorDeleteManyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除 {count} 位作者？'**
+  String authorDeleteManyTitle(int count);
+
+  /// No description provided for @authorDeleteBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 張同人圖會留著，只是作者欄變回空白。'**
+  String authorDeleteBody(int count);
+
+  /// No description provided for @authorDeleteBodyNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'同人圖會留著，只是作者欄變回空白。'**
+  String get authorDeleteBodyNone;
+
+  /// No description provided for @authorUseXTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用推特上的資料？'**
+  String get authorUseXTitle;
+
+  /// No description provided for @authorUseXhsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用小紅書上的資料？'**
+  String get authorUseXhsTitle;
+
+  /// No description provided for @authorUseXBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'頭像、名字和 ID 會換成推特上的資料。'**
+  String get authorUseXBody;
+
+  /// No description provided for @authorUseXhsBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'頭像、名字和 ID 會換成小紅書上的資料。'**
+  String get authorUseXhsBody;
+
+  /// No description provided for @authorUseNo.
+  ///
+  /// In zh, this message translates to:
+  /// **'不用'**
+  String get authorUseNo;
+
+  /// No description provided for @authorUseYes.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用'**
+  String get authorUseYes;
+
+  /// No description provided for @authorLastRefreshed.
+  ///
+  /// In zh, this message translates to:
+  /// **'上次更新 {date}'**
+  String authorLastRefreshed(String date);
+
+  /// No description provided for @authorRefresh.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新'**
+  String get authorRefresh;
+
+  /// No description provided for @authorRefreshNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'立即更新'**
+  String get authorRefreshNow;
+
+  /// No description provided for @authorRefreshFromX.
+  ///
+  /// In zh, this message translates to:
+  /// **'從推特更新資料'**
+  String get authorRefreshFromX;
+
+  /// No description provided for @authorRefreshFromXhs.
+  ///
+  /// In zh, this message translates to:
+  /// **'從小紅書更新資料'**
+  String get authorRefreshFromXhs;
+
+  /// No description provided for @authorUseForSync.
+  ///
+  /// In zh, this message translates to:
+  /// **'改用這個同步'**
+  String get authorUseForSync;
+
+  /// No description provided for @authorUseForSyncLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'改用這個帳號同步'**
+  String get authorUseForSyncLabel;
+
+  /// No description provided for @authorUnlink.
+  ///
+  /// In zh, this message translates to:
+  /// **'解除連結'**
+  String get authorUnlink;
+
+  /// No description provided for @authorXChangedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'推特上的資料有變更'**
+  String get authorXChangedTitle;
+
+  /// No description provided for @authorXhsChangedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'小紅書上的資料有變更'**
+  String get authorXhsChangedTitle;
+
+  /// No description provided for @authorUnchanged.
+  ///
+  /// In zh, this message translates to:
+  /// **'（沒有變）'**
+  String get authorUnchanged;
+
+  /// No description provided for @authorRefreshFail.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新失敗，帳號可能已停用或設為私密，也可能是網路問題'**
+  String get authorRefreshFail;
+
+  /// No description provided for @authorUpToDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'資料已是最新'**
+  String get authorUpToDate;
+
+  /// No description provided for @authorXhsNumber.
+  ///
+  /// In zh, this message translates to:
+  /// **'小紅書號 {id}'**
+  String authorXhsNumber(String id);
+
+  /// No description provided for @authorXhsShort.
+  ///
+  /// In zh, this message translates to:
+  /// **'小紅書 {id}'**
+  String authorXhsShort(String id);
+
+  /// No description provided for @authorDetailSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'{handle} · {count} 張'**
+  String authorDetailSub(String handle, int count);
+
+  /// No description provided for @authorPick.
+  ///
+  /// In zh, this message translates to:
+  /// **'選擇作者'**
+  String get authorPick;
+
+  /// No description provided for @authorPickNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'不指定'**
+  String get authorPickNone;
+
+  /// No description provided for @authorSearch.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜尋作者'**
+  String get authorSearch;
+
+  /// No description provided for @authorFanArt.
+  ///
+  /// In zh, this message translates to:
+  /// **'同人圖'**
+  String get authorFanArt;
+
+  /// No description provided for @authorPlatformX.
+  ///
+  /// In zh, this message translates to:
+  /// **'推特'**
+  String get authorPlatformX;
+
+  /// No description provided for @authorPlatformXhs.
+  ///
+  /// In zh, this message translates to:
+  /// **'小紅書'**
+  String get authorPlatformXhs;
+
   /// No description provided for @backupStorageTitle.
   ///
   /// In zh, this message translates to:

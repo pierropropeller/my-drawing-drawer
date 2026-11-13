@@ -18,6 +18,7 @@ class _Src {
     required this.key,
     required this.createdAt,
     this.author = '',
+    this.authorId,
     this.source = '',
     this.kind = MediaKind.image,
     this.durationMs,
@@ -34,6 +35,7 @@ class _Src {
 
   /// 只有同人圖來源列有（跨坑移動同人圖時一併帶過去）。
   final String author;
+  final String? authorId;
   final String source;
 
   /// 媒體欄位（D-080）：跨格／跨坑移動時一併帶過去。
@@ -344,6 +346,7 @@ extension JunkQueries on AppDatabase {
               r.imageKey,
               r.createdAt,
               author: r.author,
+              authorId: r.authorId,
               source: r.source,
               kind: r.kind,
               durationMs: r.durationMs,
@@ -393,6 +396,7 @@ extension JunkQueries on AppDatabase {
     String key,
     DateTime createdAt, {
     String author = '',
+    String? authorId,
     String source = '',
     MediaKind kind = MediaKind.image,
     int? durationMs,
@@ -407,6 +411,7 @@ extension JunkQueries on AppDatabase {
     key: key.isEmpty ? id : key, // 防呆：舊列沒有 imageKey 就用 id
     createdAt: createdAt,
     author: author,
+    authorId: authorId,
     source: source,
     kind: kind,
     durationMs: durationMs,
@@ -569,6 +574,7 @@ extension JunkQueries on AppDatabase {
             posterFile: Value(src.posterFile),
             sensitive: Value(src.sensitive),
             author: Value(src.author),
+            authorId: Value(src.authorId),
             source: Value(src.source),
             groupId: Value(groupId),
             imageKey: Value(src.key),

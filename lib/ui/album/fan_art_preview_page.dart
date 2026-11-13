@@ -6,9 +6,12 @@ import '../../data/database.dart';
 import '../../data/junk_queries.dart' show AlbumCell;
 import '../../l10n/l10n.dart';
 import '../../state/providers.dart';
+import '../authors/author_detail_page.dart';
+import '../authors/author_widgets.dart';
 import '../common/app_icons.dart';
 import '../common/device_class.dart';
 import '../common/nav_bar_hidden.dart';
+import '../common/svg_icon.dart';
 import '../common/window_class.dart';
 import '../reference/reference_viewer.dart';
 import 'album_actions.dart';
@@ -153,6 +156,11 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
         (live == null ? cur.groupName : null) ??
         '';
     final author = live?.author ?? cur.author ?? '';
+    // 作者（D-156）：有作者就顯示頭像＋名字＋ID，點了進作者詳情。
+    final authorId = live?.authorId;
+    final authorRow = authorId == null
+        ? null
+        : ref.watch(authorProvider(authorId)).value;
     final note = live == null ? (cur.note ?? '') : (live.note ?? '');
     final tagIds =
         ref.watch(tagIdsProvider((TagTarget.fanArt, cur.id))).value ??
@@ -193,45 +201,92 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (author.isNotEmpty || group.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.only(right: pages.length > 1 ? 24 : 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        author,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: PreviewPalette.text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
+            if (author.isNotEmpty || group.isNotEmpty || authorRow != null)
+              _AuthorTap(
+                authorId: authorRow?.id,
+                child: Padding(
+                  padding: EdgeInsets.only(right: pages.length > 1 ? 24 : 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: authorRow != null
+                            ? Row(
+                                children: [
+                                  AuthorAvatar.of(authorRow, size: 34),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          authorRow.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: PreviewPalette.text,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        if (authorRow.handle.isNotEmpty)
+                                          Text(
+                                            authorRow.handle,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: PreviewPalette.muted,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Text(
+                                author,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: PreviewPalette.text,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                       ),
-                    ),
-                    if (group.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: PreviewPalette.pillFan,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          group,
-                          style: const TextStyle(
-                            color: PreviewPalette.bg,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
+                      if (group.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: PreviewPalette.pillFan,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            group,
+                            style: const TextStyle(
+                              color: PreviewPalette.bg,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
+                      if (authorRow != null) ...[
+                        const SizedBox(width: 8),
+                        const SvgIcon(
+                          AppIcons.chevronRight,
+                          size: 18,
+                          strokeWidth: 2,
+                          color: PreviewPalette.muted,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             if (tagIds.isNotEmpty)
@@ -317,6 +372,26 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
           color: PreviewPalette.danger,
         ),
       ],
+    );
+  }
+}
+
+/// 預覽頁的作者列：有作者時點了進作者詳情（FanArtPreviewAuthor）。
+class _AuthorTap extends StatelessWidget {
+  const _AuthorTap({required this.authorId, required this.child});
+  final String? authorId;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final id = authorId;
+    if (id == null) return child;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => AuthorDetailPage(authorId: id)),
+      ),
+      child: child,
     );
   }
 }

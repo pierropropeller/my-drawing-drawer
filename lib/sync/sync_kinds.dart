@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../data/album_queries.dart';
+import '../data/author_queries.dart';
 import '../data/database.dart';
 import '../data/entity_queries.dart';
 import '../data/media.dart';
@@ -733,6 +734,38 @@ class ReviewSettingsKind extends SyncKind {
       db.into(db.reviewSettings).upsertFull(ReviewSetting.fromJson(data));
 }
 
+/// 作者（D-156）。頭像、封面檔跟著同步（不屬於任何圖冊）。
+/// 套用後同人圖的作者文字（本機快取）跟著作者名字走。
+class AuthorsKind extends SyncKind {
+  const AuthorsKind();
+  @override
+  String get name => 'author';
+  @override
+  Future<Map<String, int>> versions(AppDatabase db) async => {
+    for (final r in await db.select(db.authors).get())
+      r.id: r.updatedAt.millisecondsSinceEpoch,
+  };
+  @override
+  Future<Map<String, dynamic>> encode(AppDatabase db, String id) async =>
+      (await (db.select(
+        db.authors,
+      )..where((t) => t.id.equals(id))).getSingle()).toJson();
+  @override
+  Future<void> apply(AppDatabase db, Map<String, dynamic> data) async {
+    final row = Author.fromJson(
+      withDefaults(data, {'handle': '', 'sortOrder': 0}),
+    );
+    await db.into(db.authors).upsertFull(row);
+    await db.refreshAuthorNameCache();
+  }
+
+  @override
+  Set<String> imageFiles(Map<String, dynamic> data) => {
+    for (final k in ['avatarFile', 'bannerFile'])
+      if ((data[k] as String?)?.isNotEmpty ?? false) data[k] as String,
+  };
+}
+
 /// 使用者資料（暱稱、頭像）：單例文件，id 固定 `me`；頭像檔跟其他圖片一起上傳／下載。
 /// 舊版 App 沒有這個種類，讀遠端時只認得自己知道的 `meta__{kind}__` 前綴，直接忽略，不需提高格式版本。
 class ProfileKind extends SyncKind {
@@ -822,6 +855,7 @@ const allSyncKinds = <SyncKind>[
   ReviewMonthsKind(),
   ReviewSettingsKind(),
   ProfileKind(),
+  AuthorsKind(),
   PitSortKind(),
   AlbumOrderKind(),
 ];

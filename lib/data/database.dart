@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import 'author_queries.dart';
 import 'pit_status_queries.dart';
 import 'ref_view_queries.dart' show RefViewStates;
 import 'tables.dart';
@@ -51,6 +52,7 @@ part 'database.g.dart';
     RefViewStates,
     PitSortSettings,
     AlbumOrders,
+    Authors,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -58,7 +60,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -135,6 +137,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 18) {
         await _migrateV18(m);
       }
+      if (from < 19) {
+        await _migrateV19(m);
+      }
     },
   );
 
@@ -159,6 +164,26 @@ class AppDatabase extends _$AppDatabase {
     if (!tables.contains('pit_sort_settings')) {
       await m.createTable(pitSortSettings);
     }
+  }
+
+  /// v19：作者系統（D-156）。新表 `authors`、同人圖加 `author_id`；舊的作者文字轉成作者
+  /// （同名合併，見 [AuthorQueries.linkLegacyAuthors]）。先查表／欄位存不存在再加（可重複執行）。
+  Future<void> _migrateV19(Migrator m) async {
+    final tables = {
+      for (final r in await customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table'",
+      ).get())
+        r.read<String>('name'),
+    };
+    if (!tables.contains('authors')) await m.createTable(authors);
+    final have = {
+      for (final r in await customSelect('PRAGMA table_info(fan_arts)').get())
+        r.read<String>('name'),
+    };
+    if (!have.contains('author_id')) {
+      await m.addColumn(fanArts, fanArts.authorId);
+    }
+    await linkLegacyAuthors();
   }
 
   /// v18：圖冊手動排序（D-134）。新表 `album_orders`；表已存在就略過（可重複執行）。

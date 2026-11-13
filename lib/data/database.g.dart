@@ -3062,6 +3062,17 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _authorIdMeta = const VerificationMeta(
+    'authorId',
+  );
+  @override
+  late final GeneratedColumn<String> authorId = GeneratedColumn<String>(
+    'author_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3083,6 +3094,7 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     imageKey,
     hidden,
     note,
+    authorId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3205,6 +3217,12 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('author_id')) {
+      context.handle(
+        _authorIdMeta,
+        authorId.isAcceptableOrUnknown(data['author_id']!, _authorIdMeta),
+      );
+    }
     return context;
   }
 
@@ -3292,6 +3310,10 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       ),
+      authorId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}author_id'],
+      ),
     );
   }
 
@@ -3341,6 +3363,10 @@ class FanArt extends DataClass implements Insertable<FanArt> {
 
   /// 說明（D-141）：可留空。
   final String? note;
+
+  /// 作者（D-156）。[author] 改成作者名字的本機快取（舊版 App、搜尋、列表照舊讀它），
+  /// 由 [authorId] 指向的作者決定；作者改名時只更新本機快取，不動 updatedAt。
+  final String? authorId;
   const FanArt({
     required this.id,
     required this.createdAt,
@@ -3361,6 +3387,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     required this.imageKey,
     required this.hidden,
     this.note,
+    this.authorId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3396,6 +3423,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
+    if (!nullToAbsent || authorId != null) {
+      map['author_id'] = Variable<String>(authorId);
+    }
     return map;
   }
 
@@ -3428,6 +3458,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       imageKey: Value(imageKey),
       hidden: Value(hidden),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      authorId: authorId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(authorId),
     );
   }
 
@@ -3458,6 +3491,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       imageKey: serializer.fromJson<String>(json['imageKey']),
       hidden: serializer.fromJson<bool>(json['hidden']),
       note: serializer.fromJson<String?>(json['note']),
+      authorId: serializer.fromJson<String?>(json['authorId']),
     );
   }
   @override
@@ -3485,6 +3519,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       'imageKey': serializer.toJson<String>(imageKey),
       'hidden': serializer.toJson<bool>(hidden),
       'note': serializer.toJson<String?>(note),
+      'authorId': serializer.toJson<String?>(authorId),
     };
   }
 
@@ -3508,6 +3543,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     String? imageKey,
     bool? hidden,
     Value<String?> note = const Value.absent(),
+    Value<String?> authorId = const Value.absent(),
   }) => FanArt(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -3528,6 +3564,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     imageKey: imageKey ?? this.imageKey,
     hidden: hidden ?? this.hidden,
     note: note.present ? note.value : this.note,
+    authorId: authorId.present ? authorId.value : this.authorId,
   );
   FanArt copyWithCompanion(FanArtsCompanion data) {
     return FanArt(
@@ -3554,6 +3591,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       imageKey: data.imageKey.present ? data.imageKey.value : this.imageKey,
       hidden: data.hidden.present ? data.hidden.value : this.hidden,
       note: data.note.present ? data.note.value : this.note,
+      authorId: data.authorId.present ? data.authorId.value : this.authorId,
     );
   }
 
@@ -3578,7 +3616,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           ..write('groupId: $groupId, ')
           ..write('imageKey: $imageKey, ')
           ..write('hidden: $hidden, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('authorId: $authorId')
           ..write(')'))
         .toString();
   }
@@ -3604,6 +3643,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     imageKey,
     hidden,
     note,
+    authorId,
   );
   @override
   bool operator ==(Object other) =>
@@ -3627,7 +3667,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           other.groupId == this.groupId &&
           other.imageKey == this.imageKey &&
           other.hidden == this.hidden &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.authorId == this.authorId);
 }
 
 class FanArtsCompanion extends UpdateCompanion<FanArt> {
@@ -3650,6 +3691,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
   final Value<String> imageKey;
   final Value<bool> hidden;
   final Value<String?> note;
+  final Value<String?> authorId;
   final Value<int> rowid;
   const FanArtsCompanion({
     this.id = const Value.absent(),
@@ -3671,6 +3713,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.imageKey = const Value.absent(),
     this.hidden = const Value.absent(),
     this.note = const Value.absent(),
+    this.authorId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FanArtsCompanion.insert({
@@ -3693,6 +3736,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.imageKey = const Value.absent(),
     this.hidden = const Value.absent(),
     this.note = const Value.absent(),
+    this.authorId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : pitId = Value(pitId),
        imageFile = Value(imageFile);
@@ -3716,6 +3760,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Expression<String>? imageKey,
     Expression<bool>? hidden,
     Expression<String>? note,
+    Expression<String>? authorId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3738,6 +3783,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       if (imageKey != null) 'image_key': imageKey,
       if (hidden != null) 'hidden': hidden,
       if (note != null) 'note': note,
+      if (authorId != null) 'author_id': authorId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3762,6 +3808,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Value<String>? imageKey,
     Value<bool>? hidden,
     Value<String?>? note,
+    Value<String?>? authorId,
     Value<int>? rowid,
   }) {
     return FanArtsCompanion(
@@ -3784,6 +3831,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       imageKey: imageKey ?? this.imageKey,
       hidden: hidden ?? this.hidden,
       note: note ?? this.note,
+      authorId: authorId ?? this.authorId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3850,6 +3898,9 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (authorId.present) {
+      map['author_id'] = Variable<String>(authorId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3878,6 +3929,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
           ..write('imageKey: $imageKey, ')
           ..write('hidden: $hidden, ')
           ..write('note: $note, ')
+          ..write('authorId: $authorId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -15394,6 +15446,1011 @@ class AlbumOrdersCompanion extends UpdateCompanion<AlbumOrder> {
   }
 }
 
+class $AuthorsTable extends Authors with TableInfo<$AuthorsTable, Author> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AuthorsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => uuid.v4(),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _handleMeta = const VerificationMeta('handle');
+  @override
+  late final GeneratedColumn<String> handle = GeneratedColumn<String>(
+    'handle',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _avatarFileMeta = const VerificationMeta(
+    'avatarFile',
+  );
+  @override
+  late final GeneratedColumn<String> avatarFile = GeneratedColumn<String>(
+    'avatar_file',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bannerFileMeta = const VerificationMeta(
+    'bannerFile',
+  );
+  @override
+  late final GeneratedColumn<String> bannerFile = GeneratedColumn<String>(
+    'banner_file',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _xUserIdMeta = const VerificationMeta(
+    'xUserId',
+  );
+  @override
+  late final GeneratedColumn<String> xUserId = GeneratedColumn<String>(
+    'x_user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _xHandleMeta = const VerificationMeta(
+    'xHandle',
+  );
+  @override
+  late final GeneratedColumn<String> xHandle = GeneratedColumn<String>(
+    'x_handle',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _xNameMeta = const VerificationMeta('xName');
+  @override
+  late final GeneratedColumn<String> xName = GeneratedColumn<String>(
+    'x_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _xhsUserIdMeta = const VerificationMeta(
+    'xhsUserId',
+  );
+  @override
+  late final GeneratedColumn<String> xhsUserId = GeneratedColumn<String>(
+    'xhs_user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _xhsHandleMeta = const VerificationMeta(
+    'xhsHandle',
+  );
+  @override
+  late final GeneratedColumn<String> xhsHandle = GeneratedColumn<String>(
+    'xhs_handle',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _xhsNameMeta = const VerificationMeta(
+    'xhsName',
+  );
+  @override
+  late final GeneratedColumn<String> xhsName = GeneratedColumn<String>(
+    'xhs_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncSourceMeta = const VerificationMeta(
+    'syncSource',
+  );
+  @override
+  late final GeneratedColumn<String> syncSource = GeneratedColumn<String>(
+    'sync_source',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _refreshedAtMeta = const VerificationMeta(
+    'refreshedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> refreshedAt = GeneratedColumn<DateTime>(
+    'refreshed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    name,
+    handle,
+    avatarFile,
+    bannerFile,
+    sortOrder,
+    xUserId,
+    xHandle,
+    xName,
+    xhsUserId,
+    xhsHandle,
+    xhsName,
+    syncSource,
+    refreshedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'authors';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Author> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('handle')) {
+      context.handle(
+        _handleMeta,
+        handle.isAcceptableOrUnknown(data['handle']!, _handleMeta),
+      );
+    }
+    if (data.containsKey('avatar_file')) {
+      context.handle(
+        _avatarFileMeta,
+        avatarFile.isAcceptableOrUnknown(data['avatar_file']!, _avatarFileMeta),
+      );
+    }
+    if (data.containsKey('banner_file')) {
+      context.handle(
+        _bannerFileMeta,
+        bannerFile.isAcceptableOrUnknown(data['banner_file']!, _bannerFileMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('x_user_id')) {
+      context.handle(
+        _xUserIdMeta,
+        xUserId.isAcceptableOrUnknown(data['x_user_id']!, _xUserIdMeta),
+      );
+    }
+    if (data.containsKey('x_handle')) {
+      context.handle(
+        _xHandleMeta,
+        xHandle.isAcceptableOrUnknown(data['x_handle']!, _xHandleMeta),
+      );
+    }
+    if (data.containsKey('x_name')) {
+      context.handle(
+        _xNameMeta,
+        xName.isAcceptableOrUnknown(data['x_name']!, _xNameMeta),
+      );
+    }
+    if (data.containsKey('xhs_user_id')) {
+      context.handle(
+        _xhsUserIdMeta,
+        xhsUserId.isAcceptableOrUnknown(data['xhs_user_id']!, _xhsUserIdMeta),
+      );
+    }
+    if (data.containsKey('xhs_handle')) {
+      context.handle(
+        _xhsHandleMeta,
+        xhsHandle.isAcceptableOrUnknown(data['xhs_handle']!, _xhsHandleMeta),
+      );
+    }
+    if (data.containsKey('xhs_name')) {
+      context.handle(
+        _xhsNameMeta,
+        xhsName.isAcceptableOrUnknown(data['xhs_name']!, _xhsNameMeta),
+      );
+    }
+    if (data.containsKey('sync_source')) {
+      context.handle(
+        _syncSourceMeta,
+        syncSource.isAcceptableOrUnknown(data['sync_source']!, _syncSourceMeta),
+      );
+    }
+    if (data.containsKey('refreshed_at')) {
+      context.handle(
+        _refreshedAtMeta,
+        refreshedAt.isAcceptableOrUnknown(
+          data['refreshed_at']!,
+          _refreshedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Author map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Author(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      handle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}handle'],
+      )!,
+      avatarFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}avatar_file'],
+      ),
+      bannerFile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}banner_file'],
+      ),
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      xUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}x_user_id'],
+      ),
+      xHandle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}x_handle'],
+      ),
+      xName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}x_name'],
+      ),
+      xhsUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}xhs_user_id'],
+      ),
+      xhsHandle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}xhs_handle'],
+      ),
+      xhsName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}xhs_name'],
+      ),
+      syncSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_source'],
+      ),
+      refreshedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}refreshed_at'],
+      ),
+    );
+  }
+
+  @override
+  $AuthorsTable createAlias(String alias) {
+    return $AuthorsTable(attachedDatabase, alias);
+  }
+}
+
+class Author extends DataClass implements Insertable<Author> {
+  final String id;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String deviceId;
+  final String name;
+
+  /// 顯示用的 ID（例：@yukimi_ill）；可留空。
+  final String handle;
+  final String? avatarFile;
+  final String? bannerFile;
+
+  /// 手動排序（小的在前；新增的排最前面）。
+  final int sortOrder;
+  final String? xUserId;
+  final String? xHandle;
+  final String? xName;
+  final String? xhsUserId;
+
+  /// 小紅書號（使用者看得到的號碼）。
+  final String? xhsHandle;
+  final String? xhsName;
+
+  /// `x`／`xhs`；只連結一邊時就是那一邊，都沒連結是 null。
+  final String? syncSource;
+
+  /// 上次從平台更新資料的時間。
+  final DateTime? refreshedAt;
+  const Author({
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.deviceId,
+    required this.name,
+    required this.handle,
+    this.avatarFile,
+    this.bannerFile,
+    required this.sortOrder,
+    this.xUserId,
+    this.xHandle,
+    this.xName,
+    this.xhsUserId,
+    this.xhsHandle,
+    this.xhsName,
+    this.syncSource,
+    this.refreshedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['device_id'] = Variable<String>(deviceId);
+    map['name'] = Variable<String>(name);
+    map['handle'] = Variable<String>(handle);
+    if (!nullToAbsent || avatarFile != null) {
+      map['avatar_file'] = Variable<String>(avatarFile);
+    }
+    if (!nullToAbsent || bannerFile != null) {
+      map['banner_file'] = Variable<String>(bannerFile);
+    }
+    map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || xUserId != null) {
+      map['x_user_id'] = Variable<String>(xUserId);
+    }
+    if (!nullToAbsent || xHandle != null) {
+      map['x_handle'] = Variable<String>(xHandle);
+    }
+    if (!nullToAbsent || xName != null) {
+      map['x_name'] = Variable<String>(xName);
+    }
+    if (!nullToAbsent || xhsUserId != null) {
+      map['xhs_user_id'] = Variable<String>(xhsUserId);
+    }
+    if (!nullToAbsent || xhsHandle != null) {
+      map['xhs_handle'] = Variable<String>(xhsHandle);
+    }
+    if (!nullToAbsent || xhsName != null) {
+      map['xhs_name'] = Variable<String>(xhsName);
+    }
+    if (!nullToAbsent || syncSource != null) {
+      map['sync_source'] = Variable<String>(syncSource);
+    }
+    if (!nullToAbsent || refreshedAt != null) {
+      map['refreshed_at'] = Variable<DateTime>(refreshedAt);
+    }
+    return map;
+  }
+
+  AuthorsCompanion toCompanion(bool nullToAbsent) {
+    return AuthorsCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      deviceId: Value(deviceId),
+      name: Value(name),
+      handle: Value(handle),
+      avatarFile: avatarFile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(avatarFile),
+      bannerFile: bannerFile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bannerFile),
+      sortOrder: Value(sortOrder),
+      xUserId: xUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(xUserId),
+      xHandle: xHandle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(xHandle),
+      xName: xName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(xName),
+      xhsUserId: xhsUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(xhsUserId),
+      xhsHandle: xhsHandle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(xhsHandle),
+      xhsName: xhsName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(xhsName),
+      syncSource: syncSource == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncSource),
+      refreshedAt: refreshedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(refreshedAt),
+    );
+  }
+
+  factory Author.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Author(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+      name: serializer.fromJson<String>(json['name']),
+      handle: serializer.fromJson<String>(json['handle']),
+      avatarFile: serializer.fromJson<String?>(json['avatarFile']),
+      bannerFile: serializer.fromJson<String?>(json['bannerFile']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      xUserId: serializer.fromJson<String?>(json['xUserId']),
+      xHandle: serializer.fromJson<String?>(json['xHandle']),
+      xName: serializer.fromJson<String?>(json['xName']),
+      xhsUserId: serializer.fromJson<String?>(json['xhsUserId']),
+      xhsHandle: serializer.fromJson<String?>(json['xhsHandle']),
+      xhsName: serializer.fromJson<String?>(json['xhsName']),
+      syncSource: serializer.fromJson<String?>(json['syncSource']),
+      refreshedAt: serializer.fromJson<DateTime?>(json['refreshedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'deviceId': serializer.toJson<String>(deviceId),
+      'name': serializer.toJson<String>(name),
+      'handle': serializer.toJson<String>(handle),
+      'avatarFile': serializer.toJson<String?>(avatarFile),
+      'bannerFile': serializer.toJson<String?>(bannerFile),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'xUserId': serializer.toJson<String?>(xUserId),
+      'xHandle': serializer.toJson<String?>(xHandle),
+      'xName': serializer.toJson<String?>(xName),
+      'xhsUserId': serializer.toJson<String?>(xhsUserId),
+      'xhsHandle': serializer.toJson<String?>(xhsHandle),
+      'xhsName': serializer.toJson<String?>(xhsName),
+      'syncSource': serializer.toJson<String?>(syncSource),
+      'refreshedAt': serializer.toJson<DateTime?>(refreshedAt),
+    };
+  }
+
+  Author copyWith({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? deviceId,
+    String? name,
+    String? handle,
+    Value<String?> avatarFile = const Value.absent(),
+    Value<String?> bannerFile = const Value.absent(),
+    int? sortOrder,
+    Value<String?> xUserId = const Value.absent(),
+    Value<String?> xHandle = const Value.absent(),
+    Value<String?> xName = const Value.absent(),
+    Value<String?> xhsUserId = const Value.absent(),
+    Value<String?> xhsHandle = const Value.absent(),
+    Value<String?> xhsName = const Value.absent(),
+    Value<String?> syncSource = const Value.absent(),
+    Value<DateTime?> refreshedAt = const Value.absent(),
+  }) => Author(
+    id: id ?? this.id,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    deviceId: deviceId ?? this.deviceId,
+    name: name ?? this.name,
+    handle: handle ?? this.handle,
+    avatarFile: avatarFile.present ? avatarFile.value : this.avatarFile,
+    bannerFile: bannerFile.present ? bannerFile.value : this.bannerFile,
+    sortOrder: sortOrder ?? this.sortOrder,
+    xUserId: xUserId.present ? xUserId.value : this.xUserId,
+    xHandle: xHandle.present ? xHandle.value : this.xHandle,
+    xName: xName.present ? xName.value : this.xName,
+    xhsUserId: xhsUserId.present ? xhsUserId.value : this.xhsUserId,
+    xhsHandle: xhsHandle.present ? xhsHandle.value : this.xhsHandle,
+    xhsName: xhsName.present ? xhsName.value : this.xhsName,
+    syncSource: syncSource.present ? syncSource.value : this.syncSource,
+    refreshedAt: refreshedAt.present ? refreshedAt.value : this.refreshedAt,
+  );
+  Author copyWithCompanion(AuthorsCompanion data) {
+    return Author(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      name: data.name.present ? data.name.value : this.name,
+      handle: data.handle.present ? data.handle.value : this.handle,
+      avatarFile: data.avatarFile.present
+          ? data.avatarFile.value
+          : this.avatarFile,
+      bannerFile: data.bannerFile.present
+          ? data.bannerFile.value
+          : this.bannerFile,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      xUserId: data.xUserId.present ? data.xUserId.value : this.xUserId,
+      xHandle: data.xHandle.present ? data.xHandle.value : this.xHandle,
+      xName: data.xName.present ? data.xName.value : this.xName,
+      xhsUserId: data.xhsUserId.present ? data.xhsUserId.value : this.xhsUserId,
+      xhsHandle: data.xhsHandle.present ? data.xhsHandle.value : this.xhsHandle,
+      xhsName: data.xhsName.present ? data.xhsName.value : this.xhsName,
+      syncSource: data.syncSource.present
+          ? data.syncSource.value
+          : this.syncSource,
+      refreshedAt: data.refreshedAt.present
+          ? data.refreshedAt.value
+          : this.refreshedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Author(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('name: $name, ')
+          ..write('handle: $handle, ')
+          ..write('avatarFile: $avatarFile, ')
+          ..write('bannerFile: $bannerFile, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('xUserId: $xUserId, ')
+          ..write('xHandle: $xHandle, ')
+          ..write('xName: $xName, ')
+          ..write('xhsUserId: $xhsUserId, ')
+          ..write('xhsHandle: $xhsHandle, ')
+          ..write('xhsName: $xhsName, ')
+          ..write('syncSource: $syncSource, ')
+          ..write('refreshedAt: $refreshedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    name,
+    handle,
+    avatarFile,
+    bannerFile,
+    sortOrder,
+    xUserId,
+    xHandle,
+    xName,
+    xhsUserId,
+    xhsHandle,
+    xhsName,
+    syncSource,
+    refreshedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Author &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.deviceId == this.deviceId &&
+          other.name == this.name &&
+          other.handle == this.handle &&
+          other.avatarFile == this.avatarFile &&
+          other.bannerFile == this.bannerFile &&
+          other.sortOrder == this.sortOrder &&
+          other.xUserId == this.xUserId &&
+          other.xHandle == this.xHandle &&
+          other.xName == this.xName &&
+          other.xhsUserId == this.xhsUserId &&
+          other.xhsHandle == this.xhsHandle &&
+          other.xhsName == this.xhsName &&
+          other.syncSource == this.syncSource &&
+          other.refreshedAt == this.refreshedAt);
+}
+
+class AuthorsCompanion extends UpdateCompanion<Author> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String> deviceId;
+  final Value<String> name;
+  final Value<String> handle;
+  final Value<String?> avatarFile;
+  final Value<String?> bannerFile;
+  final Value<int> sortOrder;
+  final Value<String?> xUserId;
+  final Value<String?> xHandle;
+  final Value<String?> xName;
+  final Value<String?> xhsUserId;
+  final Value<String?> xhsHandle;
+  final Value<String?> xhsName;
+  final Value<String?> syncSource;
+  final Value<DateTime?> refreshedAt;
+  final Value<int> rowid;
+  const AuthorsCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.handle = const Value.absent(),
+    this.avatarFile = const Value.absent(),
+    this.bannerFile = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.xUserId = const Value.absent(),
+    this.xHandle = const Value.absent(),
+    this.xName = const Value.absent(),
+    this.xhsUserId = const Value.absent(),
+    this.xhsHandle = const Value.absent(),
+    this.xhsName = const Value.absent(),
+    this.syncSource = const Value.absent(),
+    this.refreshedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AuthorsCompanion.insert({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    required String name,
+    this.handle = const Value.absent(),
+    this.avatarFile = const Value.absent(),
+    this.bannerFile = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.xUserId = const Value.absent(),
+    this.xHandle = const Value.absent(),
+    this.xName = const Value.absent(),
+    this.xhsUserId = const Value.absent(),
+    this.xhsHandle = const Value.absent(),
+    this.xhsName = const Value.absent(),
+    this.syncSource = const Value.absent(),
+    this.refreshedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<Author> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? deviceId,
+    Expression<String>? name,
+    Expression<String>? handle,
+    Expression<String>? avatarFile,
+    Expression<String>? bannerFile,
+    Expression<int>? sortOrder,
+    Expression<String>? xUserId,
+    Expression<String>? xHandle,
+    Expression<String>? xName,
+    Expression<String>? xhsUserId,
+    Expression<String>? xhsHandle,
+    Expression<String>? xhsName,
+    Expression<String>? syncSource,
+    Expression<DateTime>? refreshedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (name != null) 'name': name,
+      if (handle != null) 'handle': handle,
+      if (avatarFile != null) 'avatar_file': avatarFile,
+      if (bannerFile != null) 'banner_file': bannerFile,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (xUserId != null) 'x_user_id': xUserId,
+      if (xHandle != null) 'x_handle': xHandle,
+      if (xName != null) 'x_name': xName,
+      if (xhsUserId != null) 'xhs_user_id': xhsUserId,
+      if (xhsHandle != null) 'xhs_handle': xhsHandle,
+      if (xhsName != null) 'xhs_name': xhsName,
+      if (syncSource != null) 'sync_source': syncSource,
+      if (refreshedAt != null) 'refreshed_at': refreshedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AuthorsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String>? deviceId,
+    Value<String>? name,
+    Value<String>? handle,
+    Value<String?>? avatarFile,
+    Value<String?>? bannerFile,
+    Value<int>? sortOrder,
+    Value<String?>? xUserId,
+    Value<String?>? xHandle,
+    Value<String?>? xName,
+    Value<String?>? xhsUserId,
+    Value<String?>? xhsHandle,
+    Value<String?>? xhsName,
+    Value<String?>? syncSource,
+    Value<DateTime?>? refreshedAt,
+    Value<int>? rowid,
+  }) {
+    return AuthorsCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      deviceId: deviceId ?? this.deviceId,
+      name: name ?? this.name,
+      handle: handle ?? this.handle,
+      avatarFile: avatarFile ?? this.avatarFile,
+      bannerFile: bannerFile ?? this.bannerFile,
+      sortOrder: sortOrder ?? this.sortOrder,
+      xUserId: xUserId ?? this.xUserId,
+      xHandle: xHandle ?? this.xHandle,
+      xName: xName ?? this.xName,
+      xhsUserId: xhsUserId ?? this.xhsUserId,
+      xhsHandle: xhsHandle ?? this.xhsHandle,
+      xhsName: xhsName ?? this.xhsName,
+      syncSource: syncSource ?? this.syncSource,
+      refreshedAt: refreshedAt ?? this.refreshedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (handle.present) {
+      map['handle'] = Variable<String>(handle.value);
+    }
+    if (avatarFile.present) {
+      map['avatar_file'] = Variable<String>(avatarFile.value);
+    }
+    if (bannerFile.present) {
+      map['banner_file'] = Variable<String>(bannerFile.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (xUserId.present) {
+      map['x_user_id'] = Variable<String>(xUserId.value);
+    }
+    if (xHandle.present) {
+      map['x_handle'] = Variable<String>(xHandle.value);
+    }
+    if (xName.present) {
+      map['x_name'] = Variable<String>(xName.value);
+    }
+    if (xhsUserId.present) {
+      map['xhs_user_id'] = Variable<String>(xhsUserId.value);
+    }
+    if (xhsHandle.present) {
+      map['xhs_handle'] = Variable<String>(xhsHandle.value);
+    }
+    if (xhsName.present) {
+      map['xhs_name'] = Variable<String>(xhsName.value);
+    }
+    if (syncSource.present) {
+      map['sync_source'] = Variable<String>(syncSource.value);
+    }
+    if (refreshedAt.present) {
+      map['refreshed_at'] = Variable<DateTime>(refreshedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AuthorsCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('name: $name, ')
+          ..write('handle: $handle, ')
+          ..write('avatarFile: $avatarFile, ')
+          ..write('bannerFile: $bannerFile, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('xUserId: $xUserId, ')
+          ..write('xHandle: $xHandle, ')
+          ..write('xName: $xName, ')
+          ..write('xhsUserId: $xhsUserId, ')
+          ..write('xhsHandle: $xhsHandle, ')
+          ..write('xhsName: $xhsName, ')
+          ..write('syncSource: $syncSource, ')
+          ..write('refreshedAt: $refreshedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -15432,6 +16489,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $AlbumOrdersTable albumOrders = $AlbumOrdersTable(this);
+  late final $AuthorsTable authors = $AuthorsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -15465,6 +16523,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     refViewStates,
     pitSortSettings,
     albumOrders,
+    authors,
   ];
 }
 
@@ -16789,6 +17848,7 @@ typedef $$FanArtsTableCreateCompanionBuilder = FanArtsCompanion Function({
   Value<String> imageKey,
   Value<bool> hidden,
   Value<String?> note,
+  Value<String?> authorId,
   Value<int> rowid,
 });
 typedef $$FanArtsTableUpdateCompanionBuilder = FanArtsCompanion Function({
@@ -16811,6 +17871,7 @@ typedef $$FanArtsTableUpdateCompanionBuilder = FanArtsCompanion Function({
   Value<String> imageKey,
   Value<bool> hidden,
   Value<String?> note,
+  Value<String?> authorId,
   Value<int> rowid,
 });
 
@@ -16918,6 +17979,11 @@ class $$FanArtsTableFilterComposer
     column: $table.note,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get authorId => $composableBuilder(
+    column: $table.authorId,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$FanArtsTableOrderingComposer
@@ -17023,6 +18089,11 @@ class $$FanArtsTableOrderingComposer
     column: $table.note,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get authorId => $composableBuilder(
+    column: $table.authorId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FanArtsTableAnnotationComposer
@@ -17094,6 +18165,9 @@ class $$FanArtsTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get authorId =>
+      $composableBuilder(column: $table.authorId, builder: (column) => column);
 }
 
 class $$FanArtsTableTableManager
@@ -17143,6 +18217,7 @@ class $$FanArtsTableTableManager
                 Value<String> imageKey = const Value.absent(),
                 Value<bool> hidden = const Value.absent(),
                 Value<String?> note = const Value.absent(),
+                Value<String?> authorId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FanArtsCompanion(
                 id: id,
@@ -17164,6 +18239,7 @@ class $$FanArtsTableTableManager
                 imageKey: imageKey,
                 hidden: hidden,
                 note: note,
+                authorId: authorId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -17187,6 +18263,7 @@ class $$FanArtsTableTableManager
                 Value<String> imageKey = const Value.absent(),
                 Value<bool> hidden = const Value.absent(),
                 Value<String?> note = const Value.absent(),
+                Value<String?> authorId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FanArtsCompanion.insert(
                 id: id,
@@ -17208,6 +18285,7 @@ class $$FanArtsTableTableManager
                 imageKey: imageKey,
                 hidden: hidden,
                 note: note,
+                authorId: authorId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -23355,6 +24433,462 @@ typedef $$AlbumOrdersTableProcessedTableManager =
       AlbumOrder,
       PrefetchHooks Function()
     >;
+typedef $$AuthorsTableCreateCompanionBuilder = AuthorsCompanion Function({
+  Value<String> id,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<String> deviceId,
+  required String name,
+  Value<String> handle,
+  Value<String?> avatarFile,
+  Value<String?> bannerFile,
+  Value<int> sortOrder,
+  Value<String?> xUserId,
+  Value<String?> xHandle,
+  Value<String?> xName,
+  Value<String?> xhsUserId,
+  Value<String?> xhsHandle,
+  Value<String?> xhsName,
+  Value<String?> syncSource,
+  Value<DateTime?> refreshedAt,
+  Value<int> rowid,
+});
+typedef $$AuthorsTableUpdateCompanionBuilder = AuthorsCompanion Function({
+  Value<String> id,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<String> deviceId,
+  Value<String> name,
+  Value<String> handle,
+  Value<String?> avatarFile,
+  Value<String?> bannerFile,
+  Value<int> sortOrder,
+  Value<String?> xUserId,
+  Value<String?> xHandle,
+  Value<String?> xName,
+  Value<String?> xhsUserId,
+  Value<String?> xhsHandle,
+  Value<String?> xhsName,
+  Value<String?> syncSource,
+  Value<DateTime?> refreshedAt,
+  Value<int> rowid,
+});
+
+class $$AuthorsTableFilterComposer
+    extends Composer<_$AppDatabase, $AuthorsTable> {
+  $$AuthorsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get handle => $composableBuilder(
+    column: $table.handle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get avatarFile => $composableBuilder(
+    column: $table.avatarFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bannerFile => $composableBuilder(
+    column: $table.bannerFile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get xUserId => $composableBuilder(
+    column: $table.xUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get xHandle => $composableBuilder(
+    column: $table.xHandle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get xName => $composableBuilder(
+    column: $table.xName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get xhsUserId => $composableBuilder(
+    column: $table.xhsUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get xhsHandle => $composableBuilder(
+    column: $table.xhsHandle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get xhsName => $composableBuilder(
+    column: $table.xhsName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncSource => $composableBuilder(
+    column: $table.syncSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get refreshedAt => $composableBuilder(
+    column: $table.refreshedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AuthorsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AuthorsTable> {
+  $$AuthorsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get handle => $composableBuilder(
+    column: $table.handle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get avatarFile => $composableBuilder(
+    column: $table.avatarFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bannerFile => $composableBuilder(
+    column: $table.bannerFile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get xUserId => $composableBuilder(
+    column: $table.xUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get xHandle => $composableBuilder(
+    column: $table.xHandle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get xName => $composableBuilder(
+    column: $table.xName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get xhsUserId => $composableBuilder(
+    column: $table.xhsUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get xhsHandle => $composableBuilder(
+    column: $table.xhsHandle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get xhsName => $composableBuilder(
+    column: $table.xhsName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncSource => $composableBuilder(
+    column: $table.syncSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get refreshedAt => $composableBuilder(
+    column: $table.refreshedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AuthorsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AuthorsTable> {
+  $$AuthorsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get handle =>
+      $composableBuilder(column: $table.handle, builder: (column) => column);
+
+  GeneratedColumn<String> get avatarFile => $composableBuilder(
+    column: $table.avatarFile,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get bannerFile => $composableBuilder(
+    column: $table.bannerFile,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get xUserId =>
+      $composableBuilder(column: $table.xUserId, builder: (column) => column);
+
+  GeneratedColumn<String> get xHandle =>
+      $composableBuilder(column: $table.xHandle, builder: (column) => column);
+
+  GeneratedColumn<String> get xName =>
+      $composableBuilder(column: $table.xName, builder: (column) => column);
+
+  GeneratedColumn<String> get xhsUserId =>
+      $composableBuilder(column: $table.xhsUserId, builder: (column) => column);
+
+  GeneratedColumn<String> get xhsHandle =>
+      $composableBuilder(column: $table.xhsHandle, builder: (column) => column);
+
+  GeneratedColumn<String> get xhsName =>
+      $composableBuilder(column: $table.xhsName, builder: (column) => column);
+
+  GeneratedColumn<String> get syncSource => $composableBuilder(
+    column: $table.syncSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get refreshedAt => $composableBuilder(
+    column: $table.refreshedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$AuthorsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AuthorsTable,
+          Author,
+          $$AuthorsTableFilterComposer,
+          $$AuthorsTableOrderingComposer,
+          $$AuthorsTableAnnotationComposer,
+          $$AuthorsTableCreateCompanionBuilder,
+          $$AuthorsTableUpdateCompanionBuilder,
+          (Author, BaseReferences<_$AppDatabase, $AuthorsTable, Author>),
+          Author,
+          PrefetchHooks Function()
+        > {
+  $$AuthorsTableTableManager(_$AppDatabase db, $AuthorsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AuthorsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AuthorsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AuthorsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> handle = const Value.absent(),
+                Value<String?> avatarFile = const Value.absent(),
+                Value<String?> bannerFile = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<String?> xUserId = const Value.absent(),
+                Value<String?> xHandle = const Value.absent(),
+                Value<String?> xName = const Value.absent(),
+                Value<String?> xhsUserId = const Value.absent(),
+                Value<String?> xhsHandle = const Value.absent(),
+                Value<String?> xhsName = const Value.absent(),
+                Value<String?> syncSource = const Value.absent(),
+                Value<DateTime?> refreshedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AuthorsCompanion(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                name: name,
+                handle: handle,
+                avatarFile: avatarFile,
+                bannerFile: bannerFile,
+                sortOrder: sortOrder,
+                xUserId: xUserId,
+                xHandle: xHandle,
+                xName: xName,
+                xhsUserId: xhsUserId,
+                xhsHandle: xhsHandle,
+                xhsName: xhsName,
+                syncSource: syncSource,
+                refreshedAt: refreshedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                required String name,
+                Value<String> handle = const Value.absent(),
+                Value<String?> avatarFile = const Value.absent(),
+                Value<String?> bannerFile = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<String?> xUserId = const Value.absent(),
+                Value<String?> xHandle = const Value.absent(),
+                Value<String?> xName = const Value.absent(),
+                Value<String?> xhsUserId = const Value.absent(),
+                Value<String?> xhsHandle = const Value.absent(),
+                Value<String?> xhsName = const Value.absent(),
+                Value<String?> syncSource = const Value.absent(),
+                Value<DateTime?> refreshedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AuthorsCompanion.insert(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                name: name,
+                handle: handle,
+                avatarFile: avatarFile,
+                bannerFile: bannerFile,
+                sortOrder: sortOrder,
+                xUserId: xUserId,
+                xHandle: xHandle,
+                xName: xName,
+                xhsUserId: xhsUserId,
+                xhsHandle: xhsHandle,
+                xhsName: xhsName,
+                syncSource: syncSource,
+                refreshedAt: refreshedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$AuthorsTable, Author>(table),
+                  BaseReferences<_$AppDatabase, $AuthorsTable, Author>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AuthorsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AuthorsTable,
+      Author,
+      $$AuthorsTableFilterComposer,
+      $$AuthorsTableOrderingComposer,
+      $$AuthorsTableAnnotationComposer,
+      $$AuthorsTableCreateCompanionBuilder,
+      $$AuthorsTableUpdateCompanionBuilder,
+      (Author, BaseReferences<_$AppDatabase, $AuthorsTable, Author>),
+      Author,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -23413,4 +24947,6 @@ class $AppDatabaseManager {
       $$PitSortSettingsTableTableManager(_db, _db.pitSortSettings);
   $$AlbumOrdersTableTableManager get albumOrders =>
       $$AlbumOrdersTableTableManager(_db, _db.albumOrders);
+  $$AuthorsTableTableManager get authors =>
+      $$AuthorsTableTableManager(_db, _db.authors);
 }

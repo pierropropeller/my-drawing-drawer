@@ -56,8 +56,8 @@ void main() {
     expect(await db.select(db.syncDocs).get(), isEmpty);
   });
 
-  test('schemaVersion 是 18（D-134 加 album_orders）', () {
-    expect(db.schemaVersion, 18);
+  test('schemaVersion 是 19（D-156 加 authors）', () {
+    expect(db.schemaVersion, 19);
   });
 
   test('v9 → v10：建立 ref_view_states，舊資料保留', () async {

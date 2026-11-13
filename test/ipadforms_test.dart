@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huakeng/data/album_queries.dart';
+import 'package:huakeng/data/author_queries.dart';
 import 'package:huakeng/data/database.dart';
 import 'package:huakeng/data/entity_queries.dart';
 import 'package:huakeng/data/image_store.dart';
@@ -341,6 +342,11 @@ void main() {
       });
 
       tw('加收藏／編輯同人圖：存檔與回傳', (tester) async {
+        // 作者欄改成選擇作者（D-156）。
+        await tester.runAsync(() async {
+          await db.addAuthor(AuthorsCompanion.insert(name: '@ka'));
+          await db.addAuthor(AuthorsCompanion.insert(name: '@ka2'));
+        });
         final r = <Object?>[];
         await pumpHost(
           tester,
@@ -351,8 +357,10 @@ void main() {
         );
         expectMode(mode);
         expect(find.text(modal ? '加收藏' : '新增同人圖'), findsOneWidget);
-        await tester.enterText(find.byType(TextField).first, '@ka');
-        await tester.pump();
+        await tester.tap(find.byKey(const ValueKey('authorField')));
+        await settle(tester);
+        await tester.tap(find.text('@ka'));
+        await settle(tester);
         await tester.tap(find.text(modal ? label('加入同人圖', '加入') : '加入好看同人圖'));
         await settleLong(tester);
         final rows = await tester.runAsync(() => db.select(db.fanArts).get());
@@ -370,8 +378,10 @@ void main() {
           r2,
         );
         expectMode(mode);
-        await tester.enterText(find.byType(TextField).first, '@ka2');
-        await tester.pump();
+        await tester.tap(find.byKey(const ValueKey('authorField')));
+        await settle(tester);
+        await tester.tap(find.text('@ka2'));
+        await settle(tester);
         await tester.tap(find.text('儲存'));
         await settle(tester);
         final rows2 = await tester.runAsync(() => db.select(db.fanArts).get());

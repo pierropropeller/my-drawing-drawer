@@ -8,6 +8,8 @@ import 'package:path_provider/path_provider.dart';
 
 import '../data/album_queries.dart';
 import '../data/album_set_queries.dart';
+import '../data/author_link.dart';
+import '../data/author_queries.dart';
 import '../data/batch_tag_queries.dart';
 import '../data/album_order_queries.dart';
 import '../data/database.dart';
@@ -482,3 +484,28 @@ final tagCoverageProvider =
             key.$2.isEmpty ? const <String>[] : key.$2.split(','),
           ),
     );
+
+// ---- 作者（D-156）----
+
+/// 作者列表（手動排序）＋坑分頁。
+final authorListProvider = StreamProvider<AuthorList>(
+  (ref) => ref.watch(databaseProvider).watchAuthorList(),
+);
+
+/// 未刪除的作者（選擇作者 sheet 用）。
+final authorsProvider = StreamProvider<List<Author>>(
+  (ref) => ref.watch(databaseProvider).watchAuthors(),
+);
+
+final authorProvider = StreamProvider.family<Author?, String>(
+  (ref, id) => ref.watch(databaseProvider).watchAuthor(id),
+);
+
+final authorDetailProvider = StreamProvider.family<AuthorDetail?, String>(
+  (ref, id) => ref.watch(databaseProvider).watchAuthorDetail(id),
+);
+
+/// 查 X／小紅書資料。測試時換成假的。
+final authorLinkServiceProvider = Provider<AuthorLinkService>(
+  (ref) => HttpAuthorLinkService(),
+);

@@ -10,6 +10,8 @@ import '../common/app_icons.dart';
 import '../common/svg_icon.dart';
 import '../common/user_avatar.dart';
 import '../common/window_class.dart';
+import '../authors/author_icons.dart';
+import '../authors/author_list_page.dart';
 import '../material/material_icons.dart';
 import '../material/material_library_page.dart';
 import 'about_page.dart';
@@ -127,6 +129,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final sync = ref.watch(syncControllerProvider);
     final backupLabel = _backupLabel(context, s, sync);
     final materialTotal = ref.watch(materialCountsProvider).value?.total ?? 0;
+    final authorTotal = ref.watch(authorCountProvider);
     final trashCount = ref.watch(trashProvider).value?.count ?? 0;
 
     Widget row({
@@ -198,6 +201,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     value: context.l10n.commonCountImages(materialTotal),
                     last: true,
                     onTap: () => _push(const MaterialLibraryPage()),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              // 作者（D-156）：素材庫下面獨立一張卡，右邊顯示作者數。
+              MePanel(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: row(
+                    icon: AuthorIcons.author,
+                    tileBg: t.oshi.bg,
+                    tileFg: t.oshi.fg,
+                    title: context.l10n.authorTitle,
+                    value: context.l10n.authorCount(authorTotal),
+                    last: true,
+                    onTap: () => _push(const AuthorListPage()),
                   ),
                 ),
               ),
