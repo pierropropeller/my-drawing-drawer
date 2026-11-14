@@ -73,7 +73,7 @@ class _AuthorDetailPageState extends ConsumerState<AuthorDetailPage>
     }
     final top = MediaQuery.paddingOf(context).top;
     final sub = a.handle.isEmpty
-        ? l.commonCountImages(d.count)
+        ? l.commonCountEntries(d.count)
         : l.authorDetailSub(a.handle, d.count);
 
     Widget circleButton(String tooltip, Widget icon, VoidCallback onTap) =>

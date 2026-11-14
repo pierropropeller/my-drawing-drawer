@@ -1410,7 +1410,7 @@ abstract class AppLocalizations {
   /// No description provided for @authorDeleteBody.
   ///
   /// In zh, this message translates to:
-  /// **'{count} 張同人圖會留著，只是作者欄變回空白。'**
+  /// **'{count} 份同人圖會留著，只是作者欄變回空白。'**
   String authorDeleteBody(int count);
 
   /// No description provided for @authorDeleteBodyNone.
@@ -1548,7 +1548,7 @@ abstract class AppLocalizations {
   /// No description provided for @authorDetailSub.
   ///
   /// In zh, this message translates to:
-  /// **'{handle} · {count} 張'**
+  /// **'{handle} · {count} 份'**
   String authorDetailSub(String handle, int count);
 
   /// No description provided for @authorPick.

@@ -756,7 +756,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String authorDeleteBody(int count) {
-    return '$count 張同人圖會留著，只是作者欄變回空白。';
+    return '$count 份同人圖會留著，只是作者欄變回空白。';
   }
 
   @override
@@ -833,7 +833,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String authorDetailSub(String handle, int count) {
-    return '$handle · $count 張';
+    return '$handle · $count 份';
   }
 
   @override

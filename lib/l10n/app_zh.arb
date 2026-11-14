@@ -566,7 +566,7 @@
       }
     }
   },
-  "authorDeleteBody": "{count} 張同人圖會留著，只是作者欄變回空白。",
+  "authorDeleteBody": "{count} 份同人圖會留著，只是作者欄變回空白。",
   "@authorDeleteBody": {
     "placeholders": {
       "count": {
@@ -617,7 +617,7 @@
       }
     }
   },
-  "authorDetailSub": "{handle} · {count} 張",
+  "authorDetailSub": "{handle} · {count} 份",
   "@authorDetailSub": {
     "placeholders": {
       "handle": {
