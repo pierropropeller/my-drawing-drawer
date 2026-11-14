@@ -45,7 +45,8 @@ class AuthorLinkException implements Exception {
 
 /// 使用者貼上的連結 → 查詢用的鍵。看不懂的格式回傳 null。
 /// X：`x.com/<帳號>`、`twitter.com/<帳號>`、`@帳號`、`帳號`。
-/// 小紅書：`xiaohongshu.com/user/profile/<24 位 id>`、24 位 id、`xhslink.com/…` 短連結。
+/// 小紅書：`xiaohongshu.com/user/profile/<24 位 id>`、24 位 id、`xhslink.com/…` 短連結、
+/// 筆記網址（`/explore/<id>`、`/discovery/item/<id>`），或 App「複製連結」整段分享文字。
 String? parseLinkInput(LinkPlatform p, String input) {
   var s = input.trim();
   if (s.isEmpty) return null;
@@ -71,9 +72,13 @@ String? parseLinkInput(LinkPlatform p, String input) {
       if (RegExp(r'^[0-9a-f]{24}$', caseSensitive: false).hasMatch(s)) {
         return s.toLowerCase();
       }
-      final short = RegExp(r'(?:https?://)?xhslink\.com/\S+').firstMatch(s);
-      if (short != null) {
-        final u = short.group(0)!;
+      // 筆記連結（App 分享出來的短連結、網頁版筆記網址）：從筆記讀作者。
+      final link = RegExp(
+        r'(?:https?://)?(?:xhslink\.com/[^\s，。]+|(?:www\.)?xiaohongshu\.com/(?:explore|discovery/item)/[0-9a-f]{24}[^\s，。]*)',
+        caseSensitive: false,
+      ).firstMatch(s);
+      if (link != null) {
+        final u = link.group(0)!;
         return u.startsWith('http') ? u : 'https://$u';
       }
       return null;
@@ -204,11 +209,18 @@ class HttpAuthorLinkService implements AuthorLinkService {
     );
   }
 
+  static final _xhsProfile = RegExp(r'/user/profile/([0-9a-f]{24})');
+  static final _xhsNote = RegExp(r'/(?:explore|discovery/item)/([0-9a-f]{24})');
+
   Future<LinkedProfile> _xhs(String key) async {
-    var id = key;
-    if (key.startsWith('http')) {
-      // 短連結：跟著轉址拿到個人頁網址。
-      final req = http.Request('GET', Uri.parse(key))
+    if (!key.startsWith('http')) return _xhsProfilePage(key);
+    // 短連結：自己跟著轉址，直到看到個人頁或筆記網址。
+    var url = Uri.parse(key);
+    for (var hop = 0; hop < 6; hop++) {
+      final p = _xhsProfile.firstMatch(url.path);
+      if (p != null) return _xhsProfilePage(p.group(1)!);
+      if (_xhsNote.hasMatch(url.path)) return _xhsFromNote(url);
+      final req = http.Request('GET', url)
         ..followRedirects = false
         ..headers['User-Agent'] = _ua;
       String? loc;
@@ -219,14 +231,50 @@ class HttpAuthorLinkService implements AuthorLinkService {
       } catch (e) {
         throw AuthorLinkException(e.runtimeType.toString());
       }
-      final m = RegExp(r'/user/profile/([0-9a-f]{24})').firstMatch(loc ?? '');
-      if (m == null) throw const AuthorLinkException('short link');
-      id = m.group(1)!;
+      if (loc == null || loc.isEmpty) break;
+      url = url.resolve(loc);
     }
+    throw const AuthorLinkException('short link');
+  }
+
+  /// 筆記頁的 `note.noteDetailMap.<id>.note.user` 有作者 id、名字、頭像。
+  /// 個人頁拿得到就用個人頁（多了小紅書號、大頭像），拿不到就用筆記上的資料。
+  Future<LinkedProfile> _xhsFromNote(Uri url) async {
+    final state = _xhsState(await _get(url));
+    Map<String, dynamic>? user;
+    final map = (state?['note'] as Map?)?['noteDetailMap'];
+    if (map is Map) {
+      for (final v in map.values) {
+        final u = ((v as Map?)?['note'] as Map?)?['user'];
+        if (u is Map<String, dynamic>) {
+          user = u;
+          break;
+        }
+      }
+    }
+    final id = '${user?['userId'] ?? ''}';
+    final name = '${user?['nickname'] ?? user?['nickName'] ?? ''}';
+    if (id.isEmpty || name.isEmpty) throw const AuthorLinkException('no note');
+    try {
+      return await _xhsProfilePage(id);
+    } on AuthorLinkException {
+      final avatar = user!['avatar'] as String?;
+      return LinkedProfile(
+        platform: LinkPlatform.xhs,
+        userId: id,
+        handle: id,
+        name: name,
+        avatarUrl: (avatar ?? '').isEmpty ? null : avatar,
+      );
+    }
+  }
+
+  Future<LinkedProfile> _xhsProfilePage(String id) async {
     final html = await _get(
       Uri.https('www.xiaohongshu.com', '/user/profile/$id'),
     );
-    final info = _xhsBasicInfo(html);
+    final user = _xhsState(html)?['user'] as Map?;
+    final info = (user?['userPageData'] as Map?)?['basicInfo'] as Map?;
     if (info == null) throw const AuthorLinkException('no data');
     final name = '${info['nickname'] ?? ''}';
     final red = '${info['redId'] ?? ''}';
@@ -235,14 +283,14 @@ class HttpAuthorLinkService implements AuthorLinkService {
     return LinkedProfile(
       platform: LinkPlatform.xhs,
       userId: id,
-      handle: red,
+      handle: red.isEmpty ? id : red,
       name: name,
       avatarUrl: (avatar ?? '').isEmpty ? null : avatar,
     );
   }
 
-  /// 個人頁 `window.__INITIAL_STATE__` 裡的 `user.userPageData.basicInfo`。
-  static Map<String, dynamic>? _xhsBasicInfo(String html) {
+  /// 頁面裡的 `window.__INITIAL_STATE__`（JS 物件，`undefined` 換成 null 再當 JSON 讀）。
+  static Map<String, dynamic>? _xhsState(String html) {
     final start = html.indexOf('window.__INITIAL_STATE__=');
     if (start < 0) return null;
     final from = start + 'window.__INITIAL_STATE__='.length;
@@ -254,10 +302,7 @@ class HttpAuthorLinkService implements AuthorLinkService {
         .replaceAll(RegExp(r';$'), '')
         .replaceAll(RegExp(r'(?<=[:\[,])undefined(?=[,}\]])'), 'null');
     try {
-      final state = jsonDecode(raw) as Map<String, dynamic>;
-      final user = state['user'] as Map<String, dynamic>?;
-      final page = user?['userPageData'] as Map<String, dynamic>?;
-      return page?['basicInfo'] as Map<String, dynamic>?;
+      return jsonDecode(raw) as Map<String, dynamic>;
     } catch (_) {
       return null;
     }
