@@ -206,6 +206,27 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('編輯作者：還沒連結的 X 貼連結 → 使用 → 名字、ID 換掉', (tester) async {
+    final id = await db.addAuthor(AuthorsCompanion.insert(name: '舊名'));
+    await showPage(tester, AuthorFormPage(authorId: id));
+    await tester.enterText(
+      find.byKey(const ValueKey('authorLink-x')),
+      'x.com/yukimi_ill',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await settle(tester);
+    await tester.tap(find.text('使用'));
+    await settle(tester);
+    expect(find.text('雪見｜委託開放中'), findsWidgets);
+    await tester.tap(find.byKey(const ValueKey('authorSave')));
+    await settle(tester);
+    final a = (await db.loadAuthor(id))!;
+    expect(a.name, '雪見｜委託開放中');
+    expect(a.handle, '@yukimi_ill');
+    expect(a.xUserId, '123');
+    await unmount(tester);
+  });
+
   testWidgets('選擇作者 sheet：不指定、新增作者並選擇', (tester) async {
     await db.addAuthor(AuthorsCompanion.insert(name: 'Renko'));
     String? picked = 'none';

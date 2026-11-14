@@ -281,15 +281,22 @@ class _AuthorLinkInputState extends ConsumerState<AuthorLinkInput> {
       return;
     }
     if (!mounted || _c.text.trim() != text) return;
-    widget.draft.link(p);
+    // 先問、先下載，最後才標成已連結：編輯頁一連結就把這個輸入框換成已連結那一列，
+    // 輸入框不在了就套用不到（按「使用」沒反應）。
+    final draft = widget.draft;
     final use = await confirmUseLinked(context, p);
-    if (!use || !mounted) return;
+    if (!mounted) return;
+    if (!use) {
+      draft.link(p);
+      return;
+    }
     final avatar = await downloadLinkedImage(ref, p.avatarUrl);
     final banner = p.platform == LinkPlatform.x
         ? await downloadLinkedImage(ref, p.bannerUrl)
         : null;
     if (!mounted) return;
-    widget.draft.useProfile(context, p, avatar, banner);
+    draft.useProfile(context, p, avatar, banner);
+    draft.link(p);
   }
 
   @override
