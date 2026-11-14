@@ -464,7 +464,9 @@ class AuthorGridTile extends StatelessWidget {
           ),
           child: Stack(
             children: [
-              Padding(
+              // Stack 不會撐滿格子寬度：不加這層，名字長短不同時整欄會靠左。
+              Container(
+                width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(6, 14, 6, 12),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
