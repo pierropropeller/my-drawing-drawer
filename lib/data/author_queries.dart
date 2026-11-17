@@ -236,6 +236,30 @@ extension AuthorQueries on AppDatabase {
     pitSortSettings,
   }, () => loadAuthorDetail(id));
 
+  /// 連結到這個 X 帳號（永久 id）的作者；沒有就 null（D-158 分享推文）。
+  Future<Author?> findAuthorByXUserId(String xUserId) =>
+      (select(authors)
+            ..where((a) => a.xUserId.equals(xUserId) & a.deletedAt.isNull())
+            ..orderBy([(a) => OrderingTerm.asc(a.sortOrder)])
+            ..limit(1))
+          .getSingleOrNull();
+
+  /// 這位作者最近加入同人圖的坑（不含最近刪除、隱藏的）；沒有就 null（D-158）。
+  Future<String?> latestPitOfAuthor(String authorId) async {
+    final row =
+        await (select(fanArts)
+              ..where(
+                (f) =>
+                    f.authorId.equals(authorId) &
+                    f.deletedAt.isNull() &
+                    f.hidden.equals(false),
+              )
+              ..orderBy([(f) => OrderingTerm.desc(f.createdAt)])
+              ..limit(1))
+            .getSingleOrNull();
+    return row?.pitId;
+  }
+
   // ---- 寫 ----
 
   /// 新增作者（排在最前面）。回傳 id。

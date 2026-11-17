@@ -11,16 +11,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart' show XFile;
 
 import '../../data/album_queries.dart';
+import '../../data/author_link.dart';
 import '../../data/database.dart';
 import '../../data/media.dart';
 import '../../l10n/l10n.dart';
 import '../../state/settings.dart' show sharedPrefsProvider;
 import '../../share/share_inbox.dart';
+import '../../share/tweet_share.dart';
 import '../../state/providers.dart';
 import '../../state/sensitive.dart';
 import '../../theme/tokens.dart';
 import '../album/album_actions.dart';
+import '../album/album_set_form.dart' show AlbumSetCombineRow;
 import '../album/image_picker_field.dart' show ImageItem, ImageItemThumb;
+import '../authors/author_pick_sheet.dart';
+import '../authors/author_sync.dart' show RemoteAuthorAvatar;
+import '../common/app_icons.dart';
 import '../common/adaptive_modal.dart';
 import '../common/app_switch.dart';
 import '../common/dashed_box.dart';
@@ -108,8 +114,28 @@ class ShareChoice {
     this.tagIds = const [],
     this.material,
     this.sensitive = false,
+    this.authorId,
+    this.newAuthor,
+    this.sourceUrl,
+    this.combine = false,
+    this.paths,
   });
   final ShareAction action;
+
+  /// 分享推文（D-158）：選的作者（已在 Drawer 的）。
+  final String? authorId;
+
+  /// 分享推文：還沒在 Drawer 的作者，加入時新增（連結 X）。
+  final LinkedProfile? newAuthor;
+
+  /// 分享推文：原文連結（推文網址）。
+  final String? sourceUrl;
+
+  /// 分享推文：2 張以上時「合成一組」。
+  final bool combine;
+
+  /// 分享推文：最後要加入的檔案（縮圖列刪過、加過圖）；一般分享是 null（用分享進來的那批）。
+  final List<String>? paths;
 
   /// 「全部標為敏感」（D-104）：加進去的圖全部標成敏感。只有直接加入（不開表單）時才會是 true。
   final bool sensitive;
@@ -144,6 +170,7 @@ Future<ShareChoice?> showShareSheet(
   String? pitId,
   ShareSection? section,
   String? groupId,
+  TweetShareController? tweet,
 }) {
   if (MediaQuery.sizeOf(context).width >= WindowClass.mediumMin ||
       isTabletDevice(context)) {
@@ -159,6 +186,7 @@ Future<ShareChoice?> showShareSheet(
         initialSection: section,
         initialGroupId: groupId,
         asDialog: true,
+        tweet: tweet,
       ),
     );
   }
@@ -171,6 +199,7 @@ Future<ShareChoice?> showShareSheet(
       initialPitId: pitId,
       initialSection: section,
       initialGroupId: groupId,
+      tweet: tweet,
     ),
   );
 }
@@ -183,9 +212,13 @@ class ShareSheet extends ConsumerStatefulWidget {
     this.initialSection,
     this.initialGroupId,
     this.asDialog = false,
+    this.tweet,
   });
 
   final List<String> paths;
+
+  /// 從推文分享進來（D-158）：讀取中／讀不到／可加入，縮圖可刪可加，作者自動帶。
+  final TweetShareController? tweet;
 
   /// 畫成置中對話框的內容（iPad）：沒有拖曳條、不依鍵盤縮高，位置 7 欄。
   final bool asDialog;
@@ -216,6 +249,22 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
   /// 選的分類 id；還沒選（或記住的分類已刪）時用第一個分類。
   String? _material;
 
+  // ---- 分享推文（D-158） ----
+  /// 選的作者（已在 Drawer 的）。
+  String? _authorId;
+
+  /// 推文作者還沒在 Drawer：預設加入時新增（「新作者」）；自己換了作者就不新增。
+  bool _newAuthorPending = true;
+
+  /// 自己點過出處（不再自動選「推特」）。
+  bool _sourceTouched = false;
+
+  /// 預設合成一組。
+  bool _combine = true;
+
+  /// 推文讀到後的預設（作者、坑、位置）已經套用。
+  bool _tweetApplied = false;
+
   @override
   void initState() {
     super.initState();
@@ -231,12 +280,52 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
         ShareSection.fromKey(memory.lastSection) ??
         ShareSection.official;
     _groupId = widget.initialGroupId;
+    final tweet = widget.tweet;
+    if (tweet != null) {
+      // 推文的圖預設進好看同人圖（開新坑回來時沿用原本選的位置）。
+      _toMaterial = false;
+      _section = widget.initialSection ?? ShareSection.fan;
+      tweet.addListener(_onTweet);
+      _applyTweet();
+    }
+  }
+
+  void _onTweet() {
+    if (!mounted) return;
+    setState(_applyTweet);
+  }
+
+  /// 推文讀到時套用預設：作者已在 Drawer → 選他、坑＝他最近加圖的坑；新作者 → 坑照一般分享的預設。
+  void _applyTweet() {
+    final tweet = widget.tweet!;
+    if (_tweetApplied || tweet.status != TweetShareStatus.ready) return;
+    _tweetApplied = true;
+    _authorId = tweet.author?.id;
+    _newAuthorPending = tweet.author == null;
+    final pit = tweet.authorPitId;
+    if (widget.initialPitId == null && pit != null) _pitId = pit;
   }
 
   @override
   void dispose() {
+    widget.tweet?.removeListener(_onTweet);
     _author.dispose();
     super.dispose();
+  }
+
+  Future<void> _addImages() async {
+    final files = await ref.read(imagePickerProvider)(context);
+    if (!mounted || files.isEmpty) return;
+    widget.tweet?.addAll([for (final f in files) f.path]);
+  }
+
+  Future<void> _pickAuthor() async {
+    final r = await showAuthorPickSheet(context, selectedId: _authorId);
+    if (r == null || !mounted) return;
+    setState(() {
+      _authorId = r.id;
+      _newAuthorPending = false;
+    });
   }
 
   void _setDest(bool material) {
@@ -259,6 +348,7 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
       ShareChoice(
         ShareAction.addMaterial,
         material: id,
+        paths: widget.tweet == null ? null : List.of(widget.tweet!.paths),
         sensitive: _sensitive && ref.read(sensitiveMarkingProvider(null)),
       ),
     );
@@ -272,16 +362,40 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
     List<String> tagIds = const [],
     bool sensitive = false,
   }) {
-    ref.read(shareMemoryProvider).save(pitId: pitId, section: section.name);
+    final tweet = widget.tweet;
+    final info = tweet?.info;
+    // 分享推文時不記成「上次用的坑」：坑是依作者自動選的。
+    if (tweet == null) {
+      ref.read(shareMemoryProvider).save(pitId: pitId, section: section.name);
+    }
+    final fan = section == ShareSection.fan;
+    final newAuthor =
+        fan && info != null && _authorId == null && _newAuthorPending
+        ? info.author
+        : null;
+    final paths = tweet?.paths;
     Navigator.of(context).pop(
       ShareChoice(
         action,
         pitId: pitId,
         section: section,
         groupId: group,
-        author: section == ShareSection.fan ? _author.text.trim() : '',
+        author: tweet != null
+            ? (newAuthor?.name ?? '')
+            : fan
+            ? _author.text.trim()
+            : '',
         tagIds: tagIds,
         sensitive: sensitive,
+        authorId: tweet != null && fan ? _authorId : null,
+        newAuthor: newAuthor,
+        sourceUrl: fan ? info?.url : null,
+        combine:
+            paths != null &&
+            paths.length > 1 &&
+            _combine &&
+            (fan || section == ShareSection.official),
+        paths: paths == null ? null : List.of(paths),
       ),
     );
   }
@@ -330,7 +444,13 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
     final fanGroups = pit == null || section != ShareSection.fan
         ? const <OfficialGroup>[]
         : ref.watch(groupsProvider((pit.id, 'fan'))).value ?? const [];
-    final fanGroup = fanGroups.where((g) => g.id == _fanGroupId).firstOrNull;
+    final tweet = widget.tweet;
+    final tweetStatus = tweet?.status;
+    final paths = tweet?.paths ?? widget.paths;
+    // 分享推文：出處沒自己點過時，自動選名字是「推特」「Twitter」「X」的那個。
+    final fanGroup = tweet != null && !_sourceTouched && _fanGroupId == null
+        ? fanGroups.where((g) => _isTwitterSource(g.name)).firstOrNull
+        : fanGroups.where((g) => g.id == _fanGroupId).firstOrNull;
     final tags = pit == null || !section.hasTags
         ? const <Tag>[]
         : ref.watch(tagsProvider(pit.id)).value ?? const [];
@@ -341,7 +461,9 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
     final canGo =
         pit != null &&
         sections.isNotEmpty &&
-        (section != ShareSection.official || group != null);
+        (section != ShareSection.official || group != null) &&
+        (tweet == null ||
+            (tweetStatus == TweetShareStatus.ready && paths.isNotEmpty));
     // 「全部標為敏感」（D-104）：目標坑有開敏感內容；素材庫只看總開關。要開表單的位置（摸魚、腦洞、成圖、推活）
     // 在表單裡標，這裡不放。
     final showSensitive = _toMaterial
@@ -372,6 +494,7 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
             if (_pitId != p.id) {
               _groupId = null;
               _fanGroupId = null;
+              _sourceTouched = false;
               _tagIds.clear();
             }
             _pitId = p.id;
@@ -395,14 +518,27 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
         focusedBorder: _fieldBorder(context),
       ),
     );
+    final Widget authorInput = tweet == null
+        ? authorField
+        : (_authorId == null && _newAuthorPending && tweet.info != null)
+        ? _NewAuthorRow(profile: tweet.info!.author, onTap: _pickAuthor)
+        : AuthorField(
+            authorId: _authorId,
+            onChanged: (id) => setState(() {
+              _authorId = id;
+              _newAuthorPending = false;
+            }),
+          );
     final sourceChips = <Widget>[
       for (final g in fanGroups)
         _GroupChip(
           label: g.name,
           selected: g.id == fanGroup?.id,
           // 再點一次已選的出處＝取消（出處可留空）。
-          onTap: () =>
-              setState(() => _fanGroupId = g.id == fanGroup?.id ? null : g.id),
+          onTap: () => setState(() {
+            _sourceTouched = true;
+            _fanGroupId = g.id == fanGroup?.id ? null : g.id;
+          }),
         ),
     ];
     final newPitChip = _NewPitChip(
@@ -444,7 +580,9 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
                     child: Padding(
                       padding: const EdgeInsets.only(right: 12),
                       child: Text(
-                        l.commonCountImages(widget.paths.length),
+                        tweet != null && tweetStatus != TweetShareStatus.ready
+                            ? ''
+                            : l.commonCountImages(paths.length),
                         textAlign: TextAlign.right,
                         style: TextStyle(fontSize: 13, color: t.text3),
                       ),
@@ -483,7 +621,9 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
                           ?.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
                     ),
                     Text(
-                      l.commonCountImages(widget.paths.length),
+                      tweet != null && tweetStatus != TweetShareStatus.ready
+                          ? ''
+                          : l.commonCountImages(paths.length),
                       style: TextStyle(fontSize: 13, color: t.text3),
                     ),
                   ],
@@ -492,7 +632,16 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
               ],
             ),
           ),
-        _Thumbs(paths: widget.paths),
+        if (tweet == null)
+          _Thumbs(paths: widget.paths)
+        else if (tweetStatus == TweetShareStatus.loading)
+          const _SkeletonThumbs()
+        else if (tweetStatus == TweetShareStatus.ready)
+          _EditableThumbs(
+            paths: paths,
+            onRemove: tweet.remove,
+            onAdd: _addImages,
+          ),
         Divider(height: 1, thickness: 1, color: t.border),
         // 可捲動的中間。
         Flexible(
@@ -503,163 +652,208 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _DestToggle(toMaterial: _toMaterial, onChanged: _setDest),
-                if (_toMaterial) ...[
-                  _Label(l.materialFieldCategory),
-                  _ChipWrap(
-                    children: [
-                      for (final c in cats)
-                        KeyedSubtree(
-                          key: ValueKey('shareMaterial-${c.id}'),
-                          child: _GroupChip(
-                            label: c.name,
-                            selected: c.id == _materialIn(cats),
-                            onTap: () => setState(() => _material = c.id),
-                          ),
-                        ),
-                    ],
+                if (tweet != null)
+                  _TweetCard(
+                    url: tweet.displayUrl,
+                    loading: tweetStatus == TweetShareStatus.loading,
                   ),
-                ] else ...[
-                  _Label(l.shareFieldPit),
-                  if (asDialog)
-                    // 對話框／page sheet：坑換行排列（ShareImport／ShareImport400）。
-                    _ChipWrap(children: [...pitChips, newPitChip])
-                  else
-                    SizedBox(
-                      height: 38,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        children: [
-                          for (final c in pitChips)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: c,
-                            ),
-                          newPitChip,
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 14),
-                  _Label(l.shareFieldPosition),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: LayoutBuilder(
-                      builder: (_, c) {
-                        // 手機和 page sheet 4 欄、對話框 7 欄（一排），欄距 8。
-                        final cols = asDialog && !narrow ? 7 : 4;
-                        final w = (c.maxWidth - 8 * (cols - 1)) / cols;
-                        return Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final s in sections)
-                              SizedBox(
-                                width: w,
-                                child: _SectionCell(
-                                  section: s,
-                                  dark: dark,
-                                  selected: s == section,
-                                  onTap: () => setState(() => _section = s),
+                if (tweetStatus == TweetShareStatus.failed)
+                  _TweetFail(onRetry: tweet!.load)
+                else ...[
+                  _DestToggle(toMaterial: _toMaterial, onChanged: _setDest),
+                  // 讀取推文中：下面整塊淡掉、不能點（設計稿 opacity .45）。
+                  _Dimmed(
+                    dimmed: tweetStatus == TweetShareStatus.loading,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_toMaterial) ...[
+                          _Label(l.materialFieldCategory),
+                          _ChipWrap(
+                            children: [
+                              for (final c in cats)
+                                KeyedSubtree(
+                                  key: ValueKey('shareMaterial-${c.id}'),
+                                  child: _GroupChip(
+                                    label: c.name,
+                                    selected: c.id == _materialIn(cats),
+                                    onTap: () =>
+                                        setState(() => _material = c.id),
+                                  ),
                                 ),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  if (section == ShareSection.official &&
-                      groups.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    _Label(l.albumGroupLabel),
-                    _ChipWrap(
-                      children: [
-                        for (final g in groups)
-                          _GroupChip(
-                            label: g.name,
-                            selected: g.id == group?.id,
-                            onTap: () => setState(() => _groupId = g.id),
+                            ],
                           ),
-                      ],
-                    ),
-                  ],
-                  if (section == ShareSection.fan) ...[
-                    const SizedBox(height: 14),
-                    if (asDialog && !narrow)
-                      // 對話框（ShareImport）：作者 220 寬在左、出處在右並排。
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                        ] else ...[
+                          _Label(l.shareFieldPit),
+                          if (asDialog)
+                            // 對話框／page sheet：坑換行排列（ShareImport／ShareImport400）。
+                            _ChipWrap(children: [...pitChips, newPitChip])
+                          else
                             SizedBox(
-                              width: 220,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              height: 38,
+                              child: ListView(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
                                 children: [
-                                  _Label(l.albumFieldAuthor, left: 2),
-                                  authorField,
+                                  for (final c in pitChips)
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: c,
+                                    ),
+                                  newPitChip,
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _Label(l.albumFieldSource, left: 2),
-                                  _ChipWrap(pad: false, children: sourceChips),
-                                ],
-                              ),
+                          const SizedBox(height: 14),
+                          _Label(l.shareFieldPosition),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: LayoutBuilder(
+                              builder: (_, c) {
+                                // 手機和 page sheet 4 欄、對話框 7 欄（一排），欄距 8。
+                                final cols = asDialog && !narrow ? 7 : 4;
+                                final w = (c.maxWidth - 8 * (cols - 1)) / cols;
+                                return Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    for (final s in sections)
+                                      SizedBox(
+                                        width: w,
+                                        child: _SectionCell(
+                                          section: s,
+                                          dark: dark,
+                                          selected: s == section,
+                                          onTap: () =>
+                                              setState(() => _section = s),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                          if (section == ShareSection.official &&
+                              groups.isNotEmpty) ...[
+                            const SizedBox(height: 14),
+                            _Label(l.albumGroupLabel),
+                            _ChipWrap(
+                              children: [
+                                for (final g in groups)
+                                  _GroupChip(
+                                    label: g.name,
+                                    selected: g.id == group?.id,
+                                    onTap: () =>
+                                        setState(() => _groupId = g.id),
+                                  ),
+                              ],
                             ),
                           ],
-                        ),
-                      )
-                    else ...[
-                      // 手機和 page sheet（ShareImport400）：作者、出處上下排。
-                      _Label(l.albumFieldAuthor),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: authorField,
-                      ),
-                      if (fanGroups.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        _Label(l.albumFieldSource),
-                        _ChipWrap(children: sourceChips),
-                      ],
-                    ],
-                  ],
-                  if (section.hasTags && pit != null) ...[
-                    const SizedBox(height: 12),
-                    _Label(l.shareMoveTag),
-                    _ChipWrap(
-                      children: [
-                        for (final tag in tags)
-                          _GroupChip(
-                            label: '#${tag.name}',
-                            selected: _tagIds.contains(tag.id),
-                            onTap: () => setState(() {
-                              if (!_tagIds.remove(tag.id)) {
-                                _tagIds.add(tag.id);
-                              }
-                            }),
+                          if (section == ShareSection.fan) ...[
+                            const SizedBox(height: 14),
+                            if (asDialog && !narrow)
+                              // 對話框（ShareImport）：作者 220 寬在左、出處在右並排。
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: 220,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          _Label(l.albumFieldAuthor, left: 2),
+                                          authorInput,
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          _Label(l.albumFieldSource, left: 2),
+                                          _ChipWrap(
+                                            pad: false,
+                                            children: sourceChips,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else ...[
+                              // 手機和 page sheet（ShareImport400）：作者、出處上下排。
+                              _Label(l.albumFieldAuthor),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
+                                child: authorInput,
+                              ),
+                              if (fanGroups.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                _Label(l.albumFieldSource),
+                                _ChipWrap(children: sourceChips),
+                              ],
+                            ],
+                          ],
+                          if (section.hasTags && pit != null) ...[
+                            const SizedBox(height: 12),
+                            _Label(l.shareMoveTag),
+                            _ChipWrap(
+                              children: [
+                                for (final tag in tags)
+                                  _GroupChip(
+                                    label: '#${tag.name}',
+                                    selected: _tagIds.contains(tag.id),
+                                    onTap: () => setState(() {
+                                      if (!_tagIds.remove(tag.id)) {
+                                        _tagIds.add(tag.id);
+                                      }
+                                    }),
+                                  ),
+                                DashedAddChip(
+                                  semanticLabel: l.tagsAdd,
+                                  onTap: () => _newTag(pit.id),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                        // 分享推文 2 張以上：合成一組（預設開，和新增頁同一列）。
+                        if (tweet != null &&
+                            !_toMaterial &&
+                            paths.length > 1 &&
+                            (section == ShareSection.fan ||
+                                section == ShareSection.official))
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: AlbumSetCombineRow(
+                              value: _combine,
+                              onChanged: (v) => setState(() => _combine = v),
+                            ),
                           ),
-                        DashedAddChip(
-                          semanticLabel: l.tagsAdd,
-                          onTap: () => _newTag(pit.id),
-                        ),
+                        if (showSensitive)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                            child: _SensitiveRow(
+                              value: _sensitive,
+                              onChanged: (v) => setState(() => _sensitive = v),
+                            ),
+                          ),
                       ],
-                    ),
-                  ],
-                ],
-                if (showSensitive)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-                    child: _SensitiveRow(
-                      value: _sensitive,
-                      onChanged: (v) => setState(() => _sensitive = v),
                     ),
                   ),
+                ],
               ],
             ),
           ),
@@ -675,38 +869,53 @@ class _ShareSheetState extends ConsumerState<ShareSheet> {
           decoration: BoxDecoration(
             border: Border(top: BorderSide(color: t.border)),
           ),
-          child: GestureDetector(
-            onTap: _toMaterial
-                ? _finishMaterial
-                : canGo
-                ? () => _finish(
-                    section.needsForm ? ShareAction.next : ShareAction.add,
-                    pit.id,
-                    section,
-                    groupForResult,
-                    tagIds: tagIds,
-                    sensitive: showSensitive && _sensitive,
-                  )
-                : null,
-            child: Container(
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              decoration: BoxDecoration(
-                color: (canGo || _toMaterial)
-                    ? t.accent
-                    : t.accent.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(Radii.button),
-              ),
-              child: Text(
-                (!_toMaterial && section.needsForm) ? l.shareNext : l.shareAdd,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+          child: tweetStatus == TweetShareStatus.failed
+              ? _CloseButton(onTap: () => Navigator.of(context).pop())
+              : GestureDetector(
+                  onTap: tweet != null && tweetStatus != TweetShareStatus.ready
+                      ? null
+                      : _toMaterial
+                      ? (tweet != null && paths.isEmpty
+                            ? null
+                            : _finishMaterial)
+                      : canGo
+                      ? () => _finish(
+                          section.needsForm
+                              ? ShareAction.next
+                              : ShareAction.add,
+                          pit.id,
+                          section,
+                          groupForResult,
+                          tagIds: tagIds,
+                          sensitive: showSensitive && _sensitive,
+                        )
+                      : null,
+                  child: Container(
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    decoration: BoxDecoration(
+                      color:
+                          (canGo ||
+                              (_toMaterial &&
+                                  (tweet == null ||
+                                      (tweetStatus == TweetShareStatus.ready &&
+                                          paths.isNotEmpty))))
+                          ? t.accent
+                          : t.accent.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(Radii.button),
+                    ),
+                    child: Text(
+                      (!_toMaterial && section.needsForm)
+                          ? l.shareNext
+                          : l.shareAdd,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
         ),
       ],
     );
@@ -1059,6 +1268,413 @@ class _SensitiveRow extends StatelessWidget {
             onChanged: onChanged,
           ),
         ],
+      ),
+    );
+  }
+}
+
+bool _isTwitterSource(String name) {
+  final n = name.trim().toLowerCase();
+  return n == '推特' || n == 'twitter' || n == 'x' || n == 'x（推特）';
+}
+
+/// 讀取推文中時整塊淡掉、不能點。
+class _Dimmed extends StatelessWidget {
+  const _Dimmed({required this.dimmed, required this.child});
+  final bool dimmed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => dimmed
+      ? IgnorePointer(child: Opacity(opacity: 0.45, child: child))
+      : child;
+}
+
+/// 推文卡片（TweetShare*）：X 標＋網址（＋讀取中）。
+class _TweetCard extends StatelessWidget {
+  const _TweetCard({required this.url, required this.loading});
+  final String url;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      key: const ValueKey('tweetCard'),
+      margin: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: t.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: t.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 18,
+            height: 18,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: t.ink,
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Text(
+              'X',
+              style: TextStyle(
+                color: t.surface,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                height: 1,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              url,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12.5, color: t.text2),
+            ),
+          ),
+          if (loading) ...[
+            const SizedBox(width: 8),
+            const _Spinner(),
+            const SizedBox(width: 5),
+            Text(
+              context.l10n.tweetshareLoading,
+              style: TextStyle(fontSize: 12, color: t.dashedText),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// 讀取中的轉圈（設計稿：3/4 圓弧，#a58c6a）。
+class _Spinner extends StatefulWidget {
+  const _Spinner();
+  @override
+  State<_Spinner> createState() => _SpinnerState();
+}
+
+class _SpinnerState extends State<_Spinner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => RotationTransition(
+    turns: _c,
+    child: SvgIcon(
+      ShareIcons.spinner,
+      size: 16,
+      color: context.tokens.dashedText,
+      strokeWidth: 2.2,
+    ),
+  );
+}
+
+/// 讀不到推文（TweetShareFail）。
+class _TweetFail extends StatelessWidget {
+  const _TweetFail({required this.onRetry});
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final l = context.l10n;
+    return Padding(
+      key: const ValueKey('tweetFail'),
+      padding: const EdgeInsets.fromLTRB(32, 26, 32, 36),
+      child: Column(
+        children: [
+          SvgIcon(
+            ShareIcons.warn,
+            size: 28,
+            color: const Color(0xFFB84B38),
+            strokeWidth: 1.8,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            l.tweetshareFailTitle,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontSize: 17, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            l.tweetshareFailBody,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: t.text3, height: 1.7),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            key: const ValueKey('tweetRetry'),
+            onPressed: onRetry,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: t.accent,
+              backgroundColor: t.surface,
+              side: BorderSide(color: t.accent),
+              shape: const StadiumBorder(),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 9),
+              textStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            child: Text(l.commonRetry),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 讀不到推文時的底部「關閉」（淺底深字）。
+class _CloseButton extends StatelessWidget {
+  const _CloseButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        decoration: BoxDecoration(
+          color: t.chipBg,
+          borderRadius: BorderRadius.circular(Radii.button),
+        ),
+        child: Text(
+          context.l10n.commonClose,
+          style: TextStyle(
+            color: t.ink,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 讀取中的縮圖位置（4 格淺色方塊）。
+class _SkeletonThumbs extends StatelessWidget {
+  const _SkeletonThumbs();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      child: Row(
+        children: [
+          for (var i = 0; i < 4; i++)
+            Container(
+              width: 60,
+              height: 60,
+              margin: const EdgeInsets.only(right: 6),
+              decoration: BoxDecoration(
+                color: t.chipBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 分享推文的縮圖列：每張右上角 ✕ 可刪，最後一格虛線「＋」再加圖（同新增頁）。
+class _EditableThumbs extends StatelessWidget {
+  const _EditableThumbs({
+    required this.paths,
+    required this.onRemove,
+    required this.onAdd,
+  });
+  final List<String> paths;
+  final ValueChanged<String> onRemove;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final l = context.l10n;
+    return SizedBox(
+      height: 78,
+      child: ListView(
+        key: const ValueKey('shareThumbs'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+        children: [
+          for (final (i, p) in paths.indexed)
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 60,
+                      height: 60,
+                      child: ImageItemThumb(
+                        ImageItem.picked(XFile(p)),
+                        key: ValueKey('shareThumb$i'),
+                        cacheWidth: 180,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: -6,
+                    right: -6,
+                    child: Semantics(
+                      button: true,
+                      label: l.albumRemoveImage,
+                      child: GestureDetector(
+                        key: ValueKey('shareThumbRemove$i'),
+                        onTap: () => onRemove(p),
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: t.ink,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: t.ground, width: 2),
+                          ),
+                          child: SvgIcon(
+                            ShareIcons.close,
+                            size: 11,
+                            color: t.surface,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Semantics(
+            button: true,
+            label: l.albumAddImage,
+            child: GestureDetector(
+              key: const ValueKey('shareThumbAdd'),
+              onTap: onAdd,
+              child: DashedBox(
+                color: t.dashed,
+                radius: 10,
+                child: SizedBox(
+                  width: 57,
+                  height: 57,
+                  child: Center(
+                    child: SvgIcon(
+                      ShareIcons.plus,
+                      size: 22,
+                      color: t.dashedText,
+                      strokeWidth: 1.8,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 推文作者還沒在 Drawer（TweetShareNewAuthor）：平台頭像、名字、@帳號、「新作者」標、＞。
+class _NewAuthorRow extends StatelessWidget {
+  const _NewAuthorRow({required this.profile, required this.onTap});
+  final LinkedProfile profile;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Material(
+      color: t.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: t.field),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('tweetNewAuthor'),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          child: Row(
+            children: [
+              RemoteAuthorAvatar(
+                url: profile.avatarUrl,
+                name: profile.name,
+                size: 36,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      profile.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: t.ink,
+                      ),
+                    ),
+                    Text(
+                      '@${profile.handle}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: t.text3),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBE7E0),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  context.l10n.tweetshareNewAuthor,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFFB84B38),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              SvgIcon(
+                AppIcons.chevronRight,
+                size: 18,
+                strokeWidth: 2,
+                color: const Color(0xFFB7ADA0),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

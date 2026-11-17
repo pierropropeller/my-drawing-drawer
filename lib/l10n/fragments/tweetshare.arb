@@ -1,0 +1,10 @@
+{
+  "tweetshareLoading": "讀取推文中…",
+  "tweetshareFailTitle": "讀不到這則推文",
+  "tweetshareFailBody": "可能是網路有問題，或推文已刪除、帳號設成私密。",
+  "tweetshareNewAuthor": "新作者",
+  "tweetshareSourceUrl": "原文連結",
+  "tweetshareAddSourceUrl": "加原文連結",
+  "tweetshareOpenSourceUrl": "打開原文",
+  "tweetshareRemoveSourceUrl": "移除原文連結"
+}

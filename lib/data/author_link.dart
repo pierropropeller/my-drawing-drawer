@@ -85,6 +85,40 @@ String? parseLinkInput(LinkPlatform p, String input) {
   }
 }
 
+/// 推文網址 → 推文 id（D-158）。`x.com`／`twitter.com`／`fxtwitter.com`／`vxtwitter.com`
+/// 的 `/<帳號>/status/<id>`（也收 `/i/status/<id>`），可以夾在分享文字裡。看不懂回傳 null。
+String? parseTweetUrl(String input) {
+  final m = RegExp(
+    r'(?:https?://)?(?:www\.|mobile\.)?(?:x|twitter|fxtwitter|vxtwitter|fixupx)\.com/(?:[A-Za-z0-9_]{1,15}|i(?:/web)?)/status(?:es)?/(\d{5,25})',
+    caseSensitive: false,
+  ).firstMatch(input);
+  return m?.group(1);
+}
+
+/// 推文裡的一個媒體。[url] 是原圖（照片）或影片檔；[thumbnailUrl] 是影片的預覽圖。
+class TweetMedia {
+  const TweetMedia({
+    required this.url,
+    required this.isVideo,
+    this.thumbnailUrl,
+  });
+  final String url;
+  final bool isVideo;
+  final String? thumbnailUrl;
+}
+
+/// 從推文查到的資料（D-158）：作者＋媒體。[url] 是推文的正式網址（存成原文連結）。
+class TweetInfo {
+  const TweetInfo({
+    required this.url,
+    required this.author,
+    required this.media,
+  });
+  final String url;
+  final LinkedProfile author;
+  final List<TweetMedia> media;
+}
+
 /// 查詢作者在平台上的資料。測試時換成假的。
 abstract class AuthorLinkService {
   /// [key] 是 [parseLinkInput] 的結果。
@@ -99,6 +133,9 @@ abstract class AuthorLinkService {
 
   /// 下載頭像／封面圖。
   Future<List<int>> download(String url);
+
+  /// 用推文 id 查推文的作者與媒體（D-158）。
+  Future<TweetInfo> tweet(String id);
 }
 
 /// 免費的非官方查詢：X 用 api.fxtwitter.com（用帳號名稱查，回傳裡有永久 id）；
@@ -202,6 +239,11 @@ class HttpAuthorLinkService implements AuthorLinkService {
     }
     final u = json['user'];
     if (u is! Map<String, dynamic>) throw const AuthorLinkException('no user');
+    return _xUser(u);
+  }
+
+  /// fxtwitter 的使用者物件（`user`／`tweet.author`）→ [LinkedProfile]。
+  static LinkedProfile _xUser(Map<String, dynamic> u) {
     final id = '${u['id'] ?? ''}';
     final screen = '${u['screen_name'] ?? ''}';
     if (id.isEmpty || screen.isEmpty) throw const AuthorLinkException('empty');
@@ -221,6 +263,72 @@ class HttpAuthorLinkService implements AuthorLinkService {
       name: '${u['name'] ?? screen}',
       avatarUrl: (avatar ?? '').isEmpty ? null : avatar,
       bannerUrl: (banner ?? '').isEmpty ? null : banner,
+    );
+  }
+
+  @override
+  Future<TweetInfo> tweet(String id) async {
+    final body = await _get(Uri.https('api.fxtwitter.com', '/i/status/$id'));
+    final Map<String, dynamic> json;
+    try {
+      json = jsonDecode(body) as Map<String, dynamic>;
+    } catch (_) {
+      throw const AuthorLinkException('bad json');
+    }
+    return parseFxTweet(json);
+  }
+
+  /// fxtwitter `/i/status/<id>` 的回傳 → [TweetInfo]。
+  static TweetInfo parseFxTweet(Map<String, dynamic> json) {
+    final t = json['tweet'];
+    if (t is! Map<String, dynamic>) throw const AuthorLinkException('no tweet');
+    final a = t['author'];
+    if (a is! Map<String, dynamic>) {
+      throw const AuthorLinkException('no author');
+    }
+    final author = _xUser(a);
+    final media = <TweetMedia>[];
+    final all = (t['media'] is Map) ? (t['media'] as Map)['all'] : null;
+    if (all is List) {
+      for (final m in all) {
+        if (m is! Map) continue;
+        final type = '${m['type'] ?? ''}';
+        var url = '${m['url'] ?? ''}';
+        if (url.isEmpty) continue;
+        if (type == 'photo') {
+          // 要原圖：pbs.twimg.com 加 name=orig。
+          final u = Uri.tryParse(url);
+          if (u != null && u.host == 'pbs.twimg.com') {
+            url = u
+                .replace(
+                  queryParameters: {...u.queryParameters, 'name': 'orig'},
+                )
+                .toString();
+          }
+          media.add(TweetMedia(url: url, isVideo: false));
+        } else if (type == 'video' || type == 'gif') {
+          final thumb = m['thumbnail_url'] as String?;
+          media.add(
+            TweetMedia(
+              url: url,
+              isVideo: true,
+              thumbnailUrl: (thumb ?? '').isEmpty ? null : thumb,
+            ),
+          );
+        }
+      }
+    }
+    final id = '${t['id'] ?? ''}';
+    final url = '${t['url'] ?? ''}';
+    return TweetInfo(
+      url: url.isNotEmpty
+          ? url.replaceFirst(
+              RegExp(r'^https?://(?:www\.)?twitter\.com'),
+              'https://x.com',
+            )
+          : 'https://x.com/${author.handle}/status/$id',
+      author: author,
+      media: media,
     );
   }
 

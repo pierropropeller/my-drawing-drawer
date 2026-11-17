@@ -199,7 +199,8 @@ class ShareViewController: UIViewController {
       }
     }
     if found.isEmpty {
-      showMessage(Text.nothing)
+      // 分享推文（D-158）：沒有圖片時找網址（public.url，或文字裡的網址），只交接連結。
+      collectLink(items)
       return
     }
     let dir = FileManager.default.temporaryDirectory
@@ -213,6 +214,95 @@ class ShareViewController: UIViewController {
     stagingDirectory = dir
     providers = found
     step(0)
+  }
+
+  /// 推文網址（x.com／twitter.com 的 /status/）。其他網址不收。
+  private static func tweetURL(in text: String) -> String? {
+    let pattern =
+      "https?://(?:www\\.|mobile\\.)?(?:x|twitter|fxtwitter|vxtwitter|fixupx)\\.com/[A-Za-z0-9_/]+/status(?:es)?/[0-9]+[^\\s]*"
+    guard let re = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+      return nil
+    }
+    let range = NSRange(text.startIndex..., in: text)
+    guard let m = re.firstMatch(in: text, range: range), let r = Range(m.range, in: text) else {
+      return nil
+    }
+    return String(text[r])
+  }
+
+  private func collectLink(_ items: [NSExtensionItem]) {
+    var urlProviders: [NSItemProvider] = []
+    var textProviders: [NSItemProvider] = []
+    for item in items {
+      for provider in item.attachments ?? [] {
+        if provider.hasItemConformingToTypeIdentifier("public.url") {
+          urlProviders.append(provider)
+        } else if provider.hasItemConformingToTypeIdentifier("public.plain-text") {
+          textProviders.append(provider)
+        }
+      }
+    }
+    // 有些 App 把網址放在分享項目的文字裡。
+    var inline = ""
+    for item in items {
+      if let t = item.attributedContentText?.string { inline += " " + t }
+    }
+    let all = urlProviders.map { ($0, "public.url") } + textProviders.map { ($0, "public.plain-text") }
+    tryLink(all, 0, inline: inline)
+  }
+
+  private func tryLink(_ list: [(NSItemProvider, String)], _ i: Int, inline: String) {
+    if i >= list.count {
+      DispatchQueue.main.async {
+        if let url = ShareViewController.tweetURL(in: inline) {
+          self.handoffLink(url)
+        } else {
+          self.showMessage(Text.nothing)
+        }
+      }
+      return
+    }
+    let (provider, uti) = list[i]
+    provider.loadItem(forTypeIdentifier: uti, options: nil) { [weak self] value, _ in
+      guard let self = self else { return }
+      var text = ""
+      if let u = value as? URL {
+        text = u.absoluteString
+      } else if let u = value as? NSURL {
+        text = u.absoluteString ?? ""
+      } else if let t = value as? String {
+        text = t
+      } else if let d = value as? Data {
+        text = String(data: d, encoding: .utf8) ?? ""
+      }
+      if let url = ShareViewController.tweetURL(in: text) {
+        DispatchQueue.main.async { self.handoffLink(url) }
+      } else {
+        self.tryLink(list, i + 1, inline: inline)
+      }
+    }
+  }
+
+  /// 只交接一個網址（沒有圖片）：meta 的 count 是 0，`link` 放網址。
+  private func handoffLink(_ url: String) {
+    let meta: [String: Any] = [
+      "v": 2,
+      "count": 0,
+      "createdAt": Date().timeIntervalSince1970,
+      "items": [],
+      "link": url,
+    ]
+    guard let metaData = try? JSONSerialization.data(withJSONObject: meta) else {
+      showMessage(Text.nothing)
+      return
+    }
+    UIPasteboard.general.setItems(
+      [[ShareViewController.metaType: metaData]],
+      options: [
+        .localOnly: true,
+        .expirationDate: Date().addingTimeInterval(ShareViewController.expiry),
+      ])
+    openHostApp()
   }
 
   private func removeStagingDirectory() {

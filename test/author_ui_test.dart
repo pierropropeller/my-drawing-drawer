@@ -52,6 +52,9 @@ class _FakeLink implements AuthorLinkService {
 
   @override
   Future<List<int>> download(String url) async => throw Exception();
+
+  @override
+  Future<TweetInfo> tweet(String id) async => throw const AuthorLinkException();
 }
 
 void main() {

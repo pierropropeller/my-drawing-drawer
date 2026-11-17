@@ -85,6 +85,7 @@ extension AlbumSetQueries on AppDatabase {
     String? groupId,
     List<String> tagIds = const [],
     String? note,
+    String? sourceUrl,
   }) async {
     if (images.isEmpty) return;
     await transaction(() async {
@@ -96,6 +97,7 @@ extension AlbumSetQueries on AppDatabase {
         groupId: groupId,
         tagIds: tagIds,
         note: note,
+        sourceUrl: sourceUrl,
       );
       await replaceEntityImages(OwnerType.album, ids.first, images.sublist(1));
     });
@@ -191,6 +193,7 @@ extension AlbumSetQueries on AppDatabase {
                 sensitive: Value(e.sensitive),
                 author: Value(src.author),
                 authorId: Value(src.authorId),
+                sourceUrl: Value(src.sourceUrl),
                 note: Value(src.note),
                 source: Value(src.source),
                 groupId: Value(src.groupId),

@@ -39,9 +39,17 @@ enum ShareHandoff {
 
   /// 讀出剪貼簿裡我們的圖片資料，並清掉剪貼簿。要在主執行緒呼叫（讀剪貼簿）。
   /// 沒有、過期或內容不對時回空陣列（有我們的 type 但不能用時一樣會清掉，避免殘留）。
-  static func takeImages() -> [SharedImage] {
+  /// 交接內容：圖片，或（分享推文，D-158）只有一個網址。
+  struct Shared {
+    var images: [SharedImage] = []
+    var link: String?
+  }
+
+  static func takeImages() -> [SharedImage] { take().images }
+
+  static func take() -> Shared {
     let board = UIPasteboard.general
-    guard board.contains(pasteboardTypes: [metaType]) else { return [] }
+    guard board.contains(pasteboardTypes: [metaType]) else { return Shared() }
     let items = board.items
     // 只要看到我們的 type，這份剪貼簿內容就是擴充放的，取出後整個清掉；其餘情況完全不動。
     defer {
@@ -51,6 +59,7 @@ enum ShareHandoff {
     }
 
     var createdAt: TimeInterval?
+    var link: String?
     var exts: [String?] = []
     var datas: [Data] = []
     for item in items {
@@ -59,6 +68,9 @@ enum ShareHandoff {
         let t = (obj["createdAt"] as? NSNumber)?.doubleValue
       {
         createdAt = t
+        if let l = obj["link"] as? String, l.lowercased().hasPrefix("http"), l.count < 2048 {
+          link = l
+        }
         // v2：items[i].ext 是第 i 張圖的原始副檔名；舊版（v1）沒有這個欄位，改用內容判斷。
         if let list = obj["items"] as? [Any] {
           for entry in list {
@@ -71,16 +83,16 @@ enum ShareHandoff {
         datas.append(data)
       }
     }
-    guard let created = createdAt else { return [] }
+    guard let created = createdAt else { return Shared() }
     let age = Date().timeIntervalSince1970 - created
     // 時鐘被往回調（age < 0）也視為不可信。
-    if age < -60 || age > maxAge { return [] }
+    if age < -60 || age > maxAge { return Shared() }
     var images: [SharedImage] = []
     for (i, data) in datas.enumerated() {
       let declared = i < exts.count ? exts[i] : nil
       images.append(SharedImage(data: data, ext: declared ?? ShareHandoff.fileExtension(for: data)))
     }
-    return images
+    return Shared(images: images, link: link)
   }
 
   /// 副檔名只留小寫英數、最長 5 字元（來自別的行程的資料，不直接信任）。

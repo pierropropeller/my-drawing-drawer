@@ -1,16 +1,23 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../data/album_queries.dart';
+import '../../data/album_set_queries.dart';
+import '../../data/author_link.dart';
+import '../../data/author_queries.dart';
 import '../../data/junk_queries.dart';
 import '../../data/material_queries.dart';
 import '../../l10n/l10n.dart';
 import '../../media/media_import.dart';
 import '../../share/share_inbox.dart';
+import '../../share/tweet_share.dart';
+import '../authors/author_pick_sheet.dart' show authorNameFor;
+import '../authors/author_sync.dart' show downloadLinkedImage, linkFields;
 import '../../state/providers.dart';
 import '../album/album_actions.dart';
 import '../album/fan_art_list_page.dart';
@@ -86,10 +93,38 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     }
   }
 
-  Future<void> _handle(List<String> paths) async {
+  Future<void> _handle(List<String> batch) async {
+    // 分享推文（D-158）：批次裡只有一個網址。看不懂的網址（不是推文）不處理。
+    final links = batch.where(isShareLink).toList();
+    final paths = batch.where((p) => !isShareLink(p)).toList();
+    TweetShareController? tweet;
+    if (paths.isEmpty) {
+      final link = links.where((u) => parseTweetUrl(u) != null).firstOrNull;
+      if (link == null) return;
+      tweet = TweetShareController(
+        link: link,
+        service: ref.read(authorLinkServiceProvider),
+        db: ref.read(databaseProvider),
+        tempDir: ref.read(tweetShareTempDirProvider),
+      );
+      unawaited(tweet.load());
+    }
+    try {
+      await _handleChoice(paths, tweet);
+    } finally {
+      tweet?.dispose();
+    }
+  }
+
+  Future<void> _handleChoice(
+    List<String> paths,
+    TweetShareController? tweet,
+  ) async {
     String? pitId;
     ShareSection? section;
     String? groupId;
+    // 取消、加入完：分享推文只刪自己下載的暫存檔（自己加的圖是選圖器的檔案）。
+    void cleanUp() => tweet != null ? tweet.cleanUp() : _deleteFiles(paths);
     while (true) {
       if (!mounted) return;
       // 分享進來要接手畫面：先關掉最上層還開著的 bottom sheet／對話框
@@ -104,13 +139,15 @@ class _ShareHostState extends ConsumerState<ShareHost> {
         pitId: pitId,
         section: section,
         groupId: groupId,
+        tweet: tweet,
       );
       if (!mounted) return;
       if (choice == null) {
         // 取消：複製進來的暫存檔不再需要。
-        _deleteFiles(paths);
+        cleanUp();
         return;
       }
+      final files = choice.paths ?? paths;
       switch (choice.action) {
         case ShareAction.newPit:
           // 開新坑沿用既有的新增坑頁，回來後選中新坑，位置維持原樣。
@@ -120,13 +157,16 @@ class _ShareHostState extends ConsumerState<ShareHost> {
           section = choice.section;
           groupId = null;
         case ShareAction.add:
-          await _save(choice, paths);
+          await _save(choice, files);
+          cleanUp();
           return;
         case ShareAction.addMaterial:
-          await _saveMaterial(choice, paths);
+          await _saveMaterial(choice, files);
+          cleanUp();
           return;
         case ShareAction.next:
-          _openForm(choice, paths);
+          // 表單之後才匯入：檔案留著。
+          _openForm(choice, files);
           return;
       }
     }
@@ -162,7 +202,6 @@ class _ShareHostState extends ConsumerState<ShareHost> {
         // 讀不到的檔案略過。
       }
     }
-    _deleteFiles(paths);
     if (images.isEmpty) return;
     if (c.sensitive) {
       // 分享匯入的「全部標為敏感」（D-104）。
@@ -175,16 +214,43 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     final Widget list;
     switch (c.section!) {
       case ShareSection.official:
-        await db.addOfficial(pitId, c.groupId!, images, tagIds: c.tagIds);
+        if (c.combine) {
+          await db.addOfficialSet(pitId, c.groupId!, images, tagIds: c.tagIds);
+        } else {
+          await db.addOfficial(pitId, c.groupId!, images, tagIds: c.tagIds);
+        }
         list = OfficialListPage(pitId: pitId);
       case ShareSection.fan:
-        await db.addFanArts(
-          pitId,
-          images,
-          author: c.author,
-          groupId: c.groupId,
-          tagIds: c.tagIds,
-        );
+        // 分享推文：新作者先新增（連結 X、下載頭像封面）。
+        var authorId = c.authorId;
+        final linked = c.newAuthor;
+        if (authorId == null && linked != null) {
+          authorId = await _addLinkedAuthor(linked);
+        }
+        final author = authorId != null
+            ? await authorNameFor(db, authorId)
+            : c.author;
+        if (c.combine) {
+          await db.addFanArtSet(
+            pitId,
+            images,
+            author: author,
+            authorId: authorId,
+            groupId: c.groupId,
+            tagIds: c.tagIds,
+            sourceUrl: c.sourceUrl,
+          );
+        } else {
+          await db.addFanArts(
+            pitId,
+            images,
+            author: author,
+            authorId: authorId,
+            groupId: c.groupId,
+            tagIds: c.tagIds,
+            sourceUrl: c.sourceUrl,
+          );
+        }
         list = FanArtListPage(pitId: pitId);
       case ShareSection.junk:
         await db.addJunk(pitId, images);
@@ -200,6 +266,24 @@ class _ShareHostState extends ConsumerState<ShareHost> {
     showSnack(context, context.l10n.shareAdded, success: true);
   }
 
+  /// 分享推文的新作者：名字、ID、頭像、封面用 X 上的，連結 X（D-158）。
+  Future<String> _addLinkedAuthor(LinkedProfile p) async {
+    final avatar = await downloadLinkedImage(ref, p.avatarUrl);
+    final banner = await downloadLinkedImage(ref, p.bannerUrl);
+    return ref
+        .read(databaseProvider)
+        .addAuthor(
+          linkFields(p).copyWith(
+            name: Value(p.name),
+            handle: Value('@${p.handle}'),
+            avatarFile: Value(avatar),
+            bannerFile: Value(banner),
+            syncSource: Value(p.platform.name),
+            refreshedAt: Value(DateTime.now()),
+          ),
+        );
+  }
+
   /// 「素材庫」段的「加入」（D-071）：匯入、寫進素材庫，並留在 App 裡，
   /// 停在剛存的分類的素材庫頁（我的 → 素材庫）。
   Future<void> _saveMaterial(ShareChoice c, List<String> paths) async {
@@ -212,7 +296,6 @@ class _ShareHostState extends ConsumerState<ShareHost> {
         // 讀不到的檔案略過。
       }
     }
-    _deleteFiles(paths);
     if (images.isEmpty) return;
     final category = c.material!;
     if (c.sensitive) {

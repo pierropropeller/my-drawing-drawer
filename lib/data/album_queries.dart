@@ -366,8 +366,10 @@ extension AlbumQueries on AppDatabase {
     String? groupId,
     List<String> tagIds = const [],
     String? note,
+    String? sourceUrl,
   }) async {
     final n = (note ?? '').trim();
+    final src = (sourceUrl ?? '').trim();
     final ids = await transaction(() async {
       final ids = <String>[];
       for (final im in images) {
@@ -388,6 +390,7 @@ extension AlbumQueries on AppDatabase {
             authorId: Value(authorId),
             groupId: Value(groupId),
             note: Value(n.isEmpty ? null : n),
+            sourceUrl: Value(src.isEmpty ? null : src),
           ),
         );
         await setTags(TagTarget.fanArt, row.id, tagIds);
@@ -408,12 +411,18 @@ extension AlbumQueries on AppDatabase {
     String? groupId,
     required List<String> tagIds,
     bool? sensitive,
+    String? sourceUrl,
   }) {
+    // null＝不動原文連結；空字串＝清掉。
+    final src = sourceUrl?.trim();
     return transaction(() async {
       await (update(fanArts)..where((i) => i.id.equals(id))).write(
         FanArtsCompanion(
           author: Value(author),
           authorId: Value(authorId),
+          sourceUrl: src == null
+              ? const Value.absent()
+              : Value(src.isEmpty ? null : src),
           groupId: Value(groupId),
           sensitive: sensitive == null
               ? const Value.absent()

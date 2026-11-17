@@ -215,6 +215,9 @@ class FanArts extends Table with SyncColumns, MediaColumns {
   /// 作者（D-156）。[author] 改成作者名字的本機快取（舊版 App、搜尋、列表照舊讀它），
   /// 由 [authorId] 指向的作者決定；作者改名時只更新本機快取，不動 updatedAt。
   TextColumn get authorId => text().nullable()();
+
+  /// 原文連結（D-158）：例如推文網址；從推文分享進來自動填，新增／編輯頁可自己貼。
+  TextColumn get sourceUrl => text().nullable()();
 }
 
 /// 作者（D-156）：名字、ID、頭像／封面（獨立的圖片檔，不屬於任何圖冊，跟著同步備份）。

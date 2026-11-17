@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/album_queries.dart';
 import '../../data/database.dart';
@@ -162,6 +163,8 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
         ? null
         : ref.watch(authorProvider(authorId)).value;
     final note = live == null ? (cur.note ?? '') : (live.note ?? '');
+    // 原文連結（D-158）：出處 tag 旁的圓形跳轉按鈕，只在有連結時出現。
+    final sourceUrl = (live?.sourceUrl ?? '').trim();
     final tagIds =
         ref.watch(tagIdsProvider((TagTarget.fanArt, cur.id))).value ??
         const <String>[];
@@ -201,7 +204,10 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (author.isNotEmpty || group.isNotEmpty || authorRow != null)
+            if (author.isNotEmpty ||
+                group.isNotEmpty ||
+                authorRow != null ||
+                sourceUrl.isNotEmpty)
               _AuthorTap(
                 authorId: authorRow?.id,
                 child: Padding(
@@ -284,6 +290,10 @@ class _FanArtPreviewPageState extends ConsumerState<FanArtPreviewPage>
                           strokeWidth: 2,
                           color: PreviewPalette.muted,
                         ),
+                      ],
+                      if (sourceUrl.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        _OpenSourceButton(url: sourceUrl),
                       ],
                     ],
                   ),
@@ -394,4 +404,47 @@ class _AuthorTap extends StatelessWidget {
       child: child,
     );
   }
+}
+
+/// 打開原文（TweetLinkPreview）：32 圓形、半透明白底、外部連結 icon；用外部 App（X）開。
+class _OpenSourceButton extends StatelessWidget {
+  const _OpenSourceButton({required this.url});
+  final String url;
+
+  static const _icon =
+      '<path d="M14 5h5v5M19 5l-8 8"/>'
+      '<path d="M18 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/>';
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: context.l10n.tweetshareOpenSourceUrl,
+    child: GestureDetector(
+      key: const ValueKey('openSourceUrl'),
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        var s = url;
+        if (!s.contains('://')) s = 'https://$s';
+        final uri = Uri.tryParse(s);
+        if (uri != null) {
+          launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
+      child: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          color: Color(0x1FFFFFFF),
+          shape: BoxShape.circle,
+        ),
+        child: const SvgIcon(
+          _icon,
+          size: 16,
+          strokeWidth: 2,
+          color: PreviewPalette.text,
+        ),
+      ),
+    ),
+  );
 }

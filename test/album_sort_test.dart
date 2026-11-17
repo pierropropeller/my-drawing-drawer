@@ -45,8 +45,8 @@ void main() {
     setUp(() => db = AppDatabase(NativeDatabase.memory()));
     tearDown(() => db.close());
 
-    test('schemaVersion 19；各頁範圍字串', () {
-      expect(db.schemaVersion, 19);
+    test('schemaVersion 20；各頁範圍字串', () {
+      expect(db.schemaVersion, 20);
       expect(AlbumOrderScope.official('p', null), 'official:p:all');
       expect(AlbumOrderScope.fan('p', 'g'), 'fan:p:g');
       expect(AlbumOrderScope.inspo(null), 'inspo:all');

@@ -3073,6 +3073,17 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sourceUrlMeta = const VerificationMeta(
+    'sourceUrl',
+  );
+  @override
+  late final GeneratedColumn<String> sourceUrl = GeneratedColumn<String>(
+    'source_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3095,6 +3106,7 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
     hidden,
     note,
     authorId,
+    sourceUrl,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3223,6 +3235,12 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
         authorId.isAcceptableOrUnknown(data['author_id']!, _authorIdMeta),
       );
     }
+    if (data.containsKey('source_url')) {
+      context.handle(
+        _sourceUrlMeta,
+        sourceUrl.isAcceptableOrUnknown(data['source_url']!, _sourceUrlMeta),
+      );
+    }
     return context;
   }
 
@@ -3314,6 +3332,10 @@ class $FanArtsTable extends FanArts with TableInfo<$FanArtsTable, FanArt> {
         DriftSqlType.string,
         data['${effectivePrefix}author_id'],
       ),
+      sourceUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_url'],
+      ),
     );
   }
 
@@ -3367,6 +3389,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
   /// 作者（D-156）。[author] 改成作者名字的本機快取（舊版 App、搜尋、列表照舊讀它），
   /// 由 [authorId] 指向的作者決定；作者改名時只更新本機快取，不動 updatedAt。
   final String? authorId;
+
+  /// 原文連結（D-158）：例如推文網址；從推文分享進來自動填，新增／編輯頁可自己貼。
+  final String? sourceUrl;
   const FanArt({
     required this.id,
     required this.createdAt,
@@ -3388,6 +3413,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     required this.hidden,
     this.note,
     this.authorId,
+    this.sourceUrl,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3426,6 +3452,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     if (!nullToAbsent || authorId != null) {
       map['author_id'] = Variable<String>(authorId);
     }
+    if (!nullToAbsent || sourceUrl != null) {
+      map['source_url'] = Variable<String>(sourceUrl);
+    }
     return map;
   }
 
@@ -3461,6 +3490,9 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       authorId: authorId == null && nullToAbsent
           ? const Value.absent()
           : Value(authorId),
+      sourceUrl: sourceUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceUrl),
     );
   }
 
@@ -3492,6 +3524,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       hidden: serializer.fromJson<bool>(json['hidden']),
       note: serializer.fromJson<String?>(json['note']),
       authorId: serializer.fromJson<String?>(json['authorId']),
+      sourceUrl: serializer.fromJson<String?>(json['sourceUrl']),
     );
   }
   @override
@@ -3520,6 +3553,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       'hidden': serializer.toJson<bool>(hidden),
       'note': serializer.toJson<String?>(note),
       'authorId': serializer.toJson<String?>(authorId),
+      'sourceUrl': serializer.toJson<String?>(sourceUrl),
     };
   }
 
@@ -3544,6 +3578,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     bool? hidden,
     Value<String?> note = const Value.absent(),
     Value<String?> authorId = const Value.absent(),
+    Value<String?> sourceUrl = const Value.absent(),
   }) => FanArt(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -3565,6 +3600,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     hidden: hidden ?? this.hidden,
     note: note.present ? note.value : this.note,
     authorId: authorId.present ? authorId.value : this.authorId,
+    sourceUrl: sourceUrl.present ? sourceUrl.value : this.sourceUrl,
   );
   FanArt copyWithCompanion(FanArtsCompanion data) {
     return FanArt(
@@ -3592,6 +3628,7 @@ class FanArt extends DataClass implements Insertable<FanArt> {
       hidden: data.hidden.present ? data.hidden.value : this.hidden,
       note: data.note.present ? data.note.value : this.note,
       authorId: data.authorId.present ? data.authorId.value : this.authorId,
+      sourceUrl: data.sourceUrl.present ? data.sourceUrl.value : this.sourceUrl,
     );
   }
 
@@ -3617,13 +3654,14 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           ..write('imageKey: $imageKey, ')
           ..write('hidden: $hidden, ')
           ..write('note: $note, ')
-          ..write('authorId: $authorId')
+          ..write('authorId: $authorId, ')
+          ..write('sourceUrl: $sourceUrl')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     createdAt,
     updatedAt,
@@ -3644,7 +3682,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
     hidden,
     note,
     authorId,
-  );
+    sourceUrl,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3668,7 +3707,8 @@ class FanArt extends DataClass implements Insertable<FanArt> {
           other.imageKey == this.imageKey &&
           other.hidden == this.hidden &&
           other.note == this.note &&
-          other.authorId == this.authorId);
+          other.authorId == this.authorId &&
+          other.sourceUrl == this.sourceUrl);
 }
 
 class FanArtsCompanion extends UpdateCompanion<FanArt> {
@@ -3692,6 +3732,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
   final Value<bool> hidden;
   final Value<String?> note;
   final Value<String?> authorId;
+  final Value<String?> sourceUrl;
   final Value<int> rowid;
   const FanArtsCompanion({
     this.id = const Value.absent(),
@@ -3714,6 +3755,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.hidden = const Value.absent(),
     this.note = const Value.absent(),
     this.authorId = const Value.absent(),
+    this.sourceUrl = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FanArtsCompanion.insert({
@@ -3737,6 +3779,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     this.hidden = const Value.absent(),
     this.note = const Value.absent(),
     this.authorId = const Value.absent(),
+    this.sourceUrl = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : pitId = Value(pitId),
        imageFile = Value(imageFile);
@@ -3761,6 +3804,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Expression<bool>? hidden,
     Expression<String>? note,
     Expression<String>? authorId,
+    Expression<String>? sourceUrl,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3784,6 +3828,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       if (hidden != null) 'hidden': hidden,
       if (note != null) 'note': note,
       if (authorId != null) 'author_id': authorId,
+      if (sourceUrl != null) 'source_url': sourceUrl,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3809,6 +3854,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     Value<bool>? hidden,
     Value<String?>? note,
     Value<String?>? authorId,
+    Value<String?>? sourceUrl,
     Value<int>? rowid,
   }) {
     return FanArtsCompanion(
@@ -3832,6 +3878,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
       hidden: hidden ?? this.hidden,
       note: note ?? this.note,
       authorId: authorId ?? this.authorId,
+      sourceUrl: sourceUrl ?? this.sourceUrl,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3901,6 +3948,9 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
     if (authorId.present) {
       map['author_id'] = Variable<String>(authorId.value);
     }
+    if (sourceUrl.present) {
+      map['source_url'] = Variable<String>(sourceUrl.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3930,6 +3980,7 @@ class FanArtsCompanion extends UpdateCompanion<FanArt> {
           ..write('hidden: $hidden, ')
           ..write('note: $note, ')
           ..write('authorId: $authorId, ')
+          ..write('sourceUrl: $sourceUrl, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -17849,6 +17900,7 @@ typedef $$FanArtsTableCreateCompanionBuilder = FanArtsCompanion Function({
   Value<bool> hidden,
   Value<String?> note,
   Value<String?> authorId,
+  Value<String?> sourceUrl,
   Value<int> rowid,
 });
 typedef $$FanArtsTableUpdateCompanionBuilder = FanArtsCompanion Function({
@@ -17872,6 +17924,7 @@ typedef $$FanArtsTableUpdateCompanionBuilder = FanArtsCompanion Function({
   Value<bool> hidden,
   Value<String?> note,
   Value<String?> authorId,
+  Value<String?> sourceUrl,
   Value<int> rowid,
 });
 
@@ -17984,6 +18037,11 @@ class $$FanArtsTableFilterComposer
     column: $table.authorId,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get sourceUrl => $composableBuilder(
+    column: $table.sourceUrl,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$FanArtsTableOrderingComposer
@@ -18094,6 +18152,11 @@ class $$FanArtsTableOrderingComposer
     column: $table.authorId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get sourceUrl => $composableBuilder(
+    column: $table.sourceUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FanArtsTableAnnotationComposer
@@ -18168,6 +18231,9 @@ class $$FanArtsTableAnnotationComposer
 
   GeneratedColumn<String> get authorId =>
       $composableBuilder(column: $table.authorId, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceUrl =>
+      $composableBuilder(column: $table.sourceUrl, builder: (column) => column);
 }
 
 class $$FanArtsTableTableManager
@@ -18218,6 +18284,7 @@ class $$FanArtsTableTableManager
                 Value<bool> hidden = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<String?> authorId = const Value.absent(),
+                Value<String?> sourceUrl = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FanArtsCompanion(
                 id: id,
@@ -18240,6 +18307,7 @@ class $$FanArtsTableTableManager
                 hidden: hidden,
                 note: note,
                 authorId: authorId,
+                sourceUrl: sourceUrl,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -18264,6 +18332,7 @@ class $$FanArtsTableTableManager
                 Value<bool> hidden = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<String?> authorId = const Value.absent(),
+                Value<String?> sourceUrl = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FanArtsCompanion.insert(
                 id: id,
@@ -18286,6 +18355,7 @@ class $$FanArtsTableTableManager
                 hidden: hidden,
                 note: note,
                 authorId: authorId,
+                sourceUrl: sourceUrl,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

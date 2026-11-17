@@ -15,6 +15,7 @@ import 'album_form.dart';
 import 'album_set_form.dart';
 import 'group_picker.dart';
 import 'image_picker_field.dart';
+import 'source_url_field.dart';
 import '../common/reorder_tile.dart';
 
 /// 新增同人圖的單一入口：視窗 ≥840 開置中 modal（NewFanArt，880×640），較窄開整頁。
@@ -71,6 +72,9 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
   List<String> _tagIds = [];
   bool _saving = false;
 
+  /// 原文連結（D-158）。
+  String? _sourceUrl;
+
   /// 「合成一組」（D-136，預設關）：開著＝這幾張存成一筆多圖。
   bool _combine = false;
 
@@ -107,6 +111,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
         groupId: _groupId,
         tagIds: _tagIds,
         note: _note.text,
+        sourceUrl: _sourceUrl,
       );
     } else {
       await db.addFanArts(
@@ -117,6 +122,7 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
         groupId: _groupId,
         tagIds: _tagIds,
         note: _note.text,
+        sourceUrl: _sourceUrl,
       );
     }
     if (mounted) Navigator.of(context).pop();
@@ -161,6 +167,11 @@ class _FanArtNewPageState extends ConsumerState<FanArtNewPage>
         selected: _groupId,
         allowClear: true,
         onSelected: (v) => setState(() => _groupId = v),
+      ),
+      const SizedBox(height: 18),
+      SourceUrlField(
+        value: _sourceUrl,
+        onChanged: (v) => setState(() => _sourceUrl = v),
       ),
       const SizedBox(height: 18),
       TagPicker(

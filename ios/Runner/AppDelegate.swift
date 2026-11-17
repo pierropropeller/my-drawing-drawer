@@ -176,11 +176,15 @@ import UIKit
   private func checkSharedPasteboard() {
     if shareBusy { return }
     guard ShareHandoff.hasPending else { return }
-    let images = ShareHandoff.takeImages()
-    if images.isEmpty { return }
+    let shared = ShareHandoff.take()
+    let images = shared.images
+    let link = shared.link
+    if images.isEmpty && link == nil { return }
     shareBusy = true
     DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-      let paths = ShareHandoff.writeFiles(images)
+      var paths = ShareHandoff.writeFiles(images)
+      // 分享推文（D-158）：網址照字串放在批次裡，Dart 端看到 http 開頭就當連結。
+      if let link = link { paths.append(link) }
       DispatchQueue.main.async {
         guard let self = self else { return }
         self.shareBusy = false

@@ -2962,6 +2962,30 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get tweetshareLoading => '讀取推文中…';
+
+  @override
+  String get tweetshareFailTitle => '讀不到這則推文';
+
+  @override
+  String get tweetshareFailBody => '可能是網路有問題，或推文已刪除、帳號設成私密。';
+
+  @override
+  String get tweetshareNewAuthor => '新作者';
+
+  @override
+  String get tweetshareSourceUrl => '原文連結';
+
+  @override
+  String get tweetshareAddSourceUrl => '加原文連結';
+
+  @override
+  String get tweetshareOpenSourceUrl => '打開原文';
+
+  @override
+  String get tweetshareRemoveSourceUrl => '移除原文連結';
+
+  @override
   String get videoloopLoop => '循環播放';
 
   @override

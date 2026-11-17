@@ -26,4 +26,15 @@ abstract final class ShareIcons {
 
   /// 「開新坑」chip 的加號（線寬 2）。
   static const plus = '<path d="M12 5v14M5 12h14"/>';
+
+  /// 分享推文（TweetShare*）：縮圖的移除 ✕（線寬 3）。
+  static const close = '<path d="M6 6l12 12M18 6L6 18"/>';
+
+  /// 讀取推文中的轉圈（3/4 圓弧，線寬 2.2）。
+  static const spinner = '<path d="M12 3a9 9 0 1 1-9 9"/>';
+
+  /// 讀不到推文（驚嘆號圓圈，線寬 1.8）。
+  static const warn =
+      '<circle cx="12" cy="12" r="9"/>'
+      '<path d="M12 7.5v5.5M12 16.5v.01"/>';
 }

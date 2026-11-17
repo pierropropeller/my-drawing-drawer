@@ -75,7 +75,7 @@ Future<bool> confirmUseLinked(BuildContext context, LinkedProfile p) async {
           ),
           child: Row(
             children: [
-              _RemoteAvatar(url: p.avatarUrl, name: p.name, size: 52),
+              RemoteAuthorAvatar(url: p.avatarUrl, name: p.name, size: 52),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -120,8 +120,10 @@ Future<bool> confirmUseLinked(BuildContext context, LinkedProfile p) async {
 }
 
 /// 平台上的頭像（還沒下載成本機檔，直接讀網址；讀不到就顯示名字第一個字）。
-class _RemoteAvatar extends StatelessWidget {
-  const _RemoteAvatar({
+/// 平台上的頭像（還沒下載，直接讀網址）；讀不到顯示名字首字。
+class RemoteAuthorAvatar extends StatelessWidget {
+  const RemoteAuthorAvatar({
+    super.key,
     required this.url,
     required this.name,
     required this.size,
@@ -373,7 +375,7 @@ Future<bool> _confirmRefresh(
               color: const Color(0xFFB7ADA0),
             ),
             const SizedBox(width: 14),
-            _RemoteAvatar(url: p.avatarUrl, name: p.name, size: 56),
+            RemoteAuthorAvatar(url: p.avatarUrl, name: p.name, size: 56),
           ],
         ),
         const SizedBox(height: 14),

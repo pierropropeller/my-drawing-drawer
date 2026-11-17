@@ -20,6 +20,7 @@ import 'album_form.dart';
 import 'album_set_form.dart';
 import 'group_picker.dart';
 import 'image_picker_field.dart';
+import 'source_url_field.dart';
 import '../common/reorder_tile.dart';
 
 /// 編輯同人圖的單一入口：視窗 ≥840 開置中 modal，較窄開整頁。回傳 true＝這張圖在編輯時被刪除。
@@ -64,6 +65,9 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
   final _note = TextEditingController();
   String? _groupId;
   List<String>? _tagIds;
+
+  /// 原文連結（D-158）。
+  String? _sourceUrl;
   NewImage? _image; // 載入時的第 1 張
 
   /// 表單裡這一組的圖（D-136；持有敏感標記的切換狀態，D-104）。
@@ -89,6 +93,7 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
       _authorId = row.authorId;
       _note.text = row.note ?? '';
       _groupId = row.groupId;
+      _sourceUrl = row.sourceUrl;
       _tagIds = ids;
       _image = images.first;
       _items.addAll(images.map(ImageItem.stored));
@@ -123,6 +128,7 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
       groupId: _groupId,
       tagIds: _tagIds ?? const [],
       sensitive: sensitive,
+      sourceUrl: _sourceUrl ?? '',
     );
     await db.setFanArtNote(widget.imageId, _note.text);
     return true;
@@ -214,6 +220,11 @@ class _FanArtEditPageState extends ConsumerState<FanArtEditPage>
         selected: _groupId,
         allowClear: true,
         onSelected: (v) => setState(() => _groupId = v),
+      ),
+      const SizedBox(height: 18),
+      SourceUrlField(
+        value: _sourceUrl,
+        onChanged: (v) => setState(() => _sourceUrl = v),
       ),
       const SizedBox(height: 18),
       TagPicker(

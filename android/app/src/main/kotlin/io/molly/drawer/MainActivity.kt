@@ -820,7 +820,13 @@ class MainActivity : FlutterActivity() {
         val uris = collectUris(source)
         // 清掉已處理的 intent，避免旋轉或重新進入時再次匯入。
         setIntent(Intent(Intent.ACTION_MAIN))
-        if (uris.isEmpty()) return
+        if (uris.isEmpty()) {
+            // 分享推文（D-158）：只帶一段文字，取出裡面第一個網址直接交給 Dart。
+            val text = source.getStringExtra(Intent.EXTRA_TEXT) ?: return
+            val url = Regex("https?://\\S+").find(text)?.value ?: return
+            deliver(listOf(url))
+            return
+        }
         copying++
         Thread {
             val paths = copyAll(uris)

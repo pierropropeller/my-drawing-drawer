@@ -5187,6 +5187,54 @@ abstract class AppLocalizations {
   /// **'永久刪除「{name}」？'**
   String trashPurgePitTitle(String name);
 
+  /// No description provided for @tweetshareLoading.
+  ///
+  /// In zh, this message translates to:
+  /// **'讀取推文中…'**
+  String get tweetshareLoading;
+
+  /// No description provided for @tweetshareFailTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'讀不到這則推文'**
+  String get tweetshareFailTitle;
+
+  /// No description provided for @tweetshareFailBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'可能是網路有問題，或推文已刪除、帳號設成私密。'**
+  String get tweetshareFailBody;
+
+  /// No description provided for @tweetshareNewAuthor.
+  ///
+  /// In zh, this message translates to:
+  /// **'新作者'**
+  String get tweetshareNewAuthor;
+
+  /// No description provided for @tweetshareSourceUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'原文連結'**
+  String get tweetshareSourceUrl;
+
+  /// No description provided for @tweetshareAddSourceUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'加原文連結'**
+  String get tweetshareAddSourceUrl;
+
+  /// No description provided for @tweetshareOpenSourceUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'打開原文'**
+  String get tweetshareOpenSourceUrl;
+
+  /// No description provided for @tweetshareRemoveSourceUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除原文連結'**
+  String get tweetshareRemoveSourceUrl;
+
   /// No description provided for @videoloopLoop.
   ///
   /// In zh, this message translates to:

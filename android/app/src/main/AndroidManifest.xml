@@ -42,6 +42,12 @@
                 <data android:mimeType="image/*"/>
                 <data android:mimeType="video/*"/>
             </intent-filter>
+            <!-- 分享推文連結（D-158）：只收文字，App 內只認推文網址。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND_MULTIPLE"/>
                 <category android:name="android.intent.category.DEFAULT"/>

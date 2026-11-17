@@ -60,7 +60,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'huakeng'));
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -140,6 +140,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 19) {
         await _migrateV19(m);
       }
+      if (from < 20) {
+        await _migrateV20(m);
+      }
     },
   );
 
@@ -184,6 +187,17 @@ class AppDatabase extends _$AppDatabase {
       await m.addColumn(fanArts, fanArts.authorId);
     }
     await linkLegacyAuthors();
+  }
+
+  /// v20：同人圖加「原文連結」`source_url`（D-158）。欄位已存在就略過（可重複執行）。
+  Future<void> _migrateV20(Migrator m) async {
+    final have = {
+      for (final r in await customSelect('PRAGMA table_info(fan_arts)').get())
+        r.read<String>('name'),
+    };
+    if (!have.contains('source_url')) {
+      await m.addColumn(fanArts, fanArts.sourceUrl);
+    }
   }
 
   /// v18：圖冊手動排序（D-134）。新表 `album_orders`；表已存在就略過（可重複執行）。
