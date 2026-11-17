@@ -28,7 +28,7 @@
 - **D-155** **手機開新坑改成 bottom sheet**（Molly 11/13）：不再開整頁，主頁上蓋一張 sheet：抓握條、標題「開新坑」＋右上 ✕、坑｜淺坑切換（沒有「類型」小標題）、坑名、描述、建立。坑名、描述改用**浮動標籤**輸入框（空白時標籤在框內，有字或聚焦時縮到框線上）。選淺坑時 sheet 變高，多出「開啟的格子」3 欄方格（預設開參考圖、好看同人圖）。分享進來的「開新坑」在手機也開這張 sheet。iPad 不變。Artboard：手機 `PitNewSheet`、`PitNewSheetShallow`。 ✅ commit 528fad2
 
 ## 批次 33（2026-11-17，分享推文）
-- **D-158** **分享推文進 Drawer**（Molly 11/17 CR）：在 X 分享推文連結 → 選 Drawer → 自動讀推文（fxtwitter）的作者和原圖。加入到 sheet：讀取中（縮圖骨架、推文卡片轉圈、下面淡掉）、讀不到（說明＋重試、底部「關閉」）、讀到（縮圖每張可 ✕、＋再加圖；位置預設好看同人圖；作者已在 Drawer＝選他、坑＝他最近加圖的坑；新作者＝顯示 X 上的頭像名字＋「新作者」標，加入時自動新增並連結 X；出處自動選「推特」；2 張以上預設合成一組）。同人圖新增「原文連結」欄（同步）：新增／編輯頁可貼、可移除；預覽頁出處 tag 旁有圓形跳轉按鈕。Android 收文字分享、iOS 分享擴充收網址。Artboard：手機 `cr-tweet` 頁的 `TweetShareLoading`、`TweetShareKnown`、`TweetShareNewAuthor`、`TweetShareFail`、`TweetLinkPreview`、`TweetLinkEdit`。 ✅ commit PENDING
+- **D-158** **分享推文進 Drawer**（Molly 11/17 CR）：在 X 分享推文連結 → 選 Drawer → 自動讀推文（fxtwitter）的作者和原圖。加入到 sheet：讀取中（縮圖骨架、推文卡片轉圈、下面淡掉）、讀不到（說明＋重試、底部「關閉」）、讀到（縮圖每張可 ✕、＋再加圖；位置預設好看同人圖；作者已在 Drawer＝選他、坑＝他最近加圖的坑；新作者＝顯示 X 上的頭像名字＋「新作者」標，加入時自動新增並連結 X；出處自動選「推特」；2 張以上預設合成一組）。同人圖新增「原文連結」欄（同步）：新增／編輯頁可貼、可移除；預覽頁出處 tag 旁有圓形跳轉按鈕。Android 收文字分享、iOS 分享擴充收網址。Artboard：手機 `cr-tweet` 頁的 `TweetShareLoading`、`TweetShareKnown`、`TweetShareNewAuthor`、`TweetShareFail`、`TweetLinkPreview`、`TweetLinkEdit`。 ✅ commit b8e931c
 
 ## 批次 32（2026-11-13，透明圖底色）
 - **D-152** **透明 PNG 在瀑布、田字格也墊主題色底**（Molly 11/13 bug）：成圖列表縱向版面本來就在圖後面墊 chipBg；瀑布、田字格的格子改成一樣，透明的地方不再直接透出頁面背景。 ✅ commit 74bf7ea
