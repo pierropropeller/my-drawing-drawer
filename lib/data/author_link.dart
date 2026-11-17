@@ -109,6 +109,19 @@ class HttpAuthorLinkService implements AuthorLinkService {
   final http.Client _http;
 
   static const _timeout = Duration(seconds: 15);
+
+  /// 小紅書看到手機瀏覽器會給不同的頁面（甚至只叫你開 App），所以裝成電腦版 Chrome。
+  static const _xhsHeaders = {
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+    'Accept':
+        'text/html,application/xhtml+xml,application/xml;q=0.9,'
+        'image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    'Referer': 'https://www.xiaohongshu.com/',
+  };
+
   static const _ua =
       'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) '
       'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
@@ -157,15 +170,17 @@ class HttpAuthorLinkService implements AuthorLinkService {
     }
   }
 
-  Future<String> _get(Uri uri) async {
+  Future<String> _get(Uri uri, {Map<String, String>? headers}) async {
     try {
       final r = await _http
           .get(
             uri,
-            headers: {
-              'User-Agent': _ua,
-              'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
-            },
+            headers:
+                headers ??
+                {
+                  'User-Agent': _ua,
+                  'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+                },
           )
           .timeout(_timeout);
       if (r.statusCode != 200) throw AuthorLinkException('${r.statusCode}');
@@ -222,7 +237,7 @@ class HttpAuthorLinkService implements AuthorLinkService {
       if (_xhsNote.hasMatch(url.path)) return _xhsFromNote(url);
       final req = http.Request('GET', url)
         ..followRedirects = false
-        ..headers['User-Agent'] = _ua;
+        ..headers.addAll(_xhsHeaders);
       String? loc;
       try {
         final r = await _http.send(req).timeout(_timeout);
@@ -240,17 +255,17 @@ class HttpAuthorLinkService implements AuthorLinkService {
   /// 筆記頁的 `note.noteDetailMap.<id>.note.user` 有作者 id、名字、頭像。
   /// 個人頁拿得到就用個人頁（多了小紅書號、大頭像），拿不到就用筆記上的資料。
   Future<LinkedProfile> _xhsFromNote(Uri url) async {
-    final state = _xhsState(await _get(url));
+    final state = _xhsState(await _get(url, headers: _xhsHeaders));
+    // 手機版頁面：noteData.data.noteData；電腦版：note.noteDetailMap 的最後一筆。
     Map<String, dynamic>? user;
+    final phone =
+        (((state?['noteData'] as Map?)?['data'] as Map?)?['noteData']
+            as Map?)?['user'];
+    if (phone is Map<String, dynamic>) user = phone;
     final map = (state?['note'] as Map?)?['noteDetailMap'];
-    if (map is Map) {
-      for (final v in map.values) {
-        final u = ((v as Map?)?['note'] as Map?)?['user'];
-        if (u is Map<String, dynamic>) {
-          user = u;
-          break;
-        }
-      }
+    if (user == null && map is Map && map.isNotEmpty) {
+      final u = ((map.values.last as Map?)?['note'] as Map?)?['user'];
+      if (u is Map<String, dynamic>) user = u;
     }
     final id = '${user?['userId'] ?? ''}';
     final name = '${user?['nickname'] ?? user?['nickName'] ?? ''}';
@@ -272,6 +287,7 @@ class HttpAuthorLinkService implements AuthorLinkService {
   Future<LinkedProfile> _xhsProfilePage(String id) async {
     final html = await _get(
       Uri.https('www.xiaohongshu.com', '/user/profile/$id'),
+      headers: _xhsHeaders,
     );
     final user = _xhsState(html)?['user'] as Map?;
     final info = (user?['userPageData'] as Map?)?['basicInfo'] as Map?;
@@ -300,6 +316,7 @@ class HttpAuthorLinkService implements AuthorLinkService {
         .substring(from, end)
         .trim()
         .replaceAll(RegExp(r';$'), '')
+        .replaceAll(RegExp(r'new (?:Map|Set)\(\[\]\)'), '[]')
         .replaceAll(RegExp(r'(?<=[:\[,])undefined(?=[,}\]])'), 'null');
     try {
       return jsonDecode(raw) as Map<String, dynamic>;

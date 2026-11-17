@@ -97,6 +97,26 @@ void main() {
     expect(p.avatarUrl, 'https://a/b.jpg');
   });
 
+  test('手機版頁面（noteData）＋ new Map([])、undefined 也讀得到', () async {
+    final html =
+        '<script>window.__INITIAL_STATE__={"global":new Map([]),"x":undefined,'
+        '"noteData":{"data":{"noteData":{"user":{"userId":"$_uid",'
+        '"nickName":"便裝汀","avatar":"https://a/2.jpg"}}}}}</script>';
+    final c = MockClient((r) async {
+      if (r.url.path.startsWith('/explore/')) {
+        expect(r.headers['User-Agent'], contains('Windows'));
+        return http.Response.bytes(utf8.encode(html), 200);
+      }
+      return http.Response('', 404);
+    });
+    final p = await HttpAuthorLinkService(c).lookup(
+      LinkPlatform.xhs,
+      'https://www.xiaohongshu.com/explore/$_nid?xsec_token=t',
+    );
+    expect(p.name, '便裝汀');
+    expect(p.avatarUrl, 'https://a/2.jpg');
+  });
+
   test('個人頁被擋：用筆記上的作者資料', () async {
     final p = await HttpAuthorLinkService(client(profileOk: false))
         .lookup(LinkPlatform.xhs, 'http://xhslink.com/o/FsNEcTUT8D');
